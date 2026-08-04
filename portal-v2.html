@@ -23,7 +23,10 @@
   --marca-gris-claro:#F5F5F0;
 
   --texto-principal:#1A1A1A;
-  --texto-secundario:#777777;
+  /* El brand book define el secundario en #777777, que da 4.48:1 sobre
+     blanco y no alcanza el 4.5 de AA. Se oscurece lo minimo para
+     cumplir: este token pinta fechas, conteos y subtitulos a 10-13.5px. */
+  --texto-secundario:#6B6B6B;
   --texto-sobre-oscuro:#FFFFFF;
   --texto-sobre-oscuro-2:rgba(255,255,255,.55);
   --texto-sobre-oscuro-3:rgba(255,255,255,.66);
@@ -40,12 +43,12 @@
      entra aqui, y ninguno de estos se usa como decoracion.
      Cada estado tiene tres registros: relleno solido, fondo tenue del
      badge, y texto sobre ese fondo tenue. */
-  --estado-en-meta:#3FBF6F;
+  --estado-en-meta:#2E9E5B;
   --estado-en-meta-suave:#E4F6EB;
   --estado-en-meta-fuerte:#1B6E3C;
-  --estado-en-meta-halo:rgba(63,191,111,.18);
+  --estado-en-meta-halo:rgba(46,158,91,.18);
 
-  --estado-atencion:#E8A33D;
+  --estado-atencion:#C77F1A;
   --estado-atencion-suave:#FDF0DC;
   --estado-atencion-fuerte:#8A5A00;
 
@@ -53,7 +56,7 @@
   --estado-riesgo-suave:#FBE3E1;
   --estado-riesgo-fuerte:#93231B;
 
-  --estado-neutro:#9AA0A6;
+  --estado-neutro:#82888E;
   --estado-neutro-suave:#ECEDEA;
   --estado-neutro-fuerte:#5A5A5A;
 
