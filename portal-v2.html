@@ -72,11 +72,21 @@
 body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);font-weight:300;line-height:1.6;font-size:14px}
 .wrap{max-width:1120px;margin:0 auto;padding:0 22px 80px}
 
-header{display:flex;justify-content:space-between;align-items:center;gap:20px;
-  flex-wrap:wrap;padding:26px 0 18px}
-.brand{display:flex;align-items:center;gap:16px}
-.brand img{height:44px;display:block}
-.brand-fallback{font-weight:700;font-size:22px;letter-spacing:-.5px}
+/* Header sobre fondo claro: el logo del cliente tiene texto oscuro y
+   sobre verde profundo no se leeria. Los dos logos se muestran sin
+   alterar color, proporcion ni sombra.
+   El area de respeto del logo Actio (18px) equivale a la altura de su
+   "A" con el logo a 44px. Ningun logo baja de 28px. */
+header{display:flex;align-items:center;gap:18px;
+  background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:18px 22px;margin:22px 0 18px}
+.marca-actio{display:flex;align-items:center;flex-shrink:0;
+  padding-right:18px;border-right:1px solid var(--marca-verde-claro)}
+.marca-actio img{height:44px;display:block}
+.titulo{flex:1;min-width:0}
+.marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
+.marca-cliente img{height:32px;display:block}
+.brand-fallback{font-weight:700;font-size:18px;letter-spacing:-.5px}
 .eyebrow{font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--texto-secundario);font-weight:600}
 .h-title{font-size:22px;font-weight:600;margin-top:2px}
 .stamp{font-size:11px;color:var(--texto-secundario);background:var(--superficie);border:1px solid var(--borde);
@@ -84,8 +94,9 @@ header{display:flex;justify-content:space-between;align-items:center;gap:20px;
 .stamp::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--estado-en-meta);
   box-shadow:0 0 0 4px var(--estado-en-meta-halo)}
 
-nav{display:flex;gap:9px;flex-wrap:wrap;border-bottom:1px solid var(--borde);
+nav{display:flex;gap:9px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--borde);
   padding-bottom:16px;margin-bottom:34px}
+nav .stamp{margin-left:auto}
 .tab{font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border-radius:999px;padding:9px 20px;transition:.15s}
 .tab:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo);border-color:var(--marca-borde-suave)}
@@ -245,27 +256,40 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   .i-prog{display:none}
   .docs{grid-template-columns:1fr}
 }
+
+/* Bajo 640px los dos logos no caben en una linea junto al titulo.
+   Se apilan: logos en una fila (Actio izquierda, cliente derecha) y
+   el titulo debajo. */
+@media(max-width:640px){
+  header{flex-wrap:wrap;gap:14px;padding:16px 18px}
+  .marca-actio{border-right:none;padding-right:0}
+  .titulo{order:3;flex-basis:100%}
+  nav .stamp{margin-left:0}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <div class="brand">
+    <div class="marca-actio">
+      <img src="logo-actio-verde.png" alt="Actio Growth">
+    </div>
+    <div class="titulo">
+      <div class="eyebrow">Actio Growth &middot; Sistema Operativo</div>
+      <div class="h-title">Portal del proyecto</div>
+    </div>
+    <div class="marca-cliente">
       <img src="logo-cliente.png" alt="Vida en Arte" onerror="this.style.display='none';document.getElementById('bf').style.display='block'">
       <div id="bf" class="brand-fallback" style="display:none">VIDA EN ARTE</div>
-      <div>
-        <div class="eyebrow">Actio Growth &middot; Sistema Operativo</div>
-        <div class="h-title">Portal del proyecto</div>
-      </div>
     </div>
-    <div class="stamp" id="stamp">Cargando informacion...</div>
   </header>
 
   <nav>
     <button class="tab on" data-p="avance">Avance del proyecto</button>
     <button class="tab" data-p="docs">Documentos<span class="cnt" id="cd"></span></button>
     <button class="tab" data-p="reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
+    <div class="stamp" id="stamp">Cargando informacion...</div>
   </nav>
 
   <div class="pane on" id="p-avance"><div class="load">Cargando hoja de ruta...</div></div>
