@@ -64,7 +64,6 @@
   --borde:#E3E3DD;
   --borde-suave:#EFEFE9;
   --pista-sobre-oscuro:rgba(255,255,255,.14);
-  --linea-sobre-oscuro:rgba(255,255,255,.16);
 
   --font:'Inter',system-ui,sans-serif;
 }
@@ -117,25 +116,25 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .hero-val{font-size:62px;font-weight:700;line-height:1;letter-spacing:-2.5px;margin-top:8px}
 .hero-val small{font-size:24px;font-weight:500;color:var(--texto-sobre-oscuro-2)}
 .hero-desc{font-size:13px;color:var(--texto-sobre-oscuro-3);margin-top:12px;max-width:440px}
-.hero-2nd{margin-top:14px;font-size:12px;color:var(--texto-sobre-oscuro-2);
-  border-top:1px solid var(--linea-sobre-oscuro);padding-top:12px}
 
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:34px}
 .card{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;padding:18px 20px;
   cursor:pointer;transition:.18s}
 .card:hover{border-color:var(--marca-verde-claro);transform:translateY(-2px);box-shadow:0 8px 20px var(--marca-sombra)}
 .card.active{border-color:var(--marca-verde-profundo);border-width:2px;box-shadow:0 8px 22px var(--marca-sombra-fuerte)}
-.card.idle{opacity:.72}
+/* Unidad sin alcance definido. Atenuada respecto a las activas pero
+   sin gris de deshabilitado: no esta rota ni bloqueada, solo todavia
+   no acordada. El borde punteado dice "pendiente de definir". */
+.card.sin-alcance{background:var(--fondo);border-style:dashed;border-color:var(--marca-borde-suave)}
+.card.sin-alcance:hover{border-color:var(--marca-verde-claro)}
+.c-pendiente{font-size:15px;font-weight:500;color:var(--texto-secundario);letter-spacing:-.2px}
 .c-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .c-name{font-size:14.5px;font-weight:600}
-.c-tag{font-size:9.5px;font-weight:600;color:var(--texto-secundario);background:var(--fondo);padding:3px 9px;border-radius:20px}
 .c-val{font-size:31px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--marca-verde-profundo)}
 .c-val small{font-size:14px;color:var(--texto-secundario);font-weight:500}
-.card.idle .c-val{color:var(--texto-secundario)}
 .c-of{font-size:11px;color:var(--texto-secundario);margin:5px 0 12px}
 .c-bar{height:6px;background:var(--borde);border-radius:6px;overflow:hidden}
 .c-fill{height:100%;border-radius:6px;background:var(--estado-en-meta);transition:width .5s}
-.card.idle .c-fill{background:var(--estado-neutro)}
 
 .legend{display:flex;gap:20px;flex-wrap:wrap;background:var(--superficie);border:1px solid var(--borde);
   border-radius:12px;padding:13px 20px;margin-bottom:28px}
@@ -297,9 +296,9 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   <div class="pane" id="p-reu"><div class="load">Cargando reuniones...</div></div>
 
   <div class="foot">
-    <b>Modelo de calculo:</b> el avance de cada unidad de negocio = entregables completados / total de entregables de esa unidad.
-    El cumplimiento total pondera por igual las cuatro unidades del proyecto.<br>
-    <b>Fuente:</b> sistema de gestion de Actio Growth &middot; la informacion se actualiza automaticamente.
+    <b>Modelo de cálculo:</b> el avance total = entregables completados / total de entregables del proyecto.
+    Las unidades cuyo alcance aún no está definido no entran en el cálculo hasta que se definan.<br>
+    <b>Fuente:</b> sistema de gestión de Actio Growth &middot; la información se actualiza automáticamente.
   </div>
 </div>
 
@@ -309,7 +308,6 @@ const CSV_DOCUMENTOS="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F5
 const CSV_REUNIONES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=888187894&single=true&output=csv";
 
 const UNIDADES=["Kinder","Veranito","After School","Cumplea\u00f1os"];
-const EN_CURSO=["Kinder","Veranito"];
 const PIPELINE=["Marketing","Ventas","Servicio","Finanzas"];
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
@@ -411,44 +409,62 @@ fetch(CSV_REUNIONES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()
   '<div class="err"><b>No se pudieron cargar las reuniones.</b><br>Detalle: '+e.message+'</div>'; });
 
 /* ============ AVANCE ============ */
+/* Avance total: entregables completados sobre el total de entregables
+   del proyecto, sin ponderar por unidad. Una unidad con 16 entregables
+   pesa mas que una con 3, y eso es correcto.
+   Las unidades cuyo alcance aun no esta definido no tienen filas en el
+   CSV, asi que quedan fuera del numerador y del denominador por si
+   solas: no hacen falta casos especiales aqui. */
+function statsProyecto(){
+  const done=DATA.filter(d=>d.estado==="Entregado").length;
+  const total=DATA.length;
+  return {done,total,pct:total?(done/total*100):0};
+}
+
 function statsUnidad(u){
   const items=DATA.filter(d=>d.unidad===u);
   const done=items.filter(d=>d.estado==="Entregado").length;
-  return {items,done,total:items.length,pct:items.length?Math.round(done/items.length*100):0};
+  /* Guarda explicita contra la division por cero. Una unidad sin
+     entregables no tiene porcentaje que calcular, y devolver 0 aqui
+     comunicaria incumplimiento cuando lo cierto es que el alcance
+     todavia no existe. Por eso pct queda en null y no en 0. */
+  const sinAlcance=items.length===0;
+  return {items,done,total:items.length,sinAlcance,
+          pct:sinAlcance?null:Math.round(done/items.length*100)};
 }
 
 function renderAvance(){
-  const curso=DATA.filter(d=>EN_CURSO.includes(d.unidad));
-  const cDone=curso.filter(d=>d.estado==="Entregado").length;
-  const pctCurso=curso.length?(cDone/curso.length*100):0;
-  const pond=UNIDADES.reduce((a,u)=>a+statsUnidad(u).pct,0)/UNIDADES.length;
+  const P=statsProyecto();
 
   let h='<div class="sec-label">Resumen ejecutivo</div>';
   h+='<h2>Avance general del proyecto</h2>';
-  h+='<div class="sub">El avance se mide por entregables completados sobre el total comprometido en cada unidad de negocio.</div>';
+  h+='<div class="sub">El avance total se mide por entregables completados sobre el total de entregables del proyecto.</div>';
 
   const R=54,C=2*Math.PI*R;
   h+='<div class="hero"><div class="hero-l">'+
-     '<div class="hero-lbl">Avance del alcance en curso</div>'+
-     '<div class="hero-val">'+pctCurso.toFixed(1)+'<small>%</small></div>'+
-     '<div class="hero-desc">'+cDone+' de '+curso.length+' entregables completados en Kinder y Veranito, las unidades activas del proyecto.</div>'+
-     '<div class="hero-2nd">Cumplimiento total ponderado (4 unidades): <b>'+pond.toFixed(1)+'%</b> &middot; After School y Cumplea\u00f1os inician entrega en septiembre.</div>'+
+     '<div class="hero-lbl">Avance total del proyecto</div>'+
+     '<div class="hero-val">'+P.pct.toFixed(1)+'<small>%</small></div>'+
+     '<div class="hero-desc">'+P.done+' de '+P.total+' entregables completados.</div>'+
      '</div><div><svg width="132" height="132" viewBox="0 0 132 132">'+
      '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--pista-sobre-oscuro)" stroke-width="12"/>'+
      '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--estado-en-meta)" stroke-width="12" stroke-linecap="round" '+
-     'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-pctCurso/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
-     '<text x="66" y="62" text-anchor="middle" style="fill:var(--texto-sobre-oscuro);font-family:var(--font)" font-size="23" font-weight="700">'+pctCurso.toFixed(1)+'%</text>'+
-     '<text x="66" y="82" text-anchor="middle" style="fill:var(--texto-sobre-oscuro-2);font-family:var(--font)" font-size="9.5" font-weight="600" letter-spacing="1">EN CURSO</text>'+
+     'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-P.pct/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+     '<text x="66" y="62" text-anchor="middle" style="fill:var(--texto-sobre-oscuro);font-family:var(--font)" font-size="23" font-weight="700">'+P.pct.toFixed(1)+'%</text>'+
+     '<text x="66" y="82" text-anchor="middle" style="fill:var(--texto-sobre-oscuro-2);font-family:var(--font)" font-size="9.5" font-weight="600" letter-spacing="1">TOTAL</text>'+
      '</svg></div></div>';
 
   h+='<div class="cards">';
   UNIDADES.forEach(u=>{
-    const s=statsUnidad(u),idle=s.total===0;
-    h+='<div class="card'+(openUnit===u?' active':'')+(idle?' idle':'')+'" data-u="'+esc(u)+'">'+
-       '<div class="c-top"><div class="c-name">'+esc(u)+'</div><div class="c-tag">25% del total</div></div>'+
-       '<div class="c-val">'+s.pct+'<small>%</small></div>'+
-       '<div class="c-of">'+(idle?'Alcance por definir':s.done+' de '+s.total+' entregables')+'</div>'+
-       '<div class="c-bar"><div class="c-fill" style="width:'+s.pct+'%"></div></div></div>';
+    const s=statsUnidad(u);
+    h+='<div class="card'+(openUnit===u?' active':'')+(s.sinAlcance?' sin-alcance':'')+'" data-u="'+esc(u)+'">'+
+       '<div class="c-top"><div class="c-name">'+esc(u)+'</div></div>';
+    /* Sin porcentaje ni barra: un 0% aqui se leeria como incumplimiento. */
+    h+= s.sinAlcance
+      ? '<div class="c-pendiente">Alcance por definir</div>'
+      : '<div class="c-val">'+s.pct+'<small>%</small></div>'+
+        '<div class="c-of">'+s.done+' de '+s.total+' entregables</div>'+
+        '<div class="c-bar"><div class="c-fill" style="width:'+s.pct+'%"></div></div>';
+    h+='</div>';
   });
   h+='</div>';
 
@@ -476,7 +492,7 @@ function renderAvance(){
     const s=statsUnidad(u),open=openUnit===u;
     h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'">'+
        '<div class="rinfo"><div class="tog">'+(open?'\u25be':'\u25b8')+'</div>'+
-       '<div class="rname">'+esc(u)+'</div><div class="rpct">'+s.pct+'%</div></div>'+
+       '<div class="rname">'+esc(u)+'</div><div class="rpct">'+(s.sinAlcance?'Sin definir':s.pct+'%')+'</div></div>'+
        '<div class="gantt" style="grid-template-columns:'+gc+'">';
     MONTHS.forEach((m,i)=>{
       let cls="";
@@ -499,8 +515,9 @@ function renderAvance(){
 }
 
 function detalle(u){
-  let items=statsUnidad(u).items;
-  if(!items.length) return '<div class="empty">Alcance por definir. Entrega prevista: septiembre de 2026.</div>';
+  const s=statsUnidad(u);
+  if(s.sinAlcance) return '<div class="empty">El alcance de esta unidad aún no está definido. Aparecerá aquí cuando se acuerde con el equipo.</div>';
+  let items=s.items;
   if(selMonth!==null){
     items=items.filter(it=>{const st=clasificar(it),d=st==="done"?it.real:it.compromiso;
       return d&&mkey(d)===mkey(MONTHS[selMonth]);});
