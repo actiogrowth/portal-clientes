@@ -5,184 +5,262 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Portal · Vida en Arte</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ==========================================================================
+   TOKENS. Unico lugar del archivo donde se declara un color.
+   Para replicar el portal a otro cliente se cambian las URLs de CSV, la
+   constante UNIDADES y los tokens de marca. Nada mas.
+   ========================================================================== */
 :root{
-  --azul:#1974A8; --azul-claro:#AED7EB;
-  --ambar:#FFA615; --ambar-claro:#F1C873;
-  --rojo:#D71C0E; --rosa:#FCCDCE;
-  --negro:#000000; --gris:#E5E5E5; --gris-t:#777777;
-  --bg:#FAFAFA; --card:#FFFFFF;
-  --font:'Poppins',system-ui,sans-serif;
+  /* ---------- Marca Actio ----------
+     Identidad. Nunca comunica estado de proyecto. */
+  --marca-verde-profundo:#004225;
+  --marca-verde-medio:#355E3B;
+  --marca-verde-claro:#4C6B47;
+  --marca-gris-claro:#F5F5F0;
+
+  --texto-principal:#1A1A1A;
+  /* El brand book define el secundario en #777777, que da 4.48:1 sobre
+     blanco y no alcanza el 4.5 de AA. Se oscurece lo minimo para
+     cumplir: este token pinta fechas, conteos y subtitulos a 10-13.5px. */
+  --texto-secundario:#6B6B6B;
+  --texto-sobre-oscuro:#FFFFFF;
+  --texto-sobre-oscuro-2:rgba(255,255,255,.55);
+  --texto-sobre-oscuro-3:rgba(255,255,255,.66);
+
+  /* Derivados de marca: tintes, bordes y sombras. Decoracion, no señal. */
+  --marca-tenue:#EDF2EE;
+  --marca-borde-suave:#C9D6CC;
+  --marca-realce:rgba(0,66,37,.06);
+  --marca-sombra:rgba(0,66,37,.10);
+  --marca-sombra-fuerte:rgba(0,66,37,.16);
+
+  /* ---------- Estados funcionales ----------
+     Semaforo. Nombrados por funcion, no por color. El verde de marca no
+     entra aqui, y ninguno de estos se usa como decoracion.
+     Cada estado tiene tres registros: relleno solido, fondo tenue del
+     badge, y texto sobre ese fondo tenue. */
+  --estado-en-meta:#2E9E5B;
+  --estado-en-meta-suave:#E4F6EB;
+  --estado-en-meta-fuerte:#1B6E3C;
+  --estado-en-meta-halo:rgba(46,158,91,.18);
+
+  --estado-atencion:#C77F1A;
+  --estado-atencion-suave:#FDF0DC;
+  --estado-atencion-fuerte:#8A5A00;
+
+  --estado-riesgo:#D1453B;
+  --estado-riesgo-suave:#FBE3E1;
+  --estado-riesgo-fuerte:#93231B;
+
+  --estado-neutro:#82888E;
+  --estado-neutro-suave:#ECEDEA;
+  --estado-neutro-fuerte:#5A5A5A;
+
+  /* ---------- Superficies ---------- */
+  --fondo:var(--marca-gris-claro);
+  --superficie:#FFFFFF;
+  --superficie-sutil:#FAFAF7;
+  --borde:#E3E3DD;
+  --borde-suave:#EFEFE9;
+  --pista-sobre-oscuro:rgba(255,255,255,.14);
+
+  --font:'Inter',system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:#1A1A1A;font-weight:300;line-height:1.6;font-size:14px}
+body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);font-weight:300;line-height:1.6;font-size:14px}
 .wrap{max-width:1120px;margin:0 auto;padding:0 22px 80px}
 
-header{display:flex;justify-content:space-between;align-items:center;gap:20px;
-  flex-wrap:wrap;padding:26px 0 18px}
-.brand{display:flex;align-items:center;gap:16px}
-.brand img{height:44px;display:block}
-.brand-fallback{font-weight:700;font-size:22px;letter-spacing:-.5px}
-.eyebrow{font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gris-t);font-weight:600}
+/* Header sobre fondo claro: el logo del cliente tiene texto oscuro y
+   sobre verde profundo no se leeria. Los dos logos se muestran sin
+   alterar color, proporcion ni sombra.
+   El area de respeto del logo Actio (18px) equivale a la altura de su
+   "A" con el logo a 44px. Ningun logo baja de 28px. */
+header{display:flex;align-items:center;gap:18px;
+  background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:18px 22px;margin:22px 0 18px}
+.marca-actio{display:flex;align-items:center;flex-shrink:0;
+  padding-right:18px;border-right:1px solid var(--marca-verde-claro)}
+.marca-actio img{height:44px;display:block}
+.titulo{flex:1;min-width:0}
+.marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
+.marca-cliente img{height:32px;display:block}
+.brand-fallback{font-weight:700;font-size:18px;letter-spacing:-.5px}
+.eyebrow{font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--texto-secundario);font-weight:600}
 .h-title{font-size:22px;font-weight:600;margin-top:2px}
-.stamp{font-size:11px;color:var(--gris-t);background:var(--card);border:1px solid var(--gris);
+.stamp{font-size:11px;color:var(--texto-secundario);background:var(--superficie);border:1px solid var(--borde);
   border-radius:999px;padding:8px 15px;display:flex;align-items:center;gap:8px;white-space:nowrap}
-.stamp::before{content:"";width:8px;height:8px;border-radius:50%;background:#3fbf6f;
-  box-shadow:0 0 0 4px rgba(63,191,111,.18)}
+.stamp::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--estado-en-meta);
+  box-shadow:0 0 0 4px var(--estado-en-meta-halo)}
 
-nav{display:flex;gap:9px;flex-wrap:wrap;border-bottom:1px solid var(--gris);
+nav{display:flex;gap:9px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--borde);
   padding-bottom:16px;margin-bottom:34px}
-.tab{font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--gris);
-  background:var(--card);color:var(--gris-t);border-radius:999px;padding:9px 20px;transition:.15s}
-.tab:hover{background:#F0F6FA;color:var(--azul);border-color:var(--azul-claro)}
-.tab.on{background:var(--azul);color:#fff;border-color:var(--azul);box-shadow:0 4px 14px rgba(25,116,168,.22)}
+nav .stamp{margin-left:auto}
+.tab{font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--borde);
+  background:var(--superficie);color:var(--texto-secundario);border-radius:999px;padding:9px 20px;transition:.15s}
+.tab:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo);border-color:var(--marca-borde-suave)}
+.tab.on{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo);box-shadow:0 4px 14px var(--marca-sombra-fuerte)}
 .tab .cnt{opacity:.7;font-weight:500;margin-left:5px}
 
 .pane{display:none}
 .pane.on{display:block}
 
-.sec-label{font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--azul);font-weight:600;margin-bottom:8px}
+.sec-label{font-size:10px;letter-spacing:2.2px;text-transform:uppercase;color:var(--marca-verde-profundo);font-weight:600;margin-bottom:8px}
 h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
-.sub{font-size:13.5px;color:var(--gris-t);margin-bottom:26px}
+.sub{font-size:13.5px;color:var(--texto-secundario);margin-bottom:26px}
 
-.hero{background:var(--negro);border-radius:18px;padding:32px 36px;color:#fff;
+.hero{background:var(--marca-verde-profundo);border-radius:18px;padding:32px 36px;color:var(--texto-sobre-oscuro);
   display:flex;align-items:center;justify-content:space-between;gap:36px;flex-wrap:wrap;margin-bottom:18px}
 .hero-l{flex:1;min-width:260px}
-.hero-lbl{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:600}
+.hero-lbl{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--texto-sobre-oscuro-2);font-weight:600}
 .hero-val{font-size:62px;font-weight:700;line-height:1;letter-spacing:-2.5px;margin-top:8px}
-.hero-val small{font-size:24px;font-weight:500;color:rgba(255,255,255,.55)}
-.hero-desc{font-size:13px;color:rgba(255,255,255,.66);margin-top:12px;max-width:440px}
-.hero-2nd{margin-top:14px;font-size:12px;color:rgba(255,255,255,.5);
-  border-top:1px solid rgba(255,255,255,.16);padding-top:12px}
+.hero-val small{font-size:24px;font-weight:500;color:var(--texto-sobre-oscuro-2)}
+.hero-desc{font-size:13px;color:var(--texto-sobre-oscuro-3);margin-top:12px;max-width:440px}
 
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:34px}
-.card{background:var(--card);border:1px solid var(--gris);border-radius:14px;padding:18px 20px;
+.card{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;padding:18px 20px;
   cursor:pointer;transition:.18s}
-.card:hover{border-color:var(--azul);transform:translateY(-2px);box-shadow:0 8px 20px rgba(25,116,168,.10)}
-.card.active{border-color:var(--azul);border-width:2px;box-shadow:0 8px 22px rgba(25,116,168,.16)}
-.card.idle{opacity:.72}
+.card:hover{border-color:var(--marca-verde-claro);transform:translateY(-2px);box-shadow:0 8px 20px var(--marca-sombra)}
+.card.active{border-color:var(--marca-verde-profundo);border-width:2px;box-shadow:0 8px 22px var(--marca-sombra-fuerte)}
+/* Unidad sin alcance definido. Atenuada respecto a las activas pero
+   sin gris de deshabilitado: no esta rota ni bloqueada, solo todavia
+   no acordada. El borde punteado dice "pendiente de definir". */
+.card.sin-alcance{background:var(--fondo);border-style:dashed;border-color:var(--marca-borde-suave)}
+.card.sin-alcance:hover{border-color:var(--marca-verde-claro)}
+.c-pendiente{font-size:15px;font-weight:500;color:var(--texto-secundario);letter-spacing:-.2px}
 .c-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .c-name{font-size:14.5px;font-weight:600}
-.c-tag{font-size:9.5px;font-weight:600;color:var(--gris-t);background:var(--bg);padding:3px 9px;border-radius:20px}
-.c-val{font-size:31px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--azul)}
-.c-val small{font-size:14px;color:var(--gris-t);font-weight:500}
-.card.idle .c-val{color:var(--gris-t)}
-.c-of{font-size:11px;color:var(--gris-t);margin:5px 0 12px}
-.c-bar{height:6px;background:var(--gris);border-radius:6px;overflow:hidden}
-.c-fill{height:100%;border-radius:6px;background:var(--azul);transition:width .5s}
-.card.idle .c-fill{background:var(--gris)}
+.c-val{font-size:31px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--marca-verde-profundo)}
+.c-val small{font-size:14px;color:var(--texto-secundario);font-weight:500}
+.c-of{font-size:11px;color:var(--texto-secundario);margin:5px 0 0}
+/* Rango de entregas: un escalon por debajo del conteo, para que aporte
+   contexto sin competir con la cifra. El margen que separaba el conteo
+   de la barra se muda a la barra, asi el espaciado no cambia en las
+   tarjetas que no llevan esta linea. */
+.c-rango{font-size:10px;color:var(--texto-secundario);margin-top:3px;letter-spacing:.2px}
+.c-bar{height:6px;background:var(--borde);border-radius:6px;overflow:hidden;margin-top:12px}
+.c-fill{height:100%;border-radius:6px;background:var(--estado-en-meta);transition:width .5s}
 
-.legend{display:flex;gap:20px;flex-wrap:wrap;background:var(--card);border:1px solid var(--gris);
+.legend{display:flex;gap:20px;flex-wrap:wrap;background:var(--superficie);border:1px solid var(--borde);
   border-radius:12px;padding:13px 20px;margin-bottom:28px}
-.lg{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--gris-t)}
+.lg{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--texto-secundario)}
 .dot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
 
-.tl{background:var(--card);border:1px solid var(--gris);border-radius:12px;padding:9px;margin-bottom:11px;
+.tl{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:9px;margin-bottom:11px;
   display:grid;grid-template-columns:210px 1fr;gap:5px}
 .tl-l{display:flex;gap:5px}
 .tl-tag{flex:1;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;
-  letter-spacing:1.2px;text-transform:uppercase;color:var(--gris-t);background:var(--bg);border-radius:8px;padding:0 12px}
-.tl-year{display:flex;align-items:center;justify-content:center;padding:0 15px;background:var(--negro);color:#fff;
-  border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;border:2px solid var(--negro);transition:.15s}
-.tl-year.on{background:var(--ambar);color:var(--negro);border-color:var(--ambar)}
+  letter-spacing:1.2px;text-transform:uppercase;color:var(--texto-secundario);background:var(--fondo);border-radius:8px;padding:0 12px}
+.tl-year{display:flex;align-items:center;justify-content:center;padding:0 15px;background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;border:2px solid var(--marca-verde-profundo);transition:.15s}
+.tl-year.on{background:var(--marca-verde-medio);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-medio)}
 .months{display:grid;gap:3px}
 .mo{display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;text-transform:uppercase;
-  color:var(--gris-t);padding:7px 2px;cursor:pointer;border-radius:6px;border:1px solid transparent;transition:.15s}
-.mo:hover{background:var(--bg);border-color:var(--gris);color:var(--negro)}
-.mo.now{color:var(--azul);font-weight:700}
-.mo.sel{background:var(--azul);color:#fff;border-color:var(--azul)}
-.note{font-size:12px;color:var(--azul);font-weight:500;min-height:19px;margin-bottom:14px}
+  color:var(--texto-secundario);padding:7px 2px;cursor:pointer;border-radius:6px;border:1px solid transparent;transition:.15s}
+.mo:hover{background:var(--fondo);border-color:var(--borde);color:var(--texto-principal)}
+.mo.now{color:var(--marca-verde-profundo);font-weight:700}
+.mo.sel{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+.note{font-size:12px;color:var(--marca-verde-profundo);font-weight:500;min-height:19px;margin-bottom:14px}
 
-.row{border:1px solid var(--gris);border-radius:12px;margin-bottom:11px;overflow:hidden;background:var(--card)}
-.row.open{border-color:var(--azul)}
+.row{border:1px solid var(--borde);border-radius:12px;margin-bottom:11px;overflow:hidden;background:var(--superficie)}
+.row.open{border-color:var(--marca-verde-profundo)}
 .rh{display:grid;grid-template-columns:210px 1fr;align-items:center;padding:15px 18px;cursor:pointer;transition:.15s}
-.rh:hover{background:#FAFCFD}
+.rh:hover{background:var(--superficie-sutil)}
 .rinfo{display:flex;align-items:center;gap:11px;min-width:0}
-.tog{width:20px;height:20px;border-radius:5px;border:1px solid var(--gris);display:flex;align-items:center;
-  justify-content:center;font-size:9px;color:var(--gris-t);flex-shrink:0;transition:.2s}
-.row.open .tog{border-color:var(--azul);color:var(--azul);background:rgba(25,116,168,.06)}
+.tog{width:20px;height:20px;border-radius:5px;border:1px solid var(--borde);display:flex;align-items:center;
+  justify-content:center;font-size:9px;color:var(--texto-secundario);flex-shrink:0;transition:.2s}
+.row.open .tog{border-color:var(--marca-verde-profundo);color:var(--marca-verde-profundo);background:var(--marca-realce)}
 .rname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rpct{font-size:12px;font-weight:600;margin-left:auto;color:var(--azul);flex-shrink:0}
+.rpct{font-size:12px;font-weight:600;margin-left:auto;color:var(--marca-verde-profundo);flex-shrink:0}
 .gantt{display:grid;gap:3px;align-items:center}
-.cell{height:26px;border-radius:4px;background:var(--gris);opacity:.45;transition:.15s}
-.cell.done{background:var(--azul);opacity:1}
-.cell.prog{background:var(--ambar);opacity:1}
-.cell.pend{background:var(--ambar-claro);opacity:1}
-.cell.late{background:var(--rojo);opacity:1}
-.cell.now{box-shadow:0 0 0 2px var(--azul-claro)}
-.cell.selcol{outline:2px solid var(--negro);outline-offset:1px}
+.cell{height:26px;border-radius:4px;background:var(--borde);opacity:.45;transition:.15s}
+.cell.done{background:var(--estado-en-meta);opacity:1}
+.cell.prog{background:var(--estado-atencion);opacity:1}
+.cell.pend{background:var(--estado-neutro);opacity:1}
+.cell.late{background:var(--estado-riesgo);opacity:1}
+.cell.now{box-shadow:0 0 0 2px var(--marca-borde-suave)}
+.cell.selcol{outline:2px solid var(--marca-verde-profundo);outline-offset:1px}
 
-.body{display:none;background:#FCFDFE;border-top:1px solid var(--gris)}
+.body{display:none;background:var(--superficie-sutil);border-top:1px solid var(--borde)}
 .row.open .body{display:block}
-.stage{padding:16px 20px;border-bottom:1px solid var(--gris)}
+.stage{padding:16px 20px;border-bottom:1px solid var(--borde)}
 .stage:last-child{border-bottom:none}
 .st-h{font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:11px;
-  display:flex;align-items:center;gap:9px;color:var(--azul)}
-.st-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--azul)}
-.st-h .n{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--gris-t);font-size:11px}
-.item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #EFF2F4}
+  display:flex;align-items:center;gap:9px;color:var(--marca-verde-profundo)}
+.st-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--marca-verde-profundo)}
+.st-h .n{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--texto-secundario);font-size:11px}
+.item{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--borde-suave)}
 .item:last-child{border-bottom:none}
 .i-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .i-name{font-size:13.5px;flex:1;font-weight:400;min-width:0}
 .i-prog{width:110px;flex-shrink:0}
-.i-prog .b{height:5px;background:var(--gris);border-radius:5px;overflow:hidden}
-.i-prog .f{height:100%;background:var(--ambar);border-radius:5px}
-.i-prog .t{font-size:10px;color:var(--gris-t);margin-top:3px;text-align:right}
-.i-date{font-size:11px;color:var(--gris-t);white-space:nowrap;flex-shrink:0;min-width:92px;text-align:right}
+.i-prog .b{height:5px;background:var(--borde);border-radius:5px;overflow:hidden}
+.i-prog .f{height:100%;background:var(--estado-atencion);border-radius:5px}
+.i-prog .t{font-size:10px;color:var(--texto-secundario);margin-top:3px;text-align:right}
+.i-date{font-size:11px;color:var(--texto-secundario);white-space:nowrap;flex-shrink:0;min-width:92px;text-align:right}
 .badge{font-size:9.5px;font-weight:600;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.b-done{background:var(--azul-claro);color:#0d4a6b}
-.b-prog{background:#FDEBCB;color:#8a5a00}
-.b-pend{background:var(--gris);color:#5a5a5a}
-.b-late{background:var(--rosa);color:#8f120a}
-.empty{font-size:13px;color:var(--gris-t);font-style:italic;padding:18px 20px}
+.b-done{background:var(--estado-en-meta-suave);color:var(--estado-en-meta-fuerte)}
+.b-prog{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
+.b-pend{background:var(--estado-neutro-suave);color:var(--estado-neutro-fuerte)}
+.b-late{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte)}
+.empty{font-size:13px;color:var(--texto-secundario);font-style:italic;padding:18px 20px}
 
 /* ---- DOCUMENTOS ---- */
 .filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
-.chip{font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--gris);
-  background:var(--card);color:var(--gris-t);border-radius:999px;padding:7px 16px;transition:.15s}
-.chip:hover{background:#F0F6FA;color:var(--azul)}
-.chip.on{background:var(--negro);color:#fff;border-color:var(--negro)}
+.chip{font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--borde);
+  background:var(--superficie);color:var(--texto-secundario);border-radius:999px;padding:7px 16px;transition:.15s}
+.chip:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
+.chip.on{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
 .grupo{margin-bottom:26px}
-.grupo-h{font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--azul);
+.grupo-h{font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--marca-verde-profundo);
   margin-bottom:12px;display:flex;align-items:center;gap:9px}
-.grupo-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--azul)}
-.grupo-h .n{margin-left:auto;font-weight:500;letter-spacing:0;text-transform:none;color:var(--gris-t);font-size:11px}
+.grupo-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--marca-verde-profundo)}
+.grupo-h .n{margin-left:auto;font-weight:500;letter-spacing:0;text-transform:none;color:var(--texto-secundario);font-size:11px}
 .docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.doc{background:var(--card);border:1px solid var(--gris);border-radius:12px;padding:16px 18px;
+.doc{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:16px 18px;
   display:flex;flex-direction:column;gap:9px;transition:.18s;text-decoration:none;color:inherit}
-.doc:hover{border-color:var(--azul);transform:translateY(-2px);box-shadow:0 8px 20px rgba(25,116,168,.10)}
+.doc:hover{border-color:var(--marca-verde-claro);transform:translateY(-2px);box-shadow:0 8px 20px var(--marca-sombra)}
 .doc-top{display:flex;align-items:flex-start;gap:11px}
-.doc-ico{width:34px;height:34px;border-radius:9px;background:var(--azul-claro);color:#0d4a6b;
+.doc-ico{width:34px;height:34px;border-radius:9px;background:var(--marca-tenue);color:var(--marca-verde-profundo);
   display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
 .doc-n{font-size:13.5px;font-weight:500;line-height:1.4;flex:1;min-width:0}
-.doc-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--gris-t)}
-.pill{font-size:9.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--gris-t)}
-.pill.seg{background:#EAF4FA;color:#0d4a6b}
-.doc-cta{font-size:11.5px;font-weight:600;color:var(--azul);margin-top:auto}
+.doc-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--texto-secundario)}
+.pill{font-size:9.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--fondo);color:var(--texto-secundario)}
+.pill.seg{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
+.doc-cta{font-size:11.5px;font-weight:600;color:var(--marca-verde-profundo);margin-top:auto}
 
 /* ---- REUNIONES ---- */
 .reus{position:relative;padding-left:26px}
-.reus::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--gris)}
-.reu{position:relative;background:var(--card);border:1px solid var(--gris);border-radius:12px;
+.reus::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--borde)}
+.reu{position:relative;background:var(--superficie);border:1px solid var(--borde);border-radius:12px;
   padding:16px 20px;margin-bottom:12px;transition:.18s}
-.reu:hover{border-color:var(--azul);box-shadow:0 6px 16px rgba(25,116,168,.08)}
+.reu:hover{border-color:var(--marca-verde-claro);box-shadow:0 6px 16px var(--marca-sombra)}
 .reu::before{content:"";position:absolute;left:-26px;top:24px;width:12px;height:12px;border-radius:50%;
-  background:var(--azul);border:2px solid var(--bg)}
+  background:var(--marca-verde-profundo);border:2px solid var(--fondo)}
 .reu-h{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-.reu-f{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--azul)}
+.reu-f{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--marca-verde-profundo)}
 .reu-t{font-size:15px;font-weight:600;flex:1;min-width:200px}
 .reu-links{display:flex;gap:9px;flex-wrap:wrap}
 .lnk{font-size:11.5px;font-weight:600;text-decoration:none;border-radius:999px;padding:6px 14px;
-  border:1px solid var(--gris);color:var(--azul);background:var(--card);transition:.15s;display:inline-block}
-.lnk:hover{background:var(--azul);color:#fff;border-color:var(--azul)}
-.lnk.off{color:var(--gris-t);border-style:dashed;pointer-events:none;opacity:.6}
+  border:1px solid var(--borde);color:var(--marca-verde-profundo);background:var(--superficie);transition:.15s;display:inline-block}
+.lnk:hover{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+.lnk.off{color:var(--texto-secundario);border-style:dashed;pointer-events:none;opacity:.6}
 
-.foot{border-top:1px solid var(--gris);margin:40px 0 0;padding-top:20px;
-  font-size:11px;color:var(--gris-t);line-height:1.9}
-.foot b{color:var(--negro);font-weight:600}
-.load{text-align:center;padding:70px 20px;color:var(--gris-t);font-size:14px}
-.err{background:var(--rosa);color:#8f120a;border-radius:12px;padding:20px;font-size:13px;margin-bottom:16px}
+.foot{border-top:1px solid var(--borde);margin:40px 0 0;padding-top:20px;
+  font-size:11px;color:var(--texto-secundario);line-height:1.9}
+.foot b{color:var(--texto-principal);font-weight:600}
+/* Foco de teclado. Se usa :focus-visible para que el anillo aparezca
+   al tabular pero no al hacer clic con el raton. El outline-offset lo
+   dibuja por fuera del control, asi que se lee igual sobre los botones
+   de fondo verde profundo que sobre los de fondo claro. */
+a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
+  outline:2px solid var(--marca-verde-profundo);outline-offset:2px}
+
+.load{text-align:center;padding:70px 20px;color:var(--texto-secundario);font-size:14px}
+.err{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte);border-radius:12px;padding:20px;font-size:13px;margin-bottom:16px}
 
 @media(max-width:820px){
   .cards{grid-template-columns:1fr 1fr}
@@ -192,27 +270,40 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   .i-prog{display:none}
   .docs{grid-template-columns:1fr}
 }
+
+/* Bajo 640px los dos logos no caben en una linea junto al titulo.
+   Se apilan: logos en una fila (Actio izquierda, cliente derecha) y
+   el titulo debajo. */
+@media(max-width:640px){
+  header{flex-wrap:wrap;gap:14px;padding:16px 18px}
+  .marca-actio{border-right:none;padding-right:0}
+  .titulo{order:3;flex-basis:100%}
+  nav .stamp{margin-left:0}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header>
-    <div class="brand">
-      <img src="logo.png" alt="Vida en Arte" onerror="this.style.display='none';document.getElementById('bf').style.display='block'">
-      <div id="bf" class="brand-fallback" style="display:none">VIDA EN ARTE</div>
-      <div>
-        <div class="eyebrow">Actio Growth &middot; Sistema Operativo</div>
-        <div class="h-title">Portal del proyecto</div>
-      </div>
+    <div class="marca-actio">
+      <img src="logo-actio-verde.png" alt="Actio Growth">
     </div>
-    <div class="stamp" id="stamp">Cargando informacion...</div>
+    <div class="titulo">
+      <div class="eyebrow">Actio Growth &middot; Sistema Operativo</div>
+      <div class="h-title">Portal del proyecto</div>
+    </div>
+    <div class="marca-cliente">
+      <img src="logo-cliente.png" alt="Vida en Arte" onerror="this.style.display='none';document.getElementById('bf').style.display='block'">
+      <div id="bf" class="brand-fallback" style="display:none">VIDA EN ARTE</div>
+    </div>
   </header>
 
   <nav>
-    <button class="tab on" data-p="avance">Avance del proyecto</button>
-    <button class="tab" data-p="docs">Documentos<span class="cnt" id="cd"></span></button>
-    <button class="tab" data-p="reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
+    <button class="tab on" data-p="avance" aria-controls="p-avance" aria-current="true">Avance del proyecto</button>
+    <button class="tab" data-p="docs" aria-controls="p-docs">Documentos<span class="cnt" id="cd"></span></button>
+    <button class="tab" data-p="reu" aria-controls="p-reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
+    <div class="stamp" id="stamp">Cargando informacion...</div>
   </nav>
 
   <div class="pane on" id="p-avance"><div class="load">Cargando hoja de ruta...</div></div>
@@ -220,9 +311,9 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   <div class="pane" id="p-reu"><div class="load">Cargando reuniones...</div></div>
 
   <div class="foot">
-    <b>Modelo de calculo:</b> el avance de cada unidad de negocio = entregables completados / total de entregables de esa unidad.
-    El cumplimiento total pondera por igual las cuatro unidades del proyecto.<br>
-    <b>Fuente:</b> sistema de gestion de Actio Growth &middot; la informacion se actualiza automaticamente.
+    <b>Modelo de cálculo:</b> el avance total = entregables completados / total de entregables del proyecto.
+    Las unidades cuyo alcance aún no está definido no entran en el cálculo hasta que se definan.<br>
+    <b>Fuente:</b> sistema de gestión de Actio Growth &middot; la información se actualiza automáticamente.
   </div>
 </div>
 
@@ -232,11 +323,15 @@ const CSV_DOCUMENTOS="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F5
 const CSV_REUNIONES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=888187894&single=true&output=csv";
 
 const UNIDADES=["Kinder","Veranito","After School","Cumplea\u00f1os"];
-const EN_CURSO=["Kinder","Veranito"];
 const PIPELINE=["Marketing","Ventas","Servicio","Finanzas"];
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
 let DATA=[],MONTHS=[],selMonth=null,openUnit=null;
+/* Cada interaccion repinta el panel entero con innerHTML, lo que
+   destruye el elemento que tenia el foco. Se guarda su data-foco para
+   devolverselo al equivalente recien creado y no expulsar del control
+   a quien navega con teclado. */
+let foco=null;
 let DOCS=[],filtroDoc="Todos";
 let REUS=[];
 
@@ -334,72 +429,111 @@ fetch(CSV_REUNIONES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()
   '<div class="err"><b>No se pudieron cargar las reuniones.</b><br>Detalle: '+e.message+'</div>'; });
 
 /* ============ AVANCE ============ */
+/* Avance total: entregables completados sobre el total de entregables
+   del proyecto, sin ponderar por unidad. Una unidad con 16 entregables
+   pesa mas que una con 3, y eso es correcto.
+   Las unidades cuyo alcance aun no esta definido no tienen filas en el
+   CSV, asi que quedan fuera del numerador y del denominador por si
+   solas: no hacen falta casos especiales aqui. */
+function statsProyecto(){
+  const done=DATA.filter(d=>d.estado==="Entregado").length;
+  const total=DATA.length;
+  return {done,total,pct:total?(done/total*100):0};
+}
+
 function statsUnidad(u){
   const items=DATA.filter(d=>d.unidad===u);
   const done=items.filter(d=>d.estado==="Entregado").length;
-  return {items,done,total:items.length,pct:items.length?Math.round(done/items.length*100):0};
+  /* Guarda explicita contra la division por cero. Una unidad sin
+     entregables no tiene porcentaje que calcular, y devolver 0 aqui
+     comunicaria incumplimiento cuando lo cierto es que el alcance
+     todavia no existe. Por eso pct queda en null y no en 0. */
+  const sinAlcance=items.length===0;
+  return {items,done,total:items.length,sinAlcance,
+          pct:sinAlcance?null:Math.round(done/items.length*100)};
+}
+
+/* Rango de entregas comprometidas, leido del CSV y nunca escrito a
+   mano. Se muestra solo en unidades que tienen alcance pero todavia no
+   entregan nada: ahi no hay barra ni porcentaje que leer, y la fecha es
+   lo unico que situa el trabajo en el tiempo para que el 0% no se lea
+   como retraso.
+   Devuelve null si ninguna fila trae fecha compromiso, para no inventar
+   un rango donde no hay dato. */
+function rangoEntregas(items){
+  const f=items.map(i=>i.compromiso).filter(Boolean).sort((a,b)=>a-b);
+  if(!f.length) return null;
+  const ini=f[0],fin=f[f.length-1];
+  const ai=ini.getFullYear(),af=fin.getFullYear();
+  if(ai!==af) return MES[ini.getMonth()]+" "+ai+" – "+MES[fin.getMonth()]+" "+af;
+  if(ini.getMonth()===fin.getMonth()) return MES[ini.getMonth()]+" "+ai;
+  return MES[ini.getMonth()]+" – "+MES[fin.getMonth()]+" "+ai;
 }
 
 function renderAvance(){
-  const curso=DATA.filter(d=>EN_CURSO.includes(d.unidad));
-  const cDone=curso.filter(d=>d.estado==="Entregado").length;
-  const pctCurso=curso.length?(cDone/curso.length*100):0;
-  const pond=UNIDADES.reduce((a,u)=>a+statsUnidad(u).pct,0)/UNIDADES.length;
+  const P=statsProyecto();
 
   let h='<div class="sec-label">Resumen ejecutivo</div>';
   h+='<h2>Avance general del proyecto</h2>';
-  h+='<div class="sub">El avance se mide por entregables completados sobre el total comprometido en cada unidad de negocio.</div>';
+  h+='<div class="sub">El avance total se mide por entregables completados sobre el total de entregables del proyecto.</div>';
 
   const R=54,C=2*Math.PI*R;
   h+='<div class="hero"><div class="hero-l">'+
-     '<div class="hero-lbl">Avance del alcance en curso</div>'+
-     '<div class="hero-val">'+pctCurso.toFixed(1)+'<small>%</small></div>'+
-     '<div class="hero-desc">'+cDone+' de '+curso.length+' entregables completados en Kinder y Veranito, las unidades activas del proyecto.</div>'+
-     '<div class="hero-2nd">Cumplimiento total ponderado (4 unidades): <b>'+pond.toFixed(1)+'%</b> &middot; After School y Cumplea\u00f1os inician entrega en septiembre.</div>'+
+     '<div class="hero-lbl">Avance total del proyecto</div>'+
+     '<div class="hero-val">'+P.pct.toFixed(1)+'<small>%</small></div>'+
+     '<div class="hero-desc">'+P.done+' de '+P.total+' entregables completados.</div>'+
      '</div><div><svg width="132" height="132" viewBox="0 0 132 132">'+
-     '<circle cx="66" cy="66" r="'+R+'" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="12"/>'+
-     '<circle cx="66" cy="66" r="'+R+'" fill="none" stroke="#FFA615" stroke-width="12" stroke-linecap="round" '+
-     'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-pctCurso/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
-     '<text x="66" y="62" text-anchor="middle" fill="#fff" font-size="23" font-weight="700" font-family="Poppins">'+pctCurso.toFixed(1)+'%</text>'+
-     '<text x="66" y="82" text-anchor="middle" fill="rgba(255,255,255,.55)" font-size="9.5" font-weight="600" font-family="Poppins" letter-spacing="1">EN CURSO</text>'+
+     '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--pista-sobre-oscuro)" stroke-width="12"/>'+
+     '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--estado-en-meta)" stroke-width="12" stroke-linecap="round" '+
+     'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-P.pct/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+     '<text x="66" y="62" text-anchor="middle" style="fill:var(--texto-sobre-oscuro);font-family:var(--font)" font-size="23" font-weight="700">'+P.pct.toFixed(1)+'%</text>'+
+     '<text x="66" y="82" text-anchor="middle" style="fill:var(--texto-sobre-oscuro-2);font-family:var(--font)" font-size="9.5" font-weight="600" letter-spacing="1">TOTAL</text>'+
      '</svg></div></div>';
 
   h+='<div class="cards">';
   UNIDADES.forEach(u=>{
-    const s=statsUnidad(u),idle=s.total===0;
-    h+='<div class="card'+(openUnit===u?' active':'')+(idle?' idle':'')+'" data-u="'+esc(u)+'">'+
-       '<div class="c-top"><div class="c-name">'+esc(u)+'</div><div class="c-tag">25% del total</div></div>'+
-       '<div class="c-val">'+s.pct+'<small>%</small></div>'+
-       '<div class="c-of">'+(idle?'Alcance por definir':s.done+' de '+s.total+' entregables')+'</div>'+
-       '<div class="c-bar"><div class="c-fill" style="width:'+s.pct+'%"></div></div></div>';
+    const s=statsUnidad(u);
+    /* Regla general, no un caso de After School: cualquier unidad con
+       alcance y sin nada entregado acompania su 0% con el rango. */
+    const rango=(!s.sinAlcance&&s.done===0)?rangoEntregas(s.items):null;
+    h+='<div class="card'+(openUnit===u?' active':'')+(s.sinAlcance?' sin-alcance':'')+'" data-u="'+esc(u)+'" data-foco="tarjeta:'+esc(u)+'">'+
+       '<div class="c-top"><div class="c-name">'+esc(u)+'</div></div>';
+    /* Sin porcentaje ni barra: un 0% aqui se leeria como incumplimiento. */
+    h+= s.sinAlcance
+      ? '<div class="c-pendiente">Alcance por definir</div>'
+      : '<div class="c-val">'+s.pct+'<small>%</small></div>'+
+        '<div class="c-of">'+s.done+' de '+s.total+' entregables</div>'+
+        (rango?'<div class="c-rango">Entregas: '+esc(rango)+'</div>':'')+
+        '<div class="c-bar"><div class="c-fill" style="width:'+s.pct+'%"></div></div>';
+    h+='</div>';
   });
   h+='</div>';
 
   h+='<div class="legend">'+
-     '<div class="lg"><div class="dot" style="background:var(--azul)"></div>Entregado</div>'+
-     '<div class="lg"><div class="dot" style="background:var(--ambar)"></div>En progreso</div>'+
-     '<div class="lg"><div class="dot" style="background:var(--ambar-claro)"></div>Por entregar</div>'+
-     '<div class="lg"><div class="dot" style="background:var(--rojo)"></div>Fecha vencida</div>'+
-     '<div class="lg"><div class="dot" style="background:var(--gris)"></div>Sin actividad</div></div>';
+     '<div class="lg"><div class="dot" style="background:var(--estado-en-meta)"></div>Entregado</div>'+
+     '<div class="lg"><div class="dot" style="background:var(--estado-atencion)"></div>En progreso</div>'+
+     '<div class="lg"><div class="dot" style="background:var(--estado-neutro)"></div>Por entregar</div>'+
+     '<div class="lg"><div class="dot" style="background:var(--estado-riesgo)"></div>Fecha vencida</div>'+
+     '<div class="lg"><div class="dot" style="background:var(--borde)"></div>Sin actividad</div></div>';
 
   h+='<div class="sec-label">Linea de tiempo</div><h2>Hoja de ruta por entregables</h2>';
   h+='<div class="sub">Haz clic en una unidad de negocio para ver sus entregables. Haz clic en un mes para filtrar.</div>';
 
   const gc='repeat('+MONTHS.length+',1fr)';
   h+='<div class="tl"><div class="tl-l"><div class="tl-tag">Tiempos</div>'+
-     '<div class="tl-year'+(selMonth===null?' on':'')+'" id="yr">2026</div></div>'+
+     '<div class="tl-year'+(selMonth===null?' on':'')+'" id="yr" data-foco="anio">2026</div></div>'+
      '<div class="months" style="grid-template-columns:'+gc+'">';
   const nowK=mkey(new Date());
   MONTHS.forEach((m,i)=>{
-    h+='<div class="mo'+(mkey(m)===nowK?' now':'')+(selMonth===i?' sel':'')+'" data-m="'+i+'">'+MES[m.getMonth()]+'</div>';
+    h+='<div class="mo'+(mkey(m)===nowK?' now':'')+(selMonth===i?' sel':'')+'" data-m="'+i+'" data-foco="mes:'+i+'">'+MES[m.getMonth()]+'</div>';
   });
   h+='</div></div><div class="note">'+(selMonth!==null?'Mostrando entregables de <b>'+MES[MONTHS[selMonth].getMonth()]+' '+MONTHS[selMonth].getFullYear()+'</b>':'')+'</div>';
 
   UNIDADES.forEach(u=>{
     const s=statsUnidad(u),open=openUnit===u;
-    h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'">'+
+    h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'" data-foco="fila:'+esc(u)+'">'+
        '<div class="rinfo"><div class="tog">'+(open?'\u25be':'\u25b8')+'</div>'+
-       '<div class="rname">'+esc(u)+'</div><div class="rpct">'+s.pct+'%</div></div>'+
+       '<div class="rname">'+esc(u)+'</div><div class="rpct">'+(s.sinAlcance?'Sin definir':s.pct+'%')+'</div></div>'+
        '<div class="gantt" style="grid-template-columns:'+gc+'">';
     MONTHS.forEach((m,i)=>{
       let cls="";
@@ -422,8 +556,9 @@ function renderAvance(){
 }
 
 function detalle(u){
-  let items=statsUnidad(u).items;
-  if(!items.length) return '<div class="empty">Alcance por definir. Entrega prevista: septiembre de 2026.</div>';
+  const s=statsUnidad(u);
+  if(s.sinAlcance) return '<div class="empty">El alcance de esta unidad aún no está definido. Aparecerá aquí cuando se acuerde con el equipo.</div>';
+  let items=s.items;
   if(selMonth!==null){
     items=items.filter(it=>{const st=clasificar(it),d=st==="done"?it.real:it.compromiso;
       return d&&mkey(d)===mkey(MONTHS[selMonth]);});
@@ -438,7 +573,7 @@ function detalle(u){
     g.sort((a,b)=>(a.estado==="Entregado"?0:1)-(b.estado==="Entregado"?0:1));
     g.forEach(it=>{
       const st=clasificar(it);
-      const col2={done:"var(--azul)",prog:"var(--ambar)",late:"var(--rojo)",pend:"var(--ambar-claro)"}[st];
+      const col2={done:"var(--estado-en-meta)",prog:"var(--estado-atencion)",late:"var(--estado-riesgo)",pend:"var(--estado-neutro)"}[st];
       const bc={done:"b-done",prog:"b-prog",late:"b-late",pend:"b-pend"}[st];
       const bt={done:"Entregado",prog:"En progreso",late:"Fecha vencida",pend:"Por entregar"}[st];
       h+='<div class="item"><div class="i-dot" style="background:'+col2+'"></div>'+
@@ -454,14 +589,42 @@ function detalle(u){
   return h||'<div class="empty">Sin entregables para este filtro.</div>';
 }
 
+/* Las tarjetas, las filas, los meses y el año son <div>, no <button>:
+   sin esto no existen para el teclado. Se les da rol, se les hace
+   enfocables y se les atiende Enter y Espacio igual que el clic. */
+function activable(el,accion){
+  el.setAttribute("role","button");
+  el.setAttribute("tabindex","0");
+  const disparar=()=>{ foco=el.dataset.foco||null; accion(); };
+  el.onclick=disparar;
+  el.onkeydown=e=>{
+    if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){ e.preventDefault(); disparar(); }
+  };
+}
+
 function bindAvance(){
-  document.querySelectorAll("#p-avance .card").forEach(el=>el.onclick=()=>{
-    openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
-  document.querySelectorAll("#p-avance .rh").forEach(el=>el.onclick=()=>{
-    openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
-  document.querySelectorAll("#p-avance .mo").forEach(el=>el.onclick=()=>{
-    const i=+el.dataset.m;selMonth=selMonth===i?null:i;renderAvance();});
-  const y=document.getElementById("yr");if(y)y.onclick=()=>{selMonth=null;renderAvance();};
+  document.querySelectorAll("#p-avance .card").forEach(el=>{
+    el.setAttribute("aria-expanded",String(openUnit===el.dataset.u));
+    activable(el,()=>{openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
+  });
+  document.querySelectorAll("#p-avance .rh").forEach(el=>{
+    el.setAttribute("aria-expanded",String(openUnit===el.dataset.u));
+    activable(el,()=>{openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
+  });
+  document.querySelectorAll("#p-avance .mo").forEach(el=>{
+    const i=+el.dataset.m;
+    el.setAttribute("aria-pressed",String(selMonth===i));
+    activable(el,()=>{selMonth=selMonth===i?null:i;renderAvance();});
+  });
+  const y=document.getElementById("yr");
+  if(y) activable(y,()=>{selMonth=null;renderAvance();});
+
+  /* Devuelve el foco al control equivalente tras repintar. */
+  if(foco){
+    const el=document.querySelector('#p-avance [data-foco="'+foco+'"]');
+    if(el) el.focus();
+    foco=null;
+  }
 }
 
 /* ============ DOCUMENTOS ============ */
@@ -509,8 +672,10 @@ function renderDocs(){
   bindDocs();
 }
 function bindDocs(){
-  document.querySelectorAll("#p-docs .chip").forEach(el=>el.onclick=()=>{
-    filtroDoc=el.dataset.f;renderDocs();});
+  document.querySelectorAll("#p-docs .chip").forEach(el=>{
+    el.setAttribute("aria-pressed",String(filtroDoc===el.dataset.f));
+    el.onclick=()=>{filtroDoc=el.dataset.f;renderDocs();};
+  });
 }
 
 /* ============ REUNIONES ============ */
@@ -540,9 +705,10 @@ function renderReus(){
 
 /* ============ NAVEGACION ============ */
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("on");x.removeAttribute("aria-current");});
   document.querySelectorAll(".pane").forEach(x=>x.classList.remove("on"));
   t.classList.add("on");
+  t.setAttribute("aria-current","true");
   document.getElementById("p-"+t.dataset.p).classList.add("on");
 });
 </script>
