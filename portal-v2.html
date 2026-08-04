@@ -135,8 +135,13 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .c-name{font-size:14.5px;font-weight:600}
 .c-val{font-size:31px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--marca-verde-profundo)}
 .c-val small{font-size:14px;color:var(--texto-secundario);font-weight:500}
-.c-of{font-size:11px;color:var(--texto-secundario);margin:5px 0 12px}
-.c-bar{height:6px;background:var(--borde);border-radius:6px;overflow:hidden}
+.c-of{font-size:11px;color:var(--texto-secundario);margin:5px 0 0}
+/* Rango de entregas: un escalon por debajo del conteo, para que aporte
+   contexto sin competir con la cifra. El margen que separaba el conteo
+   de la barra se muda a la barra, asi el espaciado no cambia en las
+   tarjetas que no llevan esta linea. */
+.c-rango{font-size:10px;color:var(--texto-secundario);margin-top:3px;letter-spacing:.2px}
+.c-bar{height:6px;background:var(--borde);border-radius:6px;overflow:hidden;margin-top:12px}
 .c-fill{height:100%;border-radius:6px;background:var(--estado-en-meta);transition:width .5s}
 
 .legend{display:flex;gap:20px;flex-wrap:wrap;background:var(--superficie);border:1px solid var(--borde);
@@ -448,6 +453,23 @@ function statsUnidad(u){
           pct:sinAlcance?null:Math.round(done/items.length*100)};
 }
 
+/* Rango de entregas comprometidas, leido del CSV y nunca escrito a
+   mano. Se muestra solo en unidades que tienen alcance pero todavia no
+   entregan nada: ahi no hay barra ni porcentaje que leer, y la fecha es
+   lo unico que situa el trabajo en el tiempo para que el 0% no se lea
+   como retraso.
+   Devuelve null si ninguna fila trae fecha compromiso, para no inventar
+   un rango donde no hay dato. */
+function rangoEntregas(items){
+  const f=items.map(i=>i.compromiso).filter(Boolean).sort((a,b)=>a-b);
+  if(!f.length) return null;
+  const ini=f[0],fin=f[f.length-1];
+  const ai=ini.getFullYear(),af=fin.getFullYear();
+  if(ai!==af) return MES[ini.getMonth()]+" "+ai+" – "+MES[fin.getMonth()]+" "+af;
+  if(ini.getMonth()===fin.getMonth()) return MES[ini.getMonth()]+" "+ai;
+  return MES[ini.getMonth()]+" – "+MES[fin.getMonth()]+" "+ai;
+}
+
 function renderAvance(){
   const P=statsProyecto();
 
@@ -471,6 +493,9 @@ function renderAvance(){
   h+='<div class="cards">';
   UNIDADES.forEach(u=>{
     const s=statsUnidad(u);
+    /* Regla general, no un caso de After School: cualquier unidad con
+       alcance y sin nada entregado acompania su 0% con el rango. */
+    const rango=(!s.sinAlcance&&s.done===0)?rangoEntregas(s.items):null;
     h+='<div class="card'+(openUnit===u?' active':'')+(s.sinAlcance?' sin-alcance':'')+'" data-u="'+esc(u)+'" data-foco="tarjeta:'+esc(u)+'">'+
        '<div class="c-top"><div class="c-name">'+esc(u)+'</div></div>';
     /* Sin porcentaje ni barra: un 0% aqui se leeria como incumplimiento. */
@@ -478,6 +503,7 @@ function renderAvance(){
       ? '<div class="c-pendiente">Alcance por definir</div>'
       : '<div class="c-val">'+s.pct+'<small>%</small></div>'+
         '<div class="c-of">'+s.done+' de '+s.total+' entregables</div>'+
+        (rango?'<div class="c-rango">Entregas: '+esc(rango)+'</div>':'')+
         '<div class="c-bar"><div class="c-fill" style="width:'+s.pct+'%"></div></div>';
     h+='</div>';
   });
