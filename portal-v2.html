@@ -244,6 +244,13 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .foot{border-top:1px solid var(--borde);margin:40px 0 0;padding-top:20px;
   font-size:11px;color:var(--texto-secundario);line-height:1.9}
 .foot b{color:var(--texto-principal);font-weight:600}
+/* Foco de teclado. Se usa :focus-visible para que el anillo aparezca
+   al tabular pero no al hacer clic con el raton. El outline-offset lo
+   dibuja por fuera del control, asi que se lee igual sobre los botones
+   de fondo verde profundo que sobre los de fondo claro. */
+a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
+  outline:2px solid var(--marca-verde-profundo);outline-offset:2px}
+
 .load{text-align:center;padding:70px 20px;color:var(--texto-secundario);font-size:14px}
 .err{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte);border-radius:12px;padding:20px;font-size:13px;margin-bottom:16px}
 
@@ -285,9 +292,9 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   </header>
 
   <nav>
-    <button class="tab on" data-p="avance">Avance del proyecto</button>
-    <button class="tab" data-p="docs">Documentos<span class="cnt" id="cd"></span></button>
-    <button class="tab" data-p="reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
+    <button class="tab on" data-p="avance" aria-controls="p-avance" aria-current="true">Avance del proyecto</button>
+    <button class="tab" data-p="docs" aria-controls="p-docs">Documentos<span class="cnt" id="cd"></span></button>
+    <button class="tab" data-p="reu" aria-controls="p-reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
     <div class="stamp" id="stamp">Cargando informacion...</div>
   </nav>
 
@@ -312,6 +319,11 @@ const PIPELINE=["Marketing","Ventas","Servicio","Finanzas"];
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
 let DATA=[],MONTHS=[],selMonth=null,openUnit=null;
+/* Cada interaccion repinta el panel entero con innerHTML, lo que
+   destruye el elemento que tenia el foco. Se guarda su data-foco para
+   devolverselo al equivalente recien creado y no expulsar del control
+   a quien navega con teclado. */
+let foco=null;
 let DOCS=[],filtroDoc="Todos";
 let REUS=[];
 
@@ -456,7 +468,7 @@ function renderAvance(){
   h+='<div class="cards">';
   UNIDADES.forEach(u=>{
     const s=statsUnidad(u);
-    h+='<div class="card'+(openUnit===u?' active':'')+(s.sinAlcance?' sin-alcance':'')+'" data-u="'+esc(u)+'">'+
+    h+='<div class="card'+(openUnit===u?' active':'')+(s.sinAlcance?' sin-alcance':'')+'" data-u="'+esc(u)+'" data-foco="tarjeta:'+esc(u)+'">'+
        '<div class="c-top"><div class="c-name">'+esc(u)+'</div></div>';
     /* Sin porcentaje ni barra: un 0% aqui se leeria como incumplimiento. */
     h+= s.sinAlcance
@@ -480,17 +492,17 @@ function renderAvance(){
 
   const gc='repeat('+MONTHS.length+',1fr)';
   h+='<div class="tl"><div class="tl-l"><div class="tl-tag">Tiempos</div>'+
-     '<div class="tl-year'+(selMonth===null?' on':'')+'" id="yr">2026</div></div>'+
+     '<div class="tl-year'+(selMonth===null?' on':'')+'" id="yr" data-foco="anio">2026</div></div>'+
      '<div class="months" style="grid-template-columns:'+gc+'">';
   const nowK=mkey(new Date());
   MONTHS.forEach((m,i)=>{
-    h+='<div class="mo'+(mkey(m)===nowK?' now':'')+(selMonth===i?' sel':'')+'" data-m="'+i+'">'+MES[m.getMonth()]+'</div>';
+    h+='<div class="mo'+(mkey(m)===nowK?' now':'')+(selMonth===i?' sel':'')+'" data-m="'+i+'" data-foco="mes:'+i+'">'+MES[m.getMonth()]+'</div>';
   });
   h+='</div></div><div class="note">'+(selMonth!==null?'Mostrando entregables de <b>'+MES[MONTHS[selMonth].getMonth()]+' '+MONTHS[selMonth].getFullYear()+'</b>':'')+'</div>';
 
   UNIDADES.forEach(u=>{
     const s=statsUnidad(u),open=openUnit===u;
-    h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'">'+
+    h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'" data-foco="fila:'+esc(u)+'">'+
        '<div class="rinfo"><div class="tog">'+(open?'\u25be':'\u25b8')+'</div>'+
        '<div class="rname">'+esc(u)+'</div><div class="rpct">'+(s.sinAlcance?'Sin definir':s.pct+'%')+'</div></div>'+
        '<div class="gantt" style="grid-template-columns:'+gc+'">';
@@ -548,14 +560,42 @@ function detalle(u){
   return h||'<div class="empty">Sin entregables para este filtro.</div>';
 }
 
+/* Las tarjetas, las filas, los meses y el año son <div>, no <button>:
+   sin esto no existen para el teclado. Se les da rol, se les hace
+   enfocables y se les atiende Enter y Espacio igual que el clic. */
+function activable(el,accion){
+  el.setAttribute("role","button");
+  el.setAttribute("tabindex","0");
+  const disparar=()=>{ foco=el.dataset.foco||null; accion(); };
+  el.onclick=disparar;
+  el.onkeydown=e=>{
+    if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){ e.preventDefault(); disparar(); }
+  };
+}
+
 function bindAvance(){
-  document.querySelectorAll("#p-avance .card").forEach(el=>el.onclick=()=>{
-    openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
-  document.querySelectorAll("#p-avance .rh").forEach(el=>el.onclick=()=>{
-    openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
-  document.querySelectorAll("#p-avance .mo").forEach(el=>el.onclick=()=>{
-    const i=+el.dataset.m;selMonth=selMonth===i?null:i;renderAvance();});
-  const y=document.getElementById("yr");if(y)y.onclick=()=>{selMonth=null;renderAvance();};
+  document.querySelectorAll("#p-avance .card").forEach(el=>{
+    el.setAttribute("aria-expanded",String(openUnit===el.dataset.u));
+    activable(el,()=>{openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
+  });
+  document.querySelectorAll("#p-avance .rh").forEach(el=>{
+    el.setAttribute("aria-expanded",String(openUnit===el.dataset.u));
+    activable(el,()=>{openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
+  });
+  document.querySelectorAll("#p-avance .mo").forEach(el=>{
+    const i=+el.dataset.m;
+    el.setAttribute("aria-pressed",String(selMonth===i));
+    activable(el,()=>{selMonth=selMonth===i?null:i;renderAvance();});
+  });
+  const y=document.getElementById("yr");
+  if(y) activable(y,()=>{selMonth=null;renderAvance();});
+
+  /* Devuelve el foco al control equivalente tras repintar. */
+  if(foco){
+    const el=document.querySelector('#p-avance [data-foco="'+foco+'"]');
+    if(el) el.focus();
+    foco=null;
+  }
 }
 
 /* ============ DOCUMENTOS ============ */
@@ -603,8 +643,10 @@ function renderDocs(){
   bindDocs();
 }
 function bindDocs(){
-  document.querySelectorAll("#p-docs .chip").forEach(el=>el.onclick=()=>{
-    filtroDoc=el.dataset.f;renderDocs();});
+  document.querySelectorAll("#p-docs .chip").forEach(el=>{
+    el.setAttribute("aria-pressed",String(filtroDoc===el.dataset.f));
+    el.onclick=()=>{filtroDoc=el.dataset.f;renderDocs();};
+  });
 }
 
 /* ============ REUNIONES ============ */
@@ -634,9 +676,10 @@ function renderReus(){
 
 /* ============ NAVEGACION ============ */
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll(".tab").forEach(x=>{x.classList.remove("on");x.removeAttribute("aria-current");});
   document.querySelectorAll(".pane").forEach(x=>x.classList.remove("on"));
   t.classList.add("on");
+  t.setAttribute("aria-current","true");
   document.getElementById("p-"+t.dataset.p).classList.add("on");
 });
 </script>
