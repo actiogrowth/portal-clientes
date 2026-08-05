@@ -87,20 +87,26 @@ body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal
    alterar color, proporcion ni sombra.
    El area de respeto del logo Actio (18px) equivale a la altura de su
    "A" con el logo a 44px. Ningun logo baja de 28px. */
-header{display:flex;align-items:center;gap:18px;
+header{display:flex;align-items:center;gap:16px;
   background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  padding:16px 22px;margin:22px 0 18px}
+  padding:15px 22px;margin:22px 0 18px}
 .marca-actio{display:flex;align-items:center;flex-shrink:0;
-  padding-right:18px;border-right:1px solid var(--marca-verde-claro)}
-.marca-actio img{height:44px;display:block}
+  padding-right:15px;border-right:1px solid var(--marca-verde-claro)}
+/* Los logos bajan con el titulo. Medido sobre los PNG: en el de Actio
+   cada linea de texto ocupa 0.445 de su caja, y en el del cliente el
+   texto ocupa 0.675 porque el icono es quien fija su altura. Por eso
+   36 y 28 dejan sus letras en proporcion parecida a la que tenian con
+   el titulo a 22px, en vez de escalar las cajas por igual.
+   28px es el minimo que fija la spec para cualquier logo. */
+.marca-actio img{height:36px;display:block}
 .titulo{flex:1;min-width:0}
 .marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
-.marca-cliente img{height:32px;display:block}
+.marca-cliente img{height:28px;display:block}
 .brand-fallback{font-weight:700;font-size:18px;letter-spacing:-.5px}
-/* Titulo unico del header. Conserva versalitas y los 2.4px de tracking
-   que traia como linea pequeña: a 22px el texto mide 500px y sobran
-   246px hasta el logo del cliente, asi que no hace falta recortarlo. */
-.h-title{font-size:22px;font-weight:600;text-transform:uppercase;letter-spacing:2.4px}
+/* Titulo unico del header, en Inter y versalitas. El tracking es la
+   mitad del que traia (2.4px -> 1.2px): a 17px el valor anterior
+   separaba las letras mas de lo que el cuerpo pequeño aguanta. */
+.h-title{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px}
 .stamp{font-size:11px;color:var(--texto-secundario);background:var(--superficie);border:1px solid var(--borde);
   border-radius:999px;padding:8px 15px;display:flex;align-items:center;gap:8px;white-space:nowrap}
 .stamp::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--estado-en-meta);
@@ -343,9 +349,8 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   .marca-actio{border-right:none;padding-right:0}
   .titulo{order:3;flex-basis:100%}
   nav .stamp{margin-left:0}
-  /* A 22px el titulo ocupa dos lineas y el header se come 162px de
-     pantalla. A 16px sigue partiendo limpio en el "·" y baja a 143px. */
-  .h-title{font-size:16px;letter-spacing:1.8px}
+  /* Ya no hace falta encoger el titulo en movil: a 17px lo hereda del
+     escritorio y sigue partiendo limpio en el "·". */
 }
 </style>
 </head>
