@@ -225,7 +225,21 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .empty{font-size:13px;color:var(--texto-secundario);font-style:italic;padding:18px 20px}
 
 /* ---- DOCUMENTOS ---- */
-.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.filtros-grupo{margin-bottom:22px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap}
+/* Segunda fila subordinada a la primera: menor tamaño y menor peso, para
+   que se lea como jerarquia y no como dos filtros del mismo rango. */
+.filtros-area{margin-top:9px;gap:6px;align-items:center}
+.filtros-rotulo{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--texto-secundario);font-weight:600;margin-right:2px}
+/* Doble clase a proposito: .chip se declara mas abajo con la misma
+   especificidad, y sin esto ganaria por orden de aparicion. */
+.chip.chip-area{font-size:11.5px;font-weight:500;padding:5px 13px}
+.chip-area .chip-n{opacity:.6;font-weight:400}
+/* Area sin documentos en la unidad elegida: presente para que se vea que
+   existe, atenuada y sin responder al clic. */
+.chip-area.vacia{opacity:.45;cursor:default}
+.chip-area.vacia:hover{background:var(--superficie);color:var(--texto-secundario)}
 .chip{font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border-radius:999px;padding:7px 16px;transition:.15s}
 .chip:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
@@ -366,7 +380,7 @@ let CATALOGO=null;
    devolverselo al equivalente recien creado y no expulsar del control
    a quien navega con teclado. */
 let foco=null;
-let DOCS=[],filtroDoc="Todos";
+let DOCS=[],filtroDoc="Todos",filtroArea="Todas";
 let REUS=[];
 
 function parseCSV(t){
@@ -771,13 +785,38 @@ function renderDocs(){
      un caso especial para el cajon transversal, que antes se colaba a
      mano al final con el nombre "General". */
   const uni=["Todos"].concat(ordenar("unidad",valoresUnicos(DOCS,"unidad"),false));
-  h+='<div class="filtros">';
+  h+='<div class="filtros-grupo"><div class="filtros">';
   uni.forEach(u=>{ h+='<button class="chip'+(filtroDoc===u?' on':'')+'" data-f="'+esc(u)+'">'+esc(u)+'</button>'; });
   h+='</div>';
 
-  let lista=filtroDoc==="Todos"?DOCS:DOCS.filter(d=>d.unidad===filtroDoc);
+  const deUnidad=filtroDoc==="Todos"?DOCS:DOCS.filter(d=>d.unidad===filtroDoc);
+
+  /* Con "Todos" activo no hay segunda fila: cruzar areas entre unidades
+     no comunica nada. */
+  if(filtroDoc!=="Todos"){
+    /* Se listan todas las areas del portal, no solo las que esta unidad
+       tiene. Una area sin documentos aqui se muestra atenuada en vez de
+       esconderse, para que se vea que existe y que aun no tiene nada. */
+    const areas=ordenar("area",valoresUnicos(DOCS,"segmento"),true);
+    h+='<div class="filtros filtros-area"><span class="filtros-rotulo">Área</span>'+
+       '<button class="chip chip-area'+(filtroArea==="Todas"?' on':'')+'" data-a="Todas">Todas</button>';
+    areas.forEach(a=>{
+      const n=deUnidad.filter(d=>d.segmento===a).length;
+      h+='<button class="chip chip-area'+(filtroArea===a?' on':'')+(n===0?' vacia':'')+'"'+
+         ' data-a="'+esc(a)+'"'+(n===0?' disabled':'')+'>'+esc(a)+
+         ' <span class="chip-n">('+n+')</span></button>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+
+  let lista=deUnidad;
+  if(filtroDoc!=="Todos"&&filtroArea!=="Todas") lista=lista.filter(d=>d.segmento===filtroArea);
+
+  /* Red de seguridad: las areas vacias no son clicables, asi que este
+     estado no deberia alcanzarse. Nunca una cuadricula vacia sin texto. */
   if(!lista.length){
-    h+='<div class="empty">Sin documentos para este filtro.</div>';
+    h+='<div class="empty">No hay documentos en esta área todavía.</div>';
     document.getElementById("p-docs").innerHTML=h;bindDocs();return;
   }
 
@@ -805,9 +844,21 @@ function renderDocs(){
   bindDocs();
 }
 function bindDocs(){
-  document.querySelectorAll("#p-docs .chip").forEach(el=>{
+  document.querySelectorAll("#p-docs .chip[data-f]").forEach(el=>{
     el.setAttribute("aria-pressed",String(filtroDoc===el.dataset.f));
-    el.onclick=()=>{filtroDoc=el.dataset.f;renderDocs();};
+    el.onclick=()=>{
+      filtroDoc=el.dataset.f;
+      /* Al cambiar de unidad el area vuelve a "Todas". Heredar el filtro
+         de la unidad anterior deja al cliente ante un vacio que no se
+         explica solo. */
+      filtroArea="Todas";
+      renderDocs();
+    };
+  });
+  document.querySelectorAll("#p-docs .chip[data-a]").forEach(el=>{
+    el.setAttribute("aria-pressed",String(filtroArea===el.dataset.a));
+    if(el.disabled) return;
+    el.onclick=()=>{filtroArea=el.dataset.a;renderDocs();};
   });
 }
 
