@@ -407,11 +407,14 @@ const CSV_DOCUMENTOS="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F5
 const CSV_REUNIONES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=888187894&single=true&output=csv";
 
 /* Pesta\u00f1a de catalogo, publicada como CSV igual que las demas.
-   Columnas: Tipo | Valor | Orden | Activo
-     Tipo   "Unidad" o "Area"
-     Valor  el nombre tal cual aparece en los datos
-     Orden  numero; menor va primero. Puede faltar.
-     Activo "No" apaga esa unidad o area aunque tenga filas.
+   Columnas: Tipo | Valor | Orden | Activo | Seccion
+     Tipo    "Unidad" o "Area"
+     Valor   el nombre tal cual aparece en los datos
+     Orden   numero; menor va primero. Puede faltar.
+     Activo  "No" apaga esa unidad o area aunque tenga filas.
+     Seccion "Documentos", "Avance" o vacio para las dos. Acota la fila
+             a una seccion: sirve para declarar un cajon transversal en
+             Documentos sin que aparezca como tarjeta en Avance.
 
    Declara que unidades y areas existen y en que orden se dibujan, sin
    que ninguna lista de este cliente viva en el codigo. Es tambien el
@@ -483,7 +486,8 @@ function normalizar(s){
    entre como catalogo y el portal siga derivando de los datos. */
 function leerCatalogo(txt){
   const t=tabla(txt),h=t.head;
-  const cT=col(h,"Tipo"),cV=col(h,"Valor"),cO=col(h,"Orden"),cA=col(h,"Activo");
+  const cT=col(h,"Tipo"),cV=col(h,"Valor"),cO=col(h,"Orden"),cA=col(h,"Activo"),cSe=col(h,"Seccion");
+  const cSe2=cSe>=0?cSe:col(h,"Sección");
   if(cT<0||cV<0) return null;
   const filas=[];
   t.rows.forEach(r=>{
@@ -493,22 +497,35 @@ function leerCatalogo(txt){
     const destino=tipo.indexOf("unidad")===0?"unidad":(tipo.indexOf("area")===0?"area":null);
     if(!destino) return;
     const activo=cA<0?"si":normalizar(r[cA]);
-    filas.push({destino,valor,
+    /* Seccion vacia, ausente o irreconocible significa "las dos". El
+       defecto seguro es mostrar de mas, no esconder por un dedazo. */
+    const s=cSe2<0?"":normalizar(r[cSe2]);
+    const seccion=s.indexOf("doc")===0?"documentos":(s.indexOf("avance")===0?"avance":"");
+    filas.push({destino,valor,seccion,
       apagado:(activo==="no"||activo==="false"||activo==="0"),
       orden:cO<0?NaN:parseFloat(r[cO])});
   });
   if(!filas.length) return null;
-  const cat={unidad:{orden:[],apagados:[]},area:{orden:[],apagados:[]}};
-  ["unidad","area"].forEach(d=>{
-    const propias=filas.filter(f=>f.destino===d);
-    cat[d].apagados=propias.filter(f=>f.apagado).map(f=>f.valor);
-    /* Las filas con Orden numerico mandan y van por ese numero; las que
-       no lo traen conservan el orden en que estan en la pestaña. */
-    const activas=propias.filter(f=>!f.apagado);
-    cat[d].orden=activas.filter(f=>!isNaN(f.orden)).sort((a,b)=>a.orden-b.orden)
-                 .concat(activas.filter(f=>isNaN(f.orden))).map(f=>f.valor);
-  });
-  return cat;
+  return {filas};
+}
+
+/* Vista del catalogo para un tipo y una seccion. Una fila sin Seccion
+   vale para las dos; una acotada solo cuenta en la suya. Asi "Vida en
+   Arte" puede declararse en Documentos, donde es un cajon transversal,
+   sin aparecer en Avance como una unidad que espera alcance. */
+function catalogoPara(tipo,seccion){
+  if(!CATALOGO) return null;
+  const propias=CATALOGO.filas.filter(f=>
+    f.destino===tipo&&(f.seccion===""||f.seccion===seccion));
+  if(!propias.length) return null;
+  /* Las filas con Orden numerico mandan y van por ese numero; las que
+     no lo traen conservan el orden en que estan en la pestaña. */
+  const activas=propias.filter(f=>!f.apagado);
+  return {
+    orden:activas.filter(f=>!isNaN(f.orden)).sort((a,b)=>a.orden-b.orden)
+          .concat(activas.filter(f=>isNaN(f.orden))).map(f=>f.valor),
+    apagados:propias.filter(f=>f.apagado).map(f=>f.valor)
+  };
 }
 
 /* Valores unicos de un campo, en orden de primera aparicion. */
@@ -527,8 +544,8 @@ function valoresUnicos(filas,campo){
    muestra igual: si en las unidades del avance, para que Cumpleaños
    conserve su tarjeta de "Alcance por definir"; no en los pills de
    documentos, donde un filtro que no filtra nada solo estorba. */
-function ordenar(tipo,valoresEnDatos,incluirSinDatos){
-  const cat=CATALOGO?CATALOGO[tipo]:null;
+function ordenar(tipo,valoresEnDatos,incluirSinDatos,seccion){
+  const cat=catalogoPara(tipo,seccion);
   const apagados=cat?cat.apagados:[];
   const salida=[];
   const meter=v=>{
@@ -544,10 +561,11 @@ function ordenar(tipo,valoresEnDatos,incluirSinDatos){
    solo esconderla de los filtros: de lo contrario los entregables de una
    unidad apagada seguirian sumando al avance total y sus documentos
    seguirian contando en el numero de la pestaña. */
-function activa(fila){
+function activa(fila,seccion){
   if(!CATALOGO) return true;
-  return CATALOGO.unidad.apagados.indexOf(fila.unidad)<0
-      && CATALOGO.area.apagados.indexOf(fila.segmento)<0;
+  const apagado=(tipo,valor)=>CATALOGO.filas.some(f=>
+    f.apagado&&f.destino===tipo&&f.valor===valor&&(f.seccion===""||f.seccion===seccion));
+  return !apagado("unidad",fila.unidad)&&!apagado("area",fila.segmento);
 }
 
 /* ============ CARGA ============ */
@@ -571,7 +589,7 @@ fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text
     unidad:(r[cU]||"").trim(), nombre:(r[cE]||"").trim(), segmento:(r[cS]||"").trim(),
     estado:(r[cSt]||"").trim(), pct:parseFloat(r[cP])||0,
     compromiso:fecha(r[cFc]), real:fecha(r[cFr])
-  })).filter(d=>d.nombre&&activa(d));
+  })).filter(d=>d.nombre&&activa(d,"avance"));
 
   const ds=[];DATA.forEach(d=>{if(d.real)ds.push(d.real);if(d.compromiso)ds.push(d.compromiso);});
   if(ds.length){
@@ -591,9 +609,12 @@ fetch(CSV_DOCUMENTOS).then(r=>{if(!r.ok)throw new Error(r.status);return r.text(
   const cN=col(h,"Nombre"),cU=col(h,"Unidad de negocio"),cS=col(h,"Segmento"),
         cT=col(h,"Tipo"),cF=col(h,"Fecha"),cL=col(h,"Enlace");
   DOCS=t.rows.map(r=>({
-    nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"General", segmento:(r[cS]||"").trim(),
+    /* Una celda de unidad vacia cae en "Sin unidad", no en un nombre
+       inventado. Descartar la fila escondería un documento real sin
+       dejar rastro; asi el hueco se ve y se puede corregir en el Sheet. */
+    nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"Sin unidad", segmento:(r[cS]||"").trim(),
     tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim()
-  })).filter(d=>d.nombre&&activa(d));
+  })).filter(d=>d.nombre&&activa(d,"documentos"));
   document.getElementById("cd").textContent="("+DOCS.length+")";
   renderDocs();
 })
@@ -665,7 +686,7 @@ function renderAvance(){
   const P=statsProyecto();
   /* Con incluirSinDatos en true, una unidad declarada en el catalogo y
      sin una sola fila de entregables conserva su tarjeta. */
-  const unidades=ordenar("unidad",valoresUnicos(DATA,"unidad"),true);
+  const unidades=ordenar("unidad",valoresUnicos(DATA,"unidad"),true,"avance");
 
   let h='<div class="sec-label">Resumen ejecutivo</div>';
   h+='<h2>Avance general del proyecto</h2>';
@@ -760,7 +781,7 @@ function detalle(u){
   }
   let h="";
   /* Las areas tambien salen del catalogo. Sin el, orden de aparicion. */
-  ordenar("area",valoresUnicos(items,"segmento"),false).forEach(seg=>{
+  ordenar("area",valoresUnicos(items,"segmento"),false,"avance").forEach(seg=>{
     const g=items.filter(i=>i.segmento===seg);
     if(!g.length)return;
     const d=g.filter(i=>i.estado==="Entregado").length;
@@ -836,7 +857,7 @@ function renderDocs(){
      eso una unidad renombrada en el Sheet aparece sola y no hace falta
      un caso especial para el cajon transversal, que antes se colaba a
      mano al final con el nombre "General". */
-  const uni=["Todos"].concat(ordenar("unidad",valoresUnicos(DOCS,"unidad"),false));
+  const uni=["Todos"].concat(ordenar("unidad",valoresUnicos(DOCS,"unidad"),false,"documentos"));
   h+='<div class="filtros-grupo"><div class="filtros">';
   uni.forEach(u=>{ h+='<button class="chip'+(filtroDoc===u?' on':'')+'" data-f="'+esc(u)+'">'+esc(u)+'</button>'; });
   h+='</div>';
@@ -849,7 +870,7 @@ function renderDocs(){
     /* Se listan todas las areas del portal, no solo las que esta unidad
        tiene. Una area sin documentos aqui se muestra atenuada en vez de
        esconderse, para que se vea que existe y que aun no tiene nada. */
-    const areas=ordenar("area",valoresUnicos(DOCS,"segmento"),true);
+    const areas=ordenar("area",valoresUnicos(DOCS,"segmento"),true,"documentos");
     h+='<div class="filtros filtros-area"><span class="filtros-rotulo">Área</span>'+
        '<button class="chip chip-area'+(filtroArea==="Todas"?' on':'')+'" data-a="Todas">Todas</button>';
     areas.forEach(a=>{
@@ -875,7 +896,7 @@ function renderDocs(){
   const grupos={};
   lista.forEach(d=>{ (grupos[d.unidad]=grupos[d.unidad]||[]).push(d); });
   /* Los grupos siguen el mismo orden que los pills, no el de insercion. */
-  ordenar("unidad",valoresUnicos(lista,"unidad"),false).forEach(g=>{
+  ordenar("unidad",valoresUnicos(lista,"unidad"),false,"documentos").forEach(g=>{
     h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+grupos[g].length+' documento'+(grupos[g].length!==1?'s':'')+'</span></div><div class="docs">';
     grupos[g].sort((a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0));
     grupos[g].forEach(d=>{
