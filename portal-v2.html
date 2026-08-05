@@ -11,8 +11,9 @@
 <style>
 /* ==========================================================================
    TOKENS. Unico lugar del archivo donde se declara un color.
-   Para replicar el portal a otro cliente se cambian las URLs de CSV, la
-   constante UNIDADES y los tokens de marca. Nada mas.
+   Para replicar el portal a otro cliente se cambian las URLs de CSV y
+   los tokens de marca. Nada mas: ya no queda ninguna lista de unidades
+   ni de areas en el codigo, salen del catalogo o de los datos.
    ========================================================================== */
 :root{
   /* ---------- Marca Actio ----------
@@ -339,11 +340,27 @@ const CSV_ENTREGABLES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F
 const CSV_DOCUMENTOS="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=926080222&single=true&output=csv";
 const CSV_REUNIONES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=888187894&single=true&output=csv";
 
-const UNIDADES=["Kinder","Veranito","After School","Cumplea\u00f1os"];
-const PIPELINE=["Marketing","Ventas","Servicio","Finanzas"];
+/* Pesta\u00f1a de catalogo, publicada como CSV igual que las demas.
+   Columnas: Tipo | Valor | Orden | Activo
+     Tipo   "Unidad" o "Area"
+     Valor  el nombre tal cual aparece en los datos
+     Orden  numero; menor va primero. Puede faltar.
+     Activo "No" apaga esa unidad o area aunque tenga filas.
+
+   Declara que unidades y areas existen y en que orden se dibujan, sin
+   que ninguna lista de este cliente viva en el codigo. Es tambien el
+   unico lugar donde puede declararse una unidad que todavia no tiene
+   una sola fila de entregables, que es lo que sostiene la tarjeta de
+   "Alcance por definir".
+
+   Vacia o inalcanzable, el portal deriva todo de los datos por orden
+   de primera aparicion. Nunca es un requisito para que funcione. */
+const CSV_CATALOGO="";
+
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
 let DATA=[],MONTHS=[],selMonth=null,openUnit=null;
+let CATALOGO=null;
 /* Cada interaccion repinta el panel entero con innerHTML, lo que
    destruye el elemento que tenia el foco. Se guarda su data-foco para
    devolverselo al equivalente recien creado y no expulsar del control
@@ -390,7 +407,95 @@ function clasificar(r){
   return "pend";
 }
 
+/* ============ CATALOGO Y ORDEN ============ */
+function normalizar(s){
+  return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+}
+
+/* Devuelve null ante cualquier problema —sin URL, error de red, o
+   columnas que no son las del catalogo— para que un gid equivocado no
+   entre como catalogo y el portal siga derivando de los datos. */
+function leerCatalogo(txt){
+  const t=tabla(txt),h=t.head;
+  const cT=col(h,"Tipo"),cV=col(h,"Valor"),cO=col(h,"Orden"),cA=col(h,"Activo");
+  if(cT<0||cV<0) return null;
+  const filas=[];
+  t.rows.forEach(r=>{
+    const valor=(r[cV]||"").trim();
+    if(!valor) return;
+    const tipo=normalizar(r[cT]);
+    const destino=tipo.indexOf("unidad")===0?"unidad":(tipo.indexOf("area")===0?"area":null);
+    if(!destino) return;
+    const activo=cA<0?"si":normalizar(r[cA]);
+    filas.push({destino,valor,
+      apagado:(activo==="no"||activo==="false"||activo==="0"),
+      orden:cO<0?NaN:parseFloat(r[cO])});
+  });
+  if(!filas.length) return null;
+  const cat={unidad:{orden:[],apagados:[]},area:{orden:[],apagados:[]}};
+  ["unidad","area"].forEach(d=>{
+    const propias=filas.filter(f=>f.destino===d);
+    cat[d].apagados=propias.filter(f=>f.apagado).map(f=>f.valor);
+    /* Las filas con Orden numerico mandan y van por ese numero; las que
+       no lo traen conservan el orden en que estan en la pestaña. */
+    const activas=propias.filter(f=>!f.apagado);
+    cat[d].orden=activas.filter(f=>!isNaN(f.orden)).sort((a,b)=>a.orden-b.orden)
+                 .concat(activas.filter(f=>isNaN(f.orden))).map(f=>f.valor);
+  });
+  return cat;
+}
+
+/* Valores unicos de un campo, en orden de primera aparicion. */
+function valoresUnicos(filas,campo){
+  const out=[];
+  filas.forEach(f=>{const v=(f[campo]||"").trim(); if(v&&out.indexOf(v)<0) out.push(v);});
+  return out;
+}
+
+/* Une lo declarado en el catalogo con lo que traen los datos.
+   Lo catalogado manda y va primero, en su orden. Lo que aparece en los
+   datos pero nadie catalogo va detras, por primera aparicion: un valor
+   nuevo en el Sheet nunca desaparece por faltar en el catalogo. Lo
+   marcado Activo=No se excluye aunque tenga filas.
+   incluirSinDatos decide si un valor declarado y sin una sola fila se
+   muestra igual: si en las unidades del avance, para que Cumpleaños
+   conserve su tarjeta de "Alcance por definir"; no en los pills de
+   documentos, donde un filtro que no filtra nada solo estorba. */
+function ordenar(tipo,valoresEnDatos,incluirSinDatos){
+  const cat=CATALOGO?CATALOGO[tipo]:null;
+  const apagados=cat?cat.apagados:[];
+  const salida=[];
+  const meter=v=>{
+    if(!v||apagados.indexOf(v)>=0||salida.indexOf(v)>=0) return;
+    salida.push(v);
+  };
+  if(cat) cat.orden.forEach(v=>{ if(incluirSinDatos||valoresEnDatos.indexOf(v)>=0) meter(v); });
+  valoresEnDatos.forEach(meter);
+  return salida;
+}
+
+/* Apagar en el catalogo tiene que ignorar la fila en todo el portal, no
+   solo esconderla de los filtros: de lo contrario los entregables de una
+   unidad apagada seguirian sumando al avance total y sus documentos
+   seguirian contando en el numero de la pestaña. */
+function activa(fila){
+  if(!CATALOGO) return true;
+  return CATALOGO.unidad.apagados.indexOf(fila.unidad)<0
+      && CATALOGO.area.apagados.indexOf(fila.segmento)<0;
+}
+
 /* ============ CARGA ============ */
+/* El catalogo se lee antes que los datos porque fija el orden con el
+   que se dibuja todo. Si falla, no bloquea: CATALOGO queda en null. */
+function cargarCatalogo(){
+  if(!CSV_CATALOGO) return Promise.resolve(null);
+  return fetch(CSV_CATALOGO)
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(leerCatalogo)
+    .catch(()=>null);
+}
+
+function cargarDatos(){
 fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
 .then(txt=>{
   const t=tabla(txt),h=t.head;
@@ -400,7 +505,7 @@ fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text
     unidad:(r[cU]||"").trim(), nombre:(r[cE]||"").trim(), segmento:(r[cS]||"").trim(),
     estado:(r[cSt]||"").trim(), pct:parseFloat(r[cP])||0,
     compromiso:fecha(r[cFc]), real:fecha(r[cFr])
-  })).filter(d=>d.nombre);
+  })).filter(d=>d.nombre&&activa(d));
 
   const ds=[];DATA.forEach(d=>{if(d.real)ds.push(d.real);if(d.compromiso)ds.push(d.compromiso);});
   if(ds.length){
@@ -422,7 +527,7 @@ fetch(CSV_DOCUMENTOS).then(r=>{if(!r.ok)throw new Error(r.status);return r.text(
   DOCS=t.rows.map(r=>({
     nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"General", segmento:(r[cS]||"").trim(),
     tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim()
-  })).filter(d=>d.nombre);
+  })).filter(d=>d.nombre&&activa(d));
   document.getElementById("cd").textContent="("+DOCS.length+")";
   renderDocs();
 })
@@ -444,6 +549,9 @@ fetch(CSV_REUNIONES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()
 })
 .catch(e=>{ document.getElementById("p-reu").innerHTML=
   '<div class="err"><b>No se pudieron cargar las reuniones.</b><br>Detalle: '+e.message+'</div>'; });
+}
+
+cargarCatalogo().then(cat=>{ CATALOGO=cat; cargarDatos(); });
 
 /* ============ AVANCE ============ */
 /* Avance total: entregables completados sobre el total de entregables
@@ -489,6 +597,9 @@ function rangoEntregas(items){
 
 function renderAvance(){
   const P=statsProyecto();
+  /* Con incluirSinDatos en true, una unidad declarada en el catalogo y
+     sin una sola fila de entregables conserva su tarjeta. */
+  const unidades=ordenar("unidad",valoresUnicos(DATA,"unidad"),true);
 
   let h='<div class="sec-label">Resumen ejecutivo</div>';
   h+='<h2>Avance general del proyecto</h2>';
@@ -508,7 +619,7 @@ function renderAvance(){
      '</svg></div></div>';
 
   h+='<div class="cards">';
-  UNIDADES.forEach(u=>{
+  unidades.forEach(u=>{
     const s=statsUnidad(u);
     /* Regla general, no un caso de After School: cualquier unidad con
        alcance y sin nada entregado acompania su 0% con el rango. */
@@ -546,7 +657,7 @@ function renderAvance(){
   });
   h+='</div></div><div class="note">'+(selMonth!==null?'Mostrando entregables de <b>'+MES[MONTHS[selMonth].getMonth()]+' '+MONTHS[selMonth].getFullYear()+'</b>':'')+'</div>';
 
-  UNIDADES.forEach(u=>{
+  unidades.forEach(u=>{
     const s=statsUnidad(u),open=openUnit===u;
     h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'" data-foco="fila:'+esc(u)+'">'+
        '<div class="rinfo"><div class="tog">'+(open?'\u25be':'\u25b8')+'</div>'+
@@ -582,7 +693,8 @@ function detalle(u){
     if(!items.length) return '<div class="empty">Sin entregables en este mes.</div>';
   }
   let h="";
-  PIPELINE.forEach(seg=>{
+  /* Las areas tambien salen del catalogo. Sin el, orden de aparicion. */
+  ordenar("area",valoresUnicos(items,"segmento"),false).forEach(seg=>{
     const g=items.filter(i=>i.segmento===seg);
     if(!g.length)return;
     const d=g.filter(i=>i.estado==="Entregado").length;
@@ -654,8 +766,11 @@ function renderDocs(){
     document.getElementById("p-docs").innerHTML=h;return;
   }
 
-  const uni=["Todos"].concat(UNIDADES.filter(u=>DOCS.some(d=>d.unidad===u)));
-  if(DOCS.some(d=>d.unidad==="General")) uni.push("General");
+  /* Los pills salen de los documentos, no de una lista en el codigo: por
+     eso una unidad renombrada en el Sheet aparece sola y no hace falta
+     un caso especial para el cajon transversal, que antes se colaba a
+     mano al final con el nombre "General". */
+  const uni=["Todos"].concat(ordenar("unidad",valoresUnicos(DOCS,"unidad"),false));
   h+='<div class="filtros">';
   uni.forEach(u=>{ h+='<button class="chip'+(filtroDoc===u?' on':'')+'" data-f="'+esc(u)+'">'+esc(u)+'</button>'; });
   h+='</div>';
@@ -668,7 +783,8 @@ function renderDocs(){
 
   const grupos={};
   lista.forEach(d=>{ (grupos[d.unidad]=grupos[d.unidad]||[]).push(d); });
-  Object.keys(grupos).forEach(g=>{
+  /* Los grupos siguen el mismo orden que los pills, no el de insercion. */
+  ordenar("unidad",valoresUnicos(lista,"unidad"),false).forEach(g=>{
     h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+grupos[g].length+' documento'+(grupos[g].length!==1?'s':'')+'</span></div><div class="docs">';
     grupos[g].sort((a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0));
     grupos[g].forEach(d=>{
