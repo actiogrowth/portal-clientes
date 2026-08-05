@@ -2,8 +2,9 @@
 # Todo lo que se commitee queda accesible en internet.
 # Documentos internos y archivos fuente de trabajo no entran.
 
-# Documentacion interna
-Spec - Portal v3*.md
+# Documentacion interna.
+# El patron cubre cualquier version: atarlo a "v3" dejo fuera la v4.
+Spec*.md
 *Brand Book*.pdf
 
 # Fuentes de logo sin procesar (los procesados si se versionan:

@@ -11,8 +11,9 @@
 <style>
 /* ==========================================================================
    TOKENS. Unico lugar del archivo donde se declara un color.
-   Para replicar el portal a otro cliente se cambian las URLs de CSV, la
-   constante UNIDADES y los tokens de marca. Nada mas.
+   Para replicar el portal a otro cliente se cambian las URLs de CSV y
+   los tokens de marca. Nada mas: ya no queda ninguna lista de unidades
+   ni de areas en el codigo, salen del catalogo o de los datos.
    ========================================================================== */
 :root{
   /* ---------- Marca Actio ----------
@@ -67,8 +68,15 @@
   --borde:#E3E3DD;
   --borde-suave:#EFEFE9;
   --pista-sobre-oscuro:rgba(255,255,255,.14);
+  --visor-velo:rgba(0,66,37,.55);
+  --visor-sombra:rgba(0,0,0,.28);
 
   --font:'Inter',system-ui,sans-serif;
+
+  /* Medida compartida, no color: la celda del año en la barra de
+     tiempos y la del porcentaje en cada fila deben ser la misma
+     columna para quedar centradas una bajo la otra. */
+  --ancho-anio:64px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);font-weight:300;line-height:1.6;font-size:14px}
@@ -79,18 +87,26 @@ body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal
    alterar color, proporcion ni sombra.
    El area de respeto del logo Actio (18px) equivale a la altura de su
    "A" con el logo a 44px. Ningun logo baja de 28px. */
-header{display:flex;align-items:center;gap:18px;
+header{display:flex;align-items:center;gap:16px;
   background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  padding:18px 22px;margin:22px 0 18px}
+  padding:15px 22px;margin:22px 0 18px}
 .marca-actio{display:flex;align-items:center;flex-shrink:0;
-  padding-right:18px;border-right:1px solid var(--marca-verde-claro)}
-.marca-actio img{height:44px;display:block}
+  padding-right:15px;border-right:1px solid var(--marca-verde-claro)}
+/* Los logos bajan con el titulo. Medido sobre los PNG: en el de Actio
+   cada linea de texto ocupa 0.445 de su caja, y en el del cliente el
+   texto ocupa 0.675 porque el icono es quien fija su altura. Por eso
+   36 y 28 dejan sus letras en proporcion parecida a la que tenian con
+   el titulo a 22px, en vez de escalar las cajas por igual.
+   28px es el minimo que fija la spec para cualquier logo. */
+.marca-actio img{height:36px;display:block}
 .titulo{flex:1;min-width:0}
 .marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
-.marca-cliente img{height:32px;display:block}
+.marca-cliente img{height:28px;display:block}
 .brand-fallback{font-weight:700;font-size:18px;letter-spacing:-.5px}
-.eyebrow{font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--texto-secundario);font-weight:600}
-.h-title{font-size:22px;font-weight:600;margin-top:2px}
+/* Titulo unico del header, en Inter y versalitas. El tracking es la
+   mitad del que traia (2.4px -> 1.2px): a 17px el valor anterior
+   separaba las letras mas de lo que el cuerpo pequeño aguanta. */
+.h-title{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px}
 .stamp{font-size:11px;color:var(--texto-secundario);background:var(--superficie);border:1px solid var(--borde);
   border-radius:999px;padding:8px 15px;display:flex;align-items:center;gap:8px;white-space:nowrap}
 .stamp::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--estado-en-meta);
@@ -151,10 +167,14 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 
 .tl{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:9px;margin-bottom:11px;
   display:grid;grid-template-columns:210px 1fr;gap:5px}
-.tl-l{display:flex;gap:5px}
-.tl-tag{flex:1;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;
+/* La barra de tiempos y la cabecera de cada fila comparten la misma
+   subretícula: una parte flexible que absorbe la holgura y una columna
+   final de ancho fijo. Asi el año y el porcentaje caen en la misma
+   columna sin depender de cuanto mida su texto. */
+.tl-l{display:grid;grid-template-columns:1fr var(--ancho-anio);gap:5px}
+.tl-tag{display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;
   letter-spacing:1.2px;text-transform:uppercase;color:var(--texto-secundario);background:var(--fondo);border-radius:8px;padding:0 12px}
-.tl-year{display:flex;align-items:center;justify-content:center;padding:0 15px;background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+.tl-year{display:flex;align-items:center;justify-content:center;background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
   border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;border:2px solid var(--marca-verde-profundo);transition:.15s}
 .tl-year.on{background:var(--marca-verde-medio);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-medio)}
 .months{display:grid;gap:3px}
@@ -167,14 +187,18 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 
 .row{border:1px solid var(--borde);border-radius:12px;margin-bottom:11px;overflow:hidden;background:var(--superficie)}
 .row.open{border-color:var(--marca-verde-profundo)}
-.rh{display:grid;grid-template-columns:210px 1fr;align-items:center;padding:15px 18px;cursor:pointer;transition:.15s}
+/* Mismo padding horizontal y mismo gap que .tl, para que la segunda
+   columna (los meses) arranque exactamente en la misma x en la barra de
+   tiempos y en las cuatro filas. Antes eran 18px contra 9px y sin gap,
+   y por eso la retícula de meses no cuadraba con la cabecera. */
+.rh{display:grid;grid-template-columns:210px 1fr;gap:5px;align-items:center;padding:15px 9px;cursor:pointer;transition:.15s}
 .rh:hover{background:var(--superficie-sutil)}
-.rinfo{display:flex;align-items:center;gap:11px;min-width:0}
+.rinfo{display:grid;grid-template-columns:auto 1fr var(--ancho-anio);gap:11px;align-items:center;min-width:0}
 .tog{width:20px;height:20px;border-radius:5px;border:1px solid var(--borde);display:flex;align-items:center;
   justify-content:center;font-size:9px;color:var(--texto-secundario);flex-shrink:0;transition:.2s}
 .row.open .tog{border-color:var(--marca-verde-profundo);color:var(--marca-verde-profundo);background:var(--marca-realce)}
 .rname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rpct{font-size:12px;font-weight:600;margin-left:auto;color:var(--marca-verde-profundo);flex-shrink:0}
+.rpct{font-size:12px;font-weight:600;text-align:center;color:var(--marca-verde-profundo)}
 .gantt{display:grid;gap:3px;align-items:center}
 .cell{height:26px;border-radius:4px;background:var(--borde);opacity:.45;transition:.15s}
 .cell.done{background:var(--estado-en-meta);opacity:1}
@@ -209,7 +233,21 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .empty{font-size:13px;color:var(--texto-secundario);font-style:italic;padding:18px 20px}
 
 /* ---- DOCUMENTOS ---- */
-.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.filtros-grupo{margin-bottom:22px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap}
+/* Segunda fila subordinada a la primera: menor tamaño y menor peso, para
+   que se lea como jerarquia y no como dos filtros del mismo rango. */
+.filtros-area{margin-top:9px;gap:6px;align-items:center}
+.filtros-rotulo{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--texto-secundario);font-weight:600;margin-right:2px}
+/* Doble clase a proposito: .chip se declara mas abajo con la misma
+   especificidad, y sin esto ganaria por orden de aparicion. */
+.chip.chip-area{font-size:11.5px;font-weight:500;padding:5px 13px}
+.chip-area .chip-n{opacity:.6;font-weight:400}
+/* Area sin documentos en la unidad elegida: presente para que se vea que
+   existe, atenuada y sin responder al clic. */
+.chip-area.vacia{opacity:.45;cursor:default}
+.chip-area.vacia:hover{background:var(--superficie);color:var(--texto-secundario)}
 .chip{font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border-radius:999px;padding:7px 16px;transition:.15s}
 .chip:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
@@ -252,6 +290,38 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .foot{border-top:1px solid var(--borde);margin:40px 0 0;padding-top:20px;
   font-size:11px;color:var(--texto-secundario);line-height:1.9}
 .foot b{color:var(--texto-principal);font-weight:600}
+/* ---- VISOR ----
+   Capa sobre la misma pantalla en vez de sacar al cliente del portal.
+   El boton de abrir en pestaña nueva esta siempre presente: es a la vez
+   la salida para quien quiere pantalla completa y el plan B cuando el
+   contenido no se deja incrustar. */
+.visor{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px}
+.visor[hidden]{display:none}
+.visor-velo{position:absolute;inset:0;background:var(--visor-velo)}
+.visor-caja{position:relative;background:var(--superficie);border-radius:14px;
+  width:min(1000px,100%);height:min(88vh,100%);display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 60px var(--visor-sombra)}
+.visor-barra{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--borde)}
+.visor-titulo{font-size:13.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.visor-btn{font-family:inherit;font-size:11.5px;font-weight:600;text-decoration:none;border-radius:999px;
+  padding:6px 14px;border:1px solid var(--borde);color:var(--marca-verde-profundo);background:var(--superficie);
+  white-space:nowrap;cursor:pointer;transition:.15s;display:inline-block}
+.visor-btn:hover{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+.visor-cerrar{font-family:inherit;font-size:14px;line-height:1;cursor:pointer;border:1px solid var(--borde);
+  background:var(--superficie);color:var(--texto-secundario);border-radius:8px;width:30px;height:30px;flex-shrink:0}
+.visor-cerrar:hover{background:var(--fondo);color:var(--texto-principal)}
+.visor-cuerpo{position:relative;flex:1;background:var(--fondo)}
+.visor-cuerpo iframe{width:100%;height:100%;border:0;display:block}
+/* El aviso se suma por debajo, no reemplaza al iframe: no se puede
+   saber con certeza si el incrustado fallo, asi que nunca se retira
+   contenido que quiza si cargo. */
+.visor-aviso{position:absolute;left:0;right:0;bottom:0;background:var(--superficie);
+  border-top:1px solid var(--borde);padding:13px 16px;font-size:12.5px;color:var(--texto-secundario);
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.visor-aviso[hidden]{display:none}
+.visor-aviso b{color:var(--texto-principal);font-weight:600}
+body.visor-abierto{overflow:hidden}
+
 /* Foco de teclado. Se usa :focus-visible para que el anillo aparezca
    al tabular pero no al hacer clic con el raton. El outline-offset lo
    dibuja por fuera del control, asi que se lee igual sobre los botones
@@ -279,6 +349,8 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   .marca-actio{border-right:none;padding-right:0}
   .titulo{order:3;flex-basis:100%}
   nav .stamp{margin-left:0}
+  /* Ya no hace falta encoger el titulo en movil: a 17px lo hereda del
+     escritorio y sigue partiendo limpio en el "·". */
 }
 </style>
 </head>
@@ -290,8 +362,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
       <img src="logo-actio-verde.png" alt="Actio Growth">
     </div>
     <div class="titulo">
-      <div class="eyebrow">Actio Growth &middot; Sistema Operativo</div>
-      <div class="h-title">Portal del proyecto</div>
+      <div class="h-title">Actio Growth &middot; Sistema Operativo</div>
     </div>
     <div class="marca-cliente">
       <img src="logo-cliente.png" alt="Vida en Arte" onerror="this.style.display='none';document.getElementById('bf').style.display='block'">
@@ -317,22 +388,59 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   </div>
 </div>
 
+<div class="visor" id="visor" hidden>
+  <div class="visor-velo" data-cerrar></div>
+  <div class="visor-caja" id="visor-caja" role="dialog" aria-modal="true" aria-labelledby="visor-titulo">
+    <div class="visor-barra">
+      <div class="visor-titulo" id="visor-titulo"></div>
+      <a class="visor-btn" id="visor-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
+      <button class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="visor-cuerpo">
+      <iframe id="visor-marco" title="Contenido del documento"></iframe>
+      <div class="visor-aviso" id="visor-aviso" hidden>
+        <span><b>¿No se ve el contenido?</b> Algunos archivos no se dejan mostrar dentro del portal, según cómo estén compartidos.</span>
+        <a class="visor-btn" id="visor-aviso-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const CSV_ENTREGABLES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=0&single=true&output=csv";
 const CSV_DOCUMENTOS="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=926080222&single=true&output=csv";
 const CSV_REUNIONES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=888187894&single=true&output=csv";
 
-const UNIDADES=["Kinder","Veranito","After School","Cumplea\u00f1os"];
-const PIPELINE=["Marketing","Ventas","Servicio","Finanzas"];
+/* Pesta\u00f1a de catalogo, publicada como CSV igual que las demas.
+   Columnas: Tipo | Valor | Orden | Activo | Seccion
+     Tipo    "Unidad" o "Area"
+     Valor   el nombre tal cual aparece en los datos
+     Orden   numero; menor va primero. Puede faltar.
+     Activo  "No" apaga esa unidad o area aunque tenga filas.
+     Seccion "Documentos", "Avance" o vacio para las dos. Acota la fila
+             a una seccion: sirve para declarar un cajon transversal en
+             Documentos sin que aparezca como tarjeta en Avance.
+
+   Declara que unidades y areas existen y en que orden se dibujan, sin
+   que ninguna lista de este cliente viva en el codigo. Es tambien el
+   unico lugar donde puede declararse una unidad que todavia no tiene
+   una sola fila de entregables, que es lo que sostiene la tarjeta de
+   "Alcance por definir".
+
+   Vacia o inalcanzable, el portal deriva todo de los datos por orden
+   de primera aparicion. Nunca es un requisito para que funcione. */
+const CSV_CATALOGO="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=1825091344&single=true&output=csv";
+
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
 let DATA=[],MONTHS=[],selMonth=null,openUnit=null;
+let CATALOGO=null;
 /* Cada interaccion repinta el panel entero con innerHTML, lo que
    destruye el elemento que tenia el foco. Se guarda su data-foco para
    devolverselo al equivalente recien creado y no expulsar del control
    a quien navega con teclado. */
 let foco=null;
-let DOCS=[],filtroDoc="Todos";
+let DOCS=[],filtroDoc="Todos",filtroArea="Todas";
 let REUS=[];
 
 function parseCSV(t){
@@ -373,7 +481,110 @@ function clasificar(r){
   return "pend";
 }
 
+/* ============ CATALOGO Y ORDEN ============ */
+function normalizar(s){
+  return String(s||"").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+}
+
+/* Devuelve null ante cualquier problema —sin URL, error de red, o
+   columnas que no son las del catalogo— para que un gid equivocado no
+   entre como catalogo y el portal siga derivando de los datos. */
+function leerCatalogo(txt){
+  const t=tabla(txt),h=t.head;
+  const cT=col(h,"Tipo"),cV=col(h,"Valor"),cO=col(h,"Orden"),cA=col(h,"Activo"),cSe=col(h,"Seccion");
+  const cSe2=cSe>=0?cSe:col(h,"Sección");
+  if(cT<0||cV<0) return null;
+  const filas=[];
+  t.rows.forEach(r=>{
+    const valor=(r[cV]||"").trim();
+    if(!valor) return;
+    const tipo=normalizar(r[cT]);
+    const destino=tipo.indexOf("unidad")===0?"unidad":(tipo.indexOf("area")===0?"area":null);
+    if(!destino) return;
+    const activo=cA<0?"si":normalizar(r[cA]);
+    /* Seccion vacia, ausente o irreconocible significa "las dos". El
+       defecto seguro es mostrar de mas, no esconder por un dedazo. */
+    const s=cSe2<0?"":normalizar(r[cSe2]);
+    const seccion=s.indexOf("doc")===0?"documentos":(s.indexOf("avance")===0?"avance":"");
+    filas.push({destino,valor,seccion,
+      apagado:(activo==="no"||activo==="false"||activo==="0"),
+      orden:cO<0?NaN:parseFloat(r[cO])});
+  });
+  if(!filas.length) return null;
+  return {filas};
+}
+
+/* Vista del catalogo para un tipo y una seccion. Una fila sin Seccion
+   vale para las dos; una acotada solo cuenta en la suya. Asi "Vida en
+   Arte" puede declararse en Documentos, donde es un cajon transversal,
+   sin aparecer en Avance como una unidad que espera alcance. */
+function catalogoPara(tipo,seccion){
+  if(!CATALOGO) return null;
+  const propias=CATALOGO.filas.filter(f=>
+    f.destino===tipo&&(f.seccion===""||f.seccion===seccion));
+  if(!propias.length) return null;
+  /* Las filas con Orden numerico mandan y van por ese numero; las que
+     no lo traen conservan el orden en que estan en la pestaña. */
+  const activas=propias.filter(f=>!f.apagado);
+  return {
+    orden:activas.filter(f=>!isNaN(f.orden)).sort((a,b)=>a.orden-b.orden)
+          .concat(activas.filter(f=>isNaN(f.orden))).map(f=>f.valor),
+    apagados:propias.filter(f=>f.apagado).map(f=>f.valor)
+  };
+}
+
+/* Valores unicos de un campo, en orden de primera aparicion. */
+function valoresUnicos(filas,campo){
+  const out=[];
+  filas.forEach(f=>{const v=(f[campo]||"").trim(); if(v&&out.indexOf(v)<0) out.push(v);});
+  return out;
+}
+
+/* Une lo declarado en el catalogo con lo que traen los datos.
+   Lo catalogado manda y va primero, en su orden. Lo que aparece en los
+   datos pero nadie catalogo va detras, por primera aparicion: un valor
+   nuevo en el Sheet nunca desaparece por faltar en el catalogo. Lo
+   marcado Activo=No se excluye aunque tenga filas.
+   incluirSinDatos decide si un valor declarado y sin una sola fila se
+   muestra igual: si en las unidades del avance, para que Cumpleaños
+   conserve su tarjeta de "Alcance por definir"; no en los pills de
+   documentos, donde un filtro que no filtra nada solo estorba. */
+function ordenar(tipo,valoresEnDatos,incluirSinDatos,seccion){
+  const cat=catalogoPara(tipo,seccion);
+  const apagados=cat?cat.apagados:[];
+  const salida=[];
+  const meter=v=>{
+    if(!v||apagados.indexOf(v)>=0||salida.indexOf(v)>=0) return;
+    salida.push(v);
+  };
+  if(cat) cat.orden.forEach(v=>{ if(incluirSinDatos||valoresEnDatos.indexOf(v)>=0) meter(v); });
+  valoresEnDatos.forEach(meter);
+  return salida;
+}
+
+/* Apagar en el catalogo tiene que ignorar la fila en todo el portal, no
+   solo esconderla de los filtros: de lo contrario los entregables de una
+   unidad apagada seguirian sumando al avance total y sus documentos
+   seguirian contando en el numero de la pestaña. */
+function activa(fila,seccion){
+  if(!CATALOGO) return true;
+  const apagado=(tipo,valor)=>CATALOGO.filas.some(f=>
+    f.apagado&&f.destino===tipo&&f.valor===valor&&(f.seccion===""||f.seccion===seccion));
+  return !apagado("unidad",fila.unidad)&&!apagado("area",fila.segmento);
+}
+
 /* ============ CARGA ============ */
+/* El catalogo se lee antes que los datos porque fija el orden con el
+   que se dibuja todo. Si falla, no bloquea: CATALOGO queda en null. */
+function cargarCatalogo(){
+  if(!CSV_CATALOGO) return Promise.resolve(null);
+  return fetch(CSV_CATALOGO)
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(leerCatalogo)
+    .catch(()=>null);
+}
+
+function cargarDatos(){
 fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
 .then(txt=>{
   const t=tabla(txt),h=t.head;
@@ -383,7 +594,7 @@ fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text
     unidad:(r[cU]||"").trim(), nombre:(r[cE]||"").trim(), segmento:(r[cS]||"").trim(),
     estado:(r[cSt]||"").trim(), pct:parseFloat(r[cP])||0,
     compromiso:fecha(r[cFc]), real:fecha(r[cFr])
-  })).filter(d=>d.nombre);
+  })).filter(d=>d.nombre&&activa(d,"avance"));
 
   const ds=[];DATA.forEach(d=>{if(d.real)ds.push(d.real);if(d.compromiso)ds.push(d.compromiso);});
   if(ds.length){
@@ -403,9 +614,12 @@ fetch(CSV_DOCUMENTOS).then(r=>{if(!r.ok)throw new Error(r.status);return r.text(
   const cN=col(h,"Nombre"),cU=col(h,"Unidad de negocio"),cS=col(h,"Segmento"),
         cT=col(h,"Tipo"),cF=col(h,"Fecha"),cL=col(h,"Enlace");
   DOCS=t.rows.map(r=>({
-    nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"General", segmento:(r[cS]||"").trim(),
+    /* Una celda de unidad vacia cae en "Sin unidad", no en un nombre
+       inventado. Descartar la fila escondería un documento real sin
+       dejar rastro; asi el hueco se ve y se puede corregir en el Sheet. */
+    nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"Sin unidad", segmento:(r[cS]||"").trim(),
     tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim()
-  })).filter(d=>d.nombre);
+  })).filter(d=>d.nombre&&activa(d,"documentos"));
   document.getElementById("cd").textContent="("+DOCS.length+")";
   renderDocs();
 })
@@ -427,6 +641,9 @@ fetch(CSV_REUNIONES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()
 })
 .catch(e=>{ document.getElementById("p-reu").innerHTML=
   '<div class="err"><b>No se pudieron cargar las reuniones.</b><br>Detalle: '+e.message+'</div>'; });
+}
+
+cargarCatalogo().then(cat=>{ CATALOGO=cat; cargarDatos(); });
 
 /* ============ AVANCE ============ */
 /* Avance total: entregables completados sobre el total de entregables
@@ -472,6 +689,9 @@ function rangoEntregas(items){
 
 function renderAvance(){
   const P=statsProyecto();
+  /* Con incluirSinDatos en true, una unidad declarada en el catalogo y
+     sin una sola fila de entregables conserva su tarjeta. */
+  const unidades=ordenar("unidad",valoresUnicos(DATA,"unidad"),true,"avance");
 
   let h='<div class="sec-label">Resumen ejecutivo</div>';
   h+='<h2>Avance general del proyecto</h2>';
@@ -491,7 +711,7 @@ function renderAvance(){
      '</svg></div></div>';
 
   h+='<div class="cards">';
-  UNIDADES.forEach(u=>{
+  unidades.forEach(u=>{
     const s=statsUnidad(u);
     /* Regla general, no un caso de After School: cualquier unidad con
        alcance y sin nada entregado acompania su 0% con el rango. */
@@ -529,7 +749,7 @@ function renderAvance(){
   });
   h+='</div></div><div class="note">'+(selMonth!==null?'Mostrando entregables de <b>'+MES[MONTHS[selMonth].getMonth()]+' '+MONTHS[selMonth].getFullYear()+'</b>':'')+'</div>';
 
-  UNIDADES.forEach(u=>{
+  unidades.forEach(u=>{
     const s=statsUnidad(u),open=openUnit===u;
     h+='<div class="row'+(open?' open':'')+'"><div class="rh" data-u="'+esc(u)+'" data-foco="fila:'+esc(u)+'">'+
        '<div class="rinfo"><div class="tog">'+(open?'\u25be':'\u25b8')+'</div>'+
@@ -565,7 +785,8 @@ function detalle(u){
     if(!items.length) return '<div class="empty">Sin entregables en este mes.</div>';
   }
   let h="";
-  PIPELINE.forEach(seg=>{
+  /* Las areas tambien salen del catalogo. Sin el, orden de aparicion. */
+  ordenar("area",valoresUnicos(items,"segmento"),false,"avance").forEach(seg=>{
     const g=items.filter(i=>i.segmento===seg);
     if(!g.length)return;
     const d=g.filter(i=>i.estado==="Entregado").length;
@@ -637,26 +858,55 @@ function renderDocs(){
     document.getElementById("p-docs").innerHTML=h;return;
   }
 
-  const uni=["Todos"].concat(UNIDADES.filter(u=>DOCS.some(d=>d.unidad===u)));
-  if(DOCS.some(d=>d.unidad==="General")) uni.push("General");
-  h+='<div class="filtros">';
+  /* Los pills salen de los documentos, no de una lista en el codigo: por
+     eso una unidad renombrada en el Sheet aparece sola y no hace falta
+     un caso especial para el cajon transversal, que antes se colaba a
+     mano al final con el nombre "General". */
+  const uni=["Todos"].concat(ordenar("unidad",valoresUnicos(DOCS,"unidad"),false,"documentos"));
+  h+='<div class="filtros-grupo"><div class="filtros">';
   uni.forEach(u=>{ h+='<button class="chip'+(filtroDoc===u?' on':'')+'" data-f="'+esc(u)+'">'+esc(u)+'</button>'; });
   h+='</div>';
 
-  let lista=filtroDoc==="Todos"?DOCS:DOCS.filter(d=>d.unidad===filtroDoc);
+  const deUnidad=filtroDoc==="Todos"?DOCS:DOCS.filter(d=>d.unidad===filtroDoc);
+
+  /* Con "Todos" activo no hay segunda fila: cruzar areas entre unidades
+     no comunica nada. */
+  if(filtroDoc!=="Todos"){
+    /* Se listan todas las areas del portal, no solo las que esta unidad
+       tiene. Una area sin documentos aqui se muestra atenuada en vez de
+       esconderse, para que se vea que existe y que aun no tiene nada. */
+    const areas=ordenar("area",valoresUnicos(DOCS,"segmento"),true,"documentos");
+    h+='<div class="filtros filtros-area"><span class="filtros-rotulo">Área</span>'+
+       '<button class="chip chip-area'+(filtroArea==="Todas"?' on':'')+'" data-a="Todas">Todas</button>';
+    areas.forEach(a=>{
+      const n=deUnidad.filter(d=>d.segmento===a).length;
+      h+='<button class="chip chip-area'+(filtroArea===a?' on':'')+(n===0?' vacia':'')+'"'+
+         ' data-a="'+esc(a)+'"'+(n===0?' disabled':'')+'>'+esc(a)+
+         ' <span class="chip-n">('+n+')</span></button>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+
+  let lista=deUnidad;
+  if(filtroDoc!=="Todos"&&filtroArea!=="Todas") lista=lista.filter(d=>d.segmento===filtroArea);
+
+  /* Red de seguridad: las areas vacias no son clicables, asi que este
+     estado no deberia alcanzarse. Nunca una cuadricula vacia sin texto. */
   if(!lista.length){
-    h+='<div class="empty">Sin documentos para este filtro.</div>';
+    h+='<div class="empty">No hay documentos en esta área todavía.</div>';
     document.getElementById("p-docs").innerHTML=h;bindDocs();return;
   }
 
   const grupos={};
   lista.forEach(d=>{ (grupos[d.unidad]=grupos[d.unidad]||[]).push(d); });
-  Object.keys(grupos).forEach(g=>{
+  /* Los grupos siguen el mismo orden que los pills, no el de insercion. */
+  ordenar("unidad",valoresUnicos(lista,"unidad"),false,"documentos").forEach(g=>{
     h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+grupos[g].length+' documento'+(grupos[g].length!==1?'s':'')+'</span></div><div class="docs">';
     grupos[g].sort((a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0));
     grupos[g].forEach(d=>{
       const ini=(d.nombre||"?").trim().charAt(0).toUpperCase();
-      h+='<a class="doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener">'+
+      h+='<a class="doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener" data-titulo="'+esc(d.nombre)+'">'+
          '<div class="doc-top"><div class="doc-ico">'+esc(ini)+'</div>'+
          '<div class="doc-n">'+esc(d.nombre)+'</div></div>'+
          '<div class="doc-meta">'+
@@ -672,10 +922,23 @@ function renderDocs(){
   bindDocs();
 }
 function bindDocs(){
-  document.querySelectorAll("#p-docs .chip").forEach(el=>{
+  document.querySelectorAll("#p-docs .chip[data-f]").forEach(el=>{
     el.setAttribute("aria-pressed",String(filtroDoc===el.dataset.f));
-    el.onclick=()=>{filtroDoc=el.dataset.f;renderDocs();};
+    el.onclick=()=>{
+      filtroDoc=el.dataset.f;
+      /* Al cambiar de unidad el area vuelve a "Todas". Heredar el filtro
+         de la unidad anterior deja al cliente ante un vacio que no se
+         explica solo. */
+      filtroArea="Todas";
+      renderDocs();
+    };
   });
+  document.querySelectorAll("#p-docs .chip[data-a]").forEach(el=>{
+    el.setAttribute("aria-pressed",String(filtroArea===el.dataset.a));
+    if(el.disabled) return;
+    el.onclick=()=>{filtroArea=el.dataset.a;renderDocs();};
+  });
+  enlazarVisor("#p-docs .doc");
 }
 
 /* ============ REUNIONES ============ */
@@ -693,14 +956,101 @@ function renderReus(){
     h+='<div class="reu"><div class="reu-h">'+
        '<div class="reu-f">'+fmt(r.fecha)+'</div>'+
        '<div class="reu-t">'+esc(r.tema)+'</div></div><div class="reu-links">';
-    h+= r.minuta ? '<a class="lnk" href="'+esc(r.minuta)+'" target="_blank" rel="noopener">Ver minuta</a>'
+    h+= r.minuta ? '<a class="lnk" href="'+esc(r.minuta)+'" target="_blank" rel="noopener" data-titulo="Minuta &middot; '+esc(r.tema)+'">Ver minuta</a>'
                  : '<span class="lnk off">Minuta pendiente</span>';
-    h+= r.grabacion ? '<a class="lnk" href="'+esc(r.grabacion)+'" target="_blank" rel="noopener">Ver grabacion</a>'
+    h+= r.grabacion ? '<a class="lnk" href="'+esc(r.grabacion)+'" target="_blank" rel="noopener" data-titulo="Grabación &middot; '+esc(r.tema)+'">Ver grabacion</a>'
                     : '<span class="lnk off">Sin grabacion</span>';
     h+='</div></div>';
   });
   h+='</div>';
   document.getElementById("p-reu").innerHTML=h;
+  enlazarVisor("#p-reu .lnk[href]");
+}
+
+/* ============ VISOR ============ */
+/* Google no deja incrustar sus vistas normales: /view en Drive y /edit
+   en Docs devuelven una pagina que rechaza el iframe. La forma /preview
+   si se incrusta. Cualquier otro enlace se intenta tal cual. */
+function urlIncrustable(u){
+  if(!u) return "";
+  const drive=u.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  if(drive) return "https://drive.google.com/file/d/"+drive[1]+"/preview";
+  const docs=u.match(/^https?:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+  if(docs) return "https://docs.google.com/"+docs[1]+"/d/"+docs[2]+"/preview";
+  return u;
+}
+
+/* Por debajo de 640px una capa incrustada es peor experiencia que abrir
+   directo, asi que ahi no se intercepta el clic. */
+function pantallaAngosta(){ return window.matchMedia("(max-width:640px)").matches; }
+
+const VISOR_ESPERA=4000;
+let visorPrevio=null,visorReloj=null;
+
+/* El elemento que abrio la capa se recibe explicitamente y no se deduce
+   de document.activeElement: un clic de raton no siempre deja el foco en
+   el enlace, y al cerrar habria que devolverlo a ninguna parte. */
+function abrirVisor(url,titulo,origen){
+  visorPrevio=origen||document.activeElement;
+  document.getElementById("visor-titulo").textContent=titulo||"Documento";
+  document.getElementById("visor-nueva").href=url;
+  document.getElementById("visor-aviso-nueva").href=url;
+  document.getElementById("visor-aviso").hidden=true;
+  document.getElementById("visor-marco").src=urlIncrustable(url);
+  document.getElementById("visor").hidden=false;
+  document.body.classList.add("visor-abierto");
+  document.getElementById("visor-cerrar").focus();
+  /* No hay forma fiable de saber que un iframe de otro dominio fue
+     rechazado: cuando el bloqueo viene por cabecera, el navegador
+     dispara onload igual. Por eso, pasado un tiempo, se ofrece la
+     alternativa sin retirar lo que quiza si cargo. */
+  clearTimeout(visorReloj);
+  visorReloj=setTimeout(()=>{document.getElementById("visor-aviso").hidden=false;},VISOR_ESPERA);
+}
+
+function cerrarVisor(){
+  const v=document.getElementById("visor");
+  if(v.hidden) return;
+  clearTimeout(visorReloj);
+  v.hidden=true;
+  /* Se vacia el marco para que una grabacion no siga sonando detras. */
+  document.getElementById("visor-marco").src="about:blank";
+  document.body.classList.remove("visor-abierto");
+  if(visorPrevio&&visorPrevio.focus) visorPrevio.focus();
+  visorPrevio=null;
+}
+
+/* Con la capa abierta el foco no sale de ella. Salvedad conocida: si el
+   foco entra al iframe, el contenido es de otro dominio y desde aqui ya
+   no se puede observar ni traer de vuelta. */
+function visorTeclado(e){
+  if(document.getElementById("visor").hidden) return;
+  if(e.key==="Escape"){ e.preventDefault(); cerrarVisor(); return; }
+  if(e.key!=="Tab") return;
+  const f=[...document.getElementById("visor-caja").querySelectorAll("a[href],button,iframe")]
+          .filter(el=>el.offsetParent!==null&&!el.disabled);
+  if(!f.length) return;
+  const primero=f[0],ultimo=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===primero){ e.preventDefault();ultimo.focus(); }
+  else if(!e.shiftKey&&document.activeElement===ultimo){ e.preventDefault();primero.focus(); }
+}
+
+document.addEventListener("keydown",visorTeclado);
+document.getElementById("visor-cerrar").onclick=cerrarVisor;
+document.getElementById("visor").addEventListener("click",e=>{
+  if(e.target.hasAttribute("data-cerrar")) cerrarVisor();
+});
+
+/* Se intercepta el clic pero se conservan href y target: el clic con
+   Ctrl, el del boton central y el movil siguen abriendo pestaña. */
+function enlazarVisor(sel){
+  document.querySelectorAll(sel).forEach(a=>{
+    a.onclick=e=>{
+      if(pantallaAngosta()||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+      e.preventDefault();
+      abrirVisor(a.href,a.dataset.titulo||a.textContent.trim(),a);
+    };
+  });
 }
 
 /* ============ NAVEGACION ============ */
