@@ -69,6 +69,11 @@
   --pista-sobre-oscuro:rgba(255,255,255,.14);
 
   --font:'Inter',system-ui,sans-serif;
+
+  /* Medida compartida, no color: la celda del año en la barra de
+     tiempos y la del porcentaje en cada fila deben ser la misma
+     columna para quedar centradas una bajo la otra. */
+  --ancho-anio:64px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);font-weight:300;line-height:1.6;font-size:14px}
@@ -153,10 +158,14 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 
 .tl{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:9px;margin-bottom:11px;
   display:grid;grid-template-columns:210px 1fr;gap:5px}
-.tl-l{display:flex;gap:5px}
-.tl-tag{flex:1;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;
+/* La barra de tiempos y la cabecera de cada fila comparten la misma
+   subretícula: una parte flexible que absorbe la holgura y una columna
+   final de ancho fijo. Asi el año y el porcentaje caen en la misma
+   columna sin depender de cuanto mida su texto. */
+.tl-l{display:grid;grid-template-columns:1fr var(--ancho-anio);gap:5px}
+.tl-tag{display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;
   letter-spacing:1.2px;text-transform:uppercase;color:var(--texto-secundario);background:var(--fondo);border-radius:8px;padding:0 12px}
-.tl-year{display:flex;align-items:center;justify-content:center;padding:0 15px;background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+.tl-year{display:flex;align-items:center;justify-content:center;background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
   border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;border:2px solid var(--marca-verde-profundo);transition:.15s}
 .tl-year.on{background:var(--marca-verde-medio);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-medio)}
 .months{display:grid;gap:3px}
@@ -169,14 +178,18 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 
 .row{border:1px solid var(--borde);border-radius:12px;margin-bottom:11px;overflow:hidden;background:var(--superficie)}
 .row.open{border-color:var(--marca-verde-profundo)}
-.rh{display:grid;grid-template-columns:210px 1fr;align-items:center;padding:15px 18px;cursor:pointer;transition:.15s}
+/* Mismo padding horizontal y mismo gap que .tl, para que la segunda
+   columna (los meses) arranque exactamente en la misma x en la barra de
+   tiempos y en las cuatro filas. Antes eran 18px contra 9px y sin gap,
+   y por eso la retícula de meses no cuadraba con la cabecera. */
+.rh{display:grid;grid-template-columns:210px 1fr;gap:5px;align-items:center;padding:15px 9px;cursor:pointer;transition:.15s}
 .rh:hover{background:var(--superficie-sutil)}
-.rinfo{display:flex;align-items:center;gap:11px;min-width:0}
+.rinfo{display:grid;grid-template-columns:auto 1fr var(--ancho-anio);gap:11px;align-items:center;min-width:0}
 .tog{width:20px;height:20px;border-radius:5px;border:1px solid var(--borde);display:flex;align-items:center;
   justify-content:center;font-size:9px;color:var(--texto-secundario);flex-shrink:0;transition:.2s}
 .row.open .tog{border-color:var(--marca-verde-profundo);color:var(--marca-verde-profundo);background:var(--marca-realce)}
 .rname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rpct{font-size:12px;font-weight:600;margin-left:auto;color:var(--marca-verde-profundo);flex-shrink:0}
+.rpct{font-size:12px;font-weight:600;text-align:center;color:var(--marca-verde-profundo)}
 .gantt{display:grid;gap:3px;align-items:center}
 .cell{height:26px;border-radius:4px;background:var(--borde);opacity:.45;transition:.15s}
 .cell.done{background:var(--estado-en-meta);opacity:1}
