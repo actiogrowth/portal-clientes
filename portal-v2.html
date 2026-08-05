@@ -68,6 +68,8 @@
   --borde:#E3E3DD;
   --borde-suave:#EFEFE9;
   --pista-sobre-oscuro:rgba(255,255,255,.14);
+  --visor-velo:rgba(0,66,37,.55);
+  --visor-sombra:rgba(0,0,0,.28);
 
   --font:'Inter',system-ui,sans-serif;
 
@@ -282,6 +284,38 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .foot{border-top:1px solid var(--borde);margin:40px 0 0;padding-top:20px;
   font-size:11px;color:var(--texto-secundario);line-height:1.9}
 .foot b{color:var(--texto-principal);font-weight:600}
+/* ---- VISOR ----
+   Capa sobre la misma pantalla en vez de sacar al cliente del portal.
+   El boton de abrir en pestaña nueva esta siempre presente: es a la vez
+   la salida para quien quiere pantalla completa y el plan B cuando el
+   contenido no se deja incrustar. */
+.visor{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px}
+.visor[hidden]{display:none}
+.visor-velo{position:absolute;inset:0;background:var(--visor-velo)}
+.visor-caja{position:relative;background:var(--superficie);border-radius:14px;
+  width:min(1000px,100%);height:min(88vh,100%);display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 60px var(--visor-sombra)}
+.visor-barra{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--borde)}
+.visor-titulo{font-size:13.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.visor-btn{font-family:inherit;font-size:11.5px;font-weight:600;text-decoration:none;border-radius:999px;
+  padding:6px 14px;border:1px solid var(--borde);color:var(--marca-verde-profundo);background:var(--superficie);
+  white-space:nowrap;cursor:pointer;transition:.15s;display:inline-block}
+.visor-btn:hover{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+.visor-cerrar{font-family:inherit;font-size:14px;line-height:1;cursor:pointer;border:1px solid var(--borde);
+  background:var(--superficie);color:var(--texto-secundario);border-radius:8px;width:30px;height:30px;flex-shrink:0}
+.visor-cerrar:hover{background:var(--fondo);color:var(--texto-principal)}
+.visor-cuerpo{position:relative;flex:1;background:var(--fondo)}
+.visor-cuerpo iframe{width:100%;height:100%;border:0;display:block}
+/* El aviso se suma por debajo, no reemplaza al iframe: no se puede
+   saber con certeza si el incrustado fallo, asi que nunca se retira
+   contenido que quiza si cargo. */
+.visor-aviso{position:absolute;left:0;right:0;bottom:0;background:var(--superficie);
+  border-top:1px solid var(--borde);padding:13px 16px;font-size:12.5px;color:var(--texto-secundario);
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.visor-aviso[hidden]{display:none}
+.visor-aviso b{color:var(--texto-principal);font-weight:600}
+body.visor-abierto{overflow:hidden}
+
 /* Foco de teclado. Se usa :focus-visible para que el anillo aparezca
    al tabular pero no al hacer clic con el raton. El outline-offset lo
    dibuja por fuera del control, asi que se lee igual sobre los botones
@@ -346,6 +380,24 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
     <b>Modelo de cálculo:</b> el avance total = entregables completados / total de entregables del proyecto.
     Las unidades cuyo alcance aún no está definido no entran en el cálculo hasta que se definan.<br>
     <b>Fuente:</b> sistema de gestión de Actio Growth &middot; la información se actualiza automáticamente.
+  </div>
+</div>
+
+<div class="visor" id="visor" hidden>
+  <div class="visor-velo" data-cerrar></div>
+  <div class="visor-caja" id="visor-caja" role="dialog" aria-modal="true" aria-labelledby="visor-titulo">
+    <div class="visor-barra">
+      <div class="visor-titulo" id="visor-titulo"></div>
+      <a class="visor-btn" id="visor-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
+      <button class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&#10005;</button>
+    </div>
+    <div class="visor-cuerpo">
+      <iframe id="visor-marco" title="Contenido del documento"></iframe>
+      <div class="visor-aviso" id="visor-aviso" hidden>
+        <span><b>¿No se ve el contenido?</b> Algunos archivos no se dejan mostrar dentro del portal, según cómo estén compartidos.</span>
+        <a class="visor-btn" id="visor-aviso-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -828,7 +880,7 @@ function renderDocs(){
     grupos[g].sort((a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0));
     grupos[g].forEach(d=>{
       const ini=(d.nombre||"?").trim().charAt(0).toUpperCase();
-      h+='<a class="doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener">'+
+      h+='<a class="doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener" data-titulo="'+esc(d.nombre)+'">'+
          '<div class="doc-top"><div class="doc-ico">'+esc(ini)+'</div>'+
          '<div class="doc-n">'+esc(d.nombre)+'</div></div>'+
          '<div class="doc-meta">'+
@@ -860,6 +912,7 @@ function bindDocs(){
     if(el.disabled) return;
     el.onclick=()=>{filtroArea=el.dataset.a;renderDocs();};
   });
+  enlazarVisor("#p-docs .doc");
 }
 
 /* ============ REUNIONES ============ */
@@ -877,14 +930,101 @@ function renderReus(){
     h+='<div class="reu"><div class="reu-h">'+
        '<div class="reu-f">'+fmt(r.fecha)+'</div>'+
        '<div class="reu-t">'+esc(r.tema)+'</div></div><div class="reu-links">';
-    h+= r.minuta ? '<a class="lnk" href="'+esc(r.minuta)+'" target="_blank" rel="noopener">Ver minuta</a>'
+    h+= r.minuta ? '<a class="lnk" href="'+esc(r.minuta)+'" target="_blank" rel="noopener" data-titulo="Minuta &middot; '+esc(r.tema)+'">Ver minuta</a>'
                  : '<span class="lnk off">Minuta pendiente</span>';
-    h+= r.grabacion ? '<a class="lnk" href="'+esc(r.grabacion)+'" target="_blank" rel="noopener">Ver grabacion</a>'
+    h+= r.grabacion ? '<a class="lnk" href="'+esc(r.grabacion)+'" target="_blank" rel="noopener" data-titulo="Grabación &middot; '+esc(r.tema)+'">Ver grabacion</a>'
                     : '<span class="lnk off">Sin grabacion</span>';
     h+='</div></div>';
   });
   h+='</div>';
   document.getElementById("p-reu").innerHTML=h;
+  enlazarVisor("#p-reu .lnk[href]");
+}
+
+/* ============ VISOR ============ */
+/* Google no deja incrustar sus vistas normales: /view en Drive y /edit
+   en Docs devuelven una pagina que rechaza el iframe. La forma /preview
+   si se incrusta. Cualquier otro enlace se intenta tal cual. */
+function urlIncrustable(u){
+  if(!u) return "";
+  const drive=u.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  if(drive) return "https://drive.google.com/file/d/"+drive[1]+"/preview";
+  const docs=u.match(/^https?:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+  if(docs) return "https://docs.google.com/"+docs[1]+"/d/"+docs[2]+"/preview";
+  return u;
+}
+
+/* Por debajo de 640px una capa incrustada es peor experiencia que abrir
+   directo, asi que ahi no se intercepta el clic. */
+function pantallaAngosta(){ return window.matchMedia("(max-width:640px)").matches; }
+
+const VISOR_ESPERA=4000;
+let visorPrevio=null,visorReloj=null;
+
+/* El elemento que abrio la capa se recibe explicitamente y no se deduce
+   de document.activeElement: un clic de raton no siempre deja el foco en
+   el enlace, y al cerrar habria que devolverlo a ninguna parte. */
+function abrirVisor(url,titulo,origen){
+  visorPrevio=origen||document.activeElement;
+  document.getElementById("visor-titulo").textContent=titulo||"Documento";
+  document.getElementById("visor-nueva").href=url;
+  document.getElementById("visor-aviso-nueva").href=url;
+  document.getElementById("visor-aviso").hidden=true;
+  document.getElementById("visor-marco").src=urlIncrustable(url);
+  document.getElementById("visor").hidden=false;
+  document.body.classList.add("visor-abierto");
+  document.getElementById("visor-cerrar").focus();
+  /* No hay forma fiable de saber que un iframe de otro dominio fue
+     rechazado: cuando el bloqueo viene por cabecera, el navegador
+     dispara onload igual. Por eso, pasado un tiempo, se ofrece la
+     alternativa sin retirar lo que quiza si cargo. */
+  clearTimeout(visorReloj);
+  visorReloj=setTimeout(()=>{document.getElementById("visor-aviso").hidden=false;},VISOR_ESPERA);
+}
+
+function cerrarVisor(){
+  const v=document.getElementById("visor");
+  if(v.hidden) return;
+  clearTimeout(visorReloj);
+  v.hidden=true;
+  /* Se vacia el marco para que una grabacion no siga sonando detras. */
+  document.getElementById("visor-marco").src="about:blank";
+  document.body.classList.remove("visor-abierto");
+  if(visorPrevio&&visorPrevio.focus) visorPrevio.focus();
+  visorPrevio=null;
+}
+
+/* Con la capa abierta el foco no sale de ella. Salvedad conocida: si el
+   foco entra al iframe, el contenido es de otro dominio y desde aqui ya
+   no se puede observar ni traer de vuelta. */
+function visorTeclado(e){
+  if(document.getElementById("visor").hidden) return;
+  if(e.key==="Escape"){ e.preventDefault(); cerrarVisor(); return; }
+  if(e.key!=="Tab") return;
+  const f=[...document.getElementById("visor-caja").querySelectorAll("a[href],button,iframe")]
+          .filter(el=>el.offsetParent!==null&&!el.disabled);
+  if(!f.length) return;
+  const primero=f[0],ultimo=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===primero){ e.preventDefault();ultimo.focus(); }
+  else if(!e.shiftKey&&document.activeElement===ultimo){ e.preventDefault();primero.focus(); }
+}
+
+document.addEventListener("keydown",visorTeclado);
+document.getElementById("visor-cerrar").onclick=cerrarVisor;
+document.getElementById("visor").addEventListener("click",e=>{
+  if(e.target.hasAttribute("data-cerrar")) cerrarVisor();
+});
+
+/* Se intercepta el clic pero se conservan href y target: el clic con
+   Ctrl, el del boton central y el movil siguen abriendo pestaña. */
+function enlazarVisor(sel){
+  document.querySelectorAll(sel).forEach(a=>{
+    a.onclick=e=>{
+      if(pantallaAngosta()||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+      e.preventDefault();
+      abrirVisor(a.href,a.dataset.titulo||a.textContent.trim(),a);
+    };
+  });
 }
 
 /* ============ NAVEGACION ============ */
