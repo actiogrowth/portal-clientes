@@ -261,18 +261,32 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   margin-bottom:12px;display:flex;align-items:center;gap:9px}
 .grupo-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--marca-verde-profundo)}
 .grupo-h .n{margin-left:auto;font-weight:500;letter-spacing:0;text-transform:none;color:var(--texto-secundario);font-size:11px}
-.docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.doc{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:16px 18px;
-  display:flex;flex-direction:column;gap:9px;transition:.18s;text-decoration:none;color:inherit}
-.doc:hover{border-color:var(--marca-verde-claro);transform:translateY(-2px);box-shadow:0 8px 20px var(--marca-sombra)}
-.doc-top{display:flex;align-items:flex-start;gap:11px}
-.doc-ico{width:34px;height:34px;border-radius:9px;background:var(--marca-tenue);color:var(--marca-verde-profundo);
-  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
-.doc-n{font-size:13.5px;font-weight:500;line-height:1.4;flex:1;min-width:0}
-.doc-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10.5px;color:var(--texto-secundario)}
+/* Subtitulo de segmento. Es un separador, no una seccion: cuerpo
+   pequeño, color secundario y una linea fina que lo ata a las filas que
+   siguen. Deliberadamente mas liviano que .grupo-h, que ademas lleva
+   verde de marca, peso 700 y punto. */
+.seg-h{display:flex;align-items:center;gap:10px;margin:15px 0 7px;
+  font-size:9.5px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--texto-secundario)}
+.seg-h::after{content:"";flex:1;height:1px;background:var(--borde)}
+
+/* Lista de filas de ancho completo. Se lee de arriba abajo en una sola
+   linea de lectura, en vez de en zigzag por una cuadricula. */
+.lista{display:flex;flex-direction:column;gap:6px}
+.fila-doc{display:flex;align-items:center;gap:14px;padding:10px 14px;
+  background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
+  text-decoration:none;color:inherit;transition:.15s}
+.fila-doc:hover{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
+/* El nombre manda: es lo ultimo que cede el espacio. Solo se recorta si
+   ni escondiendo fecha y etiquetas cabe, y entonces el title deja el
+   nombre completo al pasar el cursor. */
+.fd-nombre{flex:1 1 auto;min-width:0;font-size:13.5px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fd-etiquetas{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.fd-fecha{flex-shrink:0;white-space:nowrap;font-size:11px;color:var(--texto-secundario)}
+.fd-accion{flex-shrink:0;white-space:nowrap;font-size:11.5px;font-weight:600;color:var(--marca-verde-profundo)}
 .pill{font-size:9.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--fondo);color:var(--texto-secundario)}
 .pill.seg{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
-.doc-cta{font-size:11.5px;font-weight:600;color:var(--marca-verde-profundo);margin-top:auto}
 
 /* ---- REUNIONES ---- */
 .reus{position:relative;padding-left:26px}
@@ -351,7 +365,9 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   .tl-l{margin-bottom:5px}
   .hero-val{font-size:46px}
   .i-prog{display:none}
-  .docs{grid-template-columns:1fr}
+  /* Primero cede la fecha, que es lo mas prescindible de la fila, antes
+     que empezar a recortar el nombre del documento. */
+  .fd-fecha{display:none}
 }
 
 /* Bajo 640px los dos logos no caben en una linea junto al titulo.
@@ -368,6 +384,13 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   /* flex-basis lo manda a su propia linea; max-content evita que la
      pastilla se estire a todo el ancho y parezca una franja. */
   header .stamp{order:4;flex-basis:100%;max-width:max-content;margin:0}
+  /* La fila se pliega: nombre en la primera linea, etiquetas y fecha en
+     la segunda. La accion se va, porque toda la fila responde al toque
+     y repetir "Abrir" solo gasta ancho. */
+  .fila-doc{flex-wrap:wrap;gap:7px 10px;padding:11px 13px}
+  .fd-nombre{flex-basis:100%;white-space:normal;overflow:visible;text-overflow:clip}
+  .fd-fecha{display:block;margin-left:auto}
+  .fd-accion{display:none}
 }
 </style>
 </head>
@@ -868,6 +891,22 @@ function bindAvance(){
 }
 
 /* ============ DOCUMENTOS ============ */
+/* Una fila de ancho completo por documento. El <a> es la fila entera,
+   asi que todo el ancho es zona de clic sin necesitar nada mas, y el
+   foco de teclado y el visor siguen funcionando igual que antes.
+   El title lleva el nombre completo: es la red por si el nombre acaba
+   recortado en pantallas estrechas. */
+function filaDocumento(d){
+  return '<a class="fila-doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener" data-titulo="'+esc(d.nombre)+'">'+
+    '<span class="fd-nombre" title="'+esc(d.nombre)+'">'+esc(d.nombre)+'</span>'+
+    '<span class="fd-etiquetas">'+
+      (d.segmento?'<span class="pill seg">'+esc(d.segmento)+'</span>':'')+
+      (d.tipo?'<span class="pill">'+esc(d.tipo)+'</span>':'')+
+    '</span>'+
+    '<span class="fd-fecha">'+fmt(d.fecha)+'</span>'+
+    '<span class="fd-accion">Abrir →</span></a>';
+}
+
 function renderDocs(){
   let h='<div class="sec-label">Biblioteca</div><h2>Documentos del proyecto</h2>';
   h+='<div class="sub">Todos los entregables y documentos de su proyecto. Haz clic para abrir o descargar.</div>';
@@ -919,22 +958,31 @@ function renderDocs(){
 
   const grupos={};
   lista.forEach(d=>{ (grupos[d.unidad]=grupos[d.unidad]||[]).push(d); });
+  /* Con un area filtrada queda un solo segmento a la vista y su
+     subtitulo repetiria lo que ya dice el pill activo. */
+  const conSubtitulo=(filtroArea==="Todas");
+  const porFecha=(a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0);
+
   /* Los grupos siguen el mismo orden que los pills, no el de insercion. */
   ordenar("unidad",valoresUnicos(lista,"unidad"),false,"documentos").forEach(g=>{
-    h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+grupos[g].length+' documento'+(grupos[g].length!==1?'s':'')+'</span></div><div class="docs">';
-    grupos[g].sort((a,b)=>(b.fecha?b.fecha.getTime():0)-(a.fecha?a.fecha.getTime():0));
-    grupos[g].forEach(d=>{
-      const ini=(d.nombre||"?").trim().charAt(0).toUpperCase();
-      h+='<a class="doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener" data-titulo="'+esc(d.nombre)+'">'+
-         '<div class="doc-top"><div class="doc-ico">'+esc(ini)+'</div>'+
-         '<div class="doc-n">'+esc(d.nombre)+'</div></div>'+
-         '<div class="doc-meta">'+
-         (d.segmento?'<span class="pill seg">'+esc(d.segmento)+'</span>':'')+
-         (d.tipo?'<span class="pill">'+esc(d.tipo)+'</span>':'')+
-         '<span>'+fmt(d.fecha)+'</span></div>'+
-         '<div class="doc-cta">Abrir documento \u2192</div></a>';
+    const deUnidad=grupos[g];
+    h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+deUnidad.length+' documento'+(deUnidad.length!==1?'s':'')+'</span></div>';
+    const colocados=[];
+    /* Dentro de cada unidad, los segmentos van en el orden del catalogo.
+       Uno sin documentos aqui no dibuja subtitulo porque ni siquiera
+       entra en la lista. */
+    ordenar("area",valoresUnicos(deUnidad,"segmento"),false,"documentos").forEach(seg=>{
+      const delSeg=deUnidad.filter(d=>d.segmento===seg).sort(porFecha);
+      if(!delSeg.length) return;
+      if(conSubtitulo) h+='<div class="seg-h">'+esc(seg)+'</div>';
+      h+='<div class="lista">'+delSeg.map(filaDocumento).join("")+'</div>';
+      delSeg.forEach(d=>colocados.push(d));
     });
-    h+='</div></div>';
+    /* Cualquier documento sin segmento reconocible se dibuja al final en
+       vez de desaparecer sin dejar rastro. */
+    const sueltos=deUnidad.filter(d=>colocados.indexOf(d)<0).sort(porFecha);
+    if(sueltos.length) h+='<div class="lista">'+sueltos.map(filaDocumento).join("")+'</div>';
+    h+='</div>';
   });
 
   document.getElementById("p-docs").innerHTML=h;
@@ -957,7 +1005,7 @@ function bindDocs(){
     if(el.disabled) return;
     el.onclick=()=>{filtroArea=el.dataset.a;renderDocs();};
   });
-  enlazarVisor("#p-docs .doc");
+  enlazarVisor("#p-docs .fila-doc");
 }
 
 /* ============ REUNIONES ============ */
