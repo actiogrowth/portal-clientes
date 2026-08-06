@@ -99,8 +99,13 @@ header{display:flex;align-items:center;gap:16px;
    el titulo a 22px, en vez de escalar las cajas por igual.
    28px es el minimo que fija la spec para cualquier logo. */
 .marca-actio img{height:36px;display:block}
-.titulo{flex:1;min-width:0}
-.marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
+.titulo{flex:0 1 auto;min-width:0}
+/* El sello vuelve al header. Sus margenes automaticos reparten el hueco
+   a partes iguales a cada lado, asi que queda centrado entre el titulo
+   y el logo del cliente, y este ultimo se apoya solo en el borde
+   derecho sin necesitar su propio margin-left:auto. */
+header .stamp{margin:0 auto}
+.marca-cliente{display:flex;align-items:center;flex-shrink:0}
 .marca-cliente img{height:28px;display:block}
 .brand-fallback{font-weight:700;font-size:18px;letter-spacing:-.5px}
 /* Titulo unico del header, en Inter y versalitas. El tracking es la
@@ -114,7 +119,6 @@ header{display:flex;align-items:center;gap:16px;
 
 nav{display:flex;gap:9px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--borde);
   padding-bottom:16px;margin-bottom:34px}
-nav .stamp{margin-left:auto}
 .tab{font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border-radius:999px;padding:9px 20px;transition:.15s}
 .tab:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo);border-color:var(--marca-borde-suave)}
@@ -356,10 +360,14 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
 @media(max-width:640px){
   header{flex-wrap:wrap;gap:14px;padding:16px 18px}
   .marca-actio{border-right:none;padding-right:0}
+  /* Tres filas: los dos logos, el titulo debajo, y el sello al final.
+     El logo del cliente recupera aqui su margen automatico porque el
+     del sello ya no esta repartiendo el hueco en la misma linea. */
+  .marca-cliente{margin-left:auto}
   .titulo{order:3;flex-basis:100%}
-  nav .stamp{margin-left:0}
-  /* Ya no hace falta encoger el titulo en movil: a 17px lo hereda del
-     escritorio y sigue partiendo limpio en el "·". */
+  /* flex-basis lo manda a su propia linea; max-content evita que la
+     pastilla se estire a todo el ancho y parezca una franja. */
+  header .stamp{order:4;flex-basis:100%;max-width:max-content;margin:0}
 }
 </style>
 </head>
@@ -371,8 +379,9 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
       <img src="logo-actio-verde.png" alt="Actio Growth">
     </div>
     <div class="titulo">
-      <div class="h-title">Actio Growth &middot; Sistema Operativo</div>
+      <div class="h-title">Sistema Operativo</div>
     </div>
+    <div class="stamp" id="stamp">Cargando informacion...</div>
     <div class="marca-cliente">
       <img src="logo-cliente.png" alt="Vida en Arte" onerror="this.style.display='none';document.getElementById('bf').style.display='block'">
       <div id="bf" class="brand-fallback" style="display:none">VIDA EN ARTE</div>
@@ -383,7 +392,6 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
     <button class="tab on" data-p="avance" aria-controls="p-avance" aria-current="true">Avance del proyecto</button>
     <button class="tab" data-p="docs" aria-controls="p-docs">Documentos<span class="cnt" id="cd"></span></button>
     <button class="tab" data-p="reu" aria-controls="p-reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
-    <div class="stamp" id="stamp">Cargando informacion...</div>
   </nav>
 
   <div class="pane on" id="p-avance"><div class="load">Cargando hoja de ruta...</div></div>
