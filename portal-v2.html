@@ -415,11 +415,15 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
     <button class="tab on" data-p="avance" aria-controls="p-avance" aria-current="true">Avance del proyecto</button>
     <button class="tab" data-p="docs" aria-controls="p-docs">Documentos<span class="cnt" id="cd"></span></button>
     <button class="tab" data-p="reu" aria-controls="p-reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
+    <!-- Nace oculta y solo se revela si su CSV trae filas: al replicar a
+         un cliente sin esa pestaña no debe aparecer una seccion rota. -->
+    <button class="tab" data-p="aten" aria-controls="p-aten" hidden>Atención directa<span class="cnt" id="ca"></span></button>
   </nav>
 
   <div class="pane on" id="p-avance"><div class="load">Cargando hoja de ruta...</div></div>
   <div class="pane" id="p-docs"><div class="load">Cargando documentos...</div></div>
   <div class="pane" id="p-reu"><div class="load">Cargando reuniones...</div></div>
+  <div class="pane" id="p-aten"><div class="load">Cargando acompañamiento...</div></div>
 
   <div class="foot">
     <b>Modelo de cálculo:</b> el avance total = entregables completados / total de entregables del proyecto.
@@ -452,6 +456,10 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
 const CSV_ENTREGABLES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=0&single=true&output=csv";
 const CSV_DOCUMENTOS="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=926080222&single=true&output=csv";
 const CSV_REUNIONES="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=888187894&single=true&output=csv";
+/* Atencion directa. Es la unica seccion opcional del portal: si esta
+   cadena esta vacia, el CSV falla o no trae filas, su pestaña no se
+   dibuja y las otras tres siguen funcionando igual. */
+const CSV_ATENCION="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=578335982&single=true&output=csv";
 
 /* Pesta\u00f1a de catalogo, publicada como CSV igual que las demas.
    Columnas: Tipo | Valor | Orden | Activo | Seccion
@@ -484,6 +492,7 @@ let CATALOGO=null;
 let foco=null;
 let DOCS=[],filtroDoc="Todos",filtroArea="Todas";
 let REUS=[];
+let ATEN=[];
 
 function parseCSV(t){
   const rows=[];let row=[],cur="",q=false;
@@ -683,6 +692,29 @@ fetch(CSV_REUNIONES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()
 })
 .catch(e=>{ document.getElementById("p-reu").innerHTML=
   '<div class="err"><b>No se pudieron cargar las reuniones.</b><br>Detalle: '+e.message+'</div>'; });
+
+/* A diferencia de las otras tres, esta seccion calla si falla: no
+   dibuja su pestaña y tampoco muestra un aviso de error. Es opcional
+   por diseño, y un cliente cuya hoja no tenga esta pestaña no tiene por
+   que enterarse de que existe. */
+if(CSV_ATENCION) fetch(CSV_ATENCION).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+.then(txt=>{
+  const t=tabla(txt),h=t.head;
+  const cF=col(h,"Fecha"),cT=col(h,"Tipo"),cU=col(h,"Unidad de negocio");
+  const cD=col(h,"Duración (min)")>=0?col(h,"Duración (min)"):col(h,"Duracion (min)");
+  const cO=col(h,"Origen duración")>=0?col(h,"Origen duración"):col(h,"Origen duracion");
+  ATEN=t.rows.map(r=>({
+    fecha:fecha(r[cF]), tipo:(r[cT]||"").trim(),
+    minutos:parseFloat(cD>=0?r[cD]:0)||0,
+    origen:(cO>=0?(r[cO]||"").trim():""),
+    unidad:(cU>=0?(r[cU]||"").trim():"")
+  })).filter(d=>d.tipo&&d.minutos>0);
+  if(!ATEN.length) return;
+  document.getElementById("ca").textContent="("+ATEN.length+")";
+  document.querySelector('.tab[data-p="aten"]').hidden=false;
+  renderAtencion();
+})
+.catch(()=>{});
 }
 
 cargarCatalogo().then(cat=>{ CATALOGO=cat; cargarDatos(); });
@@ -1032,6 +1064,25 @@ function renderReus(){
   h+='</div>';
   document.getElementById("p-reu").innerHTML=h;
   enlazarVisor("#p-reu .lnk[href]");
+}
+
+/* ============ ATENCION DIRECTA ============ */
+/* Periodo real cubierto por los contactos, leido del CSV. */
+function periodoAtencion(){
+  const f=ATEN.map(a=>a.fecha).filter(Boolean).sort((a,b)=>a-b);
+  return f.length?{desde:f[0],hasta:f[f.length-1]}:null;
+}
+
+function renderAtencion(){
+  const p=periodoAtencion();
+  /* "su equipo" y no el nombre del cliente: meterlo aqui seria la
+     primera vez que un nombre concreto vive en el cuerpo del portal, y
+     rompe la replicacion sin ganar nada. */
+  let h='<div class="sec-label">Relación</div>';
+  h+='<h2>Acompañamiento al proyecto</h2>';
+  h+='<div class="sub">Tiempo dedicado a reuniones y llamadas con su equipo'+
+     (p?', del '+fmt(p.desde)+' al '+fmt(p.hasta):'')+'.</div>';
+  document.getElementById("p-aten").innerHTML=h;
 }
 
 /* ============ VISOR ============ */
