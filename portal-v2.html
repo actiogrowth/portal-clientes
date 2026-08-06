@@ -354,6 +354,28 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .visor-aviso b{color:var(--texto-principal);font-weight:600}
 body.visor-abierto{overflow:hidden}
 
+/* ---- ATENCION DIRECTA ----
+   Reunion y llamada son categorias, no estados. Por eso van en verdes de
+   marca y no en la paleta funcional: pintar una reunion con el verde de
+   "en meta" diria que la reunion va bien, que no significa nada. */
+.at-panel{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:20px 22px;margin-bottom:14px}
+.at-titulo{font-size:10px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--texto-secundario);margin-bottom:16px}
+.at-dist{display:flex;align-items:center;gap:30px;flex-wrap:wrap}
+.at-leyenda{display:flex;flex-direction:column;gap:12px;flex:1;min-width:230px}
+.at-lg{display:flex;align-items:center;gap:10px;font-size:13px}
+.at-lg .punto{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.at-lg .n{margin-left:auto;font-weight:600}
+.at-lg .pc{color:var(--texto-secundario);font-size:12px;min-width:40px;text-align:right}
+
+.at-rangos{display:flex;flex-direction:column;gap:10px}
+.at-rango{display:grid;grid-template-columns:100px 1fr 26px;align-items:center;gap:12px;font-size:12px}
+.at-rango .etq{color:var(--texto-secundario);white-space:nowrap}
+.at-rango .barra{height:12px;background:var(--fondo);border-radius:6px;overflow:hidden}
+.at-rango .relleno{height:100%;border-radius:6px;background:var(--marca-verde-medio);transition:width .5s}
+.at-rango .cnt{font-weight:600;text-align:right}
+
 /* Foco de teclado. Se usa :focus-visible para que el anillo aparezca
    al tabular pero no al hacer clic con el raton. El outline-offset lo
    dibuja por fuera del control, asi que se lee igual sobre los botones
@@ -1142,7 +1164,54 @@ function renderAtencion(){
       'de '+Math.round(s.minLlamada)+' a '+Math.round(s.maxLlamada)+' min')+
     '</div>';
 
+  h+=distribucionAtencion(s)+rangosLlamadas(s);
   document.getElementById("p-aten").innerHTML=h;
+}
+
+/* Anillo de dos segmentos, el mismo recurso que el hero de Avance pero
+   sobre fondo claro. El arco de reuniones se dibuja encima del circulo
+   completo de llamadas, asi que el resto visible es la otra categoria. */
+function distribucionAtencion(s){
+  const R=54,C=2*Math.PI*R;
+  const pct=t=>s.total?(t/s.total*100):0;
+  const pReu=pct(s.reuniones.length);
+  const fila=(color,etq,n)=>
+    '<div class="at-lg"><span class="punto" style="background:var('+color+')"></span>'+
+    etq+'<span class="n">'+n+'</span><span class="pc">'+pct(n).toFixed(0)+'%</span></div>';
+  return '<div class="at-panel"><div class="at-titulo">Distribución de contactos</div>'+
+    '<div class="at-dist"><svg width="132" height="132" viewBox="0 0 132 132">'+
+      '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--marca-verde-medio)" stroke-width="14"/>'+
+      '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--marca-verde-profundo)" stroke-width="14" '+
+        'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-pReu/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+      '<text x="66" y="64" text-anchor="middle" style="fill:var(--texto-principal);font-family:var(--font)" font-size="24" font-weight="700">'+s.total+'</text>'+
+      '<text x="66" y="82" text-anchor="middle" style="fill:var(--texto-secundario);font-family:var(--font)" font-size="9" font-weight="600" letter-spacing="1">CONTACTOS</text>'+
+    '</svg><div class="at-leyenda">'+
+      fila('--marca-verde-profundo','Reuniones virtuales',s.reuniones.length)+
+      fila('--marca-verde-medio','Llamadas',s.llamadas.length)+
+    '</div></div></div>';
+}
+
+/* Rangos fijos por spec; los conteos salen del CSV. Las barras se miden
+   contra el rango mas poblado, no contra el total, para que la forma se
+   lea aunque un rango concentre casi todo. */
+function rangosLlamadas(s){
+  const rangos=[
+    {etq:"10 min o menos", dentro:m=>m<=10},
+    {etq:"11 – 20 min",    dentro:m=>m>=11&&m<=20},
+    {etq:"21 – 30 min",    dentro:m=>m>=21&&m<=30},
+    {etq:"31 – 45 min",    dentro:m=>m>=31&&m<=45},
+    {etq:"46 min o más",   dentro:m=>m>=46}
+  ];
+  const mins=s.llamadas.map(a=>a.minutos);
+  const cuenta=rangos.map(r=>mins.filter(r.dentro).length);
+  const tope=Math.max.apply(null,cuenta.concat([1]));
+  let h='<div class="at-panel"><div class="at-titulo">Duración de las llamadas</div><div class="at-rangos">';
+  rangos.forEach((r,i)=>{
+    h+='<div class="at-rango"><span class="etq">'+r.etq+'</span>'+
+       '<span class="barra"><span class="relleno" style="width:'+(cuenta[i]/tope*100).toFixed(1)+'%"></span></span>'+
+       '<span class="cnt">'+cuenta[i]+'</span></div>';
+  });
+  return h+'</div></div>';
 }
 
 /* ============ VISOR ============ */
