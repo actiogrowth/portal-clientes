@@ -301,18 +301,23 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .visor-caja{position:relative;background:var(--superficie);border-radius:14px;
   width:min(1000px,100%);height:min(88vh,100%);display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 24px 60px var(--visor-sombra)}
+/* Agrandado: boton propio del portal. El de expandir que trae Drive
+   vive dentro del iframe y desde aqui no se puede tocar. */
+.visor.expandido{padding:8px}
+.visor.expandido .visor-caja{width:100%;height:100%}
 .visor-barra{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--borde)}
 .visor-titulo{font-size:13.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .visor-btn{font-family:inherit;font-size:11.5px;font-weight:600;text-decoration:none;border-radius:999px;
   padding:6px 14px;border:1px solid var(--borde);color:var(--marca-verde-profundo);background:var(--superficie);
-  white-space:nowrap;cursor:pointer;transition:.15s;display:inline-block}
+  white-space:nowrap;cursor:pointer;transition:.15s;display:inline-block;flex-shrink:0}
 .visor-btn:hover{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
 /* display:inline-block gana al display:none que el navegador aplica a
    [hidden], asi que sin esta regla el boton oculto seguiria a la vista. */
 .visor-btn[hidden]{display:none}
-.visor-cerrar{font-family:inherit;font-size:14px;line-height:1;cursor:pointer;border:1px solid var(--borde);
-  background:var(--superficie);color:var(--texto-secundario);border-radius:8px;width:30px;height:30px;flex-shrink:0}
-.visor-cerrar:hover{background:var(--fondo);color:var(--texto-principal)}
+.visor-icono{font-family:inherit;font-size:14px;line-height:1;cursor:pointer;border:1px solid var(--borde);
+  background:var(--superficie);color:var(--texto-secundario);border-radius:8px;width:30px;height:30px;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
+.visor-icono:hover{background:var(--fondo);color:var(--texto-principal)}
 .visor-cuerpo{flex:1;background:var(--fondo);min-height:0}
 .visor-cuerpo iframe{width:100%;height:100%;border:0;display:block}
 /* El aviso es una franja propia debajo del contenido, no una capa
@@ -399,7 +404,8 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
       <div class="visor-titulo" id="visor-titulo"></div>
       <a class="visor-btn" id="visor-descargar" href="#" target="_blank" rel="noopener" hidden>Descargar</a>
       <a class="visor-btn" id="visor-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
-      <button class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&#10005;</button>
+      <button class="visor-icono" id="visor-expandir" aria-label="Agrandar" title="Agrandar" aria-pressed="false"></button>
+      <button class="visor-icono" id="visor-cerrar" aria-label="Cerrar" title="Cerrar">&#10005;</button>
     </div>
     <div class="visor-cuerpo">
       <iframe id="visor-marco" title="Contenido del documento"></iframe>
@@ -1069,6 +1075,27 @@ function visorTeclado(e){
   if(e.shiftKey&&document.activeElement===primero){ e.preventDefault();ultimo.focus(); }
   else if(!e.shiftKey&&document.activeElement===ultimo){ e.preventDefault();primero.focus(); }
 }
+
+/* Iconos en SVG y no en glifo: los caracteres de flechas diagonales no
+   estan en todas las fuentes del sistema y salen como cuadro vacio. */
+const ICONO_AGRANDAR='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
+const ICONO_REDUCIR ='<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h4V2M14 6h-4V2M2 10h4v4M14 10h-4v4"/></svg>';
+
+function pintarExpandir(){
+  const grande=document.getElementById("visor").classList.contains("expandido");
+  const b=document.getElementById("visor-expandir");
+  b.innerHTML=grande?ICONO_REDUCIR:ICONO_AGRANDAR;
+  b.setAttribute("aria-pressed",String(grande));
+  b.setAttribute("aria-label",grande?"Reducir":"Agrandar");
+  b.setAttribute("title",grande?"Reducir":"Agrandar");
+}
+/* El tamaño elegido se conserva entre documentos: quien agranda una vez
+   suele querer lo mismo en el siguiente. */
+document.getElementById("visor-expandir").onclick=()=>{
+  document.getElementById("visor").classList.toggle("expandido");
+  pintarExpandir();
+};
+pintarExpandir();
 
 document.addEventListener("keydown",visorTeclado);
 document.getElementById("visor-cerrar").onclick=cerrarVisor;
