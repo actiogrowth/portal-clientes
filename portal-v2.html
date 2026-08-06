@@ -376,6 +376,11 @@ body.visor-abierto{overflow:hidden}
 .at-rango .relleno{height:100%;border-radius:6px;background:var(--marca-verde-medio);transition:width .5s}
 .at-rango .cnt{font-weight:600;text-align:right}
 
+.at-chips{display:flex;flex-wrap:wrap;gap:8px}
+.at-chip{font-size:12px;font-weight:500;padding:7px 14px;border-radius:999px;
+  background:var(--marca-tenue);color:var(--marca-verde-profundo)}
+.at-chip b{font-weight:700}
+
 /* Foco de teclado. Se usa :focus-visible para que el anillo aparezca
    al tabular pero no al hacer clic con el raton. El outline-offset lo
    dibuja por fuera del control, asi que se lee igual sobre los botones
@@ -1129,6 +1134,12 @@ function statsAtencion(){
 }
 
 const horas=min=>(min/60).toFixed(1);
+/* Misma cifra en texto plano, para la nota de metodo. */
+function hmTexto(min){
+  const t=Math.round(min), h=Math.floor(t/60), m=t%60;
+  if(!h) return m+" min";
+  return h+" h"+(m?" "+m+" min":"");
+}
 /* Minutos a "2 h 10 min", con las unidades en pequeño para que la cifra
    siga leyendose como cifra dentro de la tarjeta. */
 function hm(min){
@@ -1164,8 +1175,45 @@ function renderAtencion(){
       'de '+Math.round(s.minLlamada)+' a '+Math.round(s.maxLlamada)+' min')+
     '</div>';
 
-  h+=distribucionAtencion(s)+rangosLlamadas(s);
+  h+=distribucionAtencion(s)+rangosLlamadas(s)+resumenAtencion(s,p)+notaMetodo(s);
   document.getElementById("p-aten").innerHTML=h;
+}
+
+/* Frases cortas derivadas, ninguna escrita a mano. */
+function resumenAtencion(s,p){
+  const chips=[];
+  if(p){
+    const dias=Math.max(1,Math.round((p.hasta-p.desde)/86400000));
+    const meses=Math.max(1,dias/30.44);
+    chips.push('<b>'+(s.total/meses).toFixed(0)+'</b> contactos al mes en promedio');
+    chips.push('<b>'+meses.toFixed(0)+' meses</b> de acompañamiento');
+  }
+  if(s.minutos) chips.push('<b>'+(s.minReuniones/s.minutos*100).toFixed(0)+'%</b> del tiempo en reuniones de trabajo');
+  const largas=s.llamadas.filter(a=>a.minutos>20).length;
+  if(largas) chips.push('<b>'+largas+'</b> llamadas de más de 20 minutos');
+  if(!chips.length) return "";
+  return '<div class="at-panel"><div class="at-titulo">Resumen</div><div class="at-chips">'+
+    chips.map(c=>'<span class="at-chip">'+c+'</span>').join("")+'</div></div>';
+}
+
+/* Obligatoria: 30 de 37 reuniones llevan duracion estimada y el cliente
+   va a leer el total. Declararlo comunica rigor.
+   Muestra el valor realmente aplicado a las estimadas, no el promedio
+   recalculado de las cronometradas. Son dos numeros independientes: hoy
+   coinciden, pero si mañana entran mas sesiones con registro el promedio
+   se movera y la hoja seguira con su estimacion congelada. Solo se
+   afirma que uno viene del otro cuando ambos siguen coincidiendo. */
+function notaMetodo(s){
+  const cronometrados=s.llamadas.length+s.medidas.length;
+  const coinciden=hmTexto(s.promEstimada)===hmTexto(s.promReunion);
+  let t='<b>Cómo se mide:</b> el tiempo total suma la duración de cada reunión y cada llamada. '+
+    cronometrados+' de los '+s.total+' contactos tienen duración cronometrada: '+
+    s.llamadas.length+' llamadas y '+s.medidas.length+' reuniones.';
+  if(s.estimadas.length){
+    t+=' Las '+s.estimadas.length+' reuniones restantes se valoran en '+hmTexto(s.promEstimada)+' cada una, '+
+       (coinciden?'el promedio de las sesiones cronometradas.':'según la estimación registrada en la hoja.');
+  }
+  return '<div class="foot">'+t+'</div>';
 }
 
 /* Anillo de dos segmentos, el mismo recurso que el hero de Avance pero
