@@ -150,6 +150,11 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
    no acordada. El borde punteado dice "pendiente de definir". */
 .card.sin-alcance{background:var(--fondo);border-style:dashed;border-color:var(--marca-borde-suave)}
 .card.sin-alcance:hover{border-color:var(--marca-verde-claro)}
+/* Indicador: mismo tratamiento visual que la tarjeta de unidad, pero no
+   es clicable. Sin cursor de mano ni hover, porque prometer una
+   interaccion que no existe confunde mas de lo que decora. */
+.card.dato{cursor:default}
+.card.dato:hover{border-color:var(--borde);transform:none;box-shadow:none}
 .c-pendiente{font-size:15px;font-weight:500;color:var(--texto-secundario);letter-spacing:-.2px}
 .c-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .c-name{font-size:14.5px;font-weight:600}
@@ -1073,6 +1078,43 @@ function periodoAtencion(){
   return f.length?{desde:f[0],hasta:f[f.length-1]}:null;
 }
 
+/* Todo lo que la seccion necesita, calculado en un solo sitio.
+   El tipo se compara normalizado para que un acento o una mayuscula
+   distinta en la hoja no deje una categoria vacia. */
+function statsAtencion(){
+  const esReunion=a=>normalizar(a.tipo).indexOf("reunion")===0;
+  const esLlamada=a=>normalizar(a.tipo).indexOf("llamada")===0;
+  const suma=arr=>arr.reduce((t,a)=>t+a.minutos,0);
+  const media=arr=>arr.length?suma(arr)/arr.length:0;
+  const reuniones=ATEN.filter(esReunion), llamadas=ATEN.filter(esLlamada);
+  const medidas=reuniones.filter(a=>normalizar(a.origen)==="medida");
+  const estimadas=reuniones.filter(a=>normalizar(a.origen)!=="medida");
+  const ml=llamadas.map(a=>a.minutos);
+  return {
+    total:ATEN.length, minutos:suma(ATEN),
+    reuniones,llamadas,medidas,estimadas,
+    minReuniones:suma(reuniones), minLlamadas:suma(llamadas),
+    /* Solo desde las sesiones cronometradas: promediar tambien las
+       estimadas seria circular, porque su valor salio de este promedio. */
+    promReunion:media(medidas),
+    /* El valor realmente aplicado a las estimadas. No es lo mismo que el
+       anterior y la nota de metodo tiene que citar este. */
+    promEstimada:media(estimadas),
+    promLlamada:media(llamadas),
+    minLlamada:ml.length?Math.min.apply(null,ml):0,
+    maxLlamada:ml.length?Math.max.apply(null,ml):0
+  };
+}
+
+const horas=min=>(min/60).toFixed(1);
+/* Minutos a "2 h 10 min", con las unidades en pequeño para que la cifra
+   siga leyendose como cifra dentro de la tarjeta. */
+function hm(min){
+  const t=Math.round(min), h=Math.floor(t/60), m=t%60;
+  if(!h) return m+'<small>min</small>';
+  return h+'<small>h</small>'+(m?' '+m+'<small>min</small>':'');
+}
+
 function renderAtencion(){
   const p=periodoAtencion();
   /* "su equipo" y no el nombre del cliente: meterlo aqui seria la
@@ -1082,6 +1124,24 @@ function renderAtencion(){
   h+='<h2>Acompañamiento al proyecto</h2>';
   h+='<div class="sub">Tiempo dedicado a reuniones y llamadas con su equipo'+
      (p?', del '+fmt(p.desde)+' al '+fmt(p.hasta):'')+'.</div>';
+
+  const s=statsAtencion();
+  const tarjeta=(nombre,valor,pie)=>
+    '<div class="card dato"><div class="c-top"><div class="c-name">'+nombre+'</div></div>'+
+    '<div class="c-val">'+valor+'</div>'+
+    (pie?'<div class="c-of">'+pie+'</div>':'')+'</div>';
+
+  h+='<div class="cards">'+
+    tarjeta('Tiempo total', horas(s.minutos)+'<small>h</small>',
+      horas(s.minReuniones)+' h en reuniones · '+horas(s.minLlamadas)+' h en llamadas')+
+    tarjeta('Total de contactos', String(s.total),
+      s.reuniones.length+' reuniones · '+s.llamadas.length+' llamadas')+
+    tarjeta('Promedio por reunión', hm(s.promReunion),
+      'sobre '+s.medidas.length+' '+(s.medidas.length===1?'sesión':'sesiones')+' con duración registrada')+
+    tarjeta('Promedio por llamada', s.promLlamada.toFixed(1)+'<small>min</small>',
+      'de '+Math.round(s.minLlamada)+' a '+Math.round(s.maxLlamada)+' min')+
+    '</div>';
+
   document.getElementById("p-aten").innerHTML=h;
 }
 
