@@ -307,6 +307,9 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   padding:6px 14px;border:1px solid var(--borde);color:var(--marca-verde-profundo);background:var(--superficie);
   white-space:nowrap;cursor:pointer;transition:.15s;display:inline-block}
 .visor-btn:hover{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+/* display:inline-block gana al display:none que el navegador aplica a
+   [hidden], asi que sin esta regla el boton oculto seguiria a la vista. */
+.visor-btn[hidden]{display:none}
 .visor-cerrar{font-family:inherit;font-size:14px;line-height:1;cursor:pointer;border:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border-radius:8px;width:30px;height:30px;flex-shrink:0}
 .visor-cerrar:hover{background:var(--fondo);color:var(--texto-principal)}
@@ -394,6 +397,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   <div class="visor-caja" id="visor-caja" role="dialog" aria-modal="true" aria-labelledby="visor-titulo">
     <div class="visor-barra">
       <div class="visor-titulo" id="visor-titulo"></div>
+      <a class="visor-btn" id="visor-descargar" href="#" target="_blank" rel="noopener" hidden>Descargar</a>
       <a class="visor-btn" id="visor-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
       <button class="visor-cerrar" id="visor-cerrar" aria-label="Cerrar">&#10005;</button>
     </div>
@@ -981,6 +985,32 @@ function urlIncrustable(u){
   return u;
 }
 
+/* URL de descarga, o null si el enlace no es un archivo que se pueda
+   bajar. Comprobado contra los enlaces reales del portal:
+     Google Docs  el endpoint de exportacion devuelve el archivo con
+                  Content-Disposition attachment. Descarga limpia.
+     Drive        los endpoints de descarga devuelven la pagina "Virus
+                  scan warning" de Google, que pide confirmar. Es el
+                  flujo propio de Drive: un clic mas, no una descarga
+                  directa, pero lleva al archivo.
+     Externos     son paginas web, no archivos. No hay descarga posible
+                  y el atributo download se ignora entre dominios.
+   Devolver null hace que el boton no se dibuje, en vez de ofrecer una
+   descarga que no va a ocurrir. */
+function urlDescarga(u){
+  if(!u) return null;
+  const drive=u.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/?#]+)/);
+  if(drive) return "https://drive.usercontent.google.com/download?id="+drive[1]+"&export=download";
+  const docs=u.match(/^https?:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/);
+  if(docs){
+    const tipo=docs[1],id=docs[2];
+    if(tipo==="presentation") return "https://docs.google.com/presentation/d/"+id+"/export/pdf";
+    const formato=tipo==="spreadsheets"?"xlsx":"pdf";
+    return "https://docs.google.com/"+tipo+"/d/"+id+"/export?format="+formato;
+  }
+  return null;
+}
+
 /* Por debajo de 640px una capa incrustada es peor experiencia que abrir
    directo, asi que ahi no se intercepta el clic. */
 function pantallaAngosta(){ return window.matchMedia("(max-width:640px)").matches; }
@@ -996,6 +1026,10 @@ function abrirVisor(url,titulo,origen){
   document.getElementById("visor-titulo").textContent=titulo||"Documento";
   document.getElementById("visor-nueva").href=url;
   document.getElementById("visor-aviso-nueva").href=url;
+  const descarga=urlDescarga(url);
+  const btnDescarga=document.getElementById("visor-descargar");
+  btnDescarga.hidden=!descarga;
+  if(descarga) btnDescarga.href=descarga;
   document.getElementById("visor-aviso").hidden=true;
   document.getElementById("visor-marco").src=urlIncrustable(url);
   document.getElementById("visor").hidden=false;
