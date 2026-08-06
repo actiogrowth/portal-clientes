@@ -310,12 +310,13 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .visor-cerrar{font-family:inherit;font-size:14px;line-height:1;cursor:pointer;border:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border-radius:8px;width:30px;height:30px;flex-shrink:0}
 .visor-cerrar:hover{background:var(--fondo);color:var(--texto-principal)}
-.visor-cuerpo{position:relative;flex:1;background:var(--fondo)}
+.visor-cuerpo{flex:1;background:var(--fondo);min-height:0}
 .visor-cuerpo iframe{width:100%;height:100%;border:0;display:block}
-/* El aviso se suma por debajo, no reemplaza al iframe: no se puede
-   saber con certeza si el incrustado fallo, asi que nunca se retira
-   contenido que quiza si cargo. */
-.visor-aviso{position:absolute;left:0;right:0;bottom:0;background:var(--superficie);
+/* El aviso es una franja propia debajo del contenido, no una capa
+   encima: superpuesto tapaba los controles del reproductor de video.
+   Se suma sin reemplazar al iframe, porque no se puede saber con
+   certeza si el incrustado fallo y no se retira algo que quiza cargo. */
+.visor-aviso{flex-shrink:0;background:var(--superficie);
   border-top:1px solid var(--borde);padding:13px 16px;font-size:12.5px;color:var(--texto-secundario);
   display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .visor-aviso[hidden]{display:none}
@@ -398,10 +399,10 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
     </div>
     <div class="visor-cuerpo">
       <iframe id="visor-marco" title="Contenido del documento"></iframe>
-      <div class="visor-aviso" id="visor-aviso" hidden>
-        <span><b>¿No se ve el contenido?</b> Algunos archivos no se dejan mostrar dentro del portal, según cómo estén compartidos.</span>
-        <a class="visor-btn" id="visor-aviso-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
-      </div>
+    </div>
+    <div class="visor-aviso" id="visor-aviso" hidden>
+      <span><b>¿No se ve el contenido?</b> Algunos archivos no se dejan mostrar dentro del portal, según cómo estén compartidos.</span>
+      <a class="visor-btn" id="visor-aviso-nueva" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
     </div>
   </div>
 </div>
