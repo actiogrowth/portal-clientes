@@ -121,6 +121,32 @@ header img{height:36px;display:block}
    cifra y nada mas. Sin barras, sin comparaciones entre tarjetas. */
 .pc-alerta .pc-v{color:var(--estado-riesgo)}
 
+.grupo-ent{margin-bottom:18px}
+.grupo-ent:last-child{margin-bottom:0}
+.grupo-ent-t{font-size:15px;font-weight:700;letter-spacing:.4px;margin-bottom:9px}
+.t-riesgo{color:var(--estado-riesgo)}
+.t-atencion{color:var(--estado-atencion-fuerte)}
+.entregable{border-left:4px solid;border-radius:8px;padding:12px 16px;margin-bottom:8px}
+.ent-riesgo{border-color:var(--estado-riesgo);background:var(--estado-riesgo-suave)}
+.ent-atencion{border-color:var(--estado-atencion);background:var(--estado-atencion-suave)}
+.ent-cab{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.ent-unidad{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--texto-secundario)}
+.ent-plazo{margin-left:auto;font-size:14px;font-weight:700}
+.ent-riesgo .ent-plazo{color:var(--estado-riesgo-fuerte)}
+.ent-atencion .ent-plazo{color:var(--estado-atencion-fuerte)}
+.ent-nombre{font-size:18px;font-weight:600;margin:3px 0 5px;line-height:1.35}
+.ent-pie{font-size:12.5px;color:var(--texto-secundario)}
+.todo-bien{background:var(--estado-en-meta-suave);color:var(--estado-en-meta-fuerte);
+  border-radius:10px;padding:18px;font-size:18px;font-weight:600}
+
+.cump{display:flex;align-items:baseline;gap:16px}
+.cump-pct{font-size:44px;font-weight:700;line-height:1;letter-spacing:-1.5px}
+.cump-en-meta .cump-pct{color:var(--estado-en-meta-fuerte)}
+.cump-atencion .cump-pct{color:var(--estado-atencion-fuerte)}
+.cump-riesgo .cump-pct{color:var(--estado-riesgo)}
+.cump-det{font-size:17px;color:var(--texto-secundario)}
+.cump-vacio{font-size:18px;color:var(--texto-secundario)}
+
 .pie{border-top:1px solid var(--borde);margin-top:26px;padding-top:18px;
   font-size:11px;color:var(--texto-secundario);line-height:1.9}
 
@@ -398,8 +424,65 @@ function pintarPersonas(){
     c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); activar(); } };
   });
 }
-function pintarEntregables(){ estadoFuente("b-entregables",RIESGO,"Entregables comprometidos","la lista de entregables comprometidos"); }
-function pintarCumplimiento(){ estadoFuente("b-cumplimiento",RESUMEN,"Cumplimiento de la semana","el resumen"); }
+function pintarEntregables(){
+  const el=document.getElementById("b-entregables");
+  const partes=partirEntregables();
+  if(partes===null){
+    el.innerHTML='<div class="bloque-t">Entregables comprometidos</div>'+
+      avisoSinDato("la lista de entregables comprometidos");
+    return;
+  }
+  let h='<div class="bloque-t">Entregables comprometidos</div>';
+  if(!partes.vencidos.length&&!partes.enRiesgo.length){
+    h+='<div class="todo-bien">Ningún entregable comprometido en los próximos 15 días</div>';
+    el.innerHTML=h; return;
+  }
+  const ficha=(e,nivel)=>{
+    const d=e.compromiso?diasDesde(e.compromiso):null;
+    const plazo=(d===null)?"sin fecha"
+      :(d>0?d+(d===1?" día de atraso":" días de atraso")
+           :(-d)+((-d)===1?" día por delante":" días por delante"));
+    return '<div class="entregable ent-'+nivel+'">'+
+      '<div class="ent-cab"><span class="ent-unidad">'+esc(e.unidad)+'</span>'+
+      '<span class="ent-plazo">'+plazo+'</span></div>'+
+      '<div class="ent-nombre">'+esc(e.entregable)+'</div>'+
+      '<div class="ent-pie">'+fmt(e.compromiso)+
+        (e.avance?' · '+esc(e.avance)+' de avance':'')+
+        (e.tareas?' · '+esc(e.tareas)+' tareas':'')+'</div></div>';
+  };
+  /* Un grupo vacio no dibuja encabezado: un titulo "Vencidos" sobre
+     nada invita a buscar lo que no existe. */
+  if(partes.vencidos.length){
+    h+='<div class="grupo-ent"><div class="grupo-ent-t t-riesgo">Vencidos</div>'+
+       partes.vencidos.map(e=>ficha(e,"riesgo")).join("")+'</div>';
+  }
+  if(partes.enRiesgo.length){
+    h+='<div class="grupo-ent"><div class="grupo-ent-t t-atencion">En riesgo</div>'+
+       partes.enRiesgo.map(e=>ficha(e,"atencion")).join("")+'</div>';
+  }
+  el.innerHTML=h;
+}
+
+function pintarCumplimiento(){
+  const el=document.getElementById("b-cumplimiento");
+  const c=metrica("Comprometidas esta semana"), e=metrica("Entregadas esta semana");
+  if(c===null||e===null){
+    el.innerHTML='<div class="bloque-t">Cumplimiento de la semana</div>'+avisoSinDato("el resumen");
+    return;
+  }
+  let cuerpo;
+  if(c===0){
+    /* Un 0% aqui diria incumplimiento donde solo hay ausencia de
+       compromiso. No es lo mismo fallar que no haber prometido nada. */
+    cuerpo='<div class="cump-vacio">Sin compromisos registrados esta semana</div>';
+  }else{
+    const pct=Math.round(e/c*100);
+    const nivel=pct>=100?"en-meta":(pct>=50?"atencion":"riesgo");
+    cuerpo='<div class="cump cump-'+nivel+'"><span class="cump-pct">'+pct+'%</span>'+
+      '<span class="cump-det">'+e+' de '+c+' entregadas</span></div>';
+  }
+  el.innerHTML='<div class="bloque-t">Cumplimiento de la semana</div>'+cuerpo;
+}
 function pintarDetalle(){ estadoFuente("b-detalle",DETALLE,"Detalle de tareas","el detalle de tareas"); }
 function pintarPie(){ document.getElementById("pie").innerHTML=""; }
 </script>
