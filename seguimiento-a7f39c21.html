@@ -147,8 +147,43 @@ header img{height:36px;display:block}
 .cump-det{font-size:17px;color:var(--texto-secundario)}
 .cump-vacio{font-size:18px;color:var(--texto-secundario)}
 
+/* Bloque 5: tamaño de lectura, no de proyeccion. Es la consulta de la
+   semana, no lo que se enseña en pantalla grande. */
+.filtros{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:16px}
+.fpill{font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;
+  border:1px solid var(--borde);background:var(--superficie);color:var(--texto-secundario);
+  border-radius:999px;padding:6px 14px;transition:.15s}
+.fpill:hover{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
+.fpill.on{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+.fsep{width:1px;height:18px;background:var(--borde);margin:0 4px}
+.fpill-foco.on{background:var(--estado-atencion-fuerte);border-color:var(--estado-atencion-fuerte)}
+
+.tareas{display:flex;flex-direction:column;gap:5px}
+.tarea{display:flex;align-items:center;gap:12px;padding:9px 12px;
+  background:var(--superficie-sutil);border:1px solid var(--borde);border-radius:9px}
+.t-estado{flex-shrink:0;font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  padding:3px 9px;border-radius:20px;white-space:nowrap}
+.est-neutro{background:var(--estado-neutro-suave);color:var(--estado-neutro-fuerte)}
+.est-atencion{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
+.est-en-meta{background:var(--estado-en-meta-suave);color:var(--estado-en-meta-fuerte)}
+.t-nombre{flex:1 1 auto;min-width:0;font-size:13px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-cliente{flex-shrink:0;font-size:11px;color:var(--texto-secundario);white-space:nowrap}
+.t-resp{flex-shrink:0;font-size:11px;font-weight:600;color:var(--texto-secundario);white-space:nowrap}
+.t-fecha{flex-shrink:0;font-size:11.5px;color:var(--texto-secundario);white-space:nowrap;min-width:96px;text-align:right}
+.t-vencida{color:var(--estado-riesgo);font-weight:600}
+.t-atraso{font-weight:700}
+.t-sinfecha{color:var(--estado-neutro);font-style:italic}
+.vacio{font-size:13px;color:var(--texto-secundario);font-style:italic;padding:14px 0}
+.conteo{margin-top:12px;font-size:11px;color:var(--texto-secundario)}
+
 .pie{border-top:1px solid var(--borde);margin-top:26px;padding-top:18px;
   font-size:11px;color:var(--texto-secundario);line-height:1.9}
+.accesos{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12.5px}
+.accesos a{color:var(--marca-verde-profundo);font-weight:600;text-decoration:none}
+.accesos a:hover{text-decoration:underline}
+.acc-sep{color:var(--borde)}
+.aviso-metodo{margin-top:10px;font-size:11px;line-height:1.7;max-width:640px}
 
 @media(max-width:820px){
   .personas{grid-template-columns:1fr}
@@ -161,6 +196,13 @@ header img{height:36px;display:block}
   .sem-rotulo{font-size:28px}
   .sem-ctx{font-size:15px}
   .pc-v{font-size:30px}
+  .cump-pct{font-size:34px}
+  .ent-nombre{font-size:16px}
+  /* La fila se pliega: nombre arriba, y debajo estado, cliente,
+     responsable y fecha. */
+  .tarea{flex-wrap:wrap;gap:6px 10px}
+  .t-nombre{flex-basis:100%;white-space:normal;overflow:visible;text-overflow:clip}
+  .t-fecha{margin-left:auto;min-width:0}
 }
 </style>
 </head>
@@ -193,7 +235,15 @@ const CSV_RIESGO =BASE+"/pub?gid=0&single=true&output=csv";
    cuando llega. Distinguir los tres estados es lo que permite avisar en
    vez de pintar ceros. */
 let RESUMEN=null,DETALLE=null,RIESGO=null;
-let filtroPersona="Todos";
+let filtroPersona="Todos",filtroFecha="Todas",filtroFoco=false;
+
+/* Enlaces del pie. El del Tablero se deja vacio a proposito: la URL de
+   edicion no se puede deducir de la de publicacion, asi que hay que
+   pegarla a mano. Vacio significa que ese enlace no se dibuja, en vez de
+   dejar uno roto. */
+const URL_TABLERO="";
+const URL_PORTAL="https://actiogrowth.github.io/portal-clientes/portal-v2.html";
+const URL_REPO="https://github.com/actiogrowth/portal-clientes";
 
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 
@@ -483,8 +533,95 @@ function pintarCumplimiento(){
   }
   el.innerHTML='<div class="bloque-t">Cumplimiento de la semana</div>'+cuerpo;
 }
-function pintarDetalle(){ estadoFuente("b-detalle",DETALLE,"Detalle de tareas","el detalle de tareas"); }
-function pintarPie(){ document.getElementById("pie").innerHTML=""; }
+/* Lunes a domingo de la semana en curso. */
+function semanaActual(){
+  const h=hoy(), d=(h.getDay()+6)%7;
+  const lun=new Date(h); lun.setDate(h.getDate()-d);
+  const dom=new Date(lun); dom.setDate(lun.getDate()+6);
+  return {lun,dom};
+}
+const CLASE_ESTADO={"por hacer":"neutro","en progreso":"atencion","en revisión":"en-meta","en revision":"en-meta"};
+
+function pintarDetalle(){
+  const el=document.getElementById("b-detalle");
+  if(!DETALLE){
+    el.innerHTML='<div class="bloque-t">Detalle de tareas</div>'+avisoSinDato("el detalle de tareas");
+    return;
+  }
+  const sem=semanaActual();
+  let lista=DETALLE.slice();
+  if(filtroPersona!=="Todos") lista=lista.filter(t=>t.responsable===filtroPersona);
+  if(filtroFoco) lista=lista.filter(t=>t.foco);
+  if(filtroFecha==="Vencidas") lista=lista.filter(t=>t.compromiso&&diasDesde(t.compromiso)>0);
+  else if(filtroFecha==="Esta semana") lista=lista.filter(t=>t.compromiso&&t.compromiso>=sem.lun&&t.compromiso<=sem.dom);
+  else if(filtroFecha==="Sin fecha") lista=lista.filter(t=>!t.compromiso);
+
+  /* Vencidas primero y de la mas antigua a la mas reciente. Despues las
+     que tienen fecha por delante, y al final las que no tienen. */
+  lista.sort((a,b)=>{
+    const ra=a.compromiso?(diasDesde(a.compromiso)>0?0:1):2;
+    const rb=b.compromiso?(diasDesde(b.compromiso)>0?0:1):2;
+    if(ra!==rb) return ra-rb;
+    if(ra===2) return 0;
+    return a.compromiso-b.compromiso;
+  });
+
+  let h='<div class="bloque-t">Detalle de tareas</div>';
+  h+='<div class="filtros">';
+  const pill=(txt,activo,grupo,valor)=>
+    '<button class="fpill'+(activo?" on":"")+'" data-g="'+grupo+'" data-v="'+esc(valor)+'">'+esc(txt)+'</button>';
+  h+=pill("Todos",filtroPersona==="Todos","persona","Todos");
+  socios().forEach(p=>{ h+=pill(p.split(" ")[0],filtroPersona===p,"persona",p); });
+  h+='<span class="fsep"></span>';
+  ["Todas","Vencidas","Esta semana","Sin fecha"].forEach(f=>{ h+=pill(f,filtroFecha===f,"fecha",f); });
+  h+='<span class="fsep"></span>';
+  h+='<button class="fpill fpill-foco'+(filtroFoco?" on":"")+'" data-g="foco" data-v="x" aria-pressed="'+filtroFoco+'">Solo foco</button>';
+  h+='</div>';
+
+  if(!lista.length){
+    h+='<div class="vacio">Ninguna tarea con estos filtros.</div>';
+  }else{
+    h+='<div class="tareas">';
+    lista.forEach(t=>{
+      const d=t.compromiso?diasDesde(t.compromiso):null;
+      const venc=(d!==null&&d>0);
+      const cl=CLASE_ESTADO[t.estado.toLowerCase()]||"neutro";
+      h+='<div class="tarea">'+
+        '<span class="t-estado est-'+cl+'" title="'+esc(t.estado)+'">'+esc(t.estado)+'</span>'+
+        '<span class="t-nombre" title="'+esc(t.tarea)+'">'+esc(t.tarea)+'</span>'+
+        '<span class="t-cliente">'+esc(t.cliente)+'</span>'+
+        '<span class="t-resp">'+esc(t.responsable.split(" ")[0])+'</span>'+
+        (t.compromiso
+          ? '<span class="t-fecha'+(venc?" t-vencida":"")+'">'+fmt(t.compromiso)+
+            (venc?' <span class="t-atraso">+'+d+'d</span>':'')+'</span>'
+          : '<span class="t-fecha t-sinfecha">Sin fecha</span>')+
+        '</div>';
+    });
+    h+='</div>';
+    h+='<div class="conteo">'+lista.length+' de '+DETALLE.length+' tareas activas</div>';
+  }
+  el.innerHTML=h;
+
+  el.querySelectorAll(".fpill").forEach(b=>{
+    b.onclick=()=>{
+      const g=b.dataset.g;
+      if(g==="persona") filtroPersona=b.dataset.v;
+      else if(g==="fecha") filtroFecha=b.dataset.v;
+      else filtroFoco=!filtroFoco;
+      pintarPersonas(); pintarDetalle();
+    };
+  });
+}
+
+function pintarPie(){
+  const enlaces=[];
+  if(URL_TABLERO) enlaces.push('<a href="'+URL_TABLERO+'" target="_blank" rel="noopener">Tablero de Tareas</a>');
+  enlaces.push('<a href="'+URL_PORTAL+'" target="_blank" rel="noopener">Portal Vida en Arte</a>');
+  enlaces.push('<a href="'+URL_REPO+'" target="_blank" rel="noopener">Repositorio</a>');
+  document.getElementById("pie").innerHTML=
+    '<div class="accesos">'+enlaces.join('<span class="acc-sep">·</span>')+'</div>'+
+    '<div class="aviso-metodo">Este panel mide cumplimiento, no resultado: dice si el equipo está haciendo lo que dijo que iba a hacer, no si Actio se acerca a su meta de facturación.</div>';
+}
 </script>
 </body>
 </html>
