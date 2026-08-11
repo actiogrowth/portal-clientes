@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Seguimiento interno · Actio Growth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   PANEL INTERNO DE SEGUIMIENTO
+
+   Vista para la reunion semanal de Actio. No es el portal del cliente.
+
+   Los tokens de abajo son una copia de los de portal-v2.html, que es la
+   fuente de verdad de la marca. Se duplican a proposito: los dos
+   archivos son autocontenidos y no comparten hoja de estilos. Si se
+   cambia un color en el portal, hay que traerlo aqui a mano.
+   ========================================================================== */
+:root{
+  /* ---------- Marca Actio ---------- */
+  --marca-verde-profundo:#004225;
+  --marca-verde-medio:#355E3B;
+  --marca-verde-claro:#4C6B47;
+  --marca-gris-claro:#F5F5F0;
+
+  --texto-principal:#1A1A1A;
+  --texto-secundario:#6B6B6B;
+  --texto-sobre-oscuro:#FFFFFF;
+  --texto-sobre-oscuro-2:rgba(255,255,255,.55);
+  --texto-sobre-oscuro-3:rgba(255,255,255,.66);
+
+  --marca-tenue:#EDF2EE;
+  --marca-borde-suave:#C9D6CC;
+  --marca-realce:rgba(0,66,37,.06);
+  --marca-sombra:rgba(0,66,37,.10);
+  --marca-sombra-fuerte:rgba(0,66,37,.16);
+
+  /* ---------- Estados funcionales ----------
+     Semaforo. El verde de marca no entra aqui y ninguno de estos se usa
+     como decoracion. */
+  --estado-en-meta:#2E9E5B;
+  --estado-en-meta-suave:#E4F6EB;
+  --estado-en-meta-fuerte:#1B6E3C;
+
+  --estado-atencion:#C77F1A;
+  --estado-atencion-suave:#FDF0DC;
+  --estado-atencion-fuerte:#8A5A00;
+
+  --estado-riesgo:#D1453B;
+  --estado-riesgo-suave:#FBE3E1;
+  --estado-riesgo-fuerte:#93231B;
+
+  --estado-neutro:#82888E;
+  --estado-neutro-suave:#ECEDEA;
+  --estado-neutro-fuerte:#5A5A5A;
+
+  /* ---------- Superficies ---------- */
+  --fondo:var(--marca-gris-claro);
+  --superficie:#FFFFFF;
+  --superficie-sutil:#FAFAF7;
+  --borde:#E3E3DD;
+  --borde-suave:#EFEFE9;
+
+  --font:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);
+  font-weight:300;line-height:1.6;font-size:14px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px 60px}
+
+header{display:flex;align-items:center;gap:16px;background:var(--superficie);
+  border:1px solid var(--borde);border-radius:14px;padding:15px 22px;margin:22px 0 18px}
+header img{height:36px;display:block}
+.h-sep{align-self:stretch;border-left:1px solid var(--marca-verde-claro);margin-left:15px}
+.h-title{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px}
+.h-sello{margin-left:auto;font-size:11px;color:var(--texto-secundario);
+  background:var(--superficie);border:1px solid var(--borde);border-radius:999px;
+  padding:8px 15px;white-space:nowrap}
+
+/* Bloque generico. Los de arriba se proyectan, asi que su tipografia
+   sube de cuerpo en las reglas de cada bloque. */
+.bloque{background:var(--superficie);border:1px solid var(--borde);
+  border-radius:14px;padding:22px 24px;margin-bottom:14px}
+.bloque-t{font-size:10px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--texto-secundario);margin-bottom:16px}
+
+/* Fuente caida. Nunca un cero en su lugar: un cero se leeria como
+   "todo en verde", que es exactamente la lectura contraria. */
+.sin-dato{background:var(--estado-neutro-suave);color:var(--estado-neutro-fuerte);
+  border-radius:10px;padding:16px 18px;font-size:13px}
+.sin-dato b{color:var(--texto-principal);font-weight:600}
+.cargando{color:var(--texto-secundario);font-size:13px;padding:8px 0}
+
+.pie{border-top:1px solid var(--borde);margin-top:26px;padding-top:18px;
+  font-size:11px;color:var(--texto-secundario);line-height:1.9}
+
+@media(max-width:640px){
+  header{flex-wrap:wrap;gap:12px;padding:14px 16px}
+  .h-sep{display:none}
+  .h-sello{margin-left:0;flex-basis:100%;max-width:max-content}
+  .bloque{padding:18px 16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="logo-actio-verde.png" alt="Actio Growth">
+    <div class="h-sep"></div>
+    <div class="h-title">Seguimiento interno</div>
+    <div class="h-sello" id="sello">Cargando…</div>
+  </header>
+
+  <div class="bloque" id="b-semaforo"><div class="cargando">Cargando semáforo…</div></div>
+  <div class="bloque" id="b-personas"><div class="cargando">Cargando carga por persona…</div></div>
+  <div class="bloque" id="b-entregables"><div class="cargando">Cargando entregables…</div></div>
+  <div class="bloque" id="b-cumplimiento"><div class="cargando">Cargando cumplimiento…</div></div>
+  <div class="bloque" id="b-detalle"><div class="cargando">Cargando detalle…</div></div>
+
+  <div class="pie" id="pie"></div>
+</div>
+
+<script>
+const BASE="https://docs.google.com/spreadsheets/d/e/2PACX-1vSAFz6KtU3Cs7Ty7TFH9r2Xs8CfDiAjqveR0YbS71XljM9p3QDxIkwIHcmR_5khJUmsHvFcSP96zCXS";
+const CSV_RESUMEN=BASE+"/pub?gid=214293326&single=true&output=csv";
+const CSV_DETALLE=BASE+"/pub?gid=1895614511&single=true&output=csv";
+const CSV_RIESGO =BASE+"/pub?gid=0&single=true&output=csv";
+
+/* null mientras no se sepa nada, false si la fuente fallo, y el dato
+   cuando llega. Distinguir los tres estados es lo que permite avisar en
+   vez de pintar ceros. */
+let RESUMEN=null,DETALLE=null,RIESGO=null;
+
+const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+/* ============ LECTURA ============ */
+/* Mismo parser que el portal: comillas, comas dentro de campo y saltos
+   de linea dentro de celda. */
+function parseCSV(t){
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===","){ row.push(cur);cur=""; }
+    else if(c==="\n"){ row.push(cur);rows.push(row);row=[];cur=""; }
+    else if(c!=="\r") cur+=c;
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+function filas(txt){
+  return parseCSV(txt).filter(r=>r.length>1&&r.join("").trim()!=="");
+}
+function tabla(txt){
+  const rows=filas(txt);
+  if(!rows.length) return {head:[],rows:[]};
+  const head=rows.shift().map(h=>h.trim());
+  return {head,rows};
+}
+function col(head,nombre){
+  return head.findIndex(h=>h.toLowerCase().trim()===nombre.toLowerCase());
+}
+function fecha(s){
+  if(!s)return null;
+  const m=String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m?new Date(+m[3],+m[2]-1,+m[1]):null;
+}
+function fmt(d){ return d? d.getDate()+" "+MES[d.getMonth()]+" "+d.getFullYear() : "—"; }
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function hoy(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+/* Dias enteros entre dos fechas, positivo si la primera ya paso. */
+function diasDesde(d){ return Math.round((hoy()-d)/86400000); }
+
+/* El CSV de Resumen no trae fila de cabecera: su primera fila ya es un
+   dato. Por eso se lee con filas() y no con tabla(), que se comeria la
+   primera metrica. */
+function leerResumen(txt){
+  const out={};
+  filas(txt).forEach(r=>{
+    const k=(r[0]||"").trim();
+    if(!k) return;
+    const v=parseFloat(String(r[1]||"").replace(",","."));
+    out[k.toLowerCase()]=isNaN(v)?null:v;
+  });
+  return Object.keys(out).length?out:false;
+}
+/* Devuelve null si la metrica no existe, para poder distinguir
+   "no vino" de "vino en cero". */
+function metrica(nombre){
+  if(!RESUMEN) return null;
+  const v=RESUMEN[nombre.toLowerCase()];
+  return (v===undefined)?null:v;
+}
+
+function leerDetalle(txt){
+  const t=tabla(txt),h=t.head;
+  const cId=col(h,"ID"),cCli=col(h,"Cliente"),cTar=col(h,"Tarea"),cDep=col(h,"Departamento"),
+        cRes=col(h,"Responsable"),cEst=col(h,"Estado"),cAv=col(h,"Avance"),
+        cFc=col(h,"Fecha compromiso"),cFo=col(h,"Foco");
+  const filas2=t.rows.map(r=>({
+    id:(r[cId]||"").trim(), cliente:(r[cCli]||"").trim(), tarea:(r[cTar]||"").trim(),
+    depto:(cDep>=0?(r[cDep]||"").trim():""), responsable:(r[cRes]||"").trim(),
+    estado:(r[cEst]||"").trim(), avance:(cAv>=0?(r[cAv]||"").trim():""),
+    compromiso:fecha(r[cFc]), foco:(cFo>=0?(r[cFo]||"").trim():"")
+  })).filter(d=>d.tarea);
+  return filas2.length?filas2:false;
+}
+
+function leerRiesgo(txt){
+  const t=tabla(txt),h=t.head;
+  const cU=col(h,"Unidad"),cE=col(h,"Entregable"),cEst=col(h,"Estado"),
+        cAv=col(h,"Avance"),cFc=col(h,"Fecha compromiso"),cT=col(h,"Tareas");
+  const filas2=t.rows.map(r=>({
+    unidad:(r[cU]||"").trim(), entregable:(r[cE]||"").trim(),
+    estado:(cEst>=0?(r[cEst]||"").trim():""), avance:(cAv>=0?(r[cAv]||"").trim():""),
+    compromiso:fecha(r[cFc]), tareas:(cT>=0?(r[cT]||"").trim():"")
+  })).filter(d=>d.entregable);
+  /* Una lista vacia es un dato valido —no hay nada comprometido— y no
+     un fallo, asi que se devuelve el array aunque venga sin filas. */
+  return filas2;
+}
+
+/* ============ CARGA ============ */
+/* Cada fuente falla por su cuenta: si cae una, las demas siguen. */
+function traer(url,parsear){
+  return fetch(url)
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(txt=>{const d=parsear(txt); return (d===false||d===null||d===undefined)?false:d;})
+    .catch(()=>false);
+}
+
+function avisoSinDato(que){
+  return '<div class="sin-dato"><b>Sin información disponible.</b> No se pudo leer '+que+
+         '. Los datos que faltan no se muestran como cero para no dar una lectura falsa.</div>';
+}
+
+function pintarTodo(){
+  pintarSemaforo();
+  pintarPersonas();
+  pintarEntregables();
+  pintarCumplimiento();
+  pintarDetalle();
+  pintarPie();
+  document.getElementById("sello").textContent="Actualizado "+fmt(new Date());
+}
+
+Promise.all([
+  traer(CSV_RESUMEN,leerResumen).then(d=>RESUMEN=d),
+  traer(CSV_DETALLE,leerDetalle).then(d=>DETALLE=d),
+  traer(CSV_RIESGO ,leerRiesgo ).then(d=>RIESGO=d)
+]).then(pintarTodo);
+
+/* ============ BLOQUES ============
+   Los bloques 1 a 5 llegan en los commits siguientes. Por ahora cada uno
+   declara si su fuente esta disponible, que es lo que permite verificar
+   el manejo de fallos antes de construir encima. */
+function estadoFuente(id,dato,que){
+  const el=document.getElementById(id);
+  el.innerHTML=(dato===false)?avisoSinDato(que)
+    :'<div class="bloque-t">'+que+'</div><div class="cargando">Fuente disponible. Bloque pendiente.</div>';
+}
+function pintarSemaforo(){ estadoFuente("b-semaforo",RESUMEN,"el resumen"); }
+function pintarPersonas(){ estadoFuente("b-personas",RESUMEN,"el resumen"); }
+function pintarEntregables(){ estadoFuente("b-entregables",RIESGO,"los entregables comprometidos"); }
+function pintarCumplimiento(){ estadoFuente("b-cumplimiento",RESUMEN,"el resumen"); }
+function pintarDetalle(){ estadoFuente("b-detalle",DETALLE,"el detalle de tareas"); }
+function pintarPie(){ document.getElementById("pie").innerHTML=""; }
+</script>
+</body>
+</html>
