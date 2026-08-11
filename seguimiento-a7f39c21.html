@@ -257,17 +257,24 @@ Promise.all([
 /* ============ BLOQUES ============
    Los bloques 1 a 5 llegan en los commits siguientes. Por ahora cada uno
    declara si su fuente esta disponible, que es lo que permite verificar
-   el manejo de fallos antes de construir encima. */
-function estadoFuente(id,dato,que){
-  const el=document.getElementById(id);
-  el.innerHTML=(dato===false)?avisoSinDato(que)
-    :'<div class="bloque-t">'+que+'</div><div class="cargando">Fuente disponible. Bloque pendiente.</div>';
+   el manejo de fallos antes de construir encima.
+
+   El titulo del bloque y la frase del aviso son cosas distintas y van
+   por separado. El titulo es un antetitulo y va sin articulo, como los
+   del portal; la frase vive dentro de una oracion y lo necesita.
+   El titulo se dibuja tambien cuando la fuente falla: si no, el bloque
+   caido pierde su identidad y no se sabe cual es. */
+function estadoFuente(id,dato,titulo,queFallo){
+  document.getElementById(id).innerHTML=
+    '<div class="bloque-t">'+titulo+'</div>'+
+    ((dato===false)?avisoSinDato(queFallo)
+      :'<div class="cargando">Fuente disponible. Bloque pendiente.</div>');
 }
-function pintarSemaforo(){ estadoFuente("b-semaforo",RESUMEN,"el resumen"); }
-function pintarPersonas(){ estadoFuente("b-personas",RESUMEN,"el resumen"); }
-function pintarEntregables(){ estadoFuente("b-entregables",RIESGO,"los entregables comprometidos"); }
-function pintarCumplimiento(){ estadoFuente("b-cumplimiento",RESUMEN,"el resumen"); }
-function pintarDetalle(){ estadoFuente("b-detalle",DETALLE,"el detalle de tareas"); }
+function pintarSemaforo(){ estadoFuente("b-semaforo",RESUMEN,"Semáforo general","el resumen"); }
+function pintarPersonas(){ estadoFuente("b-personas",RESUMEN,"Carga por persona","el resumen"); }
+function pintarEntregables(){ estadoFuente("b-entregables",RIESGO,"Entregables comprometidos","la lista de entregables comprometidos"); }
+function pintarCumplimiento(){ estadoFuente("b-cumplimiento",RESUMEN,"Cumplimiento de la semana","el resumen"); }
+function pintarDetalle(){ estadoFuente("b-detalle",DETALLE,"Detalle de tareas","el detalle de tareas"); }
 function pintarPie(){ document.getElementById("pie").innerHTML=""; }
 </script>
 </body>
