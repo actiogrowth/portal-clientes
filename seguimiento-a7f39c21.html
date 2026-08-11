@@ -96,14 +96,17 @@ header img{height:36px;display:block}
 
 /* Bloques 1 a 4: se proyectan, asi que el cuerpo sube para leerse a
    tres metros. El bloque 5 se queda en tamaño de lectura. */
-.sem{display:flex;align-items:center;gap:18px}
-.sem-luz{width:34px;height:34px;border-radius:50%;flex-shrink:0}
+/* Los iconos heredan el color con currentColor, asi que basta con dar
+   color al contenedor: no entra ningun color nuevo por esta via. */
+.ico{display:block;flex-shrink:0}
+.sem{display:flex;align-items:center;gap:16px}
+.sem-icono{flex-shrink:0;display:flex}
 .sem-rotulo{font-size:38px;font-weight:700;letter-spacing:-1px;line-height:1.1}
-.sem-en-meta .sem-luz{background:var(--estado-en-meta)}
+.sem-en-meta .sem-icono{color:var(--estado-en-meta)}
 .sem-en-meta .sem-rotulo{color:var(--estado-en-meta-fuerte)}
-.sem-atencion .sem-luz{background:var(--estado-atencion)}
+.sem-atencion .sem-icono{color:var(--estado-atencion)}
 .sem-atencion .sem-rotulo{color:var(--estado-atencion-fuerte)}
-.sem-riesgo .sem-luz{background:var(--estado-riesgo)}
+.sem-riesgo .sem-icono{color:var(--estado-riesgo)}
 .sem-riesgo .sem-rotulo{color:var(--estado-riesgo-fuerte)}
 .sem-ctx{margin-top:12px;font-size:17px;color:var(--texto-secundario)}
 
@@ -123,7 +126,7 @@ header img{height:36px;display:block}
 
 .grupo-ent{margin-bottom:18px}
 .grupo-ent:last-child{margin-bottom:0}
-.grupo-ent-t{font-size:15px;font-weight:700;letter-spacing:.4px;margin-bottom:9px}
+.grupo-ent-t{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;letter-spacing:.4px;margin-bottom:9px}
 .t-riesgo{color:var(--estado-riesgo)}
 .t-atencion{color:var(--estado-atencion-fuerte)}
 .entregable{border-left:4px solid;border-radius:8px;padding:12px 16px;margin-bottom:8px}
@@ -131,12 +134,13 @@ header img{height:36px;display:block}
 .ent-atencion{border-color:var(--estado-atencion);background:var(--estado-atencion-suave)}
 .ent-cab{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .ent-unidad{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--texto-secundario)}
-.ent-plazo{margin-left:auto;font-size:14px;font-weight:700}
+.ent-plazo{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700}
 .ent-riesgo .ent-plazo{color:var(--estado-riesgo-fuerte)}
 .ent-atencion .ent-plazo{color:var(--estado-atencion-fuerte)}
 .ent-nombre{font-size:18px;font-weight:600;margin:3px 0 5px;line-height:1.35}
 .ent-pie{font-size:12.5px;color:var(--texto-secundario)}
-.todo-bien{background:var(--estado-en-meta-suave);color:var(--estado-en-meta-fuerte);
+.todo-bien{display:flex;align-items:center;gap:12px;
+  background:var(--estado-en-meta-suave);color:var(--estado-en-meta-fuerte);
   border-radius:10px;padding:18px;font-size:18px;font-weight:600}
 
 .cump{display:flex;align-items:baseline;gap:16px}
@@ -170,7 +174,8 @@ header img{height:36px;display:block}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t-cliente{flex-shrink:0;font-size:11px;color:var(--texto-secundario);white-space:nowrap}
 .t-resp{flex-shrink:0;font-size:11px;font-weight:600;color:var(--texto-secundario);white-space:nowrap}
-.t-fecha{flex-shrink:0;font-size:11.5px;color:var(--texto-secundario);white-space:nowrap;min-width:96px;text-align:right}
+.t-fecha{flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:5px;
+  font-size:11.5px;color:var(--texto-secundario);white-space:nowrap;min-width:112px}
 .t-vencida{color:var(--estado-riesgo);font-weight:600}
 .t-atraso{font-weight:700}
 .t-sinfecha{color:var(--estado-neutro);font-style:italic}
@@ -397,6 +402,30 @@ function estadoFuente(id,dato,titulo,queFallo){
     ((dato===false)?avisoSinDato(queFallo)
       :'<div class="cargando">Fuente disponible. Bloque pendiente.</div>');
 }
+/* ============ ICONOS DE ESTADO ============
+   El color solo no basta: quien no distingue verde y rojo necesita que
+   la forma diga lo mismo. Cada estado lleva su simbolo ademas de su
+   color, y la forma es distinta a simple vista aunque el color se
+   pierda del todo.
+
+   En SVG y no en emoji ni en caracteres de fuente: los emoji cambian de
+   dibujo en cada sistema y los glifos dependen de que la fuente los
+   traiga. Trazo en currentColor, asi que heredan el token de estado sin
+   introducir un color nuevo.
+
+   Van marcados aria-hidden porque el significado ya esta en el texto que
+   acompañan: leerlos otra vez solo estorbaria a un lector de pantalla. */
+const ICONOS={
+  "en-meta":'<path d="M4 10.5l4 4 8-8"/>',
+  "atencion":'<path d="M10 2.5L18.5 17h-17z"/><path d="M10 8.2v3.6"/><path d="M10 14.4v.01"/>',
+  "riesgo":'<circle cx="10" cy="10" r="7.5"/><path d="M7.2 7.2l5.6 5.6"/><path d="M12.8 7.2l-5.6 5.6"/>'
+};
+function icono(nivel,px){
+  return '<svg class="ico" width="'+px+'" height="'+px+'" viewBox="0 0 20 20" fill="none"'+
+    ' stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'+
+    ' aria-hidden="true" focusable="false">'+(ICONOS[nivel]||"")+'</svg>';
+}
+
 /* Separa los comprometidos comparando con hoy. La pestaña Riesgo los
    trae juntos; vencido es incumplimiento y en riesgo todavia se salva. */
 function partirEntregables(){
@@ -437,7 +466,7 @@ function pintarSemaforo(){
   if(nr) trozos.push(nr+" en riesgo");
   trozos.push(vencidas+(vencidas===1?" tarea vencida":" tareas vencidas"));
   el.innerHTML='<div class="bloque-t">Semáforo general</div>'+
-    '<div class="sem sem-'+nivel+'"><span class="sem-luz"></span>'+
+    '<div class="sem sem-'+nivel+'"><span class="sem-icono">'+icono(nivel,40)+'</span>'+
     '<span class="sem-rotulo">'+rotulo+'</span></div>'+
     '<div class="sem-ctx">'+trozos.join(" · ")+'</div>';
 }
@@ -484,9 +513,13 @@ function pintarEntregables(){
   }
   let h='<div class="bloque-t">Entregables comprometidos</div>';
   if(!partes.vencidos.length&&!partes.enRiesgo.length){
-    h+='<div class="todo-bien">Ningún entregable comprometido en los próximos 15 días</div>';
+    h+='<div class="todo-bien">'+icono("en-meta",22)+
+       '<span>Ningún entregable comprometido en los próximos 15 días</span></div>';
     el.innerHTML=h; return;
   }
+  /* Cada ficha repite su simbolo junto al plazo. El encabezado del grupo
+     ya lo lleva, pero al desplazarse queda fuera de pantalla y la ficha
+     tiene que poder leerse sola. */
   const ficha=(e,nivel)=>{
     const d=e.compromiso?diasDesde(e.compromiso):null;
     const plazo=(d===null)?"sin fecha"
@@ -494,7 +527,7 @@ function pintarEntregables(){
            :(-d)+((-d)===1?" día por delante":" días por delante"));
     return '<div class="entregable ent-'+nivel+'">'+
       '<div class="ent-cab"><span class="ent-unidad">'+esc(e.unidad)+'</span>'+
-      '<span class="ent-plazo">'+plazo+'</span></div>'+
+      '<span class="ent-plazo">'+icono(nivel,15)+plazo+'</span></div>'+
       '<div class="ent-nombre">'+esc(e.entregable)+'</div>'+
       '<div class="ent-pie">'+fmt(e.compromiso)+
         (e.avance?' · '+esc(e.avance)+' de avance':'')+
@@ -503,11 +536,11 @@ function pintarEntregables(){
   /* Un grupo vacio no dibuja encabezado: un titulo "Vencidos" sobre
      nada invita a buscar lo que no existe. */
   if(partes.vencidos.length){
-    h+='<div class="grupo-ent"><div class="grupo-ent-t t-riesgo">Vencidos</div>'+
+    h+='<div class="grupo-ent"><div class="grupo-ent-t t-riesgo">'+icono("riesgo",18)+'Vencidos</div>'+
        partes.vencidos.map(e=>ficha(e,"riesgo")).join("")+'</div>';
   }
   if(partes.enRiesgo.length){
-    h+='<div class="grupo-ent"><div class="grupo-ent-t t-atencion">En riesgo</div>'+
+    h+='<div class="grupo-ent"><div class="grupo-ent-t t-atencion">'+icono("atencion",18)+'En riesgo</div>'+
        partes.enRiesgo.map(e=>ficha(e,"atencion")).join("")+'</div>';
   }
   el.innerHTML=h;
@@ -591,8 +624,11 @@ function pintarDetalle(){
         '<span class="t-nombre" title="'+esc(t.tarea)+'">'+esc(t.tarea)+'</span>'+
         '<span class="t-cliente">'+esc(t.cliente)+'</span>'+
         '<span class="t-resp">'+esc(t.responsable.split(" ")[0])+'</span>'+
+        /* Solo la vencida lleva simbolo. Las demas fechas no comunican
+           estado, asi que ponerles uno seria ruido. */
         (t.compromiso
-          ? '<span class="t-fecha'+(venc?" t-vencida":"")+'">'+fmt(t.compromiso)+
+          ? '<span class="t-fecha'+(venc?" t-vencida":"")+'">'+
+            (venc?icono("riesgo",13):"")+fmt(t.compromiso)+
             (venc?' <span class="t-atraso">+'+d+'d</span>':'')+'</span>'
           : '<span class="t-fecha t-sinfecha">Sin fecha</span>')+
         '</div>';
