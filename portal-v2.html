@@ -362,19 +362,19 @@ body.visor-abierto{overflow:hidden}
   padding:20px 22px;margin-bottom:14px}
 .at-titulo{font-size:10px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;
   color:var(--texto-secundario);margin-bottom:16px}
-.at-dist{display:flex;align-items:center;gap:30px;flex-wrap:wrap}
-.at-leyenda{display:flex;flex-direction:column;gap:12px;flex:1;min-width:230px}
+/* Dos columnas dentro del mismo panel. Al acotar cada una, la leyenda
+   deja de estirarse a todo el ancho y su numero vuelve junto a la
+   etiqueta. Con flex-basis 380px se apilan solas en pantallas donde no
+   caben las dos. */
+.at-columnas{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start}
+.at-col{flex:1 1 380px;min-width:0}
+.at-col-der{border-left:1px solid var(--borde);padding-left:34px}
+.at-dist{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+.at-leyenda{display:flex;flex-direction:column;gap:12px;flex:1;min-width:200px;max-width:340px}
 .at-lg{display:flex;align-items:center;gap:10px;font-size:13px}
 .at-lg .punto{width:11px;height:11px;border-radius:3px;flex-shrink:0}
 .at-lg .n{margin-left:auto;font-weight:600}
 .at-lg .pc{color:var(--texto-secundario);font-size:12px;min-width:40px;text-align:right}
-
-.at-rangos{display:flex;flex-direction:column;gap:10px}
-.at-rango{display:grid;grid-template-columns:100px 1fr 26px;align-items:center;gap:12px;font-size:12px}
-.at-rango .etq{color:var(--texto-secundario);white-space:nowrap}
-.at-rango .barra{height:12px;background:var(--fondo);border-radius:6px;overflow:hidden}
-.at-rango .relleno{height:100%;border-radius:6px;background:var(--marca-verde-medio);transition:width .5s}
-.at-rango .cnt{font-weight:600;text-align:right}
 
 .at-chips{display:flex;flex-wrap:wrap;gap:8px}
 .at-chip{font-size:12px;font-weight:500;padding:7px 14px;border-radius:999px;
@@ -405,6 +405,10 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
 /* Bajo 640px los dos logos no caben en una linea junto al titulo.
    Se apilan: logos en una fila (Actio izquierda, cliente derecha) y
    el titulo debajo. */
+@media(max-width:820px){
+  /* Apiladas: el borde lateral pasa a ser superior o queda flotando. */
+  .at-col-der{border-left:none;padding-left:0;border-top:1px solid var(--borde);padding-top:18px}
+}
 @media(max-width:640px){
   header{flex-wrap:wrap;gap:14px;padding:16px 18px}
   .marca-actio{border-right:none;padding-right:0}
@@ -1175,12 +1179,13 @@ function renderAtencion(){
       'de '+Math.round(s.minLlamada)+' a '+Math.round(s.maxLlamada)+' min')+
     '</div>';
 
-  h+=distribucionAtencion(s)+rangosLlamadas(s)+resumenAtencion(s,p)+notaMetodo(s);
+  h+=distribucionYResumen(s,p)+notaMetodo(s);
   document.getElementById("p-aten").innerHTML=h;
 }
 
-/* Frases cortas derivadas, ninguna escrita a mano. */
-function resumenAtencion(s,p){
+/* Frases cortas derivadas, ninguna escrita a mano. Devuelve solo los
+   chips: quien los coloca es el panel que los envuelve. */
+function chipsResumen(s,p){
   const chips=[];
   if(p){
     const dias=Math.max(1,Math.round((p.hasta-p.desde)/86400000));
@@ -1192,8 +1197,7 @@ function resumenAtencion(s,p){
   const largas=s.llamadas.filter(a=>a.minutos>20).length;
   if(largas) chips.push('<b>'+largas+'</b> llamadas de más de 20 minutos');
   if(!chips.length) return "";
-  return '<div class="at-panel"><div class="at-titulo">Resumen</div><div class="at-chips">'+
-    chips.map(c=>'<span class="at-chip">'+c+'</span>').join("")+'</div></div>';
+  return '<div class="at-chips">'+chips.map(c=>'<span class="at-chip">'+c+'</span>').join("")+'</div>';
 }
 
 /* Obligatoria: 30 de 37 reuniones llevan duracion estimada y el cliente
@@ -1216,50 +1220,39 @@ function notaMetodo(s){
   return '<div class="foot">'+t+'</div>';
 }
 
-/* Anillo de dos segmentos, el mismo recurso que el hero de Avance pero
-   sobre fondo claro. El arco de reuniones se dibuja encima del circulo
-   completo de llamadas, asi que el resto visible es la otra categoria. */
-function distribucionAtencion(s){
+/* Distribucion y resumen en un solo panel, a dos columnas.
+   Estaban en cajas separadas y apiladas, pero dicen lo mismo —como se
+   reparte el acompañamiento— y esa division no la justificaba el ancho:
+   la leyenda se estiraba dejando 672px de vacio entre cada etiqueta y su
+   numero. Juntandolos, ese hueco se lo queda el resumen.
+
+   El anillo son dos segmentos, el mismo recurso que el hero de Avance
+   pero sobre fondo claro: el arco de reuniones se dibuja encima del
+   circulo completo, asi que el resto visible es la otra categoria. */
+function distribucionYResumen(s,p){
   const R=54,C=2*Math.PI*R;
   const pct=t=>s.total?(t/s.total*100):0;
   const pReu=pct(s.reuniones.length);
   const fila=(color,etq,n)=>
     '<div class="at-lg"><span class="punto" style="background:var('+color+')"></span>'+
     etq+'<span class="n">'+n+'</span><span class="pc">'+pct(n).toFixed(0)+'%</span></div>';
-  return '<div class="at-panel"><div class="at-titulo">Distribución de contactos</div>'+
-    '<div class="at-dist"><svg width="132" height="132" viewBox="0 0 132 132">'+
-      '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--marca-verde-medio)" stroke-width="14"/>'+
-      '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--marca-verde-profundo)" stroke-width="14" '+
-        'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-pReu/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
-      '<text x="66" y="64" text-anchor="middle" style="fill:var(--texto-principal);font-family:var(--font)" font-size="24" font-weight="700">'+s.total+'</text>'+
-      '<text x="66" y="82" text-anchor="middle" style="fill:var(--texto-secundario);font-family:var(--font)" font-size="9" font-weight="600" letter-spacing="1">CONTACTOS</text>'+
-    '</svg><div class="at-leyenda">'+
-      fila('--marca-verde-profundo','Reuniones virtuales',s.reuniones.length)+
-      fila('--marca-verde-medio','Llamadas',s.llamadas.length)+
-    '</div></div></div>';
-}
-
-/* Rangos fijos por spec; los conteos salen del CSV. Las barras se miden
-   contra el rango mas poblado, no contra el total, para que la forma se
-   lea aunque un rango concentre casi todo. */
-function rangosLlamadas(s){
-  const rangos=[
-    {etq:"10 min o menos", dentro:m=>m<=10},
-    {etq:"11 – 20 min",    dentro:m=>m>=11&&m<=20},
-    {etq:"21 – 30 min",    dentro:m=>m>=21&&m<=30},
-    {etq:"31 – 45 min",    dentro:m=>m>=31&&m<=45},
-    {etq:"46 min o más",   dentro:m=>m>=46}
-  ];
-  const mins=s.llamadas.map(a=>a.minutos);
-  const cuenta=rangos.map(r=>mins.filter(r.dentro).length);
-  const tope=Math.max.apply(null,cuenta.concat([1]));
-  let h='<div class="at-panel"><div class="at-titulo">Duración de las llamadas</div><div class="at-rangos">';
-  rangos.forEach((r,i)=>{
-    h+='<div class="at-rango"><span class="etq">'+r.etq+'</span>'+
-       '<span class="barra"><span class="relleno" style="width:'+(cuenta[i]/tope*100).toFixed(1)+'%"></span></span>'+
-       '<span class="cnt">'+cuenta[i]+'</span></div>';
-  });
-  return h+'</div></div>';
+  const chips=chipsResumen(s,p);
+  return '<div class="at-panel"><div class="at-columnas">'+
+    '<div class="at-col">'+
+      '<div class="at-titulo">Distribución de contactos</div>'+
+      '<div class="at-dist"><svg width="132" height="132" viewBox="0 0 132 132">'+
+        '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--marca-verde-medio)" stroke-width="14"/>'+
+        '<circle cx="66" cy="66" r="'+R+'" fill="none" style="stroke:var(--marca-verde-profundo)" stroke-width="14" '+
+          'stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-pReu/100)).toFixed(1)+'" transform="rotate(-90 66 66)"/>'+
+        '<text x="66" y="64" text-anchor="middle" style="fill:var(--texto-principal);font-family:var(--font)" font-size="24" font-weight="700">'+s.total+'</text>'+
+        '<text x="66" y="82" text-anchor="middle" style="fill:var(--texto-secundario);font-family:var(--font)" font-size="9" font-weight="600" letter-spacing="1">CONTACTOS</text>'+
+      '</svg><div class="at-leyenda">'+
+        fila('--marca-verde-profundo','Reuniones virtuales',s.reuniones.length)+
+        fila('--marca-verde-medio','Llamadas',s.llamadas.length)+
+      '</div></div>'+
+    '</div>'+
+    (chips?'<div class="at-col at-col-der"><div class="at-titulo">Resumen</div>'+chips+'</div>':'')+
+    '</div></div>';
 }
 
 /* ============ VISOR ============ */
