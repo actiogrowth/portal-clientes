@@ -56,7 +56,8 @@ function esIgual(real, esperado, titulo) {
   console.log(`${bien ? '  ok  ' : ' FALLA'} ${titulo.padEnd(52)} ${String(real).padStart(11)}   esperado ${esperado}`);
 }
 
-const { MOTOR, FORMATO } = cargarBloques(['motor', 'formato']);
+/* El orden importa: datos lee cifras reales de MOTOR. */
+const { MOTOR, DATOS, FORMATO } = cargarBloques(['motor', 'datos', 'formato']);
 
 /* ==========================================================================
    KINDER
@@ -287,6 +288,40 @@ esIgual(pk.alumnos > pk.cupos, true, 'el motor no recorta al cupo');
 esIgual(MOTOR.escenario(1).facturacion === MOTOR.escenario(1).kinder.facturacion
       + MOTOR.escenario(1).afterSchool.facturacion
       + MOTOR.escenario(1).cumpleanos.facturacion, true, 'el consolidado excluye Veranito');
+
+/* ==========================================================================
+   ENTREGABLES
+   El conteo por fase es una afirmacion de la presentacion: si alguien
+   agrega o mueve uno en la hoja y lo transcribe mal aqui, el titulo de la
+   fase deja de coincidir con lo que se despliega debajo.
+   ========================================================================== */
+console.log('\nENTREGABLES');
+
+esIgual(DATOS.ENTREGABLES.length, 34, 'total de entregables');
+const porFase = n => DATOS.ENTREGABLES.filter(e => e.fase === n).length;
+esIgual(porFase(1), 6,  'Fase 1');
+esIgual(porFase(2), 11, 'Fase 2');
+esIgual(porFase(3), 6,  'Fase 3');
+esIgual(porFase(4), 8,  'Fase 4');
+esIgual(porFase(0), 3,  'Durante todo el proyecto');
+
+esIgual(DATOS.ENTREGABLES.every(e => e.unidad && e.segmento && e.fecha && e.nota),
+        true, 'todos traen unidad, segmento, fecha y descripcion');
+esIgual(new Set(DATOS.ENTREGABLES.map(e => e.unidad)).size, 5,
+        'cinco unidades incluyendo Gerencia');
+
+/* ==========================================================================
+   RELACIONES QUE SE DICEN EN VOZ ALTA
+   ========================================================================== */
+console.log('\nRELACIONES');
+
+esIgual(FORMATO.pct(DATOS.PRUEBA_VERANITO.crecimiento), '57%', 'crecimiento de Veranito');
+ok(DATOS.PRUEBA_VERANITO.relacion, 11, 'relacion de retorno de Veranito (11 a 1)', 0.3);
+ok(DATOS.VALOR_VIDA.kinder.relacion, 28, 'valor de vida contra adquisicion en Kinder (28 a 1)', 0.2);
+ok(DATOS.VALOR_VIDA.veranito.relacion, 19, 'venta contra adquisicion en Veranito', 0.1);
+
+esIgual(typeof DATOS.INVERSION === 'number' && DATOS.INVERSION > 0, true,
+        'la inversion sale de una constante configurable');
 
 /* ========================================================================== */
 console.log(`\n${'-'.repeat(78)}`);

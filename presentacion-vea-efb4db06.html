@@ -137,13 +137,19 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
 .unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
   padding:18px 20px 16px;display:flex;flex-direction:column}
 .unidad-cab{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.unidad-cab h3{font-size:20px;font-weight:700;letter-spacing:-.2px;color:var(--marca-verde-profundo)}
+.unidad-cab h3{font-size:var(--cifra-3);font-weight:700;letter-spacing:-.2px;color:var(--marca-verde-profundo)}
 
 /* La ocupacion se dice con forma ademas de con color, igual que los estados
-   del panel interno: proyectado y a distancia el color solo no basta. */
-.pastilla{font-size:var(--menudo);font-weight:600;border-radius:999px;
-  padding:3px 11px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.pastilla .glifo{font-size:11px;line-height:1}
+   del panel interno: proyectado y a distancia el color solo no basta.
+
+   Va a --cifra-3 y no al cuerpo menudo porque en la seccion 2 la ocupacion
+   ES el contenido, no una etiqueta. A 13px daban unos 9 mm de altura de
+   mayuscula proyectada en una pantalla de 55" a tres metros, por debajo de
+   los ~15 mm que hacen falta para leerla desde el fondo de la sala. */
+.pastilla{font-size:var(--cifra-3);font-weight:600;border-radius:999px;
+  padding:4px 14px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.pastilla .glifo{font-size:15px;line-height:1}
 .pastilla[data-nivel="alto"] {background:var(--estado-en-meta-suave); color:var(--estado-en-meta-fuerte)}
 .pastilla[data-nivel="medio"]{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
 .pastilla[data-nivel="bajo"] {background:var(--estado-riesgo-suave); color:var(--estado-riesgo-fuerte)}
@@ -215,6 +221,77 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
   background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
   border-radius:999px;padding:8px 18px}
 .barra-acciones button:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+
+/* ==========================================================================
+   SECCION 1 · FASES
+   Cerradas de entrada. La spec es explicita: no mostrar los 34 como lista.
+   Lo que el cliente ve primero es lo que logra al terminar cada fase; los
+   entregables estan debajo para quien pregunte.
+   ========================================================================== */
+.fase{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  margin-bottom:12px;overflow:hidden}
+.fase>summary{cursor:pointer;padding:20px 24px;list-style:none;display:block}
+.fase>summary::-webkit-details-marker{display:none}
+.fase>summary:hover{background:var(--superficie-sutil)}
+.fase-cab{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:9px}
+.fase-num{font-size:21px;font-weight:700;color:var(--marca-verde-profundo);letter-spacing:-.3px}
+.fase-cierra{font-size:15px;color:var(--texto-secundario)}
+.fase-cuenta{font-size:var(--menudo);font-weight:600;background:var(--marca-tenue);
+  color:var(--marca-verde-medio);border-radius:999px;padding:3px 11px;margin-left:auto}
+.fase-abrir{font-size:var(--menudo);color:var(--marca-verde-medio);font-weight:600;
+  display:inline-block;margin-top:10px}
+.logro{font-size:19px;line-height:1.45;max-width:80ch}
+.logro strong{font-weight:700;color:var(--marca-verde-profundo)}
+
+/* El display va condicionado a [open]. Declarado suelto, este grid pisa el
+   ocultamiento nativo del <details> y los 34 entregables quedan a la vista
+   con la fase cerrada, que es justo lo que la spec prohibe. */
+.fase:not([open]) > .entregables{display:none}
+.fase[open] > .entregables{display:grid}
+.entregables{border-top:1px solid var(--borde-suave);padding:6px 24px 20px;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px 22px}
+.entregable{padding:14px 0;border-bottom:1px solid var(--borde-suave)}
+.entregable-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+.chip{font-size:11px;font-weight:700;letter-spacing:.4px;background:var(--marca-tenue);
+  color:var(--marca-verde-profundo);border-radius:5px;padding:2px 8px}
+.entregable-cab .segmento{font-size:11px;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--texto-secundario)}
+.entregable-cab .fecha{font-size:11px;color:var(--texto-secundario);margin-left:auto;
+  font-variant-numeric:tabular-nums}
+.entregable h4{font-size:16px;font-weight:600;line-height:1.35;margin-bottom:3px}
+.entregable p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45}
+
+/* ==========================================================================
+   SECCION 2 · PRUEBA
+   El argumento de la seccion: lo que se hizo en Veranito es lo que se va a
+   hacer en las otras tres.
+   ========================================================================== */
+.prueba{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border-radius:16px;padding:26px 30px;margin-top:16px}
+.prueba .titular{font-size:21px;font-weight:600;line-height:1.4;max-width:80ch;margin-bottom:20px}
+.prueba .titular strong{font-weight:800}
+.prueba-cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:22px}
+.prueba-cifras .etiqueta{font-size:12px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--texto-sobre-oscuro-2);display:block;margin-bottom:2px}
+.prueba-cifras b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1.2px;
+  font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+.prueba-cifras .glosa{font-size:var(--menudo);color:var(--texto-sobre-oscuro-3);margin-top:2px;display:block}
+
+/* ==========================================================================
+   SECCION 6 · INVERSION
+   ========================================================================== */
+.inversion-caja{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border-radius:16px;padding:44px 40px;text-align:center}
+.inversion-caja .etiqueta{font-size:13px;font-weight:600;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--texto-sobre-oscuro-2);display:block;margin-bottom:8px}
+.inversion-caja b{font-size:82px;font-weight:800;letter-spacing:-3.5px;
+  font-variant-numeric:tabular-nums;display:block;line-height:1}
+/* Solo aparece mientras el monto siga siendo el de ejemplo. Desaparece sola
+   cuando alguien pone la cifra real, asi que no hay que acordarse de
+   quitarla. */
+.marca-ejemplo{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte);
+  border:1px solid var(--estado-riesgo);border-radius:10px;padding:11px 16px;
+  margin-bottom:14px;font-size:14px;font-weight:600}
 
 /* Hallazgo: el dato que Ricardo dice en voz alta cuando el cliente ya vio
    los numeros. Va despues de las cifras, nunca antes. */
@@ -566,6 +643,196 @@ const MOTOR = (function(){
     consolidar, escenario, escenarioHoy, partida,
   };
 })();
+</script>
+
+<script id="datos">
+/* ==========================================================================
+   DATOS
+
+   Los 34 entregables salen de la hoja de compromisos del proyecto. Se
+   transcriben aqui en vez de leerse en vivo a proposito: esto se proyecta
+   en una reunion y no puede depender de que una hoja responda.
+
+   Se corrigieron tildes y mayusculas para proyeccion. Ninguna redaccion se
+   cambio de fondo, ninguna asignacion se movio.
+
+   Dos cosas se dejaron como estan en la hoja, sabiendo que estan mal, para
+   no introducir una diferencia entre lo que se presenta y lo que el equipo
+   tiene registrado:
+   · Veranito Fase 1 trae dos entregables que son el mismo trabajo
+     ("Pagina de compra optimizada" y "Optimizar pagina de venta").
+   · "Campaña de Baby and Me" figura bajo Kinder, siendo Baby & Me una
+     disciplina de After School.
+   ========================================================================== */
+
+/* El monto se define aqui para poder ajustarlo hasta el ultimo momento sin
+   tocar nada mas del archivo. VALOR DE EJEMPLO: Ricardo lo fija antes de
+   la reunion. */
+const INVERSION = 96000;
+
+/* Centinela. Mientras INVERSION siga valiendo esto, la seccion 6 muestra un
+   aviso de que el monto es de relleno. En cuanto se ponga la cifra real el
+   aviso se va solo: nadie tiene que acordarse de borrarlo, que es
+   justamente como se cuela un monto falso a una reunion. */
+const INVERSION_EJEMPLO = 96000;
+
+const FASES = [
+  { numero:1, cierra:'30 de noviembre',
+    logro:'Las cuatro unidades cobran en linea.',
+    remate:'Se acaba perder una inscripcion porque no habia como pagar.' },
+  { numero:2, cierra:'31 de enero',
+    logro:'Ve sus numeros.',
+    remate:'Cuantos cupos libres hay, quien pago, que margen deja cada unidad. Y After School arranca con su motor de captacion completo.' },
+  { numero:3, cierra:'28 de febrero',
+    logro:'Nadie que pregunta se queda sin respuesta,',
+    remate:'y las familias que ya tiene empiezan a comprar en otras unidades.' },
+  { numero:4, cierra:'30 de junio',
+    logro:'El negocio se maneja desde una pantalla',
+    remate:'y los procesos quedan documentados.' },
+  { numero:0, cierra:'Durante todo el proyecto',
+    logro:'Lo que corre en paralelo a las cuatro fases.',
+    remate:'' },
+];
+
+const ENTREGABLES = [
+  { fase:1, unidad:'Gerencia', segmento:'Ventas', fecha:'31/10/2026',
+    nombre:'Pasarela de pago para cada unidad de negocio',
+    nota:'Un solo sistema de cobro conectado a la cuenta bancaria, con separacion por unidad para conciliar.' },
+  { fase:1, unidad:'Kinder', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Pagina de inscripcion de Kinder',
+    nota:'Donde la familia formaliza la matricula y paga. Conecta con la pasarela unificada.' },
+  { fase:1, unidad:'After School', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Pagina de inscripcion de After School',
+    nota:'Donde la familia formaliza la inscripcion y paga. Conecta con la pasarela unificada.' },
+  { fase:1, unidad:'Veranito', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Pagina de compra optimizada',
+    nota:'Mejora sobre la pagina existente.' },
+  { fase:1, unidad:'Cumpleaños', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Pagina de compra de paquetes',
+    nota:'Con precio diferenciado para familias de otras unidades.' },
+  { fase:1, unidad:'Veranito', segmento:'Servicio', fecha:'31/10/2026',
+    nombre:'Optimizar pagina de venta en diseño y usabilidad',
+    nota:'Se optimizara la pagina de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
+
+  { fase:2, unidad:'Gerencia', segmento:'Servicio', fecha:'31/12/2026',
+    nombre:'Cuadros de capacidad productiva por unidad',
+    nota:'Capacidad instalada contra ocupacion real, conectados a datos en vivo. Muestra cuantos cupos hay disponibles y cuantos se estan usando en cada unidad.' },
+  { fase:2, unidad:'Gerencia', segmento:'Finanzas', fecha:'31/01/2027',
+    nombre:'Tablero financiero por unidad de negocio',
+    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver que unidad genera utilidad real y cual solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'31/12/2026',
+    nombre:'Modulo administrativo de Kinder',
+    nota:'El sistema donde el equipo del centro registra y gestiona el dia a dia: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quien pago y quien no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'31/01/2027',
+    nombre:'Tablero de operacion de Kinder',
+    nota:'La vista de resumen que lee del modulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicacion por los padres. Amplia los tableros del proyecto 1.' },
+  { fase:2, unidad:'After School', segmento:'Servicio', fecha:'31/12/2026',
+    nombre:'Modulo administrativo de After School',
+    nota:'El sistema donde el equipo registra y gestiona el dia a dia: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripcion mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'31/01/2027',
+    nombre:'Modulo administrativo y tablero de Cumpleaños',
+    nota:'Sistema para registrar y gestionar las reservas: que fin de semana, que paquete, que familia. Incluye la vista de ocupacion, que muestra cuantos de los espacios disponibles al año se estan usando.' },
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+    nombre:'Landing page de captacion',
+    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+    nombre:'Video de ventas (Mini VSL)',
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+    nombre:'Anuncios y piezas graficas para redes',
+    nota:'Piezas visuales y textos para pauta y para publicacion organica.' },
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+    nombre:'Campaña en Meta',
+    nota:'Diseño, estrategia y configuracion: publicos, presupuesto y estructura. No incluye la inversion publicitaria.' },
+  { fase:2, unidad:'Veranito', segmento:'Marketing', fecha:'15/11/2026',
+    nombre:'Campaña de captacion — temporada enero a marzo',
+    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripcion.' },
+
+  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'31/01/2027',
+    nombre:'Sistema de automatizacion para identificacion de intencion',
+    nota:'Lee los mensajes que llegan por WhatsApp, Instagram y formularios, y determina a que unidad de negocio corresponde cada interesado y que tan cerca esta de comprar. Enruta cada conversacion al lugar correcto.' },
+  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'28/02/2027',
+    nombre:'Solucion de respuesta automatica (Setter)',
+    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversacion requiere una persona.' },
+  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'28/02/2027',
+    nombre:'Sistema de venta cruzada entre unidades',
+    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahi identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automaticos, la vista de cuantas familias participan en una, dos o mas unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
+  { fase:3, unidad:'Kinder', segmento:'Marketing', fecha:'31/01/2027',
+    nombre:'Anuncios y piezas graficas para redes',
+    nota:'Kinder pierde niños cada año por edad, asi que necesita captacion activa todo el año y no solo en temporada. Textos para pauta y para publicacion de videos anclados organicos.' },
+  { fase:3, unidad:'Cumpleaños', segmento:'Marketing', fecha:'31/10/2026',
+    nombre:'Estrategia de captacion interna',
+    nota:'Mensajes automaticos a familias de otras unidades con cumpleaños proximos.' },
+  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'28/02/2027',
+    nombre:'Sitio web de Vida en Arte',
+    nota:'El sitio de la marca, con una seccion por unidad de negocio. Cada unidad tiene su propia entrada de captacion dentro del mismo sitio.' },
+
+  { fase:4, unidad:'Gerencia', segmento:'Finanzas', fecha:'31/03/2027',
+    nombre:'Proyeccion de ingresos recurrentes',
+    nota:'Con las suscripciones activas de Kinder y After School se puede saber cuanto va a entrar el mes siguiente antes de que ocurra.' },
+  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/06/2027',
+    nombre:'Aplicacion de gerencia',
+    nota:'Punto unico de entrada con todas las unidades conectadas: ocupacion, ingresos y estado en una sola pantalla. Es la capa que reune todo lo anterior.' },
+  { fase:4, unidad:'After School', segmento:'Servicio', fecha:'31/03/2027',
+    nombre:'App de servicio (niveles y progreso)',
+    nota:'Registro de niños, progresion por disciplina, logros por nivel y graduaciones. La solucion del checklist operativo antes de arrancar clases.' },
+  { fase:4, unidad:'Veranito', segmento:'Marketing', fecha:'30/04/2027',
+    nombre:'Campaña de captacion — temporada junio a agosto',
+    nota:'Campaña para la segunda temporada, ajustada con los resultados de la primera.' },
+  { fase:4, unidad:'Gerencia', segmento:'Ventas', fecha:'30/04/2027',
+    nombre:'Modulo de afiliados',
+    nota:'Modulo para generar descuentos a los clientes que traigan recomendados, para incentivar la recomendacion del negocio.' },
+  { fase:4, unidad:'Gerencia', segmento:'Marketing', fecha:'30/04/2027',
+    nombre:'Estrategia de marketing de afiliados',
+    nota:'La estrategia con la que se otorgan los descuentos por recomendados.' },
+  { fase:4, unidad:'Kinder', segmento:'Marketing', fecha:'31/03/2027',
+    nombre:'Campaña de Baby and Me',
+    nota:'Landing, Mini VSL, campaña en Meta, anuncios y piezas graficas para redes.' },
+  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/06/2027',
+    nombre:'Manuales de procesos por rol',
+    nota:'Documentar los procesos de Vida en Arte por rol.' },
+
+  { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
+    nombre:'Asesoria estrategica del negocio',
+    nota:'Se atienden las situaciones que presente el cliente de forma constante, para asesorarlo en como darles solucion.' },
+  { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
+    nombre:'Soporte tecnico remoto',
+    nota:'Soporte virtual ante novedades con las aplicaciones, paginas web y plataformas creadas por la empresa.' },
+  { fase:0, unidad:'Gerencia', segmento:'Marketing', fecha:'Durante todo el proyecto',
+    nombre:'Estrategia para recoleccion de reseñas en Google',
+    nota:'Mejorar las calificaciones y la presencia de Vida en Arte en Google.' },
+];
+
+/* --------------------------------------------------------------------------
+   Seccion 2. Cifras reales de cada unidad y las relaciones que Ricardo dice
+   en voz alta. Se calculan, no se escriben: si alguien corrige una cifra, la
+   relacion se corrige sola en vez de quedar contradiciendola.
+   -------------------------------------------------------------------------- */
+const UNIDADES_HOY = [
+  { nombre:'Kinder',       ocupados:29,  capacidad:80,  sufijo:'niños',
+    facturacion:MOTOR.REAL.kinder.facturacion,      periodo:'al mes' },
+  { nombre:'After School', ocupados:80,  capacidad:220, sufijo:'alumnos',
+    facturacion:MOTOR.REAL.afterSchool.facturacion, periodo:'al mes' },
+  { nombre:'Cumpleaños',   ocupados:6,   capacidad:17,  sufijo:'eventos',
+    facturacion:MOTOR.REAL.cumpleanos.facturacion,  periodo:'al mes' },
+  { nombre:'Veranito',     ocupados:463, capacidad:550, sufijo:'cupos',
+    facturacion:MOTOR.REAL.veranito.mayAgo,         periodo:'por temporada' },
+];
+
+const PRUEBA_VERANITO = {
+  anterior:MOTOR.REAL.veranito.anual2025,
+  actual:MOTOR.REAL.veranito.mayAgo,
+  inversion:MOTOR.REAL.veranito.inversionAcumulada,
+};
+PRUEBA_VERANITO.crecimiento = (PRUEBA_VERANITO.actual - PRUEBA_VERANITO.anterior) / PRUEBA_VERANITO.anterior;
+PRUEBA_VERANITO.relacion    = (PRUEBA_VERANITO.actual - PRUEBA_VERANITO.anterior) / PRUEBA_VERANITO.inversion;
+
+const VALOR_VIDA = { kinder:{ valor:14088, adquisicion:500 },
+                     veranito:{ ventaPorCliente:347.56, adquisicion:18.30 } };
+VALOR_VIDA.kinder.relacion   = VALOR_VIDA.kinder.valor / VALOR_VIDA.kinder.adquisicion;
+VALOR_VIDA.veranito.relacion = VALOR_VIDA.veranito.ventaPorCliente / VALOR_VIDA.veranito.adquisicion;
+
+const DATOS = { INVERSION, FASES, ENTREGABLES, UNIDADES_HOY, PRUEBA_VERANITO, VALOR_VIDA };
 </script>
 
 <script id="formato">
@@ -1142,9 +1409,132 @@ function barraReinicio(contenedor){
   contenedor.appendChild(barra);
 }
 
+/* --------------------------------------------------------------------------
+   SECCION 1 · Fases
+   -------------------------------------------------------------------------- */
+function montarFases(contenedor){
+  for (const fase of DATOS.FASES){
+    const lista = DATOS.ENTREGABLES.filter(e => e.fase === fase.numero);
+
+    const det = nodo('details', 'fase');
+    const sum = document.createElement('summary');
+
+    const cab = nodo('div', 'fase-cab');
+    cab.appendChild(nodo('span', 'fase-num', fase.numero ? `Fase ${fase.numero}` : 'Durante todo el proyecto'));
+    if (fase.numero) cab.appendChild(nodo('span', 'fase-cierra', `cierra el ${fase.cierra}`));
+    cab.appendChild(nodo('span', 'fase-cuenta',
+      `${lista.length} ${lista.length === 1 ? 'entregable' : 'entregables'}`));
+    sum.appendChild(cab);
+
+    /* Sin esto la tarjeta no dice que se pueda abrir: el triangulo nativo
+       esta oculto para que la cabecera respire. */
+    const abrir = nodo('span', 'fase-abrir');
+    det.addEventListener('toggle', () => {
+      abrir.textContent = det.open ? '▲ ocultar entregables' : '▼ ver los entregables';
+    });
+    abrir.textContent = '▼ ver los entregables';
+
+    const logro = nodo('p', 'logro');
+    const fuerte = nodo('strong', null, fase.numero ? `Al terminar: ${fase.logro}` : fase.logro);
+    logro.append(fuerte, document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
+    sum.appendChild(logro);
+    sum.appendChild(abrir);
+    det.appendChild(sum);
+
+    const cont = nodo('div', 'entregables');
+    for (const e of lista){
+      const art = nodo('div', 'entregable');
+      const ec = nodo('div', 'entregable-cab');
+      ec.appendChild(nodo('span', 'chip', e.unidad));
+      ec.appendChild(nodo('span', 'segmento', e.segmento));
+      ec.appendChild(nodo('span', 'fecha', e.fecha));
+      art.appendChild(ec);
+      art.appendChild(nodo('h4', null, e.nombre));
+      art.appendChild(nodo('p', null, e.nota));
+      cont.appendChild(art);
+    }
+    det.appendChild(cont);
+    contenedor.appendChild(det);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   SECCION 2 · Donde estan hoy
+   -------------------------------------------------------------------------- */
+function montarHoy(contenedor){
+  const unidades = nodo('div', 'unidades');
+  for (const u of DATOS.UNIDADES_HOY){
+    const frac = u.ocupados / u.capacidad;
+    const art = nodo('article', 'unidad');
+    const cab = nodo('div', 'unidad-cab');
+    cab.appendChild(nodo('h3', null, u.nombre));
+    art.appendChild(cab);
+    const t = { cab, pastillaNodo:null };
+    ponPastilla(t, `${u.ocupados} de ${u.capacidad} ${u.sufijo} · ${F.pct(frac)}`, frac);
+
+    const cifras = nodo('div', 'cifras');
+    const bloque = nodo('div', 'cifra-bloque destacada');
+    bloque.appendChild(nodo('span', 'etiqueta', `Facturacion ${u.periodo}`));
+    bloque.appendChild(nodo('b', null, F.dinero(u.facturacion)));
+    cifras.appendChild(bloque);
+    art.appendChild(cifras);
+    unidades.appendChild(art);
+  }
+  contenedor.appendChild(unidades);
+
+  const p = DATOS.PRUEBA_VERANITO, v = DATOS.VALOR_VIDA;
+  const caja = nodo('div', 'prueba');
+  const titular = nodo('div', 'titular');
+  titular.innerHTML =
+    'Tres unidades operan a un tercio de su capacidad. Veranito, que ya recibio el trabajo, ' +
+    `esta al ${F.pct(DATOS.UNIDADES_HOY[3].ocupados / DATOS.UNIDADES_HOY[3].capacidad)}. ` +
+    '<strong>Lo que se hizo en Veranito es lo que se va a hacer en las otras tres.</strong>';
+  caja.appendChild(titular);
+
+  const cifras = nodo('div', 'prueba-cifras');
+  const bloques = [
+    { etiqueta:'Veranito 2025 → 2026', valor:`${F.dinero(p.anterior)} → ${F.dinero(p.actual)}`,
+      glosa:`${F.pct(p.crecimiento)} de crecimiento en la misma temporada` },
+    { etiqueta:'Inversion acumulada', valor:F.dinero(p.inversion),
+      glosa:`Marketing, comercial y software · relacion de ${Math.round(p.relacion)} a 1` },
+    { etiqueta:'Valor de vida en Kinder', valor:F.dinero(v.kinder.valor),
+      glosa:`Contra ${F.dinero(v.kinder.adquisicion)} de adquisicion · ${Math.round(v.kinder.relacion)} a 1` },
+    { etiqueta:'Adquisicion en Veranito', valor:F.precio(v.veranito.adquisicion),
+      glosa:`Contra ${F.precio(v.veranito.ventaPorCliente)} de venta por cliente nuevo` },
+  ];
+  for (const b of bloques){
+    const d = nodo('div');
+    d.appendChild(nodo('span', 'etiqueta', b.etiqueta));
+    d.appendChild(nodo('b', null, b.valor));
+    d.appendChild(nodo('span', 'glosa', b.glosa));
+    cifras.appendChild(d);
+  }
+  caja.appendChild(cifras);
+  contenedor.appendChild(caja);
+}
+
+/* --------------------------------------------------------------------------
+   SECCION 6 · La inversion
+   -------------------------------------------------------------------------- */
+function montarInversion(contenedor){
+  if (DATOS.INVERSION === INVERSION_EJEMPLO){
+    contenedor.appendChild(nodo('div', 'marca-ejemplo',
+      'Monto de ejemplo: todavia no se ha fijado la cifra real. Se cambia en la ' +
+      'constante INVERSION, arriba del archivo. Este aviso desaparece solo.'));
+  }
+  const caja = nodo('div', 'inversion-caja');
+  caja.appendChild(nodo('span', 'etiqueta', 'Inversion del proyecto'));
+  caja.appendChild(nodo('b', null, F.dinero(DATOS.INVERSION)));
+  contenedor.appendChild(caja);
+}
+
 /* ==========================================================================
    MONTAJE
    ========================================================================== */
+montarFases(document.getElementById('fases'));
+montarHoy(document.getElementById('hoy'));
+montarInversion(document.getElementById('inversion'));
+
 crearSimulador(document.getElementById('sim-60'), 0.6);
 barraReinicio(document.getElementById('sim-60'));
 
