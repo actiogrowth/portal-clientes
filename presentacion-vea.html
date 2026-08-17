@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Proyecto 2 · Vida en Arte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   TOKENS. Unico lugar del archivo donde se declara un color.
+   Los de marca y estado vienen de portal-v2.html sin cambios, para que la
+   presentacion y el portal se lean como el mismo sistema.
+
+   Lo que se agrega aqui y no esta en el portal es la escala tipografica:
+   esto se proyecta y se lee a tres metros, asi que las cifras principales
+   arrancan donde el portal termina.
+   ========================================================================== */
+:root{
+  /* ---------- Marca Actio ----------
+     Identidad. Nunca comunica estado. */
+  --marca-verde-profundo:#004225;
+  --marca-verde-medio:#355E3B;
+  --marca-verde-claro:#4C6B47;
+  --marca-gris-claro:#F5F5F0;
+
+  --texto-principal:#1A1A1A;
+  --texto-secundario:#6B6B6B;
+  --texto-sobre-oscuro:#FFFFFF;
+  --texto-sobre-oscuro-2:rgba(255,255,255,.55);
+  --texto-sobre-oscuro-3:rgba(255,255,255,.66);
+
+  --marca-tenue:#EDF2EE;
+  --marca-borde-suave:#C9D6CC;
+  --marca-realce:rgba(0,66,37,.06);
+  --marca-sombra:rgba(0,66,37,.10);
+  --marca-sombra-fuerte:rgba(0,66,37,.16);
+
+  /* ---------- Estado ----------
+     Solo para ocupacion y deltas. Nunca para identidad. */
+  --estado-en-meta:#2E9E5B;
+  --estado-en-meta-suave:#E4F6EB;
+  --estado-en-meta-fuerte:#1B6E3C;
+  --estado-en-meta-halo:rgba(46,158,91,.18);
+
+  --estado-atencion:#C77F1A;
+  --estado-atencion-suave:#FDF0DC;
+  --estado-atencion-fuerte:#8A5A00;
+
+  --estado-riesgo:#D1453B;
+  --estado-riesgo-suave:#FBE3E1;
+  --estado-riesgo-fuerte:#93231B;
+
+  --estado-neutro:#82888E;
+  --estado-neutro-suave:#ECEDEA;
+  --estado-neutro-fuerte:#5A5A5A;
+
+  /* ---------- Superficies ---------- */
+  --fondo:var(--marca-gris-claro);
+  --superficie:#FFFFFF;
+  --superficie-sutil:#FAFAF7;
+  --borde:#E3E3DD;
+  --borde-suave:#EFEFE9;
+
+  --font:'Inter',system-ui,sans-serif;
+
+  /* ---------- Escala para proyeccion ----------
+     Medida para una sala donde el mas lejano esta a tres metros de una
+     pantalla de 55". Por debajo de --cifra-2 ninguna cifra que el cliente
+     tenga que leer en voz alta. */
+  --cifra-1:56px;   /* consolidado y deltas */
+  --cifra-2:34px;   /* cifras por unidad */
+  --cifra-3:22px;   /* cifras de apoyo */
+  --cuerpo:16px;
+  --menudo:13px;    /* solo notas al pie, nunca cifras */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);
+  font-weight:300;line-height:1.55;font-size:var(--cuerpo)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 72px}
+
+/* ==========================================================================
+   CABECERA Y NAVEGACION
+   La navegacion es pegajosa: si el cliente pregunta algo de la seccion 2
+   estando en la 5, Ricardo salta sin volver arriba.
+   ========================================================================== */
+header{display:flex;align-items:center;gap:18px;background:var(--superficie);
+  border:1px solid var(--borde);border-radius:14px;padding:15px 24px;margin:22px 0 14px}
+.marca-actio{display:flex;align-items:center;flex-shrink:0;
+  padding-right:16px;border-right:1px solid var(--marca-verde-claro)}
+.marca-actio img{height:36px;display:block}
+.marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
+.marca-cliente img{height:28px;display:block}
+.titulo h1{font-size:19px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--marca-verde-profundo);line-height:1.2}
+.titulo p{font-size:var(--menudo);color:var(--texto-secundario);margin-top:2px}
+
+nav{position:sticky;top:0;z-index:20;display:flex;gap:6px;flex-wrap:wrap;
+  background:var(--fondo);padding:10px 0 12px;margin-bottom:6px}
+nav button{font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;
+  background:var(--superficie);color:var(--texto-secundario);
+  border:1px solid var(--borde);border-radius:999px;padding:9px 17px;
+  transition:background .12s,color .12s,border-color .12s}
+nav button:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+nav button[aria-current="true"]{background:var(--marca-verde-profundo);
+  color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+nav .indice{font-weight:700;opacity:.55;margin-right:7px}
+nav button[aria-current="true"] .indice{opacity:.7}
+
+/* ==========================================================================
+   SECCIONES. Una visible a la vez.
+   ========================================================================== */
+section[data-seccion]{display:none}
+section[data-seccion].activa{display:block}
+.encabezado-seccion{margin:14px 0 22px}
+.encabezado-seccion h2{font-size:30px;font-weight:700;letter-spacing:-.5px;
+  color:var(--marca-verde-profundo)}
+.encabezado-seccion p{font-size:17px;color:var(--texto-secundario);margin-top:5px;max-width:75ch}
+
+/* Nota al pie de cada unidad. Sin esto el margen se lee como utilidad neta
+   y no lo es: los calculos cubren mano de obra directa unicamente. */
+.nota-costo{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
+  border-top:1px solid var(--borde-suave);margin-top:14px;padding-top:10px}
+
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
+  font-size:var(--menudo);color:var(--texto-secundario);display:flex;
+  justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="marca-actio"><img src="logo-actio-verde.png" alt="Actio Growth"></div>
+    <div class="titulo">
+      <h1>Proyecto 2</h1>
+      <p>Vida en Arte · propuesta de continuidad</p>
+    </div>
+    <div class="marca-cliente"><img src="logo-cliente.png" alt="Vida en Arte"></div>
+  </header>
+
+  <nav id="nav" aria-label="Secciones de la presentacion"></nav>
+
+  <main id="main">
+    <section data-seccion="1" class="activa">
+      <div class="encabezado-seccion">
+        <h2>Lo que vamos a construir</h2>
+        <p>Treinta y cuatro entregables en cuatro fases, mas lo que corre durante todo el proyecto.</p>
+      </div>
+      <div id="fases"></div>
+    </section>
+
+    <section data-seccion="2">
+      <div class="encabezado-seccion">
+        <h2>Donde estan hoy</h2>
+        <p>Las cuatro unidades con su ocupacion real.</p>
+      </div>
+      <div id="hoy"></div>
+    </section>
+
+    <section data-seccion="3">
+      <div class="encabezado-seccion">
+        <h2>Al 60% de ocupacion</h2>
+        <p>Los controles se mueven durante la conversacion y los numeros se recalculan al instante.</p>
+      </div>
+      <div id="sim-60"></div>
+    </section>
+
+    <section data-seccion="4">
+      <div class="encabezado-seccion">
+        <h2>Al 100% de ocupacion</h2>
+        <p>La capacidad instalada llena, sin ampliar nada.</p>
+      </div>
+      <div id="sim-100"></div>
+    </section>
+
+    <section data-seccion="5">
+      <div class="encabezado-seccion">
+        <h2>2028</h2>
+        <p>Kinder a 100 ninos con el precio subido cien dolares.</p>
+      </div>
+      <div id="sim-2028"></div>
+    </section>
+
+    <section data-seccion="6">
+      <div class="encabezado-seccion">
+        <h2>La inversion</h2>
+      </div>
+      <div id="inversion"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Actio Growth · Vida en Arte · agosto 2026</span>
+    <span>Los calculos cubren mano de obra directa unicamente.</span>
+  </footer>
+
+</div>
+
+<script id="motor">
+/* ==========================================================================
+   MOTOR DE CALCULO
+   Funciones puras. No tocan el DOM y no leen estado global: reciben
+   parametros y devuelven cifras. Asi pruebas-motor.js las ejecuta en node
+   contra los casos de la spec sin abrir el navegador.
+
+   Cada constante de aqui es un dato del negocio, no una decision de diseño.
+   Si el cliente corrige una tarifa en la reunion, se cambia en este bloque
+   y se vuelve a correr `node pruebas-motor.js`.
+   ========================================================================== */
+const MOTOR = (function(){
+
+  /* Semanas por mes. Aparece en todo calculo de costo por hora de clase
+     y en la conversion de eventos semanales a mensuales. */
+  const SEM_MES = 4.33;
+
+  /* ------------------------------------------------------------------------
+     CIFRAS REALES DE HOY
+     No se calculan: son lo que el negocio facturo. El escenario Hoy las usa
+     tal cual, porque la diferencia contra lo calculado es justamente parte
+     del argumento (tarifas viejas sin migrar en Kinder).
+     ---------------------------------------------------------------------- */
+  const REAL = {
+    kinder:      { facturacion:17062, ninos:29 },
+    afterSchool: { facturacion:11286, alumnos:80 },
+    // $18.494 facturados en siete meses. El promedio mensual es la cifra
+    // que se muestra; los eventos de hoy se derivan de ella, no al reves.
+    cumpleanos:  { facturacion:2642, facturadoTotal:18494, mesesMedidos:7 },
+    veranito:    { mayAgo:85008, eneMar:37888, anual2026:122896, anual2025:54286,
+                   inversionAcumulada:2726 },
+  };
+
+  /* ========================================================================
+     KINDER
+     ====================================================================== */
+  const KINDER_PARTIDA = { ninos:29, precio45:587, precio8:786, pct45:0.70, costoGrupo:2700 };
+  const KINDER_NINOS_POR_GRUPO = 10;
+  const KINDER_CAPACIDAD = 80;
+
+  function kinder(p){
+    const c = Object.assign({}, KINDER_PARTIDA, p || {});
+    const ticket = c.pct45 * c.precio45 + (1 - c.pct45) * c.precio8;
+    /* El costo escala por escalon, no proporcionalmente: un niño mas puede
+       abrir un grupo entero. Pasar de 30 a 31 suma un costoGrupo completo. */
+    const grupos = Math.ceil(c.ninos / KINDER_NINOS_POR_GRUPO);
+    const facturacion = c.ninos * ticket;
+    const costo = grupos * c.costoGrupo;
+    return {
+      ninos: c.ninos, ticket, grupos, facturacion, costo,
+      margen: facturacion - costo,
+      excedeCapacidad: c.ninos > KINDER_CAPACIDAD,
+    };
+  }
+
+  /* ========================================================================
+     AFTER SCHOOL
+
+     Dos reglas gobiernan esta unidad y son las que sostienen el hallazgo de
+     la seccion 4:
+
+     1. El costo depende de las horas de clase dictadas, no de cuantos niños
+        hay en el aula. Por eso entre 133 y 220 alumnos no sube ni un dolar.
+     2. Una disciplina sin alumnos no se dicta, y lo que no se dicta no
+        cuesta. Hoy eso saca a Baby & Me ($433) y al sabado completo
+        ($1.749,32) del costo.
+
+     `sesiones` es cuantas veces por semana corre la disciplina, y por eso
+     define tambien la tarifa: dos veces por semana paga plan de dos veces,
+     una vez por semana paga la tarifa de una vez. Los cupos vendibles de
+     cada disciplina son cupos x sesiones; sumados al sabado dan los 220.
+     ====================================================================== */
+  const AS_PROFESOR = 25;   // costo por hora de un profesor
+  const AS_ASISTENTE = 18;  // Telas requiere asistente ademas del profesor
+
+  const AS_DISCIPLINAS = [
+    { nombre:'ParKour 6-14', cupos:20, sesiones:2, horasSem:8, costoHora:AS_PROFESOR*2,             alumnosHoy:41, precioHoy:109 },
+    { nombre:'ParKour 15+',  cupos:20, sesiones:2, horasSem:4, costoHora:AS_PROFESOR*2,             alumnosHoy:1,  precioHoy:139 },
+    { nombre:'Telas 6-14',   cupos:10, sesiones:2, horasSem:8, costoHora:AS_PROFESOR+AS_ASISTENTE,  alumnosHoy:28, precioHoy:117, telas:true },
+    { nombre:'Telas 15+',    cupos:10, sesiones:2, horasSem:4, costoHora:AS_PROFESOR+AS_ASISTENTE,  alumnosHoy:3,  precioHoy:110, telas:true },
+    { nombre:'ParKids 3-5',  cupos:8,  sesiones:2, horasSem:4, costoHora:AS_PROFESOR,               alumnosHoy:7,  precioHoy:125 },
+    { nombre:'Baby & Me',    cupos:8,  sesiones:1, horasSem:4, costoHora:AS_PROFESOR,               alumnosHoy:0,  precioHoy:111.28 },
+  ];
+
+  /* El sabado se vende como un bloque de 76 cupos a tarifa de una vez por
+     semana, pero su costo se arma disciplina por disciplina igual que entre
+     semana. Hoy no se dicta: cero alumnos inscritos. */
+  const AS_SABADO = {
+    cupos: 76,
+    alumnosHoy: 0,
+    disciplinas: [
+      { nombre:'ParKour Adultos', horas:1, costoHora:AS_PROFESOR*2 },
+      { nombre:'ParKour 6-14',    horas:2, costoHora:AS_PROFESOR*2 },
+      { nombre:'Telas Adultos',   horas:1, costoHora:AS_PROFESOR+AS_ASISTENTE },
+      { nombre:'Telas 6-14',      horas:2, costoHora:AS_PROFESOR+AS_ASISTENTE },
+      { nombre:'ParKids',         horas:3, costoHora:AS_PROFESOR },
+      { nombre:'Baby & Me',       horas:2, costoHora:AS_PROFESOR },
+    ],
+  };
+
+  /* precio1v cubre el sabado y Baby & Me: ambos corren una vez por semana y
+     pagan la misma tarifa. Es un solo control. */
+  const AS_PARTIDA = { ocupacion:0.36, precio2v:169.06, precio1v:111.28, precioTelas:200 };
+
+  const AS_CUPOS_TOTALES =
+    AS_DISCIPLINAS.reduce((s,d) => s + d.cupos * d.sesiones, 0) + AS_SABADO.cupos;
+
+  const AS_COSTO_SABADO =
+    AS_SABADO.disciplinas.reduce((s,d) => s + d.horas * SEM_MES * d.costoHora, 0);
+
+  function asPrecio(d, c){
+    if (d.telas) return c.precioTelas;
+    return d.sesiones >= 2 ? c.precio2v : c.precio1v;
+  }
+
+  function afterSchool(p){
+    const c = Object.assign({}, AS_PARTIDA, p || {});
+    let facturacion = 0, alumnos = 0, costo = 0;
+    const detalle = [];
+
+    for (const d of AS_DISCIPLINAS){
+      const cupos = d.cupos * d.sesiones;
+      /* Alumnos enteros por disciplina: no existe medio inscrito, y sin este
+         redondeo el consolidado se aleja de las cifras de la spec. */
+      const al = Math.round(cupos * c.ocupacion);
+      const ingreso = al * asPrecio(d, c);
+      const gasto = al > 0 ? d.horasSem * SEM_MES * d.costoHora : 0;
+      alumnos += al; facturacion += ingreso; costo += gasto;
+      detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto });
+    }
+
+    const alSab = Math.round(AS_SABADO.cupos * c.ocupacion);
+    const ingSab = alSab * c.precio1v;
+    const gastoSab = alSab > 0 ? AS_COSTO_SABADO : 0;
+    alumnos += alSab; facturacion += ingSab; costo += gastoSab;
+    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab, costo:gastoSab });
+
+    return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
+  }
+
+  /* Hoy no usa los precios nuevos: usa las tarifas vigentes de cada
+     disciplina y los alumnos realmente inscritos. Los precios nuevos
+     aplican solo a las proyecciones. */
+  function afterSchoolHoy(){
+    let facturacion = 0, alumnos = 0, costo = 0;
+    const detalle = [];
+
+    for (const d of AS_DISCIPLINAS){
+      const ingreso = d.alumnosHoy * d.precioHoy;
+      const gasto = d.alumnosHoy > 0 ? d.horasSem * SEM_MES * d.costoHora : 0;
+      alumnos += d.alumnosHoy; facturacion += ingreso; costo += gasto;
+      detalle.push({ nombre:d.nombre, cupos:d.cupos*d.sesiones, alumnos:d.alumnosHoy, facturacion:ingreso, costo:gasto });
+    }
+
+    const gastoSab = AS_SABADO.alumnosHoy > 0 ? AS_COSTO_SABADO : 0;
+    alumnos += AS_SABADO.alumnosHoy; costo += gastoSab;
+    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:AS_SABADO.alumnosHoy, facturacion:0, costo:gastoSab });
+
+    return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
+  }
+
+  /* ========================================================================
+     CUMPLEAÑOS
+     ====================================================================== */
+  const CUMPLE_PARTIDA = { eventosSemana:1.4, precio:450, costoEvento:172 };
+  const CUMPLE_TOPE_SEMANA = 4;  // viernes y sabado desde las 14:00, domingo dos turnos
+
+  function cumpleanos(p){
+    const c = Object.assign({}, CUMPLE_PARTIDA, p || {});
+    /* Enteros: nadie hace 10,4 fiestas, y asi el cliente verifica la cuenta
+       de cabeza mientras Ricardo habla. */
+    const eventos = Math.round(c.eventosSemana * SEM_MES);
+    const facturacion = eventos * c.precio;
+    const costo = eventos * c.costoEvento;
+    return { eventos, facturacion, costo, margen: facturacion - costo };
+  }
+
+  /* ========================================================================
+     VERANITO
+
+     Los precios de lista son $185 y $220, pero el ticket que entra de verdad
+     es $182,42: hay cupones (16,4% de las ventas), plan Tardes mas barato y
+     descuentos. Todo se calcula sobre el ticket real. Los controles de
+     precio mueven el de lista y el efectivo se ajusta en la misma
+     proporcion, para que el control no quede decorativo.
+     ====================================================================== */
+  const VERANITO_PARTIDA = {
+    semanas:11, cuposSemana:50, precio45:185, precio8:220, pct45:0.75,
+    mayAgo:{ ocupacion:0.84 }, eneMar:{ ocupacion:0.38 },
+  };
+  const VERANITO_COSTO_OPERATIVO = 0.20;  // del ingreso
+  const TICKET_LISTA = VERANITO_PARTIDA.pct45 * VERANITO_PARTIDA.precio45
+                     + (1 - VERANITO_PARTIDA.pct45) * VERANITO_PARTIDA.precio8;
+  const TICKET_VERANITO = 182.42;
+  const FACTOR_REALIZACION = TICKET_VERANITO / TICKET_LISTA;
+
+  function veranito(p){
+    const c = Object.assign({}, VERANITO_PARTIDA, { ocupacion:0.84 }, p || {});
+    const lista = c.pct45 * c.precio45 + (1 - c.pct45) * c.precio8;
+    const ticket = lista * FACTOR_REALIZACION;
+    const cuposTemporada = c.semanas * c.cuposSemana;
+    const cupos = Math.round(cuposTemporada * c.ocupacion);
+    const facturacion = cupos * ticket;
+    const costo = facturacion * VERANITO_COSTO_OPERATIVO;
+    return { cupos, cuposTemporada, ticket, facturacion, costo, margen: facturacion - costo };
+  }
+
+  /* ========================================================================
+     CONSOLIDADO
+
+     Veranito queda fuera del consolidado mensual a proposito: es estacional
+     y mezclarlo con unidades que facturan todos los meses daria un promedio
+     que no describe ningun mes real. Se presenta aparte.
+     ====================================================================== */
+  function consolidar(partes){
+    const facturacion = partes.reduce((s,x) => s + x.facturacion, 0);
+    const costo = partes.reduce((s,x) => s + x.costo, 0);
+    return { facturacion, costo, margen: facturacion - costo };
+  }
+
+  function escenario(ocupacion){
+    const k = kinder({ ninos: Math.round(KINDER_CAPACIDAD * ocupacion) });
+    const a = afterSchool({ ocupacion });
+    const c = cumpleanos({ eventosSemana: CUMPLE_TOPE_SEMANA * ocupacion });
+    return Object.assign(consolidar([k,a,c]), { kinder:k, afterSchool:a, cumpleanos:c });
+  }
+
+  /* El escenario Hoy toma la facturacion real de cada unidad, pero el costo
+     calculado: el costo si responde a las reglas (grupos abiertos, horas
+     dictadas), y es lo que hace comparable el margen contra las
+     proyecciones. */
+  function escenarioHoy(){
+    const k = { facturacion: REAL.kinder.facturacion,
+                costo: kinder({ ninos: REAL.kinder.ninos }).costo };
+    k.margen = k.facturacion - k.costo;
+
+    const aHoy = afterSchoolHoy();
+    const a = { facturacion: REAL.afterSchool.facturacion, costo: aHoy.costo };
+    a.margen = a.facturacion - a.costo;
+
+    /* Los eventos de hoy se derivan de lo facturado, no de la capacidad:
+       $2.642 al mes a $450 el paquete son 5,87 eventos, y ese es el volumen
+       que genera costo. */
+    const eventos = REAL.cumpleanos.facturacion / CUMPLE_PARTIDA.precio;
+    const c = { facturacion: REAL.cumpleanos.facturacion,
+                costo: eventos * CUMPLE_PARTIDA.costoEvento, eventos };
+    c.margen = c.facturacion - c.costo;
+
+    return Object.assign(consolidar([k,a,c]), { kinder:k, afterSchool:a, cumpleanos:c });
+  }
+
+  /* Copia nueva en cada llamada. Si devolviera las constantes, el boton de
+     reinicio no restauraria nada: los controles ya las habrian mutado. */
+  function partida(){
+    return JSON.parse(JSON.stringify({
+      kinder: KINDER_PARTIDA,
+      afterSchool: AS_PARTIDA,
+      cumpleanos: CUMPLE_PARTIDA,
+      veranito: VERANITO_PARTIDA,
+    }));
+  }
+
+  return {
+    SEM_MES, REAL,
+    KINDER_CAPACIDAD, KINDER_NINOS_POR_GRUPO,
+    AS_DISCIPLINAS, AS_SABADO, AS_CUPOS_TOTALES, AS_COSTO_SABADO,
+    CUMPLE_TOPE_SEMANA,
+    TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
+    kinder, afterSchool, afterSchoolHoy, cumpleanos, veranito,
+    consolidar, escenario, escenarioHoy, partida,
+  };
+})();
+</script>
+
+<script id="vista">
+/* ==========================================================================
+   VISTA. Navegacion entre secciones.
+   ========================================================================== */
+const SECCIONES = [
+  'Lo que vamos a construir',
+  'Donde estan hoy',
+  'Al 60%',
+  'Al 100%',
+  '2028',
+  'La inversion',
+];
+
+function irA(n){
+  document.querySelectorAll('section[data-seccion]').forEach(s => {
+    s.classList.toggle('activa', s.dataset.seccion === String(n));
+  });
+  document.querySelectorAll('#nav button').forEach(b => {
+    b.setAttribute('aria-current', b.dataset.ir === String(n) ? 'true' : 'false');
+  });
+  window.scrollTo({ top:0, behavior:'instant' });
+}
+
+(function montarNav(){
+  const nav = document.getElementById('nav');
+  SECCIONES.forEach((titulo, i) => {
+    const n = i + 1;
+    const b = document.createElement('button');
+    b.dataset.ir = String(n);
+    b.setAttribute('aria-current', n === 1 ? 'true' : 'false');
+    b.innerHTML = `<span class="indice">${n}</span>${titulo}`;
+    b.addEventListener('click', () => irA(n));
+    nav.appendChild(b);
+  });
+})();
+
+/* Flechas para recorrer sin apuntar al boton. En una reunion proyectada
+   Ricardo maneja esto desde el teclado, no desde el mouse. */
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea')) return;
+  const actual = Number(document.querySelector('section.activa').dataset.seccion);
+  if (e.key === 'ArrowRight' && actual < SECCIONES.length) irA(actual + 1);
+  if (e.key === 'ArrowLeft'  && actual > 1)                irA(actual - 1);
+});
+</script>
+
+</body>
+</html>
