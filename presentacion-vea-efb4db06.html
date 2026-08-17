@@ -127,6 +127,100 @@ section[data-seccion].activa{display:block}
 footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
   font-size:var(--menudo);color:var(--texto-secundario);display:flex;
   justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* ==========================================================================
+   TARJETA DE UNIDAD
+   Mismo tratamiento visual en las cuatro unidades, como pide la seccion 2:
+   lo que cambia entre ellas son las cifras, no la jerarquia.
+   ========================================================================== */
+.unidades{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+.unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:18px 20px 16px;display:flex;flex-direction:column}
+.unidad-cab{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.unidad-cab h3{font-size:20px;font-weight:700;letter-spacing:-.2px;color:var(--marca-verde-profundo)}
+
+/* La ocupacion se dice con forma ademas de con color, igual que los estados
+   del panel interno: proyectado y a distancia el color solo no basta. */
+.pastilla{font-size:var(--menudo);font-weight:600;border-radius:999px;
+  padding:3px 11px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pastilla .glifo{font-size:11px;line-height:1}
+.pastilla[data-nivel="alto"] {background:var(--estado-en-meta-suave); color:var(--estado-en-meta-fuerte)}
+.pastilla[data-nivel="medio"]{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
+.pastilla[data-nivel="bajo"] {background:var(--estado-riesgo-suave); color:var(--estado-riesgo-fuerte)}
+
+.cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.cifra-bloque{display:flex;flex-direction:column;gap:1px}
+.cifra-bloque .etiqueta{font-size:11px;font-weight:600;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--texto-secundario)}
+.cifra-bloque b{font-size:var(--cifra-2);font-weight:700;letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.cifra-bloque.destacada b{color:var(--marca-verde-profundo)}
+.cifra-apoyo{font-size:var(--cifra-3);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Aviso de tope real. Kinder por encima de 80 no cabe en la capacidad
+   instalada y hay que decirlo, porque habilitar salones es inversion
+   del cliente y no de Actio. */
+.aviso{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte);
+  border-left:3px solid var(--estado-atencion);border-radius:0 8px 8px 0;
+  padding:9px 13px;font-size:14px;font-weight:500;margin-bottom:12px}
+
+/* ==========================================================================
+   CONTROLES
+   Se manejan desde el computador, asi que van compactos. Lo que la sala lee
+   son las cifras de arriba, no estas etiquetas.
+   ========================================================================== */
+.controles{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;
+  border-top:1px solid var(--borde-suave);padding-top:13px;margin-top:auto}
+.control{display:flex;flex-direction:column;gap:3px;min-width:0}
+.control.ancho{grid-column:1 / -1}
+.control label{font-size:11px;font-weight:600;color:var(--texto-secundario);
+  display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.control label .valor{font-weight:700;color:var(--texto-principal);
+  font-variant-numeric:tabular-nums;font-size:13px}
+.control input[type="range"]{width:100%;accent-color:var(--marca-verde-profundo);height:18px;cursor:pointer}
+.control input[type="number"]{font-family:var(--font);font-size:14px;font-weight:600;
+  border:1px solid var(--borde);border-radius:7px;padding:5px 8px;width:100%;
+  background:var(--superficie-sutil);color:var(--texto-principal)}
+.control input[type="number"]:focus{outline:2px solid var(--marca-borde-suave);
+  outline-offset:-1px;background:var(--superficie)}
+
+/* ==========================================================================
+   CONSOLIDADO Y DELTAS
+   La cifra que lee toda la sala. Verde profundo de marca, no de estado: no
+   comunica que las cosas vayan bien, es la identidad del bloque.
+   ========================================================================== */
+.consolidado{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border-radius:16px;padding:24px 28px;margin-top:16px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:20px;align-items:end}
+.consolidado .etiqueta{font-size:12px;font-weight:600;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--texto-sobre-oscuro-2);display:block;margin-bottom:2px}
+.consolidado b{font-size:var(--cifra-1);font-weight:800;letter-spacing:-2.5px;
+  font-variant-numeric:tabular-nums;line-height:1.05;display:block}
+.consolidado .menor b{font-size:var(--cifra-2);letter-spacing:-1px}
+
+.delta{background:var(--marca-verde-medio);border-radius:14px;padding:20px 26px;margin-top:12px;
+  display:flex;align-items:baseline;gap:26px;flex-wrap:wrap;color:var(--texto-sobre-oscuro)}
+.delta .rotulo{font-size:15px;font-weight:500;color:var(--texto-sobre-oscuro-3)}
+.delta b{font-size:var(--cifra-1);font-weight:800;letter-spacing:-2.5px;
+  font-variant-numeric:tabular-nums;line-height:1.05}
+/* Positivo en verde de estado sobre el verde de marca. El signo + va
+   explicito: a tres metros el color solo no distingue signo. */
+.delta b[data-signo="mas"]  {color:#7BE8A8}
+.delta b[data-signo="menos"]{color:#FFB3AD}
+.delta .anual{font-size:var(--cifra-3);font-weight:600;color:var(--texto-sobre-oscuro-3);
+  font-variant-numeric:tabular-nums}
+
+.barra-acciones{display:flex;justify-content:flex-end;margin:14px 0 0}
+.barra-acciones button{font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;
+  background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
+  border-radius:999px;padding:8px 18px}
+.barra-acciones button:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+
+/* Hallazgo: el dato que Ricardo dice en voz alta cuando el cliente ya vio
+   los numeros. Va despues de las cifras, nunca antes. */
+.hallazgo{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
+  border-radius:14px;padding:18px 22px;margin-top:14px;font-size:17px;line-height:1.5}
+.hallazgo strong{font-weight:700;color:var(--marca-verde-profundo)}
 </style>
 </head>
 <body>
@@ -474,6 +568,72 @@ const MOTOR = (function(){
 })();
 </script>
 
+<script id="formato">
+/* ==========================================================================
+   FORMATO
+   La spec fija como se ven las cifras, no solo cuanto valen. Vive en su
+   propio bloque porque pruebas-motor.js tambien lo extrae y lo prueba:
+   un delta sin el signo + o un evento con decimales son errores tan
+   visibles en la reunion como un margen mal calculado.
+   ========================================================================== */
+const FORMATO = (function(){
+
+  function miles(n){
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  /* Al peso. Nadie lee centavos proyectados a tres metros. */
+  function dinero(n){
+    return (n < 0 ? '-' : '') + '$' + miles(Math.round(Math.abs(n)));
+  }
+
+  /* Signo explicito: a tres metros el color solo no distingue un delta
+     positivo de uno negativo. */
+  function delta(n){
+    const r = Math.round(n);
+    if (r === 0) return '$0';
+    return (r > 0 ? '+' : '-') + '$' + miles(Math.abs(r));
+  }
+
+  /* Los precios si conservan centavos cuando los tienen: $169,06 es una
+     tarifa real y redondearla haria que el cliente no reconozca la suya.
+     Pero $200 no se escribe $200,00. */
+  function precio(n){
+    const centavos = Math.round(Math.abs(n) * 100) % 100;
+    const s = (n < 0 ? '-' : '') + '$' + miles(Math.floor(Math.abs(n)));
+    return centavos ? s + ',' + String(centavos).padStart(2, '0') : s;
+  }
+
+  function pct(x){ return Math.round(x * 100) + '%'; }
+  function entero(n){ return String(Math.round(n)); }
+
+  /* Suma lo que se VE, no lo que vale. Cada parte se redondea antes de
+     sumarse, de modo que el total del consolidado coincide con la columna
+     que el cliente puede sumar de cabeza. Sumar exacto y redondear al
+     final da un peso de diferencia y ese peso se nota. */
+  function sumaVisible(partes){
+    return partes.reduce((s, x) => s + Math.round(x), 0);
+  }
+
+  /* El anual se deriva del mensual ya redondeado por la misma razon: el
+     cliente multiplica por 12 la cifra que tiene delante. */
+  function deltaAnual(mensual){
+    return delta(Math.round(mensual) * 12);
+  }
+
+  /* Nivel de ocupacion. Se usa para el color y para el glifo, de modo que
+     el estado sobreviva a un proyector que lava los colores. */
+  function nivel(x){
+    if (x >= 0.70) return 'alto';
+    if (x >= 0.40) return 'medio';
+    return 'bajo';
+  }
+  const GLIFO = { alto:'●', medio:'◐', bajo:'○' };
+
+  return { miles, dinero, delta, precio, pct, entero, sumaVisible, deltaAnual, nivel, GLIFO };
+})();
+</script>
+
 <script id="vista">
 /* ==========================================================================
    VISTA. Navegacion entre secciones.
@@ -511,13 +671,500 @@ function irA(n){
 })();
 
 /* Flechas para recorrer sin apuntar al boton. En una reunion proyectada
-   Ricardo maneja esto desde el teclado, no desde el mouse. */
+   Ricardo maneja esto desde el teclado, no desde el mouse. Se ignoran
+   mientras el foco esta en un control: ahi las flechas mueven el valor. */
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea')) return;
   const actual = Number(document.querySelector('section.activa').dataset.seccion);
   if (e.key === 'ArrowRight' && actual < SECCIONES.length) irA(actual + 1);
   if (e.key === 'ArrowLeft'  && actual > 1)                irA(actual - 1);
 });
+
+/* ==========================================================================
+   SIMULADOR
+
+   Cada seccion tiene su propio estado. Si compartieran uno, mover Kinder a
+   60 niños en la seccion 3 dejaria la seccion 4 sin su escenario al 100% y
+   Ricardo perderia el hilo al saltar entre secciones.
+   ========================================================================== */
+const F = FORMATO;
+const MARGEN_HOY = MOTOR.escenarioHoy().margen;
+const SIMULADORES = [];
+
+const NOTA_COSTO =
+  'El costo cubre mano de obra directa unicamente. No incluye arriendo, ' +
+  'servicios, administracion ni inversion publicitaria, asi que el margen ' +
+  'no es utilidad neta.';
+
+function nodo(tag, clase, texto){
+  const n = document.createElement(tag);
+  if (clase) n.className = clase;
+  if (texto !== undefined) n.textContent = texto;
+  return n;
+}
+
+/* Un control devuelve su nodo y como restaurarlo. Los deslizadores llevan
+   el valor escrito al lado de la etiqueta; los campos numericos ya lo
+   muestran dentro. */
+function control(cfg){
+  const wrap = nodo('div', 'control' + (cfg.ancho ? ' ancho' : ''));
+  const lab = nodo('label');
+  lab.appendChild(nodo('span', null, cfg.etiqueta));
+  const val = nodo('span', 'valor');
+  lab.appendChild(val);
+
+  const inp = document.createElement('input');
+  inp.type = cfg.tipo;
+  inp.min = cfg.min; inp.max = cfg.max; inp.step = cfg.paso;
+  inp.value = cfg.valor;
+
+  function refrescarEtiqueta(){
+    val.textContent = cfg.tipo === 'range' ? cfg.formato(Number(inp.value)) : '';
+  }
+  refrescarEtiqueta();
+
+  inp.addEventListener('input', () => {
+    const v = Number(inp.value);
+    if (!Number.isFinite(v)) return;   // campo vaciado a media escritura
+    cfg.alCambiar(v);
+    refrescarEtiqueta();
+  });
+
+  wrap.append(lab, inp);
+  return { wrap, restaurar(v){ inp.value = v; refrescarEtiqueta(); } };
+}
+
+function pastilla(texto, fraccion){
+  const nivel = F.nivel(fraccion);
+  const p = nodo('span', 'pastilla');
+  p.dataset.nivel = nivel;
+  p.appendChild(nodo('span', 'glifo', F.GLIFO[nivel]));
+  p.appendChild(nodo('span', null, texto));
+  return p;
+}
+
+/* Devuelve la tarjeta y los nodos que hay que repintar en cada cambio.
+   Se construye una sola vez: repintar solo cambia texto, asi el foco no
+   salta del control que Ricardo esta moviendo. */
+function tarjeta(titulo){
+  const art = nodo('article', 'unidad');
+  const cab = nodo('div', 'unidad-cab');
+  cab.appendChild(nodo('h3', null, titulo));
+  art.appendChild(cab);
+
+  const apoyo = nodo('div', 'cifra-apoyo');
+  art.appendChild(apoyo);
+
+  const cifras = nodo('div', 'cifras');
+  const refs = {};
+  for (const [clave, etiqueta] of [['facturacion','Facturacion'],['costo','Costo'],['margen','Margen']]){
+    const bloque = nodo('div', 'cifra-bloque' + (clave === 'margen' ? ' destacada' : ''));
+    bloque.appendChild(nodo('span', 'etiqueta', etiqueta));
+    refs[clave] = nodo('b', null, '');
+    bloque.appendChild(refs[clave]);
+    cifras.appendChild(bloque);
+  }
+  art.appendChild(cifras);
+
+  const aviso = nodo('div', 'aviso');
+  aviso.style.display = 'none';
+  art.appendChild(aviso);
+
+  const controles = nodo('div', 'controles');
+  art.appendChild(controles);
+
+  const nota = nodo('p', 'nota-costo', NOTA_COSTO);
+  art.appendChild(nota);
+
+  return { art, cab, apoyo, refs, aviso, controles };
+}
+
+/* La pastilla se reemplaza entera en cada repintado porque su color y su
+   glifo dependen del nivel. Es un nodo por tarjeta, no una lista: no hay
+   coste en rehacerlo y evita tener que sincronizar tres atributos. */
+function ponPastilla(t, texto, fraccion){
+  if (t.pastillaNodo) t.pastillaNodo.remove();
+  t.pastillaNodo = pastilla(texto, fraccion);
+  t.cab.appendChild(t.pastillaNodo);
+}
+
+function ponCifras(refs, r){
+  refs.facturacion.textContent = F.dinero(r.facturacion);
+  refs.costo.textContent = F.dinero(r.costo);
+  refs.margen.textContent = F.dinero(r.margen);
+}
+
+/* --------------------------------------------------------------------------
+   Simulador de las tres unidades mensuales mas el consolidado.
+   -------------------------------------------------------------------------- */
+function crearSimulador(contenedor, ocupacionInicial){
+  const inicial = () => {
+    const p = MOTOR.partida();
+    p.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * ocupacionInicial);
+    p.afterSchool.ocupacion = ocupacionInicial;
+    p.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * ocupacionInicial;
+    return p;
+  };
+  let est = inicial();
+  const restauradores = [];
+  const unidades = nodo('div', 'unidades');
+
+  /* Cada control se registra junto con la forma de releer su valor de
+     partida. Emparejarlos por el orden del DOM funcionaria hoy y se
+     rompería en silencio al insertar un control nuevo en medio. */
+  function reg(cfg, lee){
+    const c = control(cfg);
+    restauradores.push(p => c.restaurar(lee(p)));
+    return c.wrap;
+  }
+
+  /* ---------- Kinder ---------- */
+  const tK = tarjeta('Kinder');
+  tK.controles.append(
+    reg({ etiqueta:'Niños', tipo:'range', min:29, max:100, paso:1, valor:est.kinder.ninos,
+          formato:v => v + ' niños', ancho:true,
+          alCambiar:v => { est.kinder.ninos = v; pintar(); } },
+        p => p.kinder.ninos),
+    reg({ etiqueta:'% plan 4,5 h', tipo:'range', min:0, max:100, paso:1, valor:est.kinder.pct45*100,
+          formato:v => v + '%', ancho:true,
+          alCambiar:v => { est.kinder.pct45 = v/100; pintar(); } },
+        p => p.kinder.pct45*100),
+    reg({ etiqueta:'Precio plan 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio45,
+          alCambiar:v => { est.kinder.precio45 = v; pintar(); } },
+        p => p.kinder.precio45),
+    reg({ etiqueta:'Precio plan 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio8,
+          alCambiar:v => { est.kinder.precio8 = v; pintar(); } },
+        p => p.kinder.precio8),
+    reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.kinder.costoGrupo,
+          ancho:true, alCambiar:v => { est.kinder.costoGrupo = v; pintar(); } },
+        p => p.kinder.costoGrupo),
+  );
+  unidades.appendChild(tK.art);
+
+  /* ---------- After School ---------- */
+  const tA = tarjeta('After School');
+  tA.controles.append(
+    reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
+          formato:v => v + '%', ancho:true,
+          alCambiar:v => { est.afterSchool.ocupacion = v/100; pintar(); } },
+        p => p.afterSchool.ocupacion*100),
+    reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
+          alCambiar:v => { est.afterSchool.precio2v = v; pintar(); } },
+        p => p.afterSchool.precio2v),
+    reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
+          alCambiar:v => { est.afterSchool.precioTelas = v; pintar(); } },
+        p => p.afterSchool.precioTelas),
+    reg({ etiqueta:'Precio 1 vez/sem · sabado y Baby & Me', tipo:'number', min:0, max:900, paso:0.01,
+          valor:est.afterSchool.precio1v, ancho:true,
+          alCambiar:v => { est.afterSchool.precio1v = v; pintar(); } },
+        p => p.afterSchool.precio1v),
+  );
+  unidades.appendChild(tA.art);
+
+  /* ---------- Cumpleaños ---------- */
+  const tC = tarjeta('Cumpleaños');
+  tC.controles.append(
+    reg({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
+          valor:est.cumpleanos.eventosSemana, formato:v => v.toFixed(1).replace('.', ',') + ' por semana',
+          ancho:true, alCambiar:v => { est.cumpleanos.eventosSemana = v; pintar(); } },
+        p => p.cumpleanos.eventosSemana),
+    reg({ etiqueta:'Precio del paquete', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.precio,
+          alCambiar:v => { est.cumpleanos.precio = v; pintar(); } },
+        p => p.cumpleanos.precio),
+    reg({ etiqueta:'Costo por evento', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.costoEvento,
+          alCambiar:v => { est.cumpleanos.costoEvento = v; pintar(); } },
+        p => p.cumpleanos.costoEvento),
+  );
+  unidades.appendChild(tC.art);
+
+  contenedor.appendChild(unidades);
+
+  /* ---------- Consolidado ---------- */
+  const cons = nodo('div', 'consolidado');
+  const refsCons = {};
+  for (const [clave, etiqueta] of [['facturacion','Facturacion / mes'],['costo','Costo / mes'],['margen','Margen / mes']]){
+    const b = nodo('div', clave === 'margen' ? '' : 'menor');
+    b.appendChild(nodo('span', 'etiqueta', etiqueta));
+    refsCons[clave] = nodo('b');
+    b.appendChild(refsCons[clave]);
+    cons.appendChild(b);
+  }
+  contenedor.appendChild(cons);
+
+  const delta = nodo('div', 'delta');
+  delta.appendChild(nodo('span', 'rotulo', 'Margen contra hoy'));
+  const refDelta = nodo('b');
+  const refDeltaAnual = nodo('span', 'anual');
+  delta.append(refDelta, refDeltaAnual);
+  contenedor.appendChild(delta);
+
+  function pintar(){
+    const k = MOTOR.kinder(est.kinder);
+    const a = MOTOR.afterSchool(est.afterSchool);
+    const c = MOTOR.cumpleanos(est.cumpleanos);
+    /* Consolidado sobre las cifras ya redondeadas: la columna que se ve
+       tiene que sumar el total que se ve. */
+    const total = {
+      facturacion: F.sumaVisible([k.facturacion, a.facturacion, c.facturacion]),
+      costo:       F.sumaVisible([k.costo, a.costo, c.costo]),
+      margen:      F.sumaVisible([k.margen, a.margen, c.margen]),
+    };
+
+    ponCifras(tK.refs, k);
+    ponCifras(tA.refs, a);
+    ponCifras(tC.refs, c);
+
+    ponPastilla(tK, `${k.ninos} de ${MOTOR.KINDER_CAPACIDAD} niños · ${F.pct(k.ninos/MOTOR.KINDER_CAPACIDAD)}`,
+                k.ninos / MOTOR.KINDER_CAPACIDAD);
+    tK.apoyo.textContent = `${k.grupos} grupos · ticket ${F.precio(k.ticket)}`;
+    tK.aviso.style.display = k.excedeCapacidad ? '' : 'none';
+    tK.aviso.textContent = `${k.ninos} niños no caben en la capacidad actual: requiere habilitar salones adicionales.`;
+
+    const fracA = a.alumnos / MOTOR.AS_CUPOS_TOTALES;
+    ponPastilla(tA, `${a.alumnos} de ${MOTOR.AS_CUPOS_TOTALES} · ${F.pct(fracA)}`, fracA);
+    tA.apoyo.textContent = 'El costo depende de las horas dictadas, no de cuantos alumnos hay.';
+
+    const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
+    const fracC = c.eventos / tope;
+    ponPastilla(tC, `${c.eventos} de ${tope} eventos · ${F.pct(fracC)}`, fracC);
+    tC.apoyo.textContent = `Tope real: ${MOTOR.CUMPLE_TOPE_SEMANA} por semana.`;
+
+    refsCons.facturacion.textContent = F.dinero(total.facturacion);
+    refsCons.costo.textContent = F.dinero(total.costo);
+    refsCons.margen.textContent = F.dinero(total.margen);
+
+    /* El margen de hoy tambien redondeado: asi el delta es entero y el
+       anual es exactamente doce veces lo que se ve. */
+    const d = total.margen - Math.round(MARGEN_HOY);
+    refDelta.textContent = F.delta(d);
+    refDelta.dataset.signo = d >= 0 ? 'mas' : 'menos';
+    refDeltaAnual.textContent = `${F.deltaAnual(d)} al año`;
+  }
+
+  function reiniciar(){
+    est = inicial();
+    restauradores.forEach(r => r(est));
+    pintar();
+  }
+
+  pintar();
+  const api = { pintar, reiniciar };
+  SIMULADORES.push(api);
+  return api;
+}
+
+function reiniciarTodo(){ SIMULADORES.forEach(s => s.reiniciar()); }
+
+/* --------------------------------------------------------------------------
+   VERANITO
+   Va aparte del consolidado mensual: es estacional. Los controles arrancan
+   en la ocupacion real de cada temporada, no al 100%, porque la brecha
+   entre mayo-agosto y enero-marzo es justamente el hallazgo. Subir la de
+   enero-marzo con el deslizador muestra en vivo lo que vale cerrarla.
+   -------------------------------------------------------------------------- */
+function crearVeranito(contenedor){
+  const TEMPORADAS = [
+    { clave:'mayAgo', titulo:'Veranito · mayo a agosto' },
+    { clave:'eneMar', titulo:'Veranito · enero a marzo' },
+  ];
+  const inicial = () => {
+    const p = MOTOR.partida();
+    const base = t => Object.assign({}, p.veranito, { ocupacion: p.veranito[t.clave].ocupacion });
+    return { mayAgo: base(TEMPORADAS[0]), eneMar: base(TEMPORADAS[1]) };
+  };
+  let est = inicial();
+  const restauradores = [];
+  const unidades = nodo('div', 'unidades');
+  const tarjetas = {};
+
+  for (const t of TEMPORADAS){
+    const card = tarjeta(t.titulo);
+    tarjetas[t.clave] = card;
+    const reg = (cfg, lee) => {
+      const c = control(cfg);
+      restauradores.push(p => c.restaurar(lee(p)));
+      return c.wrap;
+    };
+    const e = () => est[t.clave];
+    card.controles.append(
+      reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:e().ocupacion*100,
+            formato:v => v + '%', ancho:true,
+            alCambiar:v => { e().ocupacion = v/100; pintar(); } },
+          p => p[t.clave].ocupacion*100),
+      reg({ etiqueta:'Semanas', tipo:'range', min:1, max:16, paso:1, valor:e().semanas,
+            formato:v => v + ' semanas',
+            alCambiar:v => { e().semanas = v; pintar(); } },
+          p => p[t.clave].semanas),
+      reg({ etiqueta:'Cupos por semana', tipo:'range', min:0, max:50, paso:1, valor:e().cuposSemana,
+            formato:v => v + ' cupos',
+            alCambiar:v => { e().cuposSemana = v; pintar(); } },
+          p => p[t.clave].cuposSemana),
+      reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:900, paso:1, valor:e().precio45,
+            alCambiar:v => { e().precio45 = v; pintar(); } },
+          p => p[t.clave].precio45),
+      reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:900, paso:1, valor:e().precio8,
+            alCambiar:v => { e().precio8 = v; pintar(); } },
+          p => p[t.clave].precio8),
+      reg({ etiqueta:'% plan 4,5 h', tipo:'range', min:0, max:100, paso:1, valor:e().pct45*100,
+            formato:v => v + '%', ancho:true,
+            alCambiar:v => { e().pct45 = v/100; pintar(); } },
+          p => p[t.clave].pct45*100),
+    );
+    unidades.appendChild(card.art);
+  }
+  contenedor.appendChild(unidades);
+
+  const cons = nodo('div', 'consolidado');
+  const refs = {};
+  for (const [clave, etiqueta] of [
+      ['anual','Facturacion anual'],
+      ['real2026','2026 real'],
+      ['alCien','Las dos temporadas al 100%']]){
+    const b = nodo('div', clave === 'anual' ? '' : 'menor');
+    b.appendChild(nodo('span', 'etiqueta', etiqueta));
+    refs[clave] = nodo('b');
+    b.appendChild(refs[clave]);
+    cons.appendChild(b);
+  }
+  contenedor.appendChild(cons);
+
+  function pintar(){
+    let anual = 0;
+    for (const t of TEMPORADAS){
+      const r = MOTOR.veranito(est[t.clave]);
+      const card = tarjetas[t.clave];
+      ponCifras(card.refs, r);
+      ponPastilla(card, `${r.cupos} de ${r.cuposTemporada} cupos · ${F.pct(est[t.clave].ocupacion)}`,
+                  est[t.clave].ocupacion);
+      card.apoyo.textContent = `Ticket real ${F.precio(r.ticket)} · costo operativo ${F.pct(MOTOR.VERANITO_COSTO_OPERATIVO)} del ingreso`;
+      anual += r.facturacion;
+    }
+    refs.anual.textContent = F.dinero(anual);
+    refs.real2026.textContent = F.dinero(MOTOR.REAL.veranito.anual2026);
+    /* Fijo al 100% con los precios y la capacidad que haya en los controles:
+       si Ricardo sube el precio esta cifra lo refleja, pero mover la
+       ocupacion no la toca, porque la afirmacion es "al 100%". */
+    const alCien = TEMPORADAS.reduce((s, t) =>
+      s + MOTOR.veranito(Object.assign({}, est[t.clave], { ocupacion:1 })).facturacion, 0);
+    refs.alCien.textContent = F.dinero(alCien);
+  }
+
+  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
+  pintar();
+  SIMULADORES.push({ pintar, reiniciar });
+}
+
+/* --------------------------------------------------------------------------
+   KINDER 2028
+   Una sola unidad: la seccion es sobre el techo de Kinder, no sobre el
+   consolidado. El aviso de capacidad sale de entrada porque 100 niños ya
+   no caben, y ese es el punto de la seccion.
+   -------------------------------------------------------------------------- */
+function crearKinder2028(contenedor){
+  const inicial = () => {
+    const p = MOTOR.partida();
+    return Object.assign(p.kinder, { ninos:100, precio45:687, precio8:886 });
+  };
+  let est = inicial();
+  const restauradores = [];
+  const unidades = nodo('div', 'unidades');
+  const card = tarjeta('Kinder 2028');
+  const reg = (cfg, lee) => {
+    const c = control(cfg);
+    restauradores.push(p => c.restaurar(lee(p)));
+    return c.wrap;
+  };
+  card.controles.append(
+    reg({ etiqueta:'Niños', tipo:'range', min:29, max:120, paso:1, valor:est.ninos,
+          formato:v => v + ' niños', ancho:true,
+          alCambiar:v => { est.ninos = v; pintar(); } }, p => p.ninos),
+    reg({ etiqueta:'Precio plan 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.precio45,
+          alCambiar:v => { est.precio45 = v; pintar(); } }, p => p.precio45),
+    reg({ etiqueta:'Precio plan 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.precio8,
+          alCambiar:v => { est.precio8 = v; pintar(); } }, p => p.precio8),
+    reg({ etiqueta:'% plan 4,5 h', tipo:'range', min:0, max:100, paso:1, valor:est.pct45*100,
+          formato:v => v + '%', ancho:true,
+          alCambiar:v => { est.pct45 = v/100; pintar(); } }, p => p.pct45*100),
+    reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.costoGrupo,
+          ancho:true, alCambiar:v => { est.costoGrupo = v; pintar(); } }, p => p.costoGrupo),
+  );
+  unidades.appendChild(card.art);
+  contenedor.appendChild(unidades);
+
+  const cons = nodo('div', 'consolidado');
+  const refs = {};
+  for (const [clave, etiqueta] of [
+      ['anual','Facturacion anual de Kinder'],
+      ['margenMes','Margen / mes'],
+      ['grupos','Grupos necesarios']]){
+    const b = nodo('div', clave === 'anual' ? '' : 'menor');
+    b.appendChild(nodo('span', 'etiqueta', etiqueta));
+    refs[clave] = nodo('b');
+    b.appendChild(refs[clave]);
+    cons.appendChild(b);
+  }
+  contenedor.appendChild(cons);
+
+  function pintar(){
+    const k = MOTOR.kinder(est);
+    ponCifras(card.refs, k);
+    ponPastilla(card, `${k.ninos} niños · ${k.grupos} grupos`, k.excedeCapacidad ? 1 : k.ninos/MOTOR.KINDER_CAPACIDAD);
+    card.apoyo.textContent = `Ticket ${F.precio(k.ticket)}`;
+    card.aviso.style.display = k.excedeCapacidad ? '' : 'none';
+    card.aviso.textContent =
+      `${k.ninos} niños no caben en la capacidad actual de ${MOTOR.KINDER_CAPACIDAD}: ` +
+      'requiere habilitar salones adicionales, y esa es inversion del cliente.';
+    refs.anual.textContent = F.dinero(k.facturacion * 12);
+    refs.margenMes.textContent = F.dinero(k.margen);
+    refs.grupos.textContent = String(k.grupos);
+  }
+
+  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
+  pintar();
+  SIMULADORES.push({ pintar, reiniciar });
+}
+
+function hallazgo(contenedor, html){
+  const h = nodo('div', 'hallazgo');
+  h.innerHTML = html;
+  contenedor.appendChild(h);
+}
+
+/* Va al cierre de cada seccion con controles, no dentro del simulador:
+   la del 100% tiene dos bloques y el boton debe quedar debajo de los dos,
+   no partiendo la seccion por la mitad. Reinicia las tres secciones desde
+   cualquiera de ellas. */
+function barraReinicio(contenedor){
+  const barra = nodo('div', 'barra-acciones');
+  const btn = nodo('button', null, 'Reiniciar todo');
+  btn.addEventListener('click', reiniciarTodo);
+  barra.appendChild(btn);
+  contenedor.appendChild(barra);
+}
+
+/* ==========================================================================
+   MONTAJE
+   ========================================================================== */
+crearSimulador(document.getElementById('sim-60'), 0.6);
+barraReinicio(document.getElementById('sim-60'));
+
+crearSimulador(document.getElementById('sim-100'), 1);
+hallazgo(document.getElementById('sim-100'),
+  'En After School, el costo entre 133 y 220 alumnos <strong>no sube ni un dolar</strong>. ' +
+  'El costo depende de las horas de clase dictadas, no de cuantos niños hay en el aula. ' +
+  'Cada alumno adicional en una clase que ya se dicta es margen casi puro.');
+crearVeranito(document.getElementById('sim-100'));
+hallazgo(document.getElementById('sim-100'),
+  'La temporada de enero-marzo rinde <strong>menos de la mitad</strong> que la de mayo-agosto, ' +
+  'con la misma infraestructura y el mismo producto. Cerrar esa brecha vale unos $60.000 anuales.');
+barraReinicio(document.getElementById('sim-100'));
+
+crearKinder2028(document.getElementById('sim-2028'));
+hallazgo(document.getElementById('sim-2028'),
+  'Para 2028 el cuello ya no va a ser la demanda, <strong>va a ser el espacio</strong>. ' +
+  'Y el aumento de precio se sostiene porque para entonces hay lista de espera, igual que en ' +
+  'Veranito, donde este año hubo que dejar entrar niños de mas para atender a padres que no cabian.');
+barraReinicio(document.getElementById('sim-2028'));
 </script>
 
 </body>

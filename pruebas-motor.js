@@ -23,13 +23,17 @@ const path = require('path');
    que seguimiento-a7f39c21.html. Si se renombra el HTML, se cambia aqui. */
 const ARCHIVO = path.join(__dirname, 'presentacion-vea-efb4db06.html');
 
-function cargarMotor() {
+function cargarBloques(ids) {
   const html = fs.readFileSync(ARCHIVO, 'utf8');
-  const m = html.match(/<script id="motor">([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('No se encontro el bloque <script id="motor"> en ' + ARCHIVO);
+  const cuerpos = ids.map(id => {
+    const m = html.match(new RegExp('<script id="' + id + '">([\\s\\S]*?)<\\/script>'));
+    if (!m) throw new Error('No se encontro el bloque <script id="' + id + '"> en ' + ARCHIVO);
+    return m[1];
+  });
+  const exportar = ids.map(id => 'exports.' + id.toUpperCase() + ' = ' + id.toUpperCase() + ';').join('\n');
   const sandbox = {};
-  new Function('exports', m[1] + '\nexports.MOTOR = MOTOR;')(sandbox);
-  return sandbox.MOTOR;
+  new Function('exports', cuerpos.join('\n') + '\n' + exportar)(sandbox);
+  return sandbox;
 }
 
 /* --------------------------------------------------------------------------
@@ -52,7 +56,7 @@ function esIgual(real, esperado, titulo) {
   console.log(`${bien ? '  ok  ' : ' FALLA'} ${titulo.padEnd(52)} ${String(real).padStart(11)}   esperado ${esperado}`);
 }
 
-const MOTOR = cargarMotor();
+const { MOTOR, FORMATO } = cargarBloques(['motor', 'formato']);
 
 /* ==========================================================================
    KINDER
@@ -203,6 +207,86 @@ ok(p.veranito.eneMar.ocupacion, 0.38, 'partida Veranito ene-mar: ocupacion', 0.0
 const p2 = MOTOR.partida();
 p2.kinder.ninos = 999;
 ok(MOTOR.partida().kinder.ninos, 29, 'partida() devuelve copia nueva cada vez', 0);
+
+/* ==========================================================================
+   FORMATO
+   La spec fija como se ven las cifras, no solo cuanto valen: enteros donde
+   el cliente verifica de cabeza, signo + explicito en los deltas, y
+   decimales solo donde importan.
+   ========================================================================== */
+console.log('\nFORMATO');
+
+esIgual(FORMATO.dinero(31041.6), '$31.042', 'dinero redondea al peso');
+esIgual(FORMATO.dinero(92963.28), '$92.963', 'dinero con separador de miles');
+esIgual(FORMATO.dinero(0), '$0', 'dinero en cero');
+esIgual(FORMATO.dinero(-1200), '-$1.200', 'dinero negativo lleva el signo antes');
+esIgual(FORMATO.dinero(896040), '$896.040', 'dinero en cifras de seis digitos');
+
+esIgual(FORMATO.delta(16539.87), '+$16.540', 'delta positivo lleva + explicito');
+esIgual(FORMATO.delta(44376.79), '+$44.377', 'delta positivo grande');
+esIgual(FORMATO.delta(-2300), '-$2.300', 'delta negativo lleva -');
+esIgual(FORMATO.delta(0), '$0', 'delta en cero no lleva signo');
+
+esIgual(FORMATO.precio(169.06), '$169,06', 'precio conserva los centavos');
+esIgual(FORMATO.precio(111.28), '$111,28', 'precio con centavos');
+esIgual(FORMATO.precio(200), '$200', 'precio redondo sin centavos de relleno');
+esIgual(FORMATO.precio(587), '$587', 'precio de Kinder');
+
+esIgual(FORMATO.pct(0.6), '60%', 'porcentaje sin decimales');
+esIgual(FORMATO.pct(0.3636), '36%', 'porcentaje redondea');
+esIgual(FORMATO.pct(0.84), '84%', 'porcentaje de Veranito');
+
+esIgual(FORMATO.entero(10.392), '10', 'entero para los eventos de Cumpleanos');
+esIgual(FORMATO.entero(17.32), '17', 'entero al tope de Cumpleanos');
+
+/* Lo que esta en pantalla tiene que sumar. Si el consolidado se calcula
+   exacto y se redondea al final, la columna no cuadra con su total y el
+   cliente lo nota sumando de cabeza, que es exactamente lo que la spec
+   quiere que pueda hacer. */
+console.log('\nCUADRE VISIBLE');
+
+const v60 = MOTOR.escenario(0.6), v100 = MOTOR.escenario(1);
+
+esIgual(FORMATO.dinero(FORMATO.sumaVisible(
+  [v60.kinder.facturacion, v60.afterSchool.facturacion, v60.cumpleanos.facturacion])),
+  '$55.823', 'al 60%: el consolidado suma lo que se ve');
+esIgual(FORMATO.dinero(FORMATO.sumaVisible(
+  [v60.kinder.costo, v60.afterSchool.costo, v60.cumpleanos.costo])),
+  '$22.668', 'al 60%: costo consolidado visible');
+esIgual(FORMATO.dinero(FORMATO.sumaVisible(
+  [v60.kinder.margen, v60.afterSchool.margen, v60.cumpleanos.margen])),
+  '$33.155', 'al 60%: margen consolidado visible');
+
+esIgual(FORMATO.dinero(FORMATO.sumaVisible(
+  [v100.kinder.facturacion, v100.afterSchool.facturacion, v100.cumpleanos.facturacion])),
+  '$92.963', 'al 100%: el consolidado suma lo que se ve');
+esIgual(FORMATO.dinero(FORMATO.sumaVisible(
+  [v100.kinder.margen, v100.afterSchool.margen, v100.cumpleanos.margen])),
+  '$60.992', 'al 100%: margen consolidado visible');
+
+/* El anual sale del mensual ya redondeado: el cliente multiplica por 12 lo
+   que ve, no la cifra exacta que no ve. */
+esIgual(FORMATO.deltaAnual(16540), '+$198.480', 'delta anual al 60%');
+esIgual(FORMATO.deltaAnual(44377), '+$532.524', 'delta anual al 100%');
+esIgual(FORMATO.deltaAnual(-1000), '-$12.000', 'delta anual negativo');
+
+/* ==========================================================================
+   REGLAS QUE NO SE ROMPEN
+   Casos que ya funcionan y se fijan para que un cambio futuro no los pise.
+   ========================================================================== */
+console.log('\nREGLAS');
+
+// ParKour 6-14 tiene 41 alumnos en 40 cupos: dejaron entrar uno de mas.
+// El motor no debe recortarlo al cupo.
+const pk = MOTOR.afterSchoolHoy().detalle.find(d => d.nombre === 'ParKour 6-14');
+esIgual(pk.alumnos, 41, 'ParKour 6-14 conserva los 41 alumnos');
+esIgual(pk.cupos, 40, 'ParKour 6-14 declara 40 cupos');
+esIgual(pk.alumnos > pk.cupos, true, 'el motor no recorta al cupo');
+
+// Veranito no entra en el consolidado mensual: es estacional.
+esIgual(MOTOR.escenario(1).facturacion === MOTOR.escenario(1).kinder.facturacion
+      + MOTOR.escenario(1).afterSchool.facturacion
+      + MOTOR.escenario(1).cumpleanos.facturacion, true, 'el consolidado excluye Veranito');
 
 /* ========================================================================== */
 console.log(`\n${'-'.repeat(78)}`);
