@@ -290,6 +290,57 @@ esIgual(MOTOR.escenario(1).facturacion === MOTOR.escenario(1).kinder.facturacion
       + MOTOR.escenario(1).cumpleanos.facturacion, true, 'el consolidado excluye Veranito');
 
 /* ==========================================================================
+   PLAN DE PAGOS
+   Un cronograma de pagos que no suma el total es peor que no mostrarlo:
+   el cliente saca la calculadora en la reunion. Los montos que se muestran
+   tienen que cuadrar al peso, incluso cuando el resto no se divide exacto
+   entre las mensualidades.
+   ========================================================================== */
+console.log('\nPLAN DE PAGOS');
+
+const pl1 = MOTOR.plan({ total:96000, pctPrimero:0.5, meses:6, pctFinal:0 });
+ok(pl1.primero, 48000, 'primer pago del 50%', 0);
+ok(pl1.mensualidad, 8000, 'seis mensualidades de 8.000', 0);
+ok(pl1.final, 0, 'sin pago final', 0);
+esIgual(pl1.suma === 96000, true, 'los montos suman el total');
+esIgual(pl1.valido, true, 'plan valido');
+
+const pl2 = MOTOR.plan({ total:96000, pctPrimero:0.4, meses:5, pctFinal:0.1 });
+ok(pl2.primero, 38400, 'primer pago del 40%', 0);
+ok(pl2.final, 9600, 'pago final del 10%', 0);
+ok(pl2.mensualidad, 9600, 'cinco mensualidades de 9.600', 0);
+esIgual(pl2.suma === 96000, true, 'con pago final tambien suma el total');
+
+/* El caso que rompe cualquier cronograma escrito a mano: el resto no se
+   divide exacto. El ajuste va a la ultima cuota y se dice cual es. */
+// 70.000 entre 6 no da exacto: 11.666 y una ultima de 11.670.
+const pl3 = MOTOR.plan({ total:100000, pctPrimero:0.3, meses:6, pctFinal:0 });
+esIgual(pl3.suma === 100000, true, 'resto indivisible: sigue sumando el total');
+esIgual(pl3.ultimaDifiere, true, 'la ultima cuota absorbe el ajuste');
+ok(pl3.mensualidad, 11666, 'cuota regular', 0);
+ok(pl3.ultima, 11670, 'ultima cuota con el ajuste', 0);
+ok(pl3.mensualidad * (pl3.meses - 1) + pl3.ultima + pl3.primero, 100000, 'desglose completo', 0);
+esIgual(Number.isInteger(pl3.mensualidad) && Number.isInteger(pl3.ultima), true,
+        'las cuotas son enteras');
+
+// Y cuando si divide exacto, no se inventa una ultima distinta.
+const pl3b = MOTOR.plan({ total:100000, pctPrimero:0.3, meses:7, pctFinal:0 });
+esIgual(pl3b.ultimaDifiere, false, 'division exacta: todas las cuotas iguales');
+ok(pl3b.mensualidad, 10000, 'siete cuotas de 10.000', 0);
+
+const pl4 = MOTOR.plan({ total:96000, pctPrimero:1, meses:0, pctFinal:0 });
+ok(pl4.primero, 96000, 'pago unico', 0);
+ok(pl4.mensualidad, 0, 'sin mensualidades', 0);
+esIgual(pl4.valido, true, 'pago unico es valido');
+
+const pl5 = MOTOR.plan({ total:96000, pctPrimero:0.7, meses:3, pctFinal:0.5 });
+esIgual(pl5.valido, false, 'primer pago mas final por encima del total es invalido');
+
+const pl6 = MOTOR.plan({ total:96000, pctPrimero:0, meses:12, pctFinal:0 });
+ok(pl6.mensualidad, 8000, 'sin primer pago: doce cuotas de 8.000', 0);
+esIgual(pl6.suma === 96000, true, 'sin primer pago tambien cuadra');
+
+/* ==========================================================================
    ENTREGABLES
    El conteo por fase es una afirmacion de la presentacion: si alguien
    agrega o mueve uno en la hoja y lo transcribe mal aqui, el titulo de la
