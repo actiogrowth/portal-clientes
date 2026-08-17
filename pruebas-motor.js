@@ -1,5 +1,5 @@
 /* ============================================================================
-   Pruebas del motor de calculo de presentacion-vea.html
+   Pruebas del motor de calculo de presentacion-vea-efb4db06.html
 
    Se ejecuta con:  node pruebas-motor.js
 
@@ -18,7 +18,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const ARCHIVO = path.join(__dirname, 'presentacion-vea.html');
+/* El sufijo no es decorativo: Pages publica main, asi que esta direccion es
+   publica. El nombre no se deriva del portal que el cliente ya tiene, igual
+   que seguimiento-a7f39c21.html. Si se renombra el HTML, se cambia aqui. */
+const ARCHIVO = path.join(__dirname, 'presentacion-vea-efb4db06.html');
 
 function cargarMotor() {
   const html = fs.readFileSync(ARCHIVO, 'utf8');
