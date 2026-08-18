@@ -82,11 +82,11 @@ ok(k100.costo, 21600, 'al 100%: costo', 0);
 ok(k100.margen, 30136, 'al 100%: margen');
 
 const k2028 = MOTOR.kinder({ ninos: 100, precio45: 687, precio8: 886 });
-ok(k2028.facturacion, 74670, '2028 (100 ninos, precio +$100): facturacion', 0.01);
-esIgual(k2028.grupos, 10, '2028: grupos');
-ok(k2028.costo, 27000, '2028: costo', 0);
-ok(k2028.margen, 47670, '2028: margen', 0.01);
-ok(k2028.facturacion * 12, 896040, '2028: facturacion anual', 0.01);
+ok(k2028.facturacion, 74670, 'con 100 ninos y precio +$100: facturacion', 0.01);
+esIgual(k2028.grupos, 10, 'con 100 ninos: grupos');
+ok(k2028.costo, 27000, 'con 100 ninos: costo', 0);
+ok(k2028.margen, 47670, 'con 100 ninos: margen', 0.01);
+ok(k2028.facturacion * 12, 896040, 'con 100 ninos: facturacion anual', 0.01);
 
 // La regla que el cliente va a querer comprobar en vivo.
 const k30 = MOTOR.kinder({ ninos: 30 }), k31 = MOTOR.kinder({ ninos: 31 });
@@ -97,7 +97,7 @@ esIgual(k31.grupos, 4, 'a 31 ninos: 4 grupos');
 // Tope de capacidad instalada.
 esIgual(MOTOR.kinder({ ninos: 80 }).excedeCapacidad, false, 'a 80 ninos no excede capacidad');
 esIgual(MOTOR.kinder({ ninos: 81 }).excedeCapacidad, true, 'a 81 ninos excede capacidad');
-esIgual(MOTOR.kinder({ ninos: 100 }).excedeCapacidad, true, 'a 100 ninos (2028) excede capacidad');
+esIgual(MOTOR.kinder({ ninos: 100 }).excedeCapacidad, true, 'a 100 ninos excede capacidad');
 
 // La brecha entre lo real y lo calculado: tarifas viejas sin migrar.
 ok(kHoy.facturacion - MOTOR.REAL.kinder.facturacion, 1692, 'brecha tarifas sin migrar', 0.5);
@@ -107,29 +107,50 @@ ok(kHoy.facturacion - MOTOR.REAL.kinder.facturacion, 1692, 'brecha tarifas sin m
    ========================================================================== */
 console.log('\nAFTER SCHOOL');
 
-esIgual(MOTOR.AS_CUPOS_TOTALES, 220, 'cupos totales');
+/* Baby & Me sale de After School y pasa a ser unidad propia: 220 - 8 = 212.
+   Solo se le quitan los 8 cupos de entre semana; su franja del sabado sigue
+   dictandose dentro de After School y sigue costando. */
+esIgual(MOTOR.AS_CUPOS_TOTALES, 212, 'cupos totales sin Baby & Me entre semana');
 
 const as100 = MOTOR.afterSchool({ ocupacion: 1 });
-ok(as100.facturacion, 33577.28, 'al 100%: facturacion', 0.01);
-esIgual(as100.alumnos, 220, 'al 100%: alumnos');
-ok(as100.costo, 7447.60, 'al 100%: costo', 0.01);
-ok(as100.margen, 26130, 'al 100%: margen');
+ok(as100.facturacion, 32687.04, 'al 100%: facturacion', 0.01);
+esIgual(as100.alumnos, 212, 'al 100%: alumnos');
+ok(as100.costo, 7014.60, 'al 100%: costo (sin Baby & Me entre semana)', 0.01);
+ok(as100.margen, 25672.44, 'al 100%: margen', 0.01);
 
 const as60 = MOTOR.afterSchool({ ocupacion: 0.6 });
-ok(as60.facturacion, 20281, 'al 60%: facturacion');
-esIgual(as60.alumnos, 133, 'al 60%: alumnos (redondeo por disciplina)');
-ok(as60.costo, 7447.60, 'al 60%: costo', 0.01);
-ok(as60.margen, 12833, 'al 60%: margen');
+esIgual(as60.alumnos, 128, 'al 60%: alumnos (redondeo por disciplina)');
+ok(as60.costo, 7014.60, 'al 60%: costo', 0.01);
 
-// El hallazgo de la seccion 4: el costo no depende de cuantos ninos hay.
-ok(as100.costo - as60.costo, 0, 'de 133 a 220 alumnos el costo no cambia', 0);
+/* La regla que confirmo el equipo: al llenar los cupos que ya existen el
+   costo no se mueve, porque las clases ya se dictan. Es lo que sostiene el
+   hallazgo de la seccion 2 y lo que separa a After School de Kinder. */
+ok(as100.costo - as60.costo, 0, 'de 128 a 212 alumnos el costo no cambia', 0);
+ok(MOTOR.afterSchool({ ocupacion: 0.35 }).costo, 7014.60, 'ni siquiera al 35%', 0.01);
 
-// Hoy: precios actuales, alumnos reales, sabado sin dictar.
-const asHoy = MOTOR.afterSchoolHoy();
-ok(asHoy.facturacion, 9089, 'hoy: facturacion con precios actuales', 0.01);
-esIgual(asHoy.alumnos, 80, 'hoy: alumnos');
-ok(asHoy.costo, 5265.28, 'hoy: costo (sin Baby & Me ni sabado)', 0.01);
-ok(asHoy.costo, as100.costo - 433 - 1749.32, 'hoy: costo = total menos B&M y sabado', 0.01);
+/* ==========================================================================
+   BABY AND ME
+   Unidad propia desde la spec v2. Cero alumnos hoy: la tarjeta tiene que
+   decirlo sin disfrazarlo, y su potencial es el argumento.
+   ========================================================================== */
+console.log('\nBABY AND ME');
+
+esIgual(MOTOR.BABY_CUPOS, 8, 'ocho cupos');
+esIgual(MOTOR.BABY_ALUMNOS_HOY, 0, 'cero alumnos hoy');
+
+const b100 = MOTOR.baby({ ocupacion: 1 });
+ok(b100.facturacion, 776, 'al 100%: facturacion mensual', 0);
+ok(b100.facturacion * 12, 9312, 'al 100%: potencial anual', 0);
+ok(b100.costo, 433, 'al 100%: costo mensual (1 profesor, 4 h/sem)', 0.01);
+ok(b100.costo * 12, 5196, 'al 100%: costo anual', 0.5);
+esIgual(b100.alumnos, 8, 'al 100%: alumnos');
+
+/* Sin alumnos no se dicta, y lo que no se dicta no cuesta: la misma regla
+   que saca al sabado del costo de hoy. */
+const b0 = MOTOR.baby({ ocupacion: 0 });
+ok(b0.facturacion, 0, 'sin alumnos: no factura', 0);
+ok(b0.costo, 0, 'sin alumnos: no cuesta', 0);
+ok(b0.margen, 0, 'sin alumnos: margen cero', 0);
 
 /* ==========================================================================
    CUMPLEANOS
@@ -165,27 +186,84 @@ const vCaro = MOTOR.veranito({ ocupacion: 1, precio45: 200, precio8: 235 });
 esIgual(vCaro.facturacion > vTemp.facturacion, true, 'subir el precio de lista sube la facturacion');
 
 /* ==========================================================================
-   CONSOLIDADO Y DELTAS
+   CUADRO RESUMEN
+   El corazon de la reunion. 2025 y 2026 son datos cerrados y se comprueban
+   contra si mismos; 2027 se calcula con las reglas de las unidades.
    ========================================================================== */
-console.log('\nCONSOLIDADO');
+console.log('\nRESUMEN · 2025 Y 2026');
 
-const hoy = MOTOR.escenarioHoy();
-ok(hoy.margen, 16615, 'margen consolidado de hoy', 1);
-ok(hoy.facturacion, 30990, 'facturacion consolidada de hoy (cifras reales)', 1);
+const a25 = MOTOR.resumen(2025), a26 = MOTOR.resumen(2026);
 
-const e60 = MOTOR.escenario(0.6);
-ok(e60.facturacion, 55823, 'al 60%: facturacion consolidada');
-ok(e60.costo, 22668, 'al 60%: costo consolidado');
-ok(e60.margen, 33155, 'al 60%: margen consolidado');
-ok(e60.margen - hoy.margen, 16540, 'al 60%: delta de margen mensual');
-ok((e60.margen - hoy.margen) * 12, 198480, 'al 60%: delta de margen anual', 12);
+ok(a25.ingresos, 477150, '2025: ingresos', 0);
+ok(a25.manoDeObra, 120044, '2025: costo de mano de obra', 0);
+ok(a25.margenBruto, 357106, '2025: margen bruto', 0);
+ok(a25.margenBrutoPct * 100, 74.8, '2025: margen bruto %', 0.05);
+ok(a25.gastos, 295066, '2025: gastos operativos', 0);
+ok(a25.ebitda, 62040, '2025: EBITDA', 0);
+ok(a25.ebitdaPct * 100, 13.0, '2025: EBITDA %', 0.05);
 
-const e100 = MOTOR.escenario(1);
-ok(e100.facturacion, 92963, 'al 100%: facturacion consolidada');
-ok(e100.costo, 31972, 'al 100%: costo consolidado');
-ok(e100.margen, 60992, 'al 100%: margen consolidado');
-ok(e100.margen - hoy.margen, 44377, 'al 100%: delta de margen mensual');
-ok((e100.margen - hoy.margen) * 12, 532524, 'al 100%: delta de margen anual', 12);
+ok(a26.ingresos, 531459, '2026: ingresos', 0);
+ok(a26.manoDeObra, 107160, '2026: costo de mano de obra', 0);
+ok(a26.margenBruto, 424299, '2026: margen bruto', 0);
+ok(a26.margenBrutoPct * 100, 79.8, '2026: margen bruto %', 0.05);
+ok(a26.gastos, 300000, '2026: gastos operativos', 0);
+ok(a26.ebitda, 124299, '2026: EBITDA', 0);
+ok(a26.ebitdaPct * 100, 23.4, '2026: EBITDA %', 0.05);
+
+/* El desglose por unidad tiene que sumar el total del año, o el cuadro y el
+   detalle se contradicen delante del cliente. */
+const suma = u => u.reduce((s, x) => s + x, 0);
+ok(suma(MOTOR.UNIDADES_2025), 477150, '2025: el desglose por unidad suma el total', 1);
+ok(suma(MOTOR.UNIDADES_2026), 531459, '2026: el desglose por unidad suma el total', 1);
+ok(MOTOR.VERANITO_2026.eneMar + MOTOR.VERANITO_2026.mayAgo, 121421,
+   '2026: Veranito son sus dos temporadas reales', 0);
+
+console.log('\nRESUMEN · 2027');
+
+/* Otros ingresos: renglon fijo al nivel de 2026. No escala con la ocupacion
+   porque no depende de cuantos cupos se llenen. */
+ok(MOTOR.OTROS_INGRESOS, 10900, 'otros ingresos, fijos', 0);
+
+const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
+const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
+const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
+
+ok(p60.ingresos, 800309, 'al 60%: ingresos', 50);
+ok(p60.margenBrutoPct * 100, 63.0, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 204219, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 25.5, 'al 60%: EBITDA %', 0.15);
+
+ok(p80.ingresos, 1065148, 'al 80%: ingresos', 50);
+ok(p80.margenBrutoPct * 100, 64.6, 'al 80%: margen bruto %', 0.15);
+ok(p80.ebitda, 387974, 'al 80%: EBITDA', 50);
+
+ok(p100.ingresos, 1325750, 'al 100%: ingresos', 50);
+ok(p100.margenBrutoPct * 100, 68.0, 'al 100%: margen bruto %', 0.15);
+ok(p100.ebitda, 601959, 'al 100%: EBITDA', 50);
+
+/* Coherencia interna en cualquier punto del deslizador. */
+for (const o of [0.30, 0.45, 0.72, 0.91, 1.00]){
+  const p = MOTOR.resumen2027({ ocupacion: o, gastosMes: 25000 });
+  ok(p.ingresos - p.manoDeObra, p.margenBruto, `al ${Math.round(o*100)}%: margen bruto cuadra`, 0.5);
+  ok(p.margenBruto - p.gastos, p.ebitda, `al ${Math.round(o*100)}%: EBITDA cuadra`, 0.5);
+}
+
+/* Los gastos solo tocan 2027, y por doce. */
+const gastosAltos = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 30000 });
+ok(gastosAltos.gastos, 360000, 'los gastos mensuales se anualizan por doce', 0);
+ok(p60.ebitda - gastosAltos.ebitda, 60000, 'subir gastos $5.000/mes baja el EBITDA $60.000', 0.5);
+ok(gastosAltos.margenBruto, p60.margenBruto, 'los gastos no tocan el margen bruto', 0.5);
+ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
+ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
+
+/* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
+ok(p100.ingresos - p60.ingresos, 525441, 'la ocupacion mueve los ingresos', 100);
+esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
+
+/* El contraste que hay que poder explicar: el margen bruto cae respecto a
+   2026 pero el EBITDA sube. */
+esIgual(p60.margenBrutoPct < a26.margenBrutoPct, true, 'el margen bruto de 2027 baja contra 2026');
+esIgual(p60.ebitdaPct > a26.ebitdaPct, true, 'y aun asi el EBITDA sube');
 
 /* ==========================================================================
    PARTIDA Y REINICIO
@@ -234,60 +312,23 @@ esIgual(FORMATO.precio(200), '$200', 'precio redondo sin centavos de relleno');
 esIgual(FORMATO.precio(587), '$587', 'precio de Kinder');
 
 esIgual(FORMATO.pct(0.6), '60%', 'porcentaje sin decimales');
+
+/* El cuadro resumen necesita un decimal: la spec escribe 74,8% y 13,0%, y
+   redondeados a entero (75% y 13%) el cuadro deja de coincidir con la tabla
+   que el equipo ya reviso. */
+esIgual(FORMATO.pctDecimal(0.748), '74,8%', 'un decimal para el cuadro resumen');
+esIgual(FORMATO.pctDecimal(0.13), '13,0%', 'el cero decimal no se omite');
+esIgual(FORMATO.pctDecimal(0.798), '79,8%', 'margen bruto de 2026');
+esIgual(FORMATO.pctDecimal(0.234), '23,4%', 'EBITDA de 2026');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2025).margenBrutoPct), '74,8%', '2025 desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2025).ebitdaPct), '13,0%', '2025 EBITDA desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).margenBrutoPct), '79,8%', '2026 desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).ebitdaPct), '23,4%', '2026 EBITDA desde el motor');
 esIgual(FORMATO.pct(0.3636), '36%', 'porcentaje redondea');
 esIgual(FORMATO.pct(0.84), '84%', 'porcentaje de Veranito');
 
 esIgual(FORMATO.entero(10.392), '10', 'entero para los eventos de Cumpleanos');
 esIgual(FORMATO.entero(17.32), '17', 'entero al tope de Cumpleanos');
-
-/* Lo que esta en pantalla tiene que sumar. Si el consolidado se calcula
-   exacto y se redondea al final, la columna no cuadra con su total y el
-   cliente lo nota sumando de cabeza, que es exactamente lo que la spec
-   quiere que pueda hacer. */
-console.log('\nCUADRE VISIBLE');
-
-const v60 = MOTOR.escenario(0.6), v100 = MOTOR.escenario(1);
-
-esIgual(FORMATO.dinero(FORMATO.sumaVisible(
-  [v60.kinder.facturacion, v60.afterSchool.facturacion, v60.cumpleanos.facturacion])),
-  '$55.823', 'al 60%: el consolidado suma lo que se ve');
-esIgual(FORMATO.dinero(FORMATO.sumaVisible(
-  [v60.kinder.costo, v60.afterSchool.costo, v60.cumpleanos.costo])),
-  '$22.668', 'al 60%: costo consolidado visible');
-esIgual(FORMATO.dinero(FORMATO.sumaVisible(
-  [v60.kinder.margen, v60.afterSchool.margen, v60.cumpleanos.margen])),
-  '$33.155', 'al 60%: margen consolidado visible');
-
-esIgual(FORMATO.dinero(FORMATO.sumaVisible(
-  [v100.kinder.facturacion, v100.afterSchool.facturacion, v100.cumpleanos.facturacion])),
-  '$92.963', 'al 100%: el consolidado suma lo que se ve');
-esIgual(FORMATO.dinero(FORMATO.sumaVisible(
-  [v100.kinder.margen, v100.afterSchool.margen, v100.cumpleanos.margen])),
-  '$60.992', 'al 100%: margen consolidado visible');
-
-/* El anual sale del mensual ya redondeado: el cliente multiplica por 12 lo
-   que ve, no la cifra exacta que no ve. */
-esIgual(FORMATO.deltaAnual(16540), '+$198.480', 'delta anual al 60%');
-esIgual(FORMATO.deltaAnual(44377), '+$532.524', 'delta anual al 100%');
-esIgual(FORMATO.deltaAnual(-1000), '-$12.000', 'delta anual negativo');
-
-/* ==========================================================================
-   REGLAS QUE NO SE ROMPEN
-   Casos que ya funcionan y se fijan para que un cambio futuro no los pise.
-   ========================================================================== */
-console.log('\nREGLAS');
-
-// ParKour 6-14 tiene 41 alumnos en 40 cupos: dejaron entrar uno de mas.
-// El motor no debe recortarlo al cupo.
-const pk = MOTOR.afterSchoolHoy().detalle.find(d => d.nombre === 'ParKour 6-14');
-esIgual(pk.alumnos, 41, 'ParKour 6-14 conserva los 41 alumnos');
-esIgual(pk.cupos, 40, 'ParKour 6-14 declara 40 cupos');
-esIgual(pk.alumnos > pk.cupos, true, 'el motor no recorta al cupo');
-
-// Veranito no entra en el consolidado mensual: es estacional.
-esIgual(MOTOR.escenario(1).facturacion === MOTOR.escenario(1).kinder.facturacion
-      + MOTOR.escenario(1).afterSchool.facturacion
-      + MOTOR.escenario(1).cumpleanos.facturacion, true, 'el consolidado excluye Veranito');
 
 /* ==========================================================================
    PLAN DE PAGOS
@@ -348,18 +389,59 @@ esIgual(pl6.suma === 96000, true, 'sin primer pago tambien cuadra');
    ========================================================================== */
 console.log('\nENTREGABLES');
 
-esIgual(DATOS.ENTREGABLES.length, 34, 'total de entregables');
+esIgual(DATOS.ENTREGABLES.length, 35, 'total de entregables');
 const porFase = n => DATOS.ENTREGABLES.filter(e => e.fase === n).length;
 esIgual(porFase(1), 6,  'Fase 1');
 esIgual(porFase(2), 11, 'Fase 2');
 esIgual(porFase(3), 6,  'Fase 3');
-esIgual(porFase(4), 8,  'Fase 4');
+esIgual(porFase(4), 9,  'Fase 4');
 esIgual(porFase(0), 3,  'Durante todo el proyecto');
 
-esIgual(DATOS.ENTREGABLES.every(e => e.unidad && e.segmento && e.fecha && e.nota),
-        true, 'todos traen unidad, segmento, fecha y descripcion');
+esIgual(DATOS.ENTREGABLES.some(e => e.nombre === 'Plataforma de cursos para profesoras'
+        && e.unidad === 'Kinder' && e.segmento === 'Servicio' && e.fase === 4),
+        true, 'el entregable 35 esta, en Kinder y fase 4');
+
+esIgual(DATOS.ENTREGABLES.every(e => e.unidad && e.segmento && e.nota),
+        true, 'todos traen unidad, segmento y descripcion');
 esIgual(new Set(DATOS.ENTREGABLES.map(e => e.unidad)).size, 5,
         'cinco unidades incluyendo Gerencia');
+
+/* ==========================================================================
+   HOJA DE RUTA
+   Doce meses y cuatro fases de tres. Si una fase se sale del rango o dos se
+   solapan, el gantt dibuja barras que se pisan y el cliente lo ve.
+   ========================================================================== */
+console.log('\nHOJA DE RUTA');
+
+esIgual(DATOS.MESES.length, 12, 'doce meses en la linea de tiempo');
+const conNumero = DATOS.FASES.filter(f => f.numero > 0);
+esIgual(conNumero.length, 4, 'cuatro fases numeradas');
+esIgual(conNumero.every(f => f.hasta - f.desde === 2), true, 'cada fase ocupa tres meses');
+esIgual(conNumero.every((f, i) => i === 0 || f.desde === conNumero[i-1].hasta + 1), true,
+        'las fases van seguidas y no se solapan');
+esIgual(conNumero[0].desde === 0 && conNumero[3].hasta === 11, true,
+        'cubren los doce meses completos');
+const transversal = DATOS.FASES.find(f => f.numero === 0);
+esIgual(transversal.desde === 0 && transversal.hasta === 11, true,
+        'los transversales cruzan los doce meses');
+
+/* ==========================================================================
+   INVERSION
+   ========================================================================== */
+console.log('\nINVERSION');
+
+ok(DATOS.INVERSION.total, 66000, 'monto del proyecto', 0);
+ok(DATOS.INVERSION.pctPrimero * 100, 20, 'porcentaje del pago inicial', 0);
+ok(DATOS.INVERSION.cuotas, 11, 'numero de cuotas', 0);
+
+const inv = MOTOR.plan({ total:DATOS.INVERSION.total, pctPrimero:DATOS.INVERSION.pctPrimero,
+                         meses:DATOS.INVERSION.cuotas, pctFinal:0 });
+ok(inv.primero, 13200, 'pago inicial del 20%', 0);
+ok(inv.mensualidad, 4800, 'once cuotas de 4.800', 0);
+esIgual(inv.ultimaDifiere, false, 'las once cuotas son iguales');
+ok(inv.final, 0, 'sin pago final', 0);
+esIgual(inv.suma === 66000, true, 'el desglose suma el total');
+esIgual(inv.valido, true, 'el plan es valido');
 
 /* ==========================================================================
    RELACIONES QUE SE DICEN EN VOZ ALTA
@@ -371,8 +453,6 @@ ok(DATOS.PRUEBA_VERANITO.relacion, 11, 'relacion de retorno de Veranito (11 a 1)
 ok(DATOS.VALOR_VIDA.kinder.relacion, 28, 'valor de vida contra adquisicion en Kinder (28 a 1)', 0.2);
 ok(DATOS.VALOR_VIDA.veranito.relacion, 19, 'venta contra adquisicion en Veranito', 0.1);
 
-esIgual(typeof DATOS.INVERSION === 'number' && DATOS.INVERSION > 0, true,
-        'la inversion sale de una constante configurable');
 
 /* ========================================================================== */
 console.log(`\n${'-'.repeat(78)}`);
