@@ -239,75 +239,6 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
    entregables estan debajo para quien pregunte.
    ========================================================================== */
 
-/* ==========================================================================
-   LINEA DE TIEMPO CON PUNTOS
-   Responde a otra pregunta que el gantt: no "que hace cada unidad" sino
-   "cuanto hay y cuando". Los puntos alternan arriba y abajo para que los
-   nombres no se pisen.
-   ========================================================================== */
-.linea{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  padding:18px 24px 14px;margin-bottom:14px}
-.lt-tramos{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-bottom:10px}
-.lt-tramo{background:var(--marca-tenue);border-radius:7px;padding:6px 12px;
-  border-left:3px solid var(--marca-verde-profundo);overflow:hidden}
-.lt-tramo-num{font-size:13px;font-weight:700;color:var(--marca-verde-profundo);
-  white-space:nowrap}
-
-/* El eje va al medio y los puntos se posicionan por porcentaje sobre el,
-   alternando arriba y abajo. El nombre NO va siempre visible: con 35
-   entregables en un eje de doce meses las etiquetas se pisarian unas a
-   otras. Sale al pasar el cursor o al enfocar con el teclado. */
-.lt-carril{position:relative;height:96px;margin:0 0 10px}
-.lt-eje{position:absolute;left:0;right:0;top:50%;height:2px;
-  background:var(--marca-borde-suave);border-radius:2px}
-.lt-punto{position:absolute;top:50%;left:0;width:16px;height:16px;padding:0;
-  background:none;border:none;cursor:pointer;font-family:var(--font)}
-.lt-punto.arriba{transform:translate(-50%,calc(-50% - 20px))}
-.lt-punto.abajo{transform:translate(-50%,calc(-50% + 20px))}
-/* Un tallo hasta el eje: sin el, el punto flota y se pierde su posicion. */
-.lt-punto::before{content:;position:absolute;left:50%;width:1px;height:20px;
-  background:var(--marca-borde-suave);transform:translateX(-50%)}
-.lt-punto.arriba::before{top:100%}
-.lt-punto.abajo::before{bottom:100%}
-.lt-marca{position:absolute;inset:2px;border-radius:50%;
-  background:var(--marca-verde-profundo);border:2px solid var(--superficie);
-  box-shadow:0 0 0 1px var(--marca-verde-profundo);transition:.12s}
-.lt-punto.transversal .lt-marca{background:var(--marca-verde-claro);
-  box-shadow:0 0 0 1px var(--marca-verde-claro)}
-.lt-punto:hover, .lt-punto:focus-visible{z-index:5;outline:none}
-.lt-punto:hover .lt-marca, .lt-punto:focus-visible .lt-marca{transform:scale(1.45)}
-.lt-punto[aria-current=true]{z-index:4}
-.lt-punto[aria-current=true] .lt-marca{background:var(--estado-atencion);
-  box-shadow:0 0 0 1px var(--estado-atencion);transform:scale(1.45)}
-
-/* La etiqueta aparece al pasar el cursor. Se saca del flujo para que no
-   empuje nada y pueda montarse sobre los puntos vecinos. */
-.lt-nombre{position:absolute;left:50%;transform:translateX(-50%);
-  background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
-  font-size:12px;font-weight:600;line-height:1.3;white-space:nowrap;
-  padding:6px 11px;border-radius:7px;box-shadow:0 4px 14px var(--marca-sombra-fuerte);
-  opacity:0;pointer-events:none;transition:opacity .12s}
-.lt-punto.arriba .lt-nombre{bottom:calc(100% + 7px)}
-.lt-punto.abajo .lt-nombre{top:calc(100% + 7px)}
-/* Cerca de los bordes se ancla al lado con espacio. */
-.lt-nombre.a-la-derecha{left:0;transform:none}
-.lt-nombre.a-la-izquierda{left:auto;right:0;transform:none}
-/* Solo al pasar el cursor o al enfocar con el teclado. El punto elegido se
-   distingue por el color de la marca; su nombre ya esta en el detalle de
-   abajo, y dejar tambien el rotulo montado taparia a los vecinos. */
-.lt-punto:hover .lt-nombre, .lt-punto:focus-visible .lt-nombre{opacity:1}
-.lt-meses{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
-
-/* La descripcion aparece debajo, no en un globo: proyectado, un globo se
-   pierde y tapa lo que hay detras. */
-.lt-detalle{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
-  border-radius:12px;padding:16px 20px;margin-bottom:14px}
-.ltd-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
-.ltd-fase{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
-  color:var(--texto-secundario)}
-.ltd-nombre{font-size:18px;font-weight:700;color:var(--marca-verde-profundo);margin-bottom:5px}
-.ltd-nota{font-size:14px;line-height:1.5;color:var(--texto-secundario);max-width:95ch}
-
 /* Celda editable dentro de una tabla de desglose. */
 .celda-editable{font-family:var(--font);font-size:15px;font-weight:600;text-align:right;
   font-variant-numeric:tabular-nums;width:72px;padding:4px 7px;
@@ -316,72 +247,86 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
 .celda-editable:focus{outline:2px solid var(--marca-borde-suave);outline-offset:-1px;
   background:var(--superficie)}
 
-/* La reticula del gantt es la del portal: una columna fija para el rotulo y
-   una flexible para los meses, compartida entre la cabecera de tiempos y
-   cada fila de unidad. Es lo unico que hace que las celdas caigan en la
-   misma x en las siete filas. Cambiar --rotulo-ruta las mueve a la vez. */
-:root{ --rotulo-ruta:225px; }
-.tl{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;
-  padding:10px;margin-bottom:12px;display:flex;flex-direction:column;gap:6px}
-.tl-fila, .fu-rejilla{display:grid;grid-template-columns:var(--rotulo-ruta) 1fr;gap:6px;align-items:center}
+/* ==========================================================================
+   SECCION 1 · HOJA DE RUTA
+
+   Una sola vista. La reticula es la del gantt del portal: columna fija de
+   rotulo y columna flexible de meses, compartida por la cabecera de fases,
+   la de meses y todas las filas. Es lo unico que hace que las celdas caigan
+   en la misma x. Cambiar --rotulo-ruta las mueve a la vez.
+
+   La profundidad se construye con sombra suave y jerarquia de color: el
+   tablero flota sobre el fondo, las bandas de fase mandan, las celdas se
+   ordenan por intensidad. Nada de perspectiva.
+   ========================================================================== */
+:root{ --rotulo-ruta:190px; }
+.ruta-tablero{background:var(--superficie);border:1px solid var(--borde);border-radius:16px;
+  padding:16px;box-shadow:0 6px 22px var(--marca-sombra);
+  display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.tl-fila, .fila-ruta{display:grid;grid-template-columns:var(--rotulo-ruta) 1fr;gap:8px;align-items:stretch}
 .tl-tag{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
-  color:var(--texto-secundario);padding-left:10px}
-.gantt{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
+  color:var(--texto-secundario);padding-left:10px;align-self:center}
+.gantt{display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+
+/* Bandas de fase: nombre y logro a la vista, no detras de un clic. */
+.banda-fase{font-family:var(--font);text-align:left;cursor:pointer;
+  background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border:2px solid var(--marca-verde-profundo);border-radius:10px;padding:11px 14px;
+  display:flex;flex-direction:column;gap:3px;overflow:hidden;
+  box-shadow:0 3px 10px var(--marca-sombra);transition:.15s}
+.banda-fase:hover{background:var(--marca-verde-medio);border-color:var(--marca-verde-medio);
+  box-shadow:0 6px 18px var(--marca-sombra-fuerte)}
+.banda-fase[aria-current="true"]{background:var(--superficie);color:var(--marca-verde-profundo);
+  box-shadow:0 0 0 3px var(--marca-sombra), 0 6px 18px var(--marca-sombra-fuerte)}
+.bf-num{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.bf-logro{font-size:13px;font-weight:500;line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bf-n{font-size:11px;font-weight:600;opacity:.72;margin-top:1px}
+.banda-fase[aria-current="true"] .bf-n{opacity:.6}
+
 .mo{font-size:14px;font-weight:600;text-transform:uppercase;color:var(--texto-secundario);
-  text-align:center;padding:6px 0;border-radius:6px;background:var(--fondo)}
+  text-align:center;padding:5px 0;border-radius:6px;background:var(--fondo)}
 /* El cambio de año se marca una sola vez, donde ocurre. */
 .mo.anio-nuevo{color:var(--marca-verde-profundo);box-shadow:inset 2px 0 0 var(--marca-verde-profundo)}
 
-/* Las fases viven en la linea de tiempo y son clicables: son la segunda
-   entrada a los entregables, por fase en vez de por unidad. */
-.barra-fase{font-family:var(--font);cursor:pointer;text-align:left;
-  background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
-  border:2px solid var(--marca-verde-profundo);border-radius:8px;padding:8px 13px;
-  display:flex;flex-direction:column;gap:1px;overflow:hidden;transition:.15s}
-.barra-fase:hover{background:var(--marca-verde-medio);border-color:var(--marca-verde-medio)}
-.barra-fase[aria-current="true"]{background:var(--superficie);color:var(--marca-verde-profundo);
-  box-shadow:0 0 0 2px var(--marca-sombra)}
-.bf-num{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bf-n{font-size:11px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* Una fila por unidad de negocio, con la flecha a la izquierda. */
-.fila-unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;
-  margin-bottom:8px;overflow:hidden}
-.fila-unidad[open]{border-color:var(--marca-verde-profundo)}
-.fila-unidad>summary{cursor:pointer;padding:11px 10px;list-style:none;display:block}
-.fila-unidad>summary::-webkit-details-marker{display:none}
-.fila-unidad>summary:hover{background:var(--superficie-sutil)}
-.fu-info{display:flex;align-items:center;gap:10px;min-width:0;padding-left:4px}
-.fu-flecha{width:20px;height:20px;border-radius:5px;border:1px solid var(--borde);
-  display:flex;align-items:center;justify-content:center;font-size:10px;
-  color:var(--texto-secundario);flex-shrink:0}
-.fila-unidad[open] .fu-flecha{border-color:var(--marca-verde-profundo);
-  color:var(--marca-verde-profundo);background:var(--marca-realce)}
-.fu-nombre{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fu-n{margin-left:auto;font-size:12px;font-weight:700;color:var(--marca-verde-medio);
+/* Una fila por unidad. */
+.fila-ruta{padding:2px 0}
+.fr-info{display:flex;align-items:center;gap:10px;min-width:0;padding-left:10px}
+.fr-nombre{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr-n{margin-left:auto;font-size:12px;font-weight:700;color:var(--marca-verde-medio);
   background:var(--marca-tenue);border-radius:999px;padding:2px 10px;flex-shrink:0}
+.fila-ruta.transversal .fr-nombre{color:var(--marca-verde-medio)}
 
-/* La celda marca donde hay trabajo. Sin trabajo queda la pista, para que se
-   vea el hueco en vez de un vacio sin explicar. */
-.celda{height:26px;border-radius:4px;background:var(--borde);opacity:.45}
-.celda.con-trabajo{background:var(--marca-verde-medio);opacity:1}
-.celda.banda{background:var(--marca-verde-claro);opacity:1;
-  background-image:repeating-linear-gradient(135deg,transparent 0 9px,rgba(255,255,255,.16) 9px 18px)}
-.fila-unidad.transversal .fu-nombre{color:var(--marca-verde-medio)}
+/* La celda dice cuanto trabajo hay, con intensidad y con el numero. Cuatro
+   escalones: mas matices no se distinguen proyectados. El conteo se imprime
+   una sola vez por tramo, en su mes central, para que tres celdas de "5" no
+   se lean como quince. */
+.celda-ruta{position:relative;height:38px;border:none;border-radius:6px;padding:0;
+  font-family:var(--font);cursor:pointer;transition:.13s;
+  display:flex;align-items:center;justify-content:center}
+.celda-ruta[data-nivel="0"]{background:var(--borde-suave);cursor:default}
+.celda-ruta[data-nivel="1"]{background:#CFE0D4}
+.celda-ruta[data-nivel="2"]{background:#9BBFA6}
+.celda-ruta[data-nivel="3"]{background:var(--marca-verde-claro)}
+.celda-ruta[data-nivel="4"]{background:var(--marca-verde-profundo)}
+.cr-n{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;
+  color:var(--marca-verde-profundo);pointer-events:none}
+.celda-ruta[data-nivel="3"] .cr-n,
+.celda-ruta[data-nivel="4"] .cr-n{color:var(--texto-sobre-oscuro)}
+.celda-ruta:not([disabled]):hover{transform:translateY(-1px);
+  box-shadow:0 4px 12px var(--marca-sombra-fuerte)}
+.celda-ruta[aria-current="true"]{box-shadow:0 0 0 2px var(--marca-verde-profundo),
+  0 4px 12px var(--marca-sombra-fuerte)}
+.celda-ruta.banda{background:var(--marca-verde-claro);
+  background-image:repeating-linear-gradient(135deg,transparent 0 10px,rgba(255,255,255,.15) 10px 20px)}
+.celda-ruta.banda .cr-n{font-size:13px;font-weight:700;color:var(--texto-sobre-oscuro)}
 
-.fu-cuerpo{background:var(--superficie-sutil);border-top:1px solid var(--borde);padding:6px 16px 14px}
-.fu-fase{padding-top:10px}
-.fu-fase-h{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
-  color:var(--marca-verde-profundo);margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.fu-fase-h::before{content:"";width:8px;height:8px;border-radius:50%;
-  background:var(--marca-verde-profundo);flex-shrink:0}
-.fu-vacio{font-size:14px;color:var(--texto-secundario);padding:14px 4px;line-height:1.5}
-
-/* Panel que se abre al elegir una fase en la linea de tiempo. */
-.panel-fase{background:var(--superficie);border:1px solid var(--marca-verde-profundo);
-  border-radius:14px;padding:20px 24px;margin-bottom:14px}
-.pf-cab{display:flex;align-items:center;gap:14px;margin-bottom:8px}
-.pf-cab h4{font-size:19px;font-weight:700;color:var(--marca-verde-profundo)}
+/* Panel que se abre al pulsar una celda o una banda. */
+.panel-ruta{background:var(--superficie);border:1px solid var(--marca-verde-profundo);
+  border-radius:14px;padding:20px 24px;margin-bottom:14px;
+  box-shadow:0 8px 26px var(--marca-sombra)}
+.pr-cab{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.pr-cab h4{font-size:19px;font-weight:700;color:var(--marca-verde-profundo)}
 .pf-cerrar{margin-left:auto;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;
   background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
   border-radius:999px;padding:5px 14px}
@@ -390,97 +335,13 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
 .gu-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .gu-nombre{font-size:15px;font-weight:700;color:var(--marca-verde-profundo)}
 .gu-n{font-size:12px;color:var(--texto-secundario)}
-
-/* ==========================================================================
-   SECCION 2 · TARJETA DE ANCHO COMPLETO
-   Una por unidad, apiladas. La tabla desglosada a la izquierda y las cifras
-   con los controles a la derecha: el cliente ve de donde sale cada dolar
-   mientras Ricardo mueve el deslizador.
-   ========================================================================== */
-.unidad-ancha{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  padding:20px 24px 18px;margin-bottom:14px}
-.ua-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
-.ua-cab h3{font-size:24px;font-weight:700;letter-spacing:-.3px;color:var(--marca-verde-profundo)}
-.ua-cuerpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);
-  gap:24px;align-items:start;margin-top:12px}
-.ua-tabla{overflow-x:auto}
-.ua-lado{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
-
-table.desglose{width:100%;border-collapse:collapse}
-table.desglose th, table.desglose td{padding:9px 12px;vertical-align:baseline}
-table.desglose thead th{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  color:var(--texto-secundario);border-bottom:1px solid var(--borde);text-align:left;white-space:nowrap}
-table.desglose thead th.num{text-align:right}
-table.desglose tbody th{text-align:left;font-size:14px;font-weight:500;color:var(--texto-principal)}
-table.desglose td.num{text-align:right;font-size:15px;font-weight:600;
-  font-variant-numeric:tabular-nums;white-space:nowrap}
-table.desglose tbody tr{border-bottom:1px solid var(--borde-suave)}
-table.desglose tbody tr:last-child{border-bottom:none}
-/* Filas que no son un renglon mas sino el cierre de la cuenta: el total y
-   su prorrateo. Sin esta distincion se leerian como dos temporadas mas. */
-table.desglose tbody tr.suma{border-top:1px solid var(--borde);background:var(--superficie-sutil)}
-table.desglose tbody tr.suma th{font-weight:700}
-table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
-table.desglose tbody tr.suma.destacada th,
-table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
-
-/* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
-   cuerpo se ata al ancho de su celda para no salirse nunca. */
-.ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
-.ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
-
-.logro{font-size:18px;line-height:1.45;max-width:80ch;margin-top:12px}
+.logro{font-size:17px;line-height:1.45;max-width:80ch;margin-bottom:4px}
 .logro strong{font-weight:700;color:var(--marca-verde-profundo)}
 
-/* ==========================================================================
-   SECCION 3 · CUADRO RESUMEN
-   ========================================================================== */
-.tabla-caja{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  overflow-x:auto;margin-top:16px}
-table.resumen{width:100%;border-collapse:collapse;min-width:640px}
-table.resumen th, table.resumen td{padding:14px 20px;text-align:right;vertical-align:baseline}
-table.resumen thead th{font-size:12px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
-  color:var(--texto-secundario);border-bottom:1px solid var(--borde);white-space:nowrap}
-table.resumen tbody th{text-align:left;font-size:16px;font-weight:500;color:var(--texto-principal);
-  white-space:nowrap}
-table.resumen tbody tr{border-bottom:1px solid var(--borde-suave)}
-table.resumen tbody tr:last-child{border-bottom:none}
-table.resumen td b{font-size:var(--cifra-3);font-weight:600;font-variant-numeric:tabular-nums;
-  display:block;white-space:nowrap}
-.porcentaje{font-size:var(--menudo);color:var(--texto-secundario);
-  font-variant-numeric:tabular-nums;display:block;margin-top:2px}
-/* Margen bruto y EBITDA son las dos lineas que el cliente busca. */
-table.resumen tr.destacada{background:var(--marca-tenue)}
-table.resumen tr.destacada th{font-weight:700;color:var(--marca-verde-profundo)}
-table.resumen tr.destacada td b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1px;
-  color:var(--marca-verde-profundo)}
-table.resumen tr.ebitda{background:var(--marca-verde-profundo)}
-table.resumen tr.ebitda th{color:var(--texto-sobre-oscuro)}
-table.resumen tr.ebitda td b{color:var(--texto-sobre-oscuro)}
-table.resumen tr.ebitda .porcentaje{color:var(--texto-sobre-oscuro-3)}
-/* La columna de 2027 es la unica viva; se distingue sin gritar. */
-table.resumen th:last-child, table.resumen td:last-child{
-  box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
+/* La lista de entregables del panel no necesita el marco de la fase. */
+.panel-ruta .entregables{border-top:none;padding:10px 0 0;display:flex;
+  flex-direction:column;gap:6px}
 
-.notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
-.notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
-  padding-left:14px;border-left:2px solid var(--borde)}
-
-/* Bloque que pertenece a una unidad concreta: el resultado de Veranito, el
-   valor de vida de Kinder, el potencial de Baby and Me. */
-.unidad-extra:empty{display:none}
-.bloque-unidad{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
-  border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:14px;line-height:1.5}
-.bloque-unidad strong{font-weight:700;color:var(--marca-verde-profundo)}
-
-/* El display va condicionado a [open]. Declarado suelto, este display pisa
-   el ocultamiento nativo del <details> y los 34 entregables quedan a la
-   vista con la fase cerrada, que es justo lo que la spec prohibe. */
-.fase:not([open]) > .entregables{display:none}
-.fase[open] > .entregables{display:flex}
-/* Lista de filas de ancho completo, como la seccion Documentos del portal:
-   se lee de arriba abajo en una sola linea de lectura en vez de en zigzag
-   por una cuadricula, y los nombres largos dejan de partir la retícula. */
 .entregables{border-top:1px solid var(--borde-suave);padding:14px 24px 20px;
   flex-direction:column;gap:6px}
 .entregable{background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
@@ -1589,18 +1450,25 @@ function barraReinicio(contenedor, texto){
    ========================================================================== */
 const UNIDADES_RUTA = ['Gerencia', 'Kinder', 'After School', 'Veranito', 'Cumpleaños', 'Baby and Me'];
 
-/* Una unidad tiene trabajo en un mes si tiene algun entregable en la fase
-   que cubre ese mes. Los transversales no cuentan aqui: van en su propia
-   banda para no llenar la fila de Gerencia los doce meses. */
-function mesesConTrabajo(unidad){
-  const meses = new Set();
-  for (const f of DATOS.FASES){
-    if (f.numero === 0) continue;
-    if (DATOS.ENTREGABLES.some(e => e.fase === f.numero && e.unidad === unidad)){
-      for (let m = f.desde; m <= f.hasta; m++) meses.add(m);
-    }
-  }
-  return meses;
+/* Cuantos entregables de una unidad caen en un mes. Como la hoja no fija
+   fechas individuales —y las que trae no calzan con las fases nuevas— la
+   densidad de un mes es la de su fase: repartirla por meses seria inventar
+   un calendario que nadie acordo. El numero se imprime una sola vez por
+   tramo, en su mes central, para que tres celdas de "5" no se lean como
+   quince. */
+function densidad(unidad, fase){
+  return DATOS.ENTREGABLES.filter(e => e.fase === fase && e.unidad === unidad).length;
+}
+function faseDelMes(m){
+  return DATOS.FASES.find(f => f.numero !== 0 && m >= f.desde && m <= f.hasta);
+}
+/* Cuatro escalones bastan: mas matices no se distinguen proyectados. */
+function nivelDensidad(n){
+  if (n === 0) return 0;
+  if (n === 1) return 1;
+  if (n <= 3) return 2;
+  if (n <= 5) return 3;
+  return 4;
 }
 
 /* Lista de filas con la descripcion al clic. Sin fecha individual: las de
@@ -1626,256 +1494,171 @@ function listaEntregables(lista){
   return cont;
 }
 
-/* --------------------------------------------------------------------------
-   LINEA DE TIEMPO CON LOS ENTREGABLES COMO PUNTOS
+/* ==========================================================================
+   SECCION 1 · HOJA DE RUTA
 
-   Va encima del gantt y responde a otra pregunta: no "que hace cada unidad"
-   sino "cuanto hay y cuando". Los 35 entregables se reparten sobre los doce
-   meses segun su fase, alternando arriba y abajo para que los nombres no se
-   pisen. Las fases se desglosan sobre la linea.
+   Una sola vista. La reticula es la del gantt del portal —columna fija de
+   rotulo y columna flexible de meses, compartida por la cabecera y todas
+   las filas—, y sobre ella:
 
-   Los puntos se reparten dentro del tramo de su fase en vez de apilarse en
-   un mes: la hoja no fija fechas individuales y fingirlas seria inventar un
-   compromiso que nadie adquirio.
-   -------------------------------------------------------------------------- */
-function montarLinea(contenedor){
-  const linea = nodo('div', 'linea');
-
-  /* Tramos de fase sobre la linea. */
-  const tramos = nodo('div', 'lt-tramos');
-  for (const f of DATOS.FASES){
-    if (f.numero === 0) continue;
-    const t = nodo('div', 'lt-tramo');
-    t.style.gridColumn = (f.desde + 1) + ' / span ' + (f.hasta - f.desde + 1);
-    t.appendChild(nodo('span', 'lt-tramo-num', 'Fase ' + f.numero));
-    tramos.appendChild(t);
-  }
-  linea.appendChild(tramos);
-
-  /* Carril de puntos. Cada entregable recibe una posicion porcentual dentro
-     del tramo de su fase, repartida en partes iguales. */
-  const carril = nodo('div', 'lt-carril');
-  const eje = nodo('div', 'lt-eje');
-  carril.appendChild(eje);
-
-  let elegido = null;
-  const puntos = [];
-
-  for (const f of DATOS.FASES){
-    const lista = DATOS.ENTREGABLES.filter(e => e.fase === f.numero);
-    lista.forEach((e, i) => {
-      /* Reparto dentro del tramo: (i + 1) / (n + 1) deja margen en los dos
-         extremos para que ningun punto caiga sobre la division de fase. */
-      const dentro = (i + 1) / (lista.length + 1);
-      const mes = f.desde + dentro * (f.hasta - f.desde + 1);
-      const pct = mes / 12 * 100;
-
-      const p = nodo('button', 'lt-punto' + (i % 2 === 0 ? ' arriba' : ' abajo') +
-                                (f.numero === 0 ? ' transversal' : ''));
-      p.style.left = pct + '%';
-      /* El title cubre al teclado y a quien no llegue con el cursor; la
-         etiqueta visible sale al pasar por encima. */
-      p.title = e.nombre + ' · ' + e.unidad;
-      p.setAttribute('aria-label', e.nombre + ' · ' + e.unidad);
-      p.appendChild(nodo('span', 'lt-marca'));
-      const etq = nodo('span', 'lt-nombre', e.nombre);
-      /* Cerca de los bordes la etiqueta se ancla al lado que le queda
-         espacio, o se saldria del recuadro. */
-      if (pct < 12) etq.classList.add('a-la-derecha');
-      else if (pct > 88) etq.classList.add('a-la-izquierda');
-      p.appendChild(etq);
-      p.addEventListener('click', () => elegir(e, p));
-      puntos.push({ e, p, pct });
-    });
-  }
-  /* En el orden en que se ven, no en el orden de las fases: asi el
-     tabulador recorre la linea de izquierda a derecha. */
-  puntos.sort((a, b) => a.pct - b.pct).forEach(q => carril.appendChild(q.p));
-  linea.appendChild(carril);
-
-  const filaMeses = nodo('div', 'lt-meses');
-  DATOS.MESES.forEach((m, i) => filaMeses.appendChild(nodo('div', 'mo' + (i === 4 ? ' anio-nuevo' : ''), m)));
-  linea.appendChild(filaMeses);
-  contenedor.appendChild(linea);
-
-  /* La descripcion aparece debajo al hacer clic, no en un globo flotante:
-     proyectado, un globo se pierde y tapa lo que hay detras. */
-  const detalle = nodo('div', 'lt-detalle');
-  detalle.style.display = 'none';
-  contenedor.appendChild(detalle);
-
-  function elegir(e, p){
-    const mismo = elegido === e;
-    for (const q of puntos) q.p.setAttribute('aria-current', 'false');
-    if (mismo){ elegido = null; detalle.style.display = 'none'; return; }
-    elegido = e;
-    p.setAttribute('aria-current', 'true');
-    detalle.style.display = '';
-    detalle.textContent = '';
-    const cab = nodo('div', 'ltd-cab');
-    cab.appendChild(nodo('span', 'chip', e.unidad));
-    cab.appendChild(nodo('span', 'chip seg', e.segmento));
-    cab.appendChild(nodo('span', 'ltd-fase',
-      e.fase === 0 ? 'Durante todo el proyecto' : 'Fase ' + e.fase));
-    const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
-    cerrar.addEventListener('click', () => elegir(e, p));
-    cab.appendChild(cerrar);
-    detalle.appendChild(cab);
-    detalle.appendChild(nodo('h4', 'ltd-nombre', e.nombre));
-    detalle.appendChild(nodo('p', 'ltd-nota', e.nota));
-  }
-}
-
+     · las cuatro fases como bandas, con su nombre y su logro a la vista;
+     · una fila por unidad, con la carga de trabajo de cada tramo en la
+       intensidad de la celda y el conteo impreso;
+     · al pulsar una celda o una banda, sus entregables debajo.
+   ========================================================================== */
 function montarRuta(contenedor){
-  montarLinea(contenedor);
+  let seleccion = null;   // {tipo:'fase'|'celda', fase, unidad}
 
-  let faseAbierta = null;
+  const tablero = nodo('div', 'ruta-tablero');
 
-  /* ---------- Cabecera: fases y meses ---------- */
-  const tl = nodo('div', 'tl');
-
+  /* ---------- Bandas de fase ---------- */
   const filaFases = nodo('div', 'tl-fila');
   filaFases.appendChild(nodo('span', 'tl-tag', 'Fases'));
-  const gantFases = nodo('div', 'gantt');
+  const bandasFase = nodo('div', 'gantt');
   const botonesFase = [];
   for (const f of DATOS.FASES){
     if (f.numero === 0) continue;
-    const b = nodo('button', 'barra-fase');
+    const b = nodo('button', 'banda-fase');
     b.style.gridColumn = (f.desde + 1) + ' / span ' + (f.hasta - f.desde + 1);
     b.appendChild(nodo('span', 'bf-num', 'Fase ' + f.numero));
+    /* El logro va a la vista, no detras de un clic: es lo que el cliente
+       tiene que leer mientras Ricardo habla. */
+    b.appendChild(nodo('span', 'bf-logro', f.logro));
     b.appendChild(nodo('span', 'bf-n',
       DATOS.ENTREGABLES.filter(e => e.fase === f.numero).length + ' entregables'));
-    b.addEventListener('click', () => elegirFase(faseAbierta === f.numero ? null : f.numero));
-    gantFases.appendChild(b);
+    b.addEventListener('click', () => elegir({ tipo:'fase', fase:f.numero }));
+    bandasFase.appendChild(b);
     botonesFase.push({ f, b });
   }
-  filaFases.appendChild(gantFases);
-  tl.appendChild(filaFases);
+  filaFases.appendChild(bandasFase);
+  tablero.appendChild(filaFases);
 
+  /* ---------- Meses ---------- */
   const filaMeses = nodo('div', 'tl-fila');
   filaMeses.appendChild(nodo('span', 'tl-tag', 'Meses'));
   const meses = nodo('div', 'gantt');
   DATOS.MESES.forEach((m, i) => meses.appendChild(nodo('div', 'mo' + (i === 4 ? ' anio-nuevo' : ''), m)));
   filaMeses.appendChild(meses);
-  tl.appendChild(filaMeses);
-  contenedor.appendChild(tl);
-
-  /* ---------- Panel de la fase elegida ---------- */
-  const panelFase = nodo('div', 'panel-fase');
-  panelFase.style.display = 'none';
-  contenedor.appendChild(panelFase);
-
-  function elegirFase(n){
-    faseAbierta = n;
-    for (const par of botonesFase) par.b.setAttribute('aria-current', par.f.numero === n ? 'true' : 'false');
-    panelFase.textContent = '';
-    if (n === null){ panelFase.style.display = 'none'; return; }
-    panelFase.style.display = '';
-
-    const fase = DATOS.FASES.find(f => f.numero === n);
-    const cab = nodo('div', 'pf-cab');
-    cab.appendChild(nodo('h4', null, 'Fase ' + n + ' · ' + fase.rango));
-    const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
-    cerrar.addEventListener('click', () => elegirFase(null));
-    cab.appendChild(cerrar);
-    panelFase.appendChild(cab);
-
-    const logro = nodo('p', 'logro');
-    logro.append(nodo('strong', null, 'Al terminar: ' + fase.logro),
-                 document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
-    panelFase.appendChild(logro);
-
-    /* Agrupados por unidad de negocio, que es como se pregunta en la
-       reunion: "y en esta fase, que le toca a Kinder". */
-    for (const u of UNIDADES_RUTA){
-      const suyos = DATOS.ENTREGABLES.filter(e => e.fase === n && e.unidad === u);
-      if (!suyos.length) continue;
-      const grupo = nodo('div', 'grupo-unidad');
-      const gh = nodo('div', 'gu-cab');
-      gh.appendChild(nodo('span', 'gu-nombre', u));
-      gh.appendChild(nodo('span', 'gu-n', suyos.length + (suyos.length === 1 ? ' entregable' : ' entregables')));
-      grupo.appendChild(gh);
-      grupo.appendChild(listaEntregables(suyos));
-      panelFase.appendChild(grupo);
-    }
-  }
+  tablero.appendChild(filaMeses);
 
   /* ---------- Una fila por unidad ---------- */
+  const celdas = [];
   for (const u of UNIDADES_RUTA){
-    const suyos = DATOS.ENTREGABLES.filter(e => e.unidad === u && e.fase !== 0);
-    const conTrabajo = mesesConTrabajo(u);
+    const total = DATOS.ENTREGABLES.filter(e => e.unidad === u && e.fase !== 0).length;
 
-    const fila = nodo('details', 'fila-unidad');
-    const sum = document.createElement('summary');
-    const rejilla = nodo('div', 'fu-rejilla');
-
-    const info = nodo('div', 'fu-info');
-    const flecha = nodo('span', 'fu-flecha', '▸');
-    info.appendChild(flecha);
-    info.appendChild(nodo('span', 'fu-nombre', u));
-    info.appendChild(nodo('span', 'fu-n', String(suyos.length)));
-    rejilla.appendChild(info);
+    const fila = nodo('div', 'fila-ruta');
+    const info = nodo('div', 'fr-info');
+    info.appendChild(nodo('span', 'fr-nombre', u));
+    info.appendChild(nodo('span', 'fr-n', String(total)));
+    fila.appendChild(info);
 
     const gantt = nodo('div', 'gantt');
     for (let m = 0; m < 12; m++){
-      gantt.appendChild(nodo('div', 'celda' + (conTrabajo.has(m) ? ' con-trabajo' : '')));
-    }
-    rejilla.appendChild(gantt);
-    sum.appendChild(rejilla);
-    fila.appendChild(sum);
-    fila.addEventListener('toggle', () => { flecha.textContent = fila.open ? '▾' : '▸'; });
-
-    const cuerpo = nodo('div', 'fu-cuerpo');
-    if (!suyos.length){
-      /* Baby and Me no tiene entregables propios en la hoja: su campaña
-         figura bajo Kinder. Se dice, en vez de dejar la fila muda. */
-      cuerpo.appendChild(nodo('p', 'fu-vacio',
-        'Sin entregables propios en la hoja de compromisos. Su campaña de captacion figura dentro de Kinder.'));
-    } else {
-      for (const f of DATOS.FASES){
-        if (f.numero === 0) continue;
-        const deFase = suyos.filter(e => e.fase === f.numero);
-        if (!deFase.length) continue;
-        const bloque = nodo('div', 'fu-fase');
-        bloque.appendChild(nodo('div', 'fu-fase-h', 'Fase ' + f.numero + ' · ' + f.rango));
-        bloque.appendChild(listaEntregables(deFase));
-        cuerpo.appendChild(bloque);
+      const f = faseDelMes(m);
+      const n = densidad(u, f.numero);
+      const c = nodo('button', 'celda-ruta');
+      c.dataset.nivel = String(nivelDensidad(n));
+      if (n > 0){
+        c.title = u + ' · Fase ' + f.numero + ' · ' + n +
+                  (n === 1 ? ' entregable' : ' entregables');
+        /* El conteo una sola vez por tramo, en su mes central. */
+        if (m === f.desde + 1) c.appendChild(nodo('span', 'cr-n', String(n)));
+        c.addEventListener('click', () => elegir({ tipo:'celda', fase:f.numero, unidad:u }));
+      } else {
+        c.disabled = true;
+        c.title = u + ' · sin entregables en la fase ' + f.numero;
       }
+      gantt.appendChild(c);
+      celdas.push({ c, unidad:u, fase:f.numero });
     }
-    fila.appendChild(cuerpo);
-    contenedor.appendChild(fila);
+    fila.appendChild(gantt);
+    tablero.appendChild(fila);
   }
 
   /* ---------- Banda transversal ---------- */
   const transversales = DATOS.ENTREGABLES.filter(e => e.fase === 0);
-  const banda = nodo('details', 'fila-unidad transversal');
-  const sumT = document.createElement('summary');
-  const rejT = nodo('div', 'fu-rejilla');
-  const infoT = nodo('div', 'fu-info');
-  const flechaT = nodo('span', 'fu-flecha', '▸');
-  infoT.appendChild(flechaT);
-  const nombreT = nodo('span', 'fu-nombre', 'Transversales');
-  /* El rotulo va corto para que quepa en la columna fija; la frase completa
-     queda en el title y en la cabecera del cuerpo desplegado. */
+  const filaT = nodo('div', 'fila-ruta transversal');
+  const infoT = nodo('div', 'fr-info');
+  const nombreT = nodo('span', 'fr-nombre', 'Transversales');
   nombreT.title = 'Durante todo el proyecto';
   infoT.appendChild(nombreT);
-  infoT.appendChild(nodo('span', 'fu-n', String(transversales.length)));
-  rejT.appendChild(infoT);
+  infoT.appendChild(nodo('span', 'fr-n', String(transversales.length)));
+  filaT.appendChild(infoT);
   const gantT = nodo('div', 'gantt');
-  const bandaBarra = nodo('div', 'celda banda');
-  bandaBarra.style.gridColumn = '1 / span 12';
-  gantT.appendChild(bandaBarra);
-  rejT.appendChild(gantT);
-  sumT.appendChild(rejT);
-  banda.appendChild(sumT);
-  banda.addEventListener('toggle', () => { flechaT.textContent = banda.open ? '▾' : '▸'; });
-  const cuerpoT = nodo('div', 'fu-cuerpo');
-  const encT = nodo('div', 'fu-fase');
-  encT.appendChild(nodo('div', 'fu-fase-h', 'Durante todo el proyecto · los doce meses'));
-  encT.appendChild(listaEntregables(transversales));
-  cuerpoT.appendChild(encT);
-  banda.appendChild(cuerpoT);
-  contenedor.appendChild(banda);
+  const bandaT = nodo('button', 'celda-ruta banda');
+  bandaT.style.gridColumn = '1 / span 12';
+  bandaT.appendChild(nodo('span', 'cr-n', transversales.length + ' durante los doce meses'));
+  bandaT.addEventListener('click', () => elegir({ tipo:'fase', fase:0 }));
+  gantT.appendChild(bandaT);
+  filaT.appendChild(gantT);
+  tablero.appendChild(filaT);
+  contenedor.appendChild(tablero);
+
+  /* ---------- Panel de detalle ---------- */
+  const panel = nodo('div', 'panel-ruta');
+  panel.style.display = 'none';
+  contenedor.appendChild(panel);
+
+  function mismaSeleccion(a, b){
+    return a && b && a.tipo === b.tipo && a.fase === b.fase && a.unidad === b.unidad;
+  }
+
+  function elegir(sel){
+    if (mismaSeleccion(seleccion, sel)) sel = null;
+    seleccion = sel;
+
+    for (const par of botonesFase){
+      par.b.setAttribute('aria-current',
+        sel && sel.tipo === 'fase' && sel.fase === par.f.numero ? 'true' : 'false');
+    }
+    bandaT.setAttribute('aria-current', sel && sel.tipo === 'fase' && sel.fase === 0 ? 'true' : 'false');
+    for (const q of celdas){
+      const activa = sel && ((sel.tipo === 'celda' && sel.unidad === q.unidad && sel.fase === q.fase)
+                          || (sel.tipo === 'fase' && sel.fase === q.fase));
+      q.c.setAttribute('aria-current', activa ? 'true' : 'false');
+    }
+
+    panel.textContent = '';
+    if (!sel){ panel.style.display = 'none'; return; }
+    panel.style.display = '';
+
+    const fase = DATOS.FASES.find(f => f.numero === sel.fase);
+    const cab = nodo('div', 'pr-cab');
+    const titulo = sel.tipo === 'celda'
+      ? sel.unidad + ' · ' + (sel.fase === 0 ? 'durante todo el proyecto' : 'fase ' + sel.fase)
+      : (sel.fase === 0 ? 'Durante todo el proyecto' : 'Fase ' + sel.fase + ' · ' + fase.rango);
+    cab.appendChild(nodo('h4', null, titulo));
+    const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
+    cerrar.addEventListener('click', () => elegir(null));
+    cab.appendChild(cerrar);
+    panel.appendChild(cab);
+
+    if (sel.fase !== 0){
+      const logro = nodo('p', 'logro');
+      logro.append(nodo('strong', null, 'Al terminar: ' + fase.logro),
+                   document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
+      panel.appendChild(logro);
+    }
+
+    if (sel.tipo === 'celda'){
+      panel.appendChild(listaEntregables(
+        DATOS.ENTREGABLES.filter(e => e.fase === sel.fase && e.unidad === sel.unidad)));
+    } else {
+      /* Agrupados por unidad, que es como se pregunta: "y en esta fase,
+         que le toca a Kinder". */
+      for (const u of UNIDADES_RUTA){
+        const suyos = DATOS.ENTREGABLES.filter(e => e.fase === sel.fase && e.unidad === u);
+        if (!suyos.length) continue;
+        const grupo = nodo('div', 'grupo-unidad');
+        const gh = nodo('div', 'gu-cab');
+        gh.appendChild(nodo('span', 'gu-nombre', u));
+        gh.appendChild(nodo('span', 'gu-n', suyos.length + (suyos.length === 1 ? ' entregable' : ' entregables')));
+        grupo.appendChild(gh);
+        grupo.appendChild(listaEntregables(suyos));
+        panel.appendChild(grupo);
+      }
+    }
+  }
 }
 
 /* ==========================================================================
@@ -1889,6 +1672,60 @@ function montarRuta(contenedor){
    Todas arrancan en la ocupacion real de hoy: al eliminarse "Donde estan
    hoy", es esta seccion la que carga el punto de partida.
    ========================================================================== */
+/* Una celda es texto o un campo editable. Se crean una sola vez; despues
+   solo se actualizan valores, y el campo que tiene el foco no se toca para
+   no interrumpir a quien esta escribiendo. */
+function crearFila(tbody, cruda){
+  const celdas = Array.isArray(cruda) ? cruda : cruda.celdas;
+  const tr = document.createElement('tr');
+  if (!Array.isArray(cruda) && cruda.clase) tr.className = cruda.clase;
+  const refs = celdas.map((celda, i) => {
+    const td = document.createElement(i === 0 ? 'th' : 'td');
+    if (i === 0) td.scope = 'row'; else td.className = 'num';
+    const ref = { td, input:null, alCambiar:null };
+    if (celda && typeof celda === 'object' && celda.editable){
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.className = 'celda-editable';
+      inp.inputMode = 'numeric';
+      inp.addEventListener('input', () => {
+        const v = Number(inp.value);
+        /* Un campo a medio escribir no dispara nada: si se recalculara con
+           el valor parcial, el repintado devolveria el numero corregido y
+           se comeria el resto de las teclas. */
+        if (inp.value !== '' && Number.isFinite(v) && ref.alCambiar) ref.alCambiar(v);
+      });
+      /* Al salir del campo se normaliza lo que quedo a medias. */
+      inp.addEventListener('blur', () => {
+        if (inp.value === '' && ref.alCambiar) ref.alCambiar(0);
+      });
+      td.appendChild(inp);
+      ref.input = inp;
+    }
+    tr.appendChild(td);
+    return ref;
+  });
+  tbody.appendChild(tr);
+  return { tr, refs };
+}
+
+function actualizarFila(dom, cruda){
+  const celdas = Array.isArray(cruda) ? cruda : cruda.celdas;
+  celdas.forEach((celda, i) => {
+    const ref = dom.refs[i];
+    if (celda && typeof celda === 'object' && celda.editable){
+      if (!ref.input) return;
+      ref.alCambiar = celda.alCambiar;   // se reengancha al estado nuevo
+      ref.input.min = celda.min != null ? celda.min : 0;
+      if (celda.max != null) ref.input.max = celda.max;
+      ref.input.step = celda.paso != null ? celda.paso : 1;
+      if (document.activeElement !== ref.input) ref.input.value = celda.valor;
+    } else if (!ref.input){
+      ref.td.textContent = celda;
+    }
+  });
+}
+
 function montarUnidades(contenedor){
   const inicial = () => MOTOR.partida();
   let est = inicial();
@@ -1897,6 +1734,18 @@ function montarUnidades(contenedor){
   const reg = (cfg, lee) => {
     const c = control(cfg);
     restauradores.push(p => c.restaurar(lee(p)));
+    return c.wrap;
+  };
+
+  /* Deslizadores que representan un dato que tambien se edita en la tabla.
+     Se guardan para poder devolverles el valor calculado desde los alumnos
+     en cada repintado: si no, el deslizador quedaria diciendo una ocupacion
+     que ya no es la que hay. */
+  let sincronizables = [];
+  const regSync = (cfg, lee) => {
+    const c = control(cfg);
+    restauradores.push(p => c.restaurar(lee(p)));
+    sincronizables.push(c);
     return c.wrap;
   };
 
@@ -1940,33 +1789,37 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'After School',
-      columnas: ['Disciplina', 'Cupos', 'Alumnos', '$/hora', 'Facturacion', 'Costo'],
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Costo/hora', 'Facturacion', 'Costo'],
       calcular: () => MOTOR.afterSchool(est.afterSchool),
+      /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
+         mueve cuantos niños hay. Deslizador y celdas son dos formas de tocar
+         el mismo dato, por eso el deslizador se resincroniza al editar. */
       ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
+      sincronizar: r => [r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100],
       apoyo: () => '',
-      /* Alumnos y costo por hora se editan en la propia tabla. El deslizador
-         global sigue estando: reparte, y a partir de ahi se ajusta lo que
-         haga falta disciplina por disciplina. */
       filas: r => r.detalle.map((d, i) => [
         d.nombre,
         d.cupos,
         { editable:true, valor:d.alumnos, min:0, max:d.cupos,
-          alCambiar:v => { fijarAlumnosAS(r, i, v); pintar(); } },
+          alCambiar:v => { est.afterSchool.alumnos = r.detalle.map(x => x.alumnos);
+                           est.afterSchool.alumnos[i] = v; pintar(); } },
         d.esSabado ? '—'
           : { editable:true, valor:d.costoHora, min:0, paso:1,
-              alCambiar:v => { fijarCostoAS(r, i, v); pintar(); } },
+              alCambiar:v => { est.afterSchool.costosHora = r.detalle.map(x => x.costoHora != null ? x.costoHora : null);
+                               est.afterSchool.costosHora[i] = v; pintar(); } },
         F.dinero(d.facturacion),
         d.costo ? '−' + F.dinero(d.costo) : '—',
       ]),
       controles: () => [
-        reg({ etiqueta:'Ocupacion · reparte entre las disciplinas', tipo:'range', min:0, max:100, paso:1,
-              valor:est.afterSchool.ocupacion*100, formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.afterSchool.ocupacion = x/100;
-                               est.afterSchool.alumnos = null;   // el deslizador vuelve a mandar
-                               est.afterSchool.costosHora = null;
-                               pintar(); } },
-            p => p.afterSchool.ocupacion*100),
+        regSync({ etiqueta:'Ocupacion · reparte entre las disciplinas', tipo:'range',
+                  min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
+                  formato:x => x + '%', ancho:true,
+                  /* El deslizador reparte y vuelve a mandar sobre lo editado. */
+                  alCambiar:x => { est.afterSchool.ocupacion = x/100;
+                                   est.afterSchool.alumnos = null;
+                                   pintar(); } },
+                p => p.afterSchool.ocupacion*100),
         reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
               alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
         reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
@@ -2062,10 +1915,11 @@ function montarUnidades(contenedor){
       columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturacion', 'Costo'],
       calcular: () => MOTOR.baby(est.baby),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
+      /* Un deslizador por franja, y cada uno se resincroniza con lo que haya
+         en su celda de alumnos. */
+      sincronizar: r => r.detalle.map(d => d.cupos ? d.alumnos / d.cupos * 100 : 0),
       apoyo: r => {
-        /* El potencial se calcula con la tarjeta a plena ocupacion y con los
-           precios que haya en pantalla, no con una cifra escrita. */
-        const lleno = MOTOR.baby(Object.assign({}, est.baby, { ocupacion:1, alumnos:null }));
+        const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
         return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
                F.dinero(lleno.facturacion * 12) + ' al año a plena ocupacion';
       },
@@ -2080,16 +1934,25 @@ function montarUnidades(contenedor){
         F.dinero(d.facturacion),
         d.costo ? '−' + F.dinero(d.costo) : '—',
       ]),
-      controles: () => [
-        reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.baby.ocupacion*100,
-              formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.baby.ocupacion = x/100; est.baby.alumnos = null; pintar(); } },
-            p => p.baby.ocupacion*100),
+      /* Las dos franjas tienen planes distintos, asi que llenar una no vale
+         lo mismo que llenar la otra: cada una lleva su propio deslizador. */
+      controles: () => MOTOR.BABY_FRANJAS.map((fr, i) => {
+        const cupos = fr.sesiones * fr.cuposSesion / fr.vecesSemana;
+        return regSync({ etiqueta:'Ocupacion · ' + fr.nombre, tipo:'range', min:0, max:100, paso:1,
+                         valor:0, formato:x => x + '%', ancho:true,
+                         alCambiar:x => {
+                           const actual = MOTOR.baby(est.baby).detalle.map(d => d.alumnos);
+                           actual[i] = Math.round(cupos * x / 100);
+                           est.baby.alumnos = actual;
+                           pintar();
+                         } },
+                       () => 0);
+      }).concat([
         /* Editable porque puede atenderla un profesor de Kinder, y eso
            cambia el costo por hora. */
         reg({ etiqueta:'Costo por hora', tipo:'number', min:0, max:500, paso:1, valor:est.baby.costoHora,
               ancho:true, alCambiar:x => { est.baby.costoHora = x; pintar(); } }, p => p.baby.costoHora),
-      ],
+      ]),
     },
   ];
 
@@ -2156,7 +2019,9 @@ function montarUnidades(contenedor){
     lado.appendChild(cifras);
 
     const controles = nodo('div', 'controles');
+    const desde = sincronizables.length;
     ficha.controles().forEach(w => controles.appendChild(w));
+    const suyos = sincronizables.slice(desde);
     lado.appendChild(controles);
     cuerpo.appendChild(lado);
     art.appendChild(cuerpo);
@@ -2165,7 +2030,7 @@ function montarUnidades(contenedor){
     art.appendChild(nodo('p', 'nota-costo', ficha.nota ? ficha.nota() : NOTA_COSTO));
 
     contenedor.appendChild(art);
-    return { ficha, pastillaCaja, apoyo, aviso, tbody, refs, pastillaNodo:null };
+    return { ficha, pastillaCaja, apoyo, aviso, tbody, refs, pastillaNodo:null, sincronizables:suyos };
   });
 
   barraReinicio(contenedor, 'Reiniciar valores');
@@ -2185,39 +2050,22 @@ function montarUnidades(contenedor){
       t.aviso.style.display = av ? '' : 'none';
       if (av) t.aviso.textContent = av;
 
-      t.tbody.textContent = '';
-      for (const cruda of t.ficha.filas(r)){
-        /* Una fila es un array de celdas, o {celdas, clase} cuando hay que
-           distinguirla: en Veranito las dos ultimas no son temporadas sino
-           el total y su prorrateo, y leerlas como dos temporadas mas seria
-           contar el año dos veces. */
-        const fila = Array.isArray(cruda) ? cruda : cruda.celdas;
-        const tr = document.createElement('tr');
-        if (!Array.isArray(cruda) && cruda.clase) tr.className = cruda.clase;
-        fila.forEach((celda, i) => {
-          const td = document.createElement(i === 0 ? 'th' : 'td');
-          if (i === 0) td.scope = 'row'; else td.className = 'num';
-          /* Una celda puede ser texto o un campo editable. Editar dentro de
-             la tabla y no en un control aparte es lo que permite decir "y si
-             ParKour va lleno y ParKids a la mitad" sin salir del desglose. */
-          if (celda && typeof celda === 'object' && celda.editable){
-            const inp = document.createElement('input');
-            inp.type = 'number'; inp.className = 'celda-editable';
-            inp.min = celda.min != null ? celda.min : 0;
-            if (celda.max != null) inp.max = celda.max;
-            inp.step = celda.paso != null ? celda.paso : 1;
-            inp.value = celda.valor;
-            inp.addEventListener('input', () => {
-              const v = Number(inp.value);
-              if (Number.isFinite(v)) celda.alCambiar(v);
-            });
-            td.appendChild(inp);
-          } else {
-            td.textContent = celda;
-          }
-          tr.appendChild(td);
+      /* La tabla se construye una vez y luego solo se actualiza. Rehacerla
+         en cada repintado destruia el campo que se estaba escribiendo: por
+         eso solo aceptaba un digito y obligaba a volver a hacer clic. */
+      const filas = t.ficha.filas(r);
+      if (!t.filasDom) t.filasDom = filas.map(cruda => crearFila(t.tbody, cruda));
+      filas.forEach((cruda, i) => actualizarFila(t.filasDom[i], cruda));
+
+      /* El deslizador vuelve al valor que dicen los alumnos. Se calcula
+         desde alumnos sobre cupos, nunca desde la facturacion: el precio no
+         cambia la ocupacion. El que tiene el foco no se toca. */
+      if (t.ficha.sincronizar){
+        const valores = t.ficha.sincronizar(r);
+        t.sincronizables.forEach((c, i) => {
+          if (valores[i] == null) return;
+          if (document.activeElement !== c.inp) c.restaurar(Math.round(valores[i]));
         });
-        t.tbody.appendChild(tr);
       }
 
       t.refs.facturacion.textContent = F.dinero(r.facturacion);
