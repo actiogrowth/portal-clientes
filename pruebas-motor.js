@@ -152,8 +152,8 @@ esIgual(MOTOR.AS_CUPOS_TOTALES, 212, 'cupos totales sin Baby & Me entre semana')
 const as100 = MOTOR.afterSchool({ ocupacion: 1 });
 ok(as100.facturacion, 32687.04, 'al 100%: facturacion', 0.01);
 esIgual(as100.alumnos, 212, 'al 100%: alumnos');
-ok(as100.costo, 7014.60, 'al 100%: costo (sin Baby & Me entre semana)', 0.01);
-ok(as100.margen, 25672.44, 'al 100%: margen', 0.01);
+ok(as100.costo, 6798.10, 'al 100%: costo (sin Baby & Me, que es unidad propia)', 0.01);
+ok(as100.margen, 25888.94, 'al 100%: margen', 0.01);
 
 /* El conteo real de hoy son 80 alumnos. Con redondeo independiente por
    disciplina no hay ninguna ocupacion que de 80: salta de 78 a 81, porque
@@ -175,38 +175,69 @@ for (const o of [0, 0.25, 0.377358, 0.5, 0.6, 0.777, 0.9, 1]){
 
 const as60 = MOTOR.afterSchool({ ocupacion: 0.6 });
 esIgual(as60.alumnos, 127, 'al 60%: alumnos');
-ok(as60.costo, 7014.60, 'al 60%: costo', 0.01);
+ok(as60.costo, 6798.10, 'al 60%: costo', 0.01);
 
 /* La regla que confirmo el equipo: al llenar los cupos que ya existen el
    costo no se mueve, porque las clases ya se dictan. Es lo que sostiene el
    hallazgo de la seccion 2 y lo que separa a After School de Kinder. */
 ok(as100.costo - as60.costo, 0, 'de 128 a 212 alumnos el costo no cambia', 0);
-ok(MOTOR.afterSchool({ ocupacion: 0.35 }).costo, 7014.60, 'ni siquiera al 35%', 0.01);
+ok(MOTOR.afterSchool({ ocupacion: 0.35 }).costo, 6798.10, 'ni siquiera al 35%', 0.01);
 
 /* ==========================================================================
    BABY AND ME
-   Unidad propia desde la spec v2. Cero alumnos hoy: la tarjeta tiene que
-   decirlo sin disfrazarlo, y su potencial es el argumento.
+
+   Dos franjas con precio distinto, no una sola sesion:
+
+     Sabado      2 sesiones de 1 h, 8 niños cada una = 16 cupos, plan $97
+     Entre semana 4 sesiones de 1 h (lunes a jueves), 8 niños cada una.
+                  Cada niño asiste dos veces por semana, asi que caben 16,
+                  no 32, y pagan plan de $165.
+
+   El costo escala con las sesiones que se dictan: una franja sin alumnos no
+   se dicta y no cuesta. Es la misma regla de After School.
    ========================================================================== */
 console.log('\nBABY AND ME');
 
-esIgual(MOTOR.BABY_CUPOS, 8, 'ocho cupos');
+esIgual(MOTOR.BABY_CUPOS, 32, 'treinta y dos cupos entre las dos franjas');
 esIgual(MOTOR.BABY_ALUMNOS_HOY, 0, 'cero alumnos hoy');
 
 const b100 = MOTOR.baby({ ocupacion: 1 });
-ok(b100.facturacion, 776, 'al 100%: facturacion mensual', 0);
-ok(b100.facturacion * 12, 9312, 'al 100%: potencial anual', 0);
-ok(b100.costo, 433, 'al 100%: costo mensual (1 profesor, 4 h/sem)', 0.01);
-ok(b100.costo * 12, 5196, 'al 100%: costo anual', 0.5);
-esIgual(b100.alumnos, 8, 'al 100%: alumnos');
+esIgual(b100.alumnos, 32, 'a plena ocupacion: 32 alumnos');
+ok(b100.facturacion, 4192, 'a plena ocupacion: facturacion mensual', 0);
+ok(b100.facturacion * 12, 50304, 'a plena ocupacion: facturacion anual', 0);
+ok(b100.costo, 649.50, 'a plena ocupacion: costo (6 sesiones x 1 h x 4,33 x $25)', 0.5);
+ok(b100.margen, 3542, 'a plena ocupacion: margen', 1);
+ok(b100.margen / b100.facturacion * 100, 85, 'a plena ocupacion: margen sobre facturacion', 0.5);
 
-/* Sin alumnos no se dicta, y lo que no se dicta no cuesta: la misma regla
-   que saca al sabado del costo de hoy. */
+/* El desglose de la tarjeta tiene que sumar su propio total. */
+esIgual(b100.detalle.length, 2, 'dos franjas en el desglose');
+ok(b100.detalle.reduce((s, d) => s + d.facturacion, 0), b100.facturacion, 'el desglose suma la facturacion', 0.01);
+ok(b100.detalle.reduce((s, d) => s + d.costo, 0), b100.costo, 'y el costo', 0.01);
+ok(b100.detalle[0].cupos, 16, 'sabado: 16 cupos', 0);
+ok(b100.detalle[0].precio, 97, 'sabado: plan de $97', 0);
+ok(b100.detalle[1].cupos, 16, 'entre semana: 16 cupos', 0);
+ok(b100.detalle[1].precio, 165, 'entre semana: plan de $165', 0);
+ok(b100.detalle[0].facturacion, 1552, 'sabado: facturacion', 0);
+ok(b100.detalle[1].facturacion, 2640, 'entre semana: facturacion', 0);
+
+/* Sin alumnos no se dicta, y lo que no se dicta no cuesta. */
 const b0 = MOTOR.baby({ ocupacion: 0 });
 ok(b0.facturacion, 0, 'sin alumnos: no factura', 0);
 ok(b0.costo, 0, 'sin alumnos: no cuesta', 0);
 ok(b0.margen, 0, 'sin alumnos: margen cero', 0);
 
+/* El costo escala por franja: si solo hay alumnos en el sabado, solo se
+   dictan sus dos sesiones. */
+const bSoloSab = MOTOR.baby({ alumnos: [16, 0] });
+ok(bSoloSab.costo, 2 * 4.33 * 25, 'solo sabado: dos sesiones dictadas', 0.5);
+ok(bSoloSab.facturacion, 1552, 'solo sabado: factura solo su franja', 0);
+const bSoloSem = MOTOR.baby({ alumnos: [0, 16] });
+ok(bSoloSem.costo, 4 * 4.33 * 25, 'solo entre semana: cuatro sesiones dictadas', 0.5);
+
+/* El costo por hora es editable: puede atenderla un profesor de Kinder. */
+const bCaro = MOTOR.baby({ ocupacion: 1, costoHora: 40 });
+ok(bCaro.costo, 6 * 4.33 * 40, 'costo por hora editable', 0.5);
+esIgual(bCaro.facturacion === b100.facturacion, true, 'y no toca la facturacion');
 /* ==========================================================================
    CUMPLEANOS
    ========================================================================== */
@@ -232,11 +263,6 @@ ok(c60.detalle[0].facturacion, c60.facturacion, 'y suma la facturacion', 0.01);
 ok(c60.detalle[0].costo, c60.costo, 'y el costo', 0.01);
 ok(c60.detalle[0].cantidad, 10, 'con los eventos del mes', 0);
 
-const bDet = MOTOR.baby({ ocupacion: 1 }).detalle;
-esIgual(bDet.length, 1, 'Baby and Me: su unica sesion');
-ok(bDet[0].facturacion, 776, 'y suma su facturacion', 0.01);
-ok(bDet[0].costo, 433, 'y su costo', 0.01);
-ok(bDet[0].cupos, 8, 'con sus ocho cupos', 0);
 
 /* ==========================================================================
    VERANITO
@@ -315,18 +341,18 @@ const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
 const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
-ok(p60.ingresos, 797325, 'al 60%: ingresos', 50);
-ok(p60.margenBrutoPct * 100, 62.9, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 201234, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 25.2, 'al 60%: EBITDA %', 0.15);
+ok(p60.ingresos, 822945, 'al 60%: ingresos', 50);
+ok(p60.margenBrutoPct * 100, 64.0, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 226854, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 27.6, 'al 60%: EBITDA %', 0.15);
 
-ok(p80.ingresos, 1064670, 'al 80%: ingresos', 50);
-ok(p80.margenBrutoPct * 100, 64.6, 'al 80%: margen bruto %', 0.15);
-ok(p80.ebitda, 387497, 'al 80%: EBITDA', 50);
+ok(p80.ingresos, 1098558, 'al 80%: ingresos', 50);
+ok(p80.margenBrutoPct * 100, 65.7, 'al 80%: margen bruto %', 0.15);
+ok(p80.ebitda, 421385, 'al 80%: EBITDA', 50);
 
-ok(p100.ingresos, 1325750, 'al 100%: ingresos', 50);
-ok(p100.margenBrutoPct * 100, 68.0, 'al 100%: margen bruto %', 0.15);
-ok(p100.ebitda, 601959, 'al 100%: EBITDA', 50);
+ok(p100.ingresos, 1366742, 'al 100%: ingresos', 50);
+ok(p100.margenBrutoPct * 100, 69.0, 'al 100%: margen bruto %', 0.15);
+ok(p100.ebitda, 642951, 'al 100%: EBITDA', 50);
 
 /* ==========================================================================
    EL DESLIZADOR NUNCA PUEDE BAJAR EL EBITDA
@@ -394,7 +420,7 @@ ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
 ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
-ok(p100.ingresos - p60.ingresos, 528426, 'la ocupacion mueve los ingresos', 100);
+ok(p100.ingresos - p60.ingresos, 543798, 'la ocupacion mueve los ingresos', 100);
 esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
 
 /* El contraste que hay que poder explicar: el margen bruto cae respecto a
@@ -518,6 +544,94 @@ const pl6 = MOTOR.plan({ total:96000, pctPrimero:0, meses:12, pctFinal:0 });
 ok(pl6.mensualidad, 8000, 'sin primer pago: doce cuotas de 8.000', 0);
 esIgual(pl6.suma === 96000, true, 'sin primer pago tambien cuadra');
 
+
+/* ==========================================================================
+   AFTER SCHOOL EDITABLE POR DISCIPLINA
+   El deslizador global reparte, pero cada disciplina se puede tocar aparte:
+   ParKour al 100% y ParKids al 50% es una pregunta real en la reunion.
+   ========================================================================== */
+console.log('\nAFTER SCHOOL · POR DISCIPLINA');
+
+const asBase = MOTOR.afterSchool({ ocupacion: 1 });
+const nDis = asBase.detalle.length;
+esIgual(nDis, 6, 'cinco disciplinas mas el sabado');
+
+/* alumnos explicito gana sobre la ocupacion. */
+const asMano = MOTOR.afterSchool({ alumnos: [40, 20, 20, 10, 8, 38] });
+esIgual(asMano.alumnos, 136, 'los alumnos explicitos mandan');
+esIgual(asMano.detalle[0].alumnos, 40, 'ParKour 6-14 al tope');
+esIgual(asMano.detalle[4].alumnos, 8, 'ParKids a la mitad');
+ok(asMano.detalle.reduce((s, d) => s + d.facturacion, 0), asMano.facturacion,
+   'el desglose sigue sumando la facturacion', 0.01);
+
+/* Una disciplina sin alumnos no se dicta y no cuesta; las demas si. */
+const asSinParKids = MOTOR.afterSchool({ alumnos: [40, 40, 20, 20, 0, 76] });
+ok(asBase.costo - asSinParKids.costo, 4 * MOTOR.SEM_MES * 25,
+   'vaciar ParKids quita solo sus horas', 0.5);
+
+/* El costo por hora tambien es editable, disciplina por disciplina. */
+const asCaro = MOTOR.afterSchool({ ocupacion: 1, costosHora: [100, 50, 43, 43, 25, null] });
+ok(asCaro.costo - asBase.costo, 8 * MOTOR.SEM_MES * (100 - 50),
+   'subir el costo por hora de una disciplina', 0.5);
+esIgual(asCaro.facturacion === asBase.facturacion, true, 'y no toca la facturacion');
+
+/* ==========================================================================
+   OCUPACION POR UNIDAD EN 2027
+   Un deslizador por unidad en vez de uno solo: se puede mostrar Kinder al
+   80% con After School al 50% y ver el total.
+   ========================================================================== */
+console.log('\n2027 · OCUPACION POR UNIDAD');
+
+const uniforme = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
+const porUnidad = MOTOR.resumen2027({
+  ocupaciones: { kinder:0.60, afterSchool:0.60, veranito:0.60, cumpleanos:0.60, baby:0.60 },
+  gastosMes: 25000 });
+ok(porUnidad.ingresos, uniforme.ingresos, 'todas al 60% da lo mismo que el deslizador unico', 1);
+
+const mixto = MOTOR.resumen2027({
+  ocupaciones: { kinder:0.80, afterSchool:0.50, veranito:0.60, cumpleanos:0.60, baby:0.60 },
+  gastosMes: 25000 });
+esIgual(mixto.ingresos !== uniforme.ingresos, true, 'mover una sola unidad cambia el total');
+ok(mixto.ingresos - mixto.manoDeObra, mixto.margenBruto, 'el margen bruto sigue cuadrando', 0.5);
+ok(mixto.margenBruto - mixto.gastos, mixto.ebitda, 'y el EBITDA tambien', 0.5);
+
+/* Subir una sola unidad tiene que subir los ingresos del total. */
+const soloKinder = MOTOR.resumen2027({
+  ocupaciones: { kinder:1, afterSchool:0.60, veranito:0.60, cumpleanos:0.60, baby:0.60 },
+  gastosMes: 25000 });
+esIgual(soloKinder.ingresos > uniforme.ingresos, true, 'subir solo Kinder sube el total');
+const soloBaby = MOTOR.resumen2027({
+  ocupaciones: { kinder:0.60, afterSchool:0.60, veranito:0.60, cumpleanos:0.60, baby:1 },
+  gastosMes: 25000 });
+esIgual(soloBaby.ingresos > uniforme.ingresos, true, 'y subir solo Baby and Me tambien');
+
+/* ==========================================================================
+   PLAN DE PAGOS POR MONTOS
+   Los campos editables son montos, no porcentajes: total, pago inicial,
+   numero de mensualidades y pago final.
+   ========================================================================== */
+console.log('\nPLAN POR MONTOS');
+
+const pm = MOTOR.plan({ total:71500, primero:25000, meses:10, final:7750 });
+ok(pm.primero, 25000, 'pago inicial', 0);
+ok(pm.mensualidad, 3875, 'diez mensualidades de 3.875', 0);
+ok(pm.final, 7750, 'pago final', 0);
+esIgual(pm.suma === 71500, true, 'el desglose suma el total');
+esIgual(pm.ultimaDifiere, false, 'las diez cuotas son iguales');
+esIgual(pm.valido, true, 'plan valido');
+ok(pm.pctPrimero * 100, 35, 'el porcentaje del inicial se deriva del monto', 0.1);
+ok(pm.pctFinal * 100, 10.8, 'y el del final tambien', 0.1);
+
+/* Si los dos pagos se pasan del total, se dice en vez de mostrar una cuota
+   negativa. */
+const pmMal = MOTOR.plan({ total:71500, primero:50000, meses:10, final:30000 });
+esIgual(pmMal.valido, false, 'inicial mas final por encima del total es invalido');
+
+/* Resto indivisible: el ajuste va a la ultima y se declara. */
+const pmResto = MOTOR.plan({ total:100000, primero:30000, meses:6, final:0 });
+esIgual(pmResto.suma === 100000, true, 'con resto indivisible sigue sumando');
+esIgual(pmResto.ultimaDifiere, true, 'y la ultima absorbe el ajuste');
+
 /* ==========================================================================
    ENTREGABLES
    El conteo por fase es una afirmacion de la presentacion: si alguien
@@ -567,18 +681,20 @@ esIgual(transversal.desde === 0 && transversal.hasta === 11, true,
    ========================================================================== */
 console.log('\nINVERSION');
 
-ok(DATOS.INVERSION.total, 66000, 'monto del proyecto', 0);
-ok(DATOS.INVERSION.pctPrimero * 100, 20, 'porcentaje del pago inicial', 0);
-ok(DATOS.INVERSION.cuotas, 11, 'numero de cuotas', 0);
+ok(DATOS.INVERSION.total, 71500, 'monto del proyecto', 0);
+ok(DATOS.INVERSION.primero, 25000, 'pago inicial', 0);
+ok(DATOS.INVERSION.cuotas, 10, 'numero de mensualidades', 0);
+ok(DATOS.INVERSION.final, 7750, 'pago final', 0);
 
-const inv = MOTOR.plan({ total:DATOS.INVERSION.total, pctPrimero:DATOS.INVERSION.pctPrimero,
-                         meses:DATOS.INVERSION.cuotas, pctFinal:0 });
-ok(inv.primero, 13200, 'pago inicial del 20%', 0);
-ok(inv.mensualidad, 4800, 'once cuotas de 4.800', 0);
-esIgual(inv.ultimaDifiere, false, 'las once cuotas son iguales');
-ok(inv.final, 0, 'sin pago final', 0);
-esIgual(inv.suma === 66000, true, 'el desglose suma el total');
-esIgual(inv.valido, true, 'el plan es valido');
+const inv = MOTOR.plan({ total:DATOS.INVERSION.total, primero:DATOS.INVERSION.primero,
+                         meses:DATOS.INVERSION.cuotas, final:DATOS.INVERSION.final });
+ok(inv.primero, 25000, 'el desglose arranca con los 25.000', 0);
+ok(inv.mensualidad, 3875, 'diez cuotas de 3.875', 0);
+ok(inv.final, 7750, 'y el pago final', 0);
+ok(inv.pctPrimero * 100, 35, 'el inicial es el 35% del total', 0.1);
+ok(inv.pctFinal * 100, 10.8, 'y el final el 10,8%', 0.1);
+esIgual(inv.ultimaDifiere, false, 'las diez cuotas son iguales');
+esIgual(inv.suma === 71500, true, 'el desglose suma el total');
 
 /* ==========================================================================
    RELACIONES QUE SE DICEN EN VOZ ALTA

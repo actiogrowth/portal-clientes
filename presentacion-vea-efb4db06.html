@@ -238,6 +238,84 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
    Lo que el cliente ve primero es lo que logra al terminar cada fase; los
    entregables estan debajo para quien pregunte.
    ========================================================================== */
+
+/* ==========================================================================
+   LINEA DE TIEMPO CON PUNTOS
+   Responde a otra pregunta que el gantt: no "que hace cada unidad" sino
+   "cuanto hay y cuando". Los puntos alternan arriba y abajo para que los
+   nombres no se pisen.
+   ========================================================================== */
+.linea{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:18px 24px 14px;margin-bottom:14px}
+.lt-tramos{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-bottom:10px}
+.lt-tramo{background:var(--marca-tenue);border-radius:7px;padding:6px 12px;
+  border-left:3px solid var(--marca-verde-profundo);overflow:hidden}
+.lt-tramo-num{font-size:13px;font-weight:700;color:var(--marca-verde-profundo);
+  white-space:nowrap}
+
+/* El eje va al medio y los puntos se posicionan por porcentaje sobre el,
+   alternando arriba y abajo. El nombre NO va siempre visible: con 35
+   entregables en un eje de doce meses las etiquetas se pisarian unas a
+   otras. Sale al pasar el cursor o al enfocar con el teclado. */
+.lt-carril{position:relative;height:96px;margin:0 0 10px}
+.lt-eje{position:absolute;left:0;right:0;top:50%;height:2px;
+  background:var(--marca-borde-suave);border-radius:2px}
+.lt-punto{position:absolute;top:50%;left:0;width:16px;height:16px;padding:0;
+  background:none;border:none;cursor:pointer;font-family:var(--font)}
+.lt-punto.arriba{transform:translate(-50%,calc(-50% - 20px))}
+.lt-punto.abajo{transform:translate(-50%,calc(-50% + 20px))}
+/* Un tallo hasta el eje: sin el, el punto flota y se pierde su posicion. */
+.lt-punto::before{content:;position:absolute;left:50%;width:1px;height:20px;
+  background:var(--marca-borde-suave);transform:translateX(-50%)}
+.lt-punto.arriba::before{top:100%}
+.lt-punto.abajo::before{bottom:100%}
+.lt-marca{position:absolute;inset:2px;border-radius:50%;
+  background:var(--marca-verde-profundo);border:2px solid var(--superficie);
+  box-shadow:0 0 0 1px var(--marca-verde-profundo);transition:.12s}
+.lt-punto.transversal .lt-marca{background:var(--marca-verde-claro);
+  box-shadow:0 0 0 1px var(--marca-verde-claro)}
+.lt-punto:hover, .lt-punto:focus-visible{z-index:5;outline:none}
+.lt-punto:hover .lt-marca, .lt-punto:focus-visible .lt-marca{transform:scale(1.45)}
+.lt-punto[aria-current=true]{z-index:4}
+.lt-punto[aria-current=true] .lt-marca{background:var(--estado-atencion);
+  box-shadow:0 0 0 1px var(--estado-atencion);transform:scale(1.45)}
+
+/* La etiqueta aparece al pasar el cursor. Se saca del flujo para que no
+   empuje nada y pueda montarse sobre los puntos vecinos. */
+.lt-nombre{position:absolute;left:50%;transform:translateX(-50%);
+  background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  font-size:12px;font-weight:600;line-height:1.3;white-space:nowrap;
+  padding:6px 11px;border-radius:7px;box-shadow:0 4px 14px var(--marca-sombra-fuerte);
+  opacity:0;pointer-events:none;transition:opacity .12s}
+.lt-punto.arriba .lt-nombre{bottom:calc(100% + 7px)}
+.lt-punto.abajo .lt-nombre{top:calc(100% + 7px)}
+/* Cerca de los bordes se ancla al lado con espacio. */
+.lt-nombre.a-la-derecha{left:0;transform:none}
+.lt-nombre.a-la-izquierda{left:auto;right:0;transform:none}
+/* Solo al pasar el cursor o al enfocar con el teclado. El punto elegido se
+   distingue por el color de la marca; su nombre ya esta en el detalle de
+   abajo, y dejar tambien el rotulo montado taparia a los vecinos. */
+.lt-punto:hover .lt-nombre, .lt-punto:focus-visible .lt-nombre{opacity:1}
+.lt-meses{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
+
+/* La descripcion aparece debajo, no en un globo: proyectado, un globo se
+   pierde y tapa lo que hay detras. */
+.lt-detalle{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
+  border-radius:12px;padding:16px 20px;margin-bottom:14px}
+.ltd-cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.ltd-fase{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--texto-secundario)}
+.ltd-nombre{font-size:18px;font-weight:700;color:var(--marca-verde-profundo);margin-bottom:5px}
+.ltd-nota{font-size:14px;line-height:1.5;color:var(--texto-secundario);max-width:95ch}
+
+/* Celda editable dentro de una tabla de desglose. */
+.celda-editable{font-family:var(--font);font-size:15px;font-weight:600;text-align:right;
+  font-variant-numeric:tabular-nums;width:72px;padding:4px 7px;
+  border:1px solid var(--borde);border-radius:6px;background:var(--superficie-sutil);
+  color:var(--texto-principal)}
+.celda-editable:focus{outline:2px solid var(--marca-borde-suave);outline-offset:-1px;
+  background:var(--superficie)}
+
 /* La reticula del gantt es la del portal: una columna fija para el rotulo y
    una flexible para los meses, compartida entre la cabecera de tiempos y
    cada fila de unidad. Es lo unico que hace que las celdas caigan en la
@@ -455,10 +533,10 @@ table.resumen th:last-child, table.resumen td:last-child{
    SECCION 6 · INVERSION
    ========================================================================== */
 .inversion-caja{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
-  border-radius:16px;padding:44px 40px;text-align:center}
+  border-radius:16px;padding:26px 32px;text-align:center}
 .inversion-caja .etiqueta{font-size:13px;font-weight:600;letter-spacing:1.1px;
   text-transform:uppercase;color:var(--texto-sobre-oscuro-2);display:block;margin-bottom:8px}
-.inversion-caja b{font-size:82px;font-weight:800;letter-spacing:-3.5px;
+.inversion-caja b{font-size:41px;font-weight:800;letter-spacing:-1.8px;
   font-variant-numeric:tabular-nums;display:block;line-height:1}
 /* Solo aparece mientras el monto siga siendo el de ejemplo. Desaparece sola
    cuando alguien pone la cifra real, asi que no hay que acordarse de
@@ -672,7 +750,8 @@ const MOTOR = (function(){
       { nombre:'Telas Adultos',   horas:1, costoHora:AS_PROFESOR+AS_ASISTENTE },
       { nombre:'Telas 6-14',      horas:2, costoHora:AS_PROFESOR+AS_ASISTENTE },
       { nombre:'ParKids',         horas:3, costoHora:AS_PROFESOR },
-      { nombre:'Baby & Me',       horas:2, costoHora:AS_PROFESOR },
+      /* Baby & Me tenia aqui 2 h. Se fueron con la unidad al separarla: las
+         mismas horas no se pagan dos veces. */
     ],
   };
 
@@ -733,21 +812,29 @@ const MOTOR = (function(){
     const detalle = [];
 
     AS_DISCIPLINAS.forEach((d, i) => {
-      const cupos = franjas[i], al = reparto[i];
+      const cupos = franjas[i];
+      /* alumnos explicito gana sobre el reparto: la tabla de la tarjeta
+         permite editar cada disciplina por separado, que es como se
+         pregunta "y si ParKour va lleno y ParKids a la mitad". */
+      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0)) : reparto[i];
+      const costoHora = (c.costosHora && c.costosHora[i] != null) ? c.costosHora[i] : d.costoHora;
       const ingreso = al * asPrecio(d, c);
       /* Sin alumnos no se dicta, y lo que no se dicta no cuesta. Llenar los
          cupos que ya existen, en cambio, no mueve el costo: la clase ya se
          esta dictando. */
-      const gasto = al > 0 ? d.horasSem * SEM_MES * d.costoHora : 0;
+      const gasto = al > 0 ? d.horasSem * SEM_MES * costoHora : 0;
       alumnos += al; facturacion += ingreso; costo += gasto;
-      detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto });
+      detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto,
+                     costoHora, horasSem:d.horasSem });
     });
 
-    const alSab = reparto[reparto.length - 1];
+    const iSab = AS_DISCIPLINAS.length;
+    const alSab = c.alumnos ? Math.max(0, Math.round(c.alumnos[iSab] || 0)) : reparto[iSab];
     const ingSab = alSab * c.precio1v;
     const gastoSab = alSab > 0 ? AS_COSTO_SABADO : 0;
     alumnos += alSab; facturacion += ingSab; costo += gastoSab;
-    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab, costo:gastoSab });
+    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab,
+                   costo:gastoSab, esSabado:true });
 
     return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
   }
@@ -758,21 +845,52 @@ const MOTOR = (function(){
      Unidad propia desde la spec v2, separada de After School por su
      potencial. Hoy no tiene un solo alumno, y la tarjeta lo dice: el
      argumento es el potencial, no un resultado que no existe.
+
+     Dos franjas con precio distinto:
+
+       Sabado        2 sesiones de 1 h, 8 niños cada una. Cada niño va una
+                     vez por semana, asi que caben 16 y pagan plan de $97.
+       Lunes a jueves 4 sesiones de 1 h, 8 niños cada una. Cada niño va dos
+                     veces por semana, asi que caben 16 —no 32— y pagan
+                     plan de $165.
+
+     Las dos horas del sabado son las mismas que estaban dentro del costo
+     del sabado de After School. Se quitaron de alli al separar la unidad:
+     las mismas horas no se pagan dos veces.
      ====================================================================== */
-  const BABY_CUPOS = 8;
+  const BABY_FRANJAS = [
+    { nombre:'Sabado',         sesiones:2, cuposSesion:8, horas:1, vecesSemana:1, precio:97 },
+    { nombre:'Lunes a jueves', sesiones:4, cuposSesion:8, horas:1, vecesSemana:2, precio:165 },
+  ];
+  /* Cupos de una franja: las plazas de todas sus sesiones repartidas entre
+     las veces que cada niño asiste. Cuatro sesiones de ocho con asistencia
+     dos veces por semana son dieciseis niños, no treinta y dos. */
+  const babyCuposFranja = f => f.sesiones * f.cuposSesion / f.vecesSemana;
+  const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCuposFranja(f), 0);
   const BABY_ALUMNOS_HOY = 0;
-  const BABY_PARTIDA = { ocupacion:0, precio:97, horasSem:4, costoHora:AS_PROFESOR };
+  const BABY_PARTIDA = { ocupacion:0, costoHora:AS_PROFESOR };
 
   function baby(p){
     const c = Object.assign({}, BABY_PARTIDA, p || {});
-    const alumnos = Math.round(BABY_CUPOS * c.ocupacion);
-    const facturacion = alumnos * c.precio;
-    /* Misma regla que en After School: sin alumnos no se dicta, y lo que no
-       se dicta no cuesta. Por eso hoy Baby and Me no arrastra costo. */
-    const costo = alumnos > 0 ? c.horasSem * SEM_MES * c.costoHora : 0;
-    const detalle = [{ nombre:'Sesion semanal', cupos:BABY_CUPOS, alumnos,
-                       precio:c.precio, facturacion, costo,
-                       horas:c.horasSem }];
+    const detalle = [];
+    let alumnos = 0, facturacion = 0, costo = 0;
+
+    BABY_FRANJAS.forEach((f, i) => {
+      const cupos = babyCuposFranja(f);
+      /* alumnos explicito gana sobre la ocupacion: la tarjeta permite
+         editar cada franja por separado. */
+      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0))
+                           : Math.round(cupos * c.ocupacion);
+      const precio = c.precios ? c.precios[i] : f.precio;
+      const ing = al * precio;
+      /* El costo escala con las sesiones que se dictan: una franja sin
+         alumnos no se dicta y no cuesta. */
+      const gasto = al > 0 ? f.sesiones * f.horas * SEM_MES * c.costoHora : 0;
+      alumnos += al; facturacion += ing; costo += gasto;
+      detalle.push({ nombre:f.nombre, cupos, alumnos:al, precio, facturacion:ing, costo:gasto,
+                     sesiones:f.sesiones, horas:f.horas, vecesSemana:f.vecesSemana });
+    });
+
     return { alumnos, cupos:BABY_CUPOS, facturacion, costo, detalle,
              margen: facturacion - costo };
   }
@@ -928,20 +1046,35 @@ const MOTOR = (function(){
     return conPorcentajes(Object.assign({ anio }, ANIOS[anio]));
   }
 
+  /* Una ocupacion por unidad. El deslizador unico se conserva como atajo
+     —ocupacion aplica a las cinco— porque es lo que usa el resto del motor,
+     pero la seccion 3 mueve cada unidad por su lado. */
+  function ocupacionesDe(p){
+    const base = (p && p.ocupacion !== undefined) ? p.ocupacion : OCUPACION_2027_PARTIDA;
+    const o = Object.assign(
+      { kinder:base, afterSchool:base, veranito:base, cumpleanos:base, baby:base },
+      (p && p.ocupaciones) || {});
+    return o;
+  }
+
   function resumen2027(p){
-    const o = p && p.ocupacion !== undefined ? p.ocupacion : OCUPACION_2027_PARTIDA;
+    const o = ocupacionesDe(p);
     const gastosMes = p && p.gastosMes !== undefined ? p.gastosMes : GASTOS_MES_PARTIDA;
 
-    const mes = escenario(o);                       // Kinder, AS, Cumpleaños, Baby and Me
-    const vMay = veranito({ ocupacion:o });
-    const vEne = veranito({ ocupacion:o });
+    const k = kinder({ ninos: Math.round(KINDER_CAPACIDAD * o.kinder) });
+    const a = afterSchool({ ocupacion: o.afterSchool });
+    const c = cumpleanos({ eventosSemana: CUMPLE_TOPE_SEMANA * o.cumpleanos });
+    const b = baby({ ocupacion: o.baby });
+    const mes = Object.assign(consolidar([k,a,c,b]), { kinder:k, afterSchool:a, cumpleanos:c, baby:b });
+    const vMay = veranito({ ocupacion:o.veranito });
+    const vEne = veranito({ ocupacion:o.veranito });
 
     const ingresos = mes.facturacion * 12 + vMay.facturacion + vEne.facturacion + OTROS_INGRESOS;
     const manoDeObra = mes.costo * 12 + vMay.costo + vEne.costo;
 
     return conPorcentajes({
       anio: 2027, ingresos, manoDeObra, gastos: gastosMes * 12,
-      otrosIngresos: OTROS_INGRESOS, ocupacion: o, gastosMes,
+      otrosIngresos: OTROS_INGRESOS, ocupaciones: o, gastosMes,
       unidades: {
         kinder: mes.kinder, afterSchool: mes.afterSchool,
         cumpleanos: mes.cumpleanos, baby: mes.baby,
@@ -961,16 +1094,19 @@ const MOTOR = (function(){
   function plan(p){
     const total  = Math.max(0, Math.round(p.total || 0));
     const meses  = Math.max(0, Math.round(p.meses || 0));
-    const pctPri = p.pctPrimero || 0;
-    const pctFin = p.pctFinal || 0;
+    /* Los campos de la seccion 4 son montos, no porcentajes: el equipo
+       negocia en dolares. Se sigue aceptando el porcentaje para no romper a
+       quien llame asi, y el porcentaje mostrado se deriva del monto. */
+    const pctPri = p.primero != null ? (total ? p.primero / total : 0) : (p.pctPrimero || 0);
+    const pctFin = p.final   != null ? (total ? p.final   / total : 0) : (p.pctFinal   || 0);
 
     /* Invalido si los dos pagos con porcentaje se comen mas del total, o si
        sobra dinero y no hay mensualidades donde ponerlo. */
     const valido = pctPri >= 0 && pctFin >= 0 && pctPri + pctFin <= 1.0000001
                 && (meses > 0 || pctPri + pctFin >= 0.9999999);
 
-    const primero = Math.round(total * pctPri);
-    const final   = Math.round(total * pctFin);
+    const primero = p.primero != null ? Math.max(0, Math.round(p.primero)) : Math.round(total * pctPri);
+    const final   = p.final   != null ? Math.max(0, Math.round(p.final))   : Math.round(total * pctFin);
     const resto   = total - primero - final;
 
     const mensualidad = meses > 0 ? Math.floor(resto / meses) : 0;
@@ -980,6 +1116,8 @@ const MOTOR = (function(){
 
     const suma = primero + final + (meses > 0 ? mensualidad * (meses - 1) + ultima : 0);
     return { total, primero, final, meses, mensualidad, ultima, resto, suma, valido,
+             pctPrimero: total ? primero / total : 0,
+             pctFinal:   total ? final   / total : 0,
              ultimaDifiere: meses > 0 && ultima !== mensualidad };
   }
 
@@ -1004,7 +1142,7 @@ const MOTOR = (function(){
     repartirEnteros,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
-    BABY_CUPOS, BABY_ALUMNOS_HOY,
+    BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS,
     ANIOS, UNIDADES_2025, UNIDADES_2026, VERANITO_2026,
     OTROS_INGRESOS, GASTOS_MES_PARTIDA,
     OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA, OCUPACION_2027_PASO,
@@ -1034,9 +1172,10 @@ const MOTOR = (function(){
      disciplina de After School.
    ========================================================================== */
 
-/* Cifra cerrada por el equipo. Los tres campos se editan en pantalla y
-   estos son sus valores de partida: 20% al iniciar y once cuotas. */
-const INVERSION = { total:66000, pctPrimero:0.20, cuotas:11 };
+/* Cifra cerrada por el equipo. Los cuatro campos se editan en pantalla y
+   estos son sus valores de partida. Se negocia en dolares, no en
+   porcentajes: los porcentajes que se muestran se derivan del monto. */
+const INVERSION = { total:71500, primero:25000, cuotas:10, final:7750 };
 
 /* El proyecto va del 10 de septiembre de 2026 al 10 de septiembre de 2027.
    Doce meses, cuatro fases de tres meses cada una, contadas del 10 al 10:
@@ -1487,7 +1626,109 @@ function listaEntregables(lista){
   return cont;
 }
 
+/* --------------------------------------------------------------------------
+   LINEA DE TIEMPO CON LOS ENTREGABLES COMO PUNTOS
+
+   Va encima del gantt y responde a otra pregunta: no "que hace cada unidad"
+   sino "cuanto hay y cuando". Los 35 entregables se reparten sobre los doce
+   meses segun su fase, alternando arriba y abajo para que los nombres no se
+   pisen. Las fases se desglosan sobre la linea.
+
+   Los puntos se reparten dentro del tramo de su fase en vez de apilarse en
+   un mes: la hoja no fija fechas individuales y fingirlas seria inventar un
+   compromiso que nadie adquirio.
+   -------------------------------------------------------------------------- */
+function montarLinea(contenedor){
+  const linea = nodo('div', 'linea');
+
+  /* Tramos de fase sobre la linea. */
+  const tramos = nodo('div', 'lt-tramos');
+  for (const f of DATOS.FASES){
+    if (f.numero === 0) continue;
+    const t = nodo('div', 'lt-tramo');
+    t.style.gridColumn = (f.desde + 1) + ' / span ' + (f.hasta - f.desde + 1);
+    t.appendChild(nodo('span', 'lt-tramo-num', 'Fase ' + f.numero));
+    tramos.appendChild(t);
+  }
+  linea.appendChild(tramos);
+
+  /* Carril de puntos. Cada entregable recibe una posicion porcentual dentro
+     del tramo de su fase, repartida en partes iguales. */
+  const carril = nodo('div', 'lt-carril');
+  const eje = nodo('div', 'lt-eje');
+  carril.appendChild(eje);
+
+  let elegido = null;
+  const puntos = [];
+
+  for (const f of DATOS.FASES){
+    const lista = DATOS.ENTREGABLES.filter(e => e.fase === f.numero);
+    lista.forEach((e, i) => {
+      /* Reparto dentro del tramo: (i + 1) / (n + 1) deja margen en los dos
+         extremos para que ningun punto caiga sobre la division de fase. */
+      const dentro = (i + 1) / (lista.length + 1);
+      const mes = f.desde + dentro * (f.hasta - f.desde + 1);
+      const pct = mes / 12 * 100;
+
+      const p = nodo('button', 'lt-punto' + (i % 2 === 0 ? ' arriba' : ' abajo') +
+                                (f.numero === 0 ? ' transversal' : ''));
+      p.style.left = pct + '%';
+      /* El title cubre al teclado y a quien no llegue con el cursor; la
+         etiqueta visible sale al pasar por encima. */
+      p.title = e.nombre + ' · ' + e.unidad;
+      p.setAttribute('aria-label', e.nombre + ' · ' + e.unidad);
+      p.appendChild(nodo('span', 'lt-marca'));
+      const etq = nodo('span', 'lt-nombre', e.nombre);
+      /* Cerca de los bordes la etiqueta se ancla al lado que le queda
+         espacio, o se saldria del recuadro. */
+      if (pct < 12) etq.classList.add('a-la-derecha');
+      else if (pct > 88) etq.classList.add('a-la-izquierda');
+      p.appendChild(etq);
+      p.addEventListener('click', () => elegir(e, p));
+      puntos.push({ e, p, pct });
+    });
+  }
+  /* En el orden en que se ven, no en el orden de las fases: asi el
+     tabulador recorre la linea de izquierda a derecha. */
+  puntos.sort((a, b) => a.pct - b.pct).forEach(q => carril.appendChild(q.p));
+  linea.appendChild(carril);
+
+  const filaMeses = nodo('div', 'lt-meses');
+  DATOS.MESES.forEach((m, i) => filaMeses.appendChild(nodo('div', 'mo' + (i === 4 ? ' anio-nuevo' : ''), m)));
+  linea.appendChild(filaMeses);
+  contenedor.appendChild(linea);
+
+  /* La descripcion aparece debajo al hacer clic, no en un globo flotante:
+     proyectado, un globo se pierde y tapa lo que hay detras. */
+  const detalle = nodo('div', 'lt-detalle');
+  detalle.style.display = 'none';
+  contenedor.appendChild(detalle);
+
+  function elegir(e, p){
+    const mismo = elegido === e;
+    for (const q of puntos) q.p.setAttribute('aria-current', 'false');
+    if (mismo){ elegido = null; detalle.style.display = 'none'; return; }
+    elegido = e;
+    p.setAttribute('aria-current', 'true');
+    detalle.style.display = '';
+    detalle.textContent = '';
+    const cab = nodo('div', 'ltd-cab');
+    cab.appendChild(nodo('span', 'chip', e.unidad));
+    cab.appendChild(nodo('span', 'chip seg', e.segmento));
+    cab.appendChild(nodo('span', 'ltd-fase',
+      e.fase === 0 ? 'Durante todo el proyecto' : 'Fase ' + e.fase));
+    const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
+    cerrar.addEventListener('click', () => elegir(e, p));
+    cab.appendChild(cerrar);
+    detalle.appendChild(cab);
+    detalle.appendChild(nodo('h4', 'ltd-nombre', e.nombre));
+    detalle.appendChild(nodo('p', 'ltd-nota', e.nota));
+  }
+}
+
 function montarRuta(contenedor){
+  montarLinea(contenedor);
+
   let faseAbierta = null;
 
   /* ---------- Cabecera: fases y meses ---------- */
@@ -1699,17 +1940,33 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'After School',
-      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Facturacion', 'Costo'],
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', '$/hora', 'Facturacion', 'Costo'],
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
       apoyo: () => '',
-      filas: r => r.detalle.map(d => [d.nombre, d.cupos, d.alumnos, F.dinero(d.facturacion),
-                                      d.costo ? '−' + F.dinero(d.costo) : '—']),
+      /* Alumnos y costo por hora se editan en la propia tabla. El deslizador
+         global sigue estando: reparte, y a partir de ahi se ajusta lo que
+         haga falta disciplina por disciplina. */
+      filas: r => r.detalle.map((d, i) => [
+        d.nombre,
+        d.cupos,
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
+          alCambiar:v => { fijarAlumnosAS(r, i, v); pintar(); } },
+        d.esSabado ? '—'
+          : { editable:true, valor:d.costoHora, min:0, paso:1,
+              alCambiar:v => { fijarCostoAS(r, i, v); pintar(); } },
+        F.dinero(d.facturacion),
+        d.costo ? '−' + F.dinero(d.costo) : '—',
+      ]),
       controles: () => [
-        reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
-              formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.afterSchool.ocupacion = x/100; pintar(); } }, p => p.afterSchool.ocupacion*100),
+        reg({ etiqueta:'Ocupacion · reparte entre las disciplinas', tipo:'range', min:0, max:100, paso:1,
+              valor:est.afterSchool.ocupacion*100, formato:x => x + '%', ancho:true,
+              alCambiar:x => { est.afterSchool.ocupacion = x/100;
+                               est.afterSchool.alumnos = null;   // el deslizador vuelve a mandar
+                               est.afterSchool.costosHora = null;
+                               pintar(); } },
+            p => p.afterSchool.ocupacion*100),
         reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
               alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
         reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
@@ -1802,26 +2059,51 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'Baby and Me',
-      columnas: ['Concepto', 'Cupos', 'Alumnos', 'Precio', 'Facturacion'],
+      columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturacion', 'Costo'],
       calcular: () => MOTOR.baby(est.baby),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
       apoyo: r => {
-        const potencial = r.cupos * est.baby.precio * 12;
+        /* El potencial se calcula con la tarjeta a plena ocupacion y con los
+           precios que haya en pantalla, no con una cifra escrita. */
+        const lleno = MOTOR.baby(Object.assign({}, est.baby, { ocupacion:1, alumnos:null }));
         return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
-               F.dinero(potencial) + ' al año a plena ocupacion';
+               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupacion';
       },
-      filas: r => r.detalle.map(d => [
-        d.nombre + ' · ' + d.horas + ' horas semanales', d.cupos, d.alumnos,
-        F.precio(d.precio), F.dinero(d.facturacion)]),
+      filas: r => r.detalle.map((d, i) => [
+        d.nombre + ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesion' : ' sesiones') +
+          ' de ' + d.horas + ' h' + (d.vecesSemana > 1 ? ' · ' + d.vecesSemana + ' veces por semana' : ''),
+        d.cupos,
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
+          alCambiar:v => { est.baby.alumnos = r.detalle.map(x => x.alumnos);
+                           est.baby.alumnos[i] = v; pintar(); } },
+        F.precio(d.precio),
+        F.dinero(d.facturacion),
+        d.costo ? '−' + F.dinero(d.costo) : '—',
+      ]),
       controles: () => [
         reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.baby.ocupacion*100,
               formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.baby.ocupacion = x/100; pintar(); } }, p => p.baby.ocupacion*100),
-        reg({ etiqueta:'Precio mensual', tipo:'number', min:0, max:900, paso:1, valor:est.baby.precio,
-              ancho:true, alCambiar:x => { est.baby.precio = x; pintar(); } }, p => p.baby.precio),
+              alCambiar:x => { est.baby.ocupacion = x/100; est.baby.alumnos = null; pintar(); } },
+            p => p.baby.ocupacion*100),
+        /* Editable porque puede atenderla un profesor de Kinder, y eso
+           cambia el costo por hora. */
+        reg({ etiqueta:'Costo por hora', tipo:'number', min:0, max:500, paso:1, valor:est.baby.costoHora,
+              ancho:true, alCambiar:x => { est.baby.costoHora = x; pintar(); } }, p => p.baby.costoHora),
       ],
     },
   ];
+
+  /* Al tocar una celda se congela el vector completo con lo que hay en
+     pantalla y se cambia solo esa posicion: si no, el reparto del deslizador
+     volveria a pisar lo editado en el siguiente repintado. */
+  function fijarAlumnosAS(r, i, v){
+    est.afterSchool.alumnos = r.detalle.map(d => d.alumnos);
+    est.afterSchool.alumnos[i] = v;
+  }
+  function fijarCostoAS(r, i, v){
+    est.afterSchool.costosHora = r.detalle.map(d => d.costoHora != null ? d.costoHora : null);
+    est.afterSchool.costosHora[i] = v;
+  }
 
   const tarjetas = FICHAS.map(ficha => {
     const art = nodo('article', 'unidad-ancha');
@@ -1915,7 +2197,24 @@ function montarUnidades(contenedor){
         fila.forEach((celda, i) => {
           const td = document.createElement(i === 0 ? 'th' : 'td');
           if (i === 0) td.scope = 'row'; else td.className = 'num';
-          td.textContent = celda;
+          /* Una celda puede ser texto o un campo editable. Editar dentro de
+             la tabla y no en un control aparte es lo que permite decir "y si
+             ParKour va lleno y ParKids a la mitad" sin salir del desglose. */
+          if (celda && typeof celda === 'object' && celda.editable){
+            const inp = document.createElement('input');
+            inp.type = 'number'; inp.className = 'celda-editable';
+            inp.min = celda.min != null ? celda.min : 0;
+            if (celda.max != null) inp.max = celda.max;
+            inp.step = celda.paso != null ? celda.paso : 1;
+            inp.value = celda.valor;
+            inp.addEventListener('input', () => {
+              const v = Number(inp.value);
+              if (Number.isFinite(v)) celda.alCambiar(v);
+            });
+            td.appendChild(inp);
+          } else {
+            td.textContent = celda;
+          }
           tr.appendChild(td);
         });
         t.tbody.appendChild(tr);
@@ -1940,7 +2239,21 @@ function montarUnidades(contenedor){
    responde a los dos controles.
    ========================================================================== */
 function montarResumen(contenedor){
-  const inicial = () => ({ ocupacion: MOTOR.OCUPACION_2027_PARTIDA, gastosMes: MOTOR.GASTOS_MES_PARTIDA });
+  /* Un deslizador por unidad en vez de uno solo: la pregunta de la reunion
+     es "Kinder al 80% pero After School al 50%, cuanto da". El paso de cinco
+     puntos se mantiene porque es lo que evita que el EBITDA retroceda cuando
+     Kinder cruza un escalon de grupo. */
+  const UNIDADES_2027 = [
+    { clave:'kinder',      rotulo:'Kinder' },
+    { clave:'afterSchool', rotulo:'After School' },
+    { clave:'veranito',    rotulo:'Veranito' },
+    { clave:'cumpleanos',  rotulo:'Cumpleaños' },
+    { clave:'baby',        rotulo:'Baby and Me' },
+  ];
+  const inicial = () => ({
+    ocupaciones: UNIDADES_2027.reduce((o, u) => (o[u.clave] = MOTOR.OCUPACION_2027_PARTIDA, o), {}),
+    gastosMes: MOTOR.GASTOS_MES_PARTIDA,
+  });
   let est = inicial();
   const restauradores = [];
 
@@ -1950,10 +2263,13 @@ function montarResumen(contenedor){
     restauradores.push(p => c.restaurar(lee(p)));
     panel.appendChild(c.wrap);
   };
-  reg({ etiqueta:'Ocupacion 2027', tipo:'range', min:MOTOR.OCUPACION_2027_MINIMA*100, max:100,
-        paso:MOTOR.OCUPACION_2027_PASO, valor:est.ocupacion*100,
-        formato:x => x + '%',
-        alCambiar:x => { est.ocupacion = x/100; pintar(); } }, p => p.ocupacion*100);
+  for (const u of UNIDADES_2027){
+    reg({ etiqueta:'Ocupacion · ' + u.rotulo, tipo:'range',
+          min:MOTOR.OCUPACION_2027_MINIMA*100, max:100, paso:MOTOR.OCUPACION_2027_PASO,
+          valor:est.ocupaciones[u.clave]*100, formato:x => x + '%',
+          alCambiar:x => { est.ocupaciones[u.clave] = x/100; pintar(); } },
+        p => p.ocupaciones[u.clave]*100);
+  }
   reg({ etiqueta:'Gastos operativos mensuales', tipo:'number', min:0, max:200000, paso:500,
         valor:est.gastosMes,
         alCambiar:x => { est.gastosMes = x; pintar(); } }, p => p.gastosMes);
@@ -2022,7 +2338,7 @@ function montarResumen(contenedor){
 
   function pintar(){
     const anios = [MOTOR.resumen(2025), MOTOR.resumen(2026),
-                   MOTOR.resumen2027({ ocupacion:est.ocupacion, gastosMes:est.gastosMes })];
+                   MOTOR.resumen2027({ ocupaciones:est.ocupaciones, gastosMes:est.gastosMes })];
     for (const f of FILAS){
       anios.forEach((a, i) => {
         const c = celdas[f.clave][i];
@@ -2049,6 +2365,9 @@ function montarResumen(contenedor){
    SECCION 4 · LA INVERSION
    ========================================================================== */
 function montarInversion(contenedor){
+  /* Los campos son montos y no porcentajes: el equipo negocia en dolares.
+     Los porcentajes que se muestran se derivan del monto, asi que nunca
+     pueden contradecirlo. */
   const inicial = () => Object.assign({}, DATOS.INVERSION);
   let est = inicial();
   const restauradores = [];
@@ -2067,16 +2386,23 @@ function montarInversion(contenedor){
   };
   reg({ etiqueta:'Monto total', tipo:'number', min:0, max:99999999, paso:500, valor:est.total,
         alCambiar:x => { est.total = x; pintar(); } }, p => p.total);
-  reg({ etiqueta:'Pago inicial', tipo:'range', min:0, max:100, paso:5, valor:est.pctPrimero*100,
-        formato:x => x + '%',
-        alCambiar:x => { est.pctPrimero = x/100; pintar(); } }, p => p.pctPrimero*100);
-  reg({ etiqueta:'Cuotas mensuales', tipo:'range', min:0, max:24, paso:1, valor:est.cuotas,
+  reg({ etiqueta:'Pago inicial', tipo:'number', min:0, max:99999999, paso:250, valor:est.primero,
+        alCambiar:x => { est.primero = x; pintar(); } }, p => p.primero);
+  reg({ etiqueta:'Mensualidades', tipo:'range', min:0, max:24, paso:1, valor:est.cuotas,
         formato:x => x === 0 ? 'ninguna' : x + (x === 1 ? ' cuota' : ' cuotas'),
         alCambiar:x => { est.cuotas = x; pintar(); } }, p => p.cuotas);
+  reg({ etiqueta:'Pago final', tipo:'number', min:0, max:99999999, paso:250, valor:est.final,
+        alCambiar:x => { est.final = x; pintar(); } }, p => p.final);
   contenedor.appendChild(panel);
 
   const desglose = nodo('div', 'plan-desglose');
   contenedor.appendChild(desglose);
+
+  /* El contexto se calcula contra el cuadro resumen, no se escribe: si
+     alguien mueve una tarifa, la proporcion se corrige sola en vez de
+     quedar contradiciendo la seccion 3. */
+  const contexto = nodo('div', 'hallazgo');
+  contenedor.appendChild(contexto);
   barraReinicio(contenedor, 'Reiniciar plan');
 
   function fila(rotulo, monto, glosa){
@@ -2091,30 +2417,53 @@ function montarInversion(contenedor){
 
   function pintar(){
     refTotal.textContent = F.dinero(est.total);
-    const pl = MOTOR.plan({ total:est.total, pctPrimero:est.pctPrimero, meses:est.cuotas, pctFinal:0 });
+    const pl = MOTOR.plan({ total:est.total, primero:est.primero,
+                            meses:est.cuotas, final:est.final });
 
     desglose.textContent = '';
     if (!pl.valido){
       desglose.appendChild(nodo('div', 'plan-error',
-        'Sin cuotas mensuales, el pago inicial tiene que ser el 100% del proyecto.'));
-      return;
+        est.cuotas === 0
+          ? 'Sin mensualidades, el pago inicial y el final tienen que sumar el total.'
+          : 'El pago inicial y el pago final juntos se pasan del monto total.'));
+    } else {
+      desglose.appendChild(fila('Pago inicial', pl.primero,
+        F.pctDecimal(pl.pctPrimero) + ' del proyecto, al iniciar'));
+      if (pl.meses > 0){
+        if (pl.ultimaDifiere){
+          desglose.appendChild(fila((pl.meses - 1) + ' cuotas mensuales', pl.mensualidad, 'cada una'));
+          desglose.appendChild(fila('Ultima cuota', pl.ultima, 'absorbe el ajuste del redondeo'));
+        } else {
+          desglose.appendChild(fila(
+            pl.meses + (pl.meses === 1 ? ' cuota mensual' : ' cuotas mensuales'),
+            pl.mensualidad, 'cada una'));
+        }
+      }
+      if (pl.final > 0){
+        desglose.appendChild(fila('Pago final contra entrega', pl.final,
+          F.pctDecimal(pl.pctFinal) + ' del proyecto'));
+      }
+      const suma = fila('Suma', pl.suma, 'coincide con el monto total');
+      suma.className = 'plan-fila total';
+      desglose.appendChild(suma);
     }
 
-    desglose.appendChild(fila('Pago inicial', pl.primero,
-      `${F.pct(est.pctPrimero)} del proyecto, al iniciar`));
-    if (pl.meses > 0){
-      if (pl.ultimaDifiere){
-        desglose.appendChild(fila(`${pl.meses - 1} cuotas mensuales`, pl.mensualidad, 'cada una'));
-        desglose.appendChild(fila('Ultima cuota', pl.ultima, 'absorbe el ajuste del redondeo'));
-      } else {
-        desglose.appendChild(fila(
-          `${pl.meses} ${pl.meses === 1 ? 'cuota mensual' : 'cuotas mensuales'}`,
-          pl.mensualidad, 'cada una'));
-      }
-    }
-    const suma = fila('Suma', pl.suma, 'coincide con el monto total');
-    suma.className = 'plan-fila total';
-    desglose.appendChild(suma);
+    /* Las dos proporciones que ponen la cifra en escala: contra lo que el
+       negocio va a generar cada mes, y contra lo que gana el primer año. */
+    const p2027 = MOTOR.resumen2027({ ocupacion:MOTOR.OCUPACION_2027_PARTIDA,
+                                      gastosMes:MOTOR.GASTOS_MES_PARTIDA });
+    const ebitdaMes = p2027.ebitda / 12;
+    const incremento = p2027.ebitda - MOTOR.resumen(2026).ebitda;
+    const cuota = pl.valido && pl.meses > 0 ? pl.mensualidad : 0;
+
+    contexto.innerHTML =
+      (cuota
+        ? 'La mensualidad de <strong>' + F.dinero(cuota) + '</strong> es el <strong>' +
+          F.pct(cuota / ebitdaMes) + '</strong> del EBITDA mensual proyectado a 2027 al ' +
+          F.pct(MOTOR.OCUPACION_2027_PARTIDA) + ' de ocupacion (' + F.dinero(ebitdaMes) + '). '
+        : '') +
+      'La inversion total es el <strong>' + F.pct(est.total / incremento) +
+      '</strong> del incremento de EBITDA del primer año (' + F.dinero(incremento) + ').';
   }
 
   function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
