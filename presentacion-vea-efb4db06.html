@@ -338,6 +338,13 @@ table.desglose td.num{text-align:right;font-size:15px;font-weight:600;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 table.desglose tbody tr{border-bottom:1px solid var(--borde-suave)}
 table.desglose tbody tr:last-child{border-bottom:none}
+/* Filas que no son un renglon mas sino el cierre de la cuenta: el total y
+   su prorrateo. Sin esta distincion se leerian como dos temporadas mas. */
+table.desglose tbody tr.suma{border-top:1px solid var(--borde);background:var(--superficie-sutil)}
+table.desglose tbody tr.suma th{font-weight:700}
+table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
+table.desglose tbody tr.suma.destacada th,
+table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
 
 /* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
    cuerpo se ata al ancho de su celda para no salirse nunca. */
@@ -819,6 +826,35 @@ const MOTOR = (function(){
     return { cupos, cuposTemporada, ticket, facturacion, costo, margen: facturacion - costo };
   }
 
+  /* Las dos temporadas juntas, en las dos unidades de tiempo que hacen
+     falta: el año, que es como funciona Veranito de verdad, y el mes
+     prorrateado, que es lo que la deja comparable con las otras cuatro
+     unidades, todas mensuales.
+
+     La cadena queda explicita —temporadas suman el año, el año entre doce
+     da el mes— porque en la tarjeta se ven las tres cosas a la vez y
+     tienen que cuadrar entre si. */
+  function veranitoAnual(p){
+    const base = p || {};
+    const comun = Object.assign({}, VERANITO_PARTIDA, base);
+    const mayAgo = veranito(Object.assign({}, comun, base.mayAgo || VERANITO_PARTIDA.mayAgo));
+    const eneMar = veranito(Object.assign({}, comun, base.eneMar || VERANITO_PARTIDA.eneMar));
+
+    const anual = {
+      facturacion: mayAgo.facturacion + eneMar.facturacion,
+      costo: mayAgo.costo + eneMar.costo,
+      margen: mayAgo.margen + eneMar.margen,
+      cupos: mayAgo.cupos + eneMar.cupos,
+      cuposTemporada: mayAgo.cuposTemporada + eneMar.cuposTemporada,
+    };
+    const mes = {
+      facturacion: anual.facturacion / 12,
+      costo: anual.costo / 12,
+      margen: anual.margen / 12,
+    };
+    return { mayAgo, eneMar, anual, mes, ticket: mayAgo.ticket };
+  }
+
   /* ========================================================================
      CONSOLIDADO
 
@@ -973,7 +1009,7 @@ const MOTOR = (function(){
     OTROS_INGRESOS, GASTOS_MES_PARTIDA,
     OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA, OCUPACION_2027_PASO,
     kinder, afterSchool, baby, cumpleanos, veranito,
-    consolidar, escenario, resumen, resumen2027, partida, plan,
+    consolidar, escenario, resumen, resumen2027, partida, plan, veranitoAnual,
   };
 })();
 </script>
@@ -1685,27 +1721,30 @@ function montarUnidades(contenedor){
     {
       nombre: 'Veranito',
       columnas: ['Temporada', 'Cupos', 'Vendidos', 'Facturacion', 'Costo'],
+      /* La cifra grande es la mensual prorrateada, no la anual: asi Veranito
+         se lee igual que las otras cuatro unidades, que son todas mensuales.
+         El año y el desglose por temporada quedan debajo como apoyo. */
       calcular: () => {
-        const may = MOTOR.veranito(Object.assign({}, est.veranito, est.veranito.mayAgo));
-        const ene = MOTOR.veranito(Object.assign({}, est.veranito, est.veranito.eneMar));
-        return { may, ene,
-                 facturacion: may.facturacion + ene.facturacion,
-                 costo: may.costo + ene.costo,
-                 margen: may.margen + ene.margen };
+        const v = MOTOR.veranitoAnual(est.veranito);
+        return Object.assign({}, v.mes, { v });
       },
-      ocupacion: r => {
-        const c = r.may.cupos + r.ene.cupos, cap = r.may.cuposTemporada + r.ene.cuposTemporada;
-        return { texto: c + ' de ' + cap + ' cupos al año', frac: c / cap };
-      },
-      /* La cifra anual es la que manda, pero prorrateada a mes es la que se
-         compara con las otras cuatro unidades. Se dan las dos. */
-      apoyo: r => 'Ticket real ' + F.precio(r.may.ticket) + ' · prorrateado a mes: ' +
-                  F.dinero(r.facturacion / 12) + ' de facturacion y ' + F.dinero(r.margen / 12) + ' de margen',
+      ocupacion: r => ({
+        texto: r.v.anual.cupos + ' de ' + r.v.anual.cuposTemporada + ' cupos al año',
+        frac: r.v.anual.cupos / r.v.anual.cuposTemporada,
+      }),
+      apoyo: r => 'Promedio de las dos temporadas prorrateado a doce meses · ' +
+                  F.dinero(r.v.anual.facturacion) + ' al año ÷ 12 · ticket real ' + F.precio(r.v.ticket),
+      /* La fila del total cierra la cadena que sostiene la cifra grande: las
+         dos temporadas suman el año, y el año entre doce da el mes. */
       filas: r => [
-        ['Mayo a agosto', r.may.cuposTemporada, r.may.cupos, F.dinero(r.may.facturacion),
-         '−' + F.dinero(r.may.costo)],
-        ['Enero a marzo', r.ene.cuposTemporada, r.ene.cupos, F.dinero(r.ene.facturacion),
-         '−' + F.dinero(r.ene.costo)],
+        ['Mayo a agosto', r.v.mayAgo.cuposTemporada, r.v.mayAgo.cupos,
+         F.dinero(r.v.mayAgo.facturacion), '−' + F.dinero(r.v.mayAgo.costo)],
+        ['Enero a marzo', r.v.eneMar.cuposTemporada, r.v.eneMar.cupos,
+         F.dinero(r.v.eneMar.facturacion), '−' + F.dinero(r.v.eneMar.costo)],
+        { clase:'suma', celdas:['Total al año', r.v.anual.cuposTemporada, r.v.anual.cupos,
+          F.dinero(r.v.anual.facturacion), '−' + F.dinero(r.v.anual.costo)] },
+        { clase:'suma destacada', celdas:['Prorrateado al mes', '', '',
+          F.dinero(r.v.mes.facturacion), '−' + F.dinero(r.v.mes.costo)] },
       ],
       controles: () => [
         reg({ etiqueta:'Ocupacion mayo–agosto', tipo:'range', min:0, max:100, paso:1,
@@ -1865,8 +1904,14 @@ function montarUnidades(contenedor){
       if (av) t.aviso.textContent = av;
 
       t.tbody.textContent = '';
-      for (const fila of t.ficha.filas(r)){
+      for (const cruda of t.ficha.filas(r)){
+        /* Una fila es un array de celdas, o {celdas, clase} cuando hay que
+           distinguirla: en Veranito las dos ultimas no son temporadas sino
+           el total y su prorrateo, y leerlas como dos temporadas mas seria
+           contar el año dos veces. */
+        const fila = Array.isArray(cruda) ? cruda : cruda.celdas;
         const tr = document.createElement('tr');
+        if (!Array.isArray(cruda) && cruda.clase) tr.className = cruda.clase;
         fila.forEach((celda, i) => {
           const td = document.createElement(i === 0 ? 'th' : 'td');
           if (i === 0) td.scope = 'row'; else td.className = 'num';

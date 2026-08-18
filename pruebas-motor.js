@@ -252,6 +252,26 @@ ok(MOTOR.TICKET_VERANITO, 182.42, 'ticket real (no el de lista)', 0.01);
 const vCaro = MOTOR.veranito({ ocupacion: 1, precio45: 200, precio8: 235 });
 esIgual(vCaro.facturacion > vTemp.facturacion, true, 'subir el precio de lista sube la facturacion');
 
+/* La tarjeta muestra la cifra mensual prorrateada para que se lea igual que
+   las otras cuatro unidades, que son todas mensuales. La cadena que la
+   sostiene tiene que quedar visible y cuadrar: las dos temporadas suman el
+   año, y el año entre doce da la cifra grande. */
+const vHoy = MOTOR.veranitoAnual({
+  mayAgo: { ocupacion: 0.84 }, eneMar: { ocupacion: 0.38 },
+});
+ok(vHoy.anual.facturacion, 122404, 'las dos temporadas de hoy suman el año', 1);
+ok(vHoy.mayAgo.facturacion + vHoy.eneMar.facturacion, vHoy.anual.facturacion,
+   'el desglose por temporada suma el anual', 0.01);
+ok(vHoy.mes.facturacion, 122404 / 12, 'la cifra mensual es el anual entre doce', 1);
+ok(vHoy.mes.facturacion, 10200, 'que hoy son unos $10.200 al mes', 1);
+ok(vHoy.mes.costo, vHoy.anual.costo / 12, 'y el costo va prorrateado igual', 0.01);
+ok(vHoy.mes.margen, vHoy.anual.margen / 12, 'y el margen tambien', 0.01);
+ok(vHoy.mes.facturacion - vHoy.mes.costo, vHoy.mes.margen, 'el margen mensual cuadra', 0.01);
+
+const vLleno = MOTOR.veranitoAnual({ mayAgo:{ ocupacion:1 }, eneMar:{ ocupacion:1 } });
+ok(vLleno.anual.facturacion, 200662, 'a plena ocupacion el anual es el de la spec', 1);
+ok(vLleno.mes.facturacion, 200662 / 12, 'y su mensual sale del mismo anual', 1);
+
 /* ==========================================================================
    CUADRO RESUMEN
    El corazon de la reunion. 2025 y 2026 son datos cerrados y se comprueban
