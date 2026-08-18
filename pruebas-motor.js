@@ -99,6 +99,17 @@ esIgual(MOTOR.kinder({ ninos: 80 }).excedeCapacidad, false, 'a 80 ninos no exced
 esIgual(MOTOR.kinder({ ninos: 81 }).excedeCapacidad, true, 'a 81 ninos excede capacidad');
 esIgual(MOTOR.kinder({ ninos: 100 }).excedeCapacidad, true, 'a 100 ninos excede capacidad');
 
+/* El costo por grupo sale de sus partes, no es un numero suelto: profesor
+   mas asistente mas prestaciones. Es el costo ya ajustado que contempla el
+   proyecto, y es lo que sostiene la nota al pie del cuadro resumen sobre la
+   caida del margen bruto. */
+ok(MOTOR.KINDER_COSTO_PROFESOR + MOTOR.KINDER_COSTO_ASISTENTE, 1800, 'profesor mas asistente', 0);
+ok((MOTOR.KINDER_COSTO_PROFESOR + MOTOR.KINDER_COSTO_ASISTENTE) * (1 + MOTOR.PRESTACIONES),
+   2700, 'con 50% de prestaciones da el costo por grupo', 0);
+ok(MOTOR.partida().kinder.costoGrupo, 2700, 'y es el que usa el motor', 0);
+ok(MOTOR.KINDER_COSTO_GRUPO_2026, 1680, 'costo por grupo de 2026, sin el ajuste', 0);
+esIgual(MOTOR.KINDER_COSTO_GRUPO_2026 < 2700, true, 'el ajuste salarial encarece el grupo');
+
 // La brecha entre lo real y lo calculado: tarifas viejas sin migrar.
 ok(kHoy.facturacion - MOTOR.REAL.kinder.facturacion, 1692, 'brecha tarifas sin migrar', 0.5);
 
@@ -118,8 +129,26 @@ esIgual(as100.alumnos, 212, 'al 100%: alumnos');
 ok(as100.costo, 7014.60, 'al 100%: costo (sin Baby & Me entre semana)', 0.01);
 ok(as100.margen, 25672.44, 'al 100%: margen', 0.01);
 
+/* El conteo real de hoy son 80 alumnos. Con redondeo independiente por
+   disciplina no hay ninguna ocupacion que de 80: salta de 78 a 81, porque
+   cada disciplina redondea por su lado y los saltos se acumulan. El reparto
+   por resto mayor reparte primero los enteros y luego las unidades que
+   sobran a las disciplinas con mayor fraccion pendiente, de modo que la
+   suma es siempre round(cupos x ocupacion). */
+const asHoy = MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY });
+esIgual(asHoy.alumnos, 80, 'en la ocupacion de hoy: 80 alumnos, el conteo real');
+ok(MOTOR.AS_OCUPACION_HOY * 100, 37.7, 'que sobre 212 cupos es 37,7%', 0.05);
+
+for (const o of [0, 0.25, 0.377358, 0.5, 0.6, 0.777, 0.9, 1]){
+  const r = MOTOR.afterSchool({ ocupacion: o });
+  esIgual(r.alumnos, Math.round(MOTOR.AS_CUPOS_TOTALES * o),
+          `al ${(o*100).toFixed(1)}%: los alumnos suman round(212 x ocupacion)`);
+  esIgual(r.detalle.every(d => Number.isInteger(d.alumnos)), true,
+          `al ${(o*100).toFixed(1)}%: y cada disciplina tiene alumnos enteros`);
+}
+
 const as60 = MOTOR.afterSchool({ ocupacion: 0.6 });
-esIgual(as60.alumnos, 128, 'al 60%: alumnos (redondeo por disciplina)');
+esIgual(as60.alumnos, 127, 'al 60%: alumnos');
 ok(as60.costo, 7014.60, 'al 60%: costo', 0.01);
 
 /* La regla que confirmo el equipo: al llenar los cupos que ya existen el
@@ -228,10 +257,10 @@ const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
 const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
-ok(p60.ingresos, 800309, 'al 60%: ingresos', 50);
-ok(p60.margenBrutoPct * 100, 63.0, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 204219, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 25.5, 'al 60%: EBITDA %', 0.15);
+ok(p60.ingresos, 798280, 'al 60%: ingresos', 50);
+ok(p60.margenBrutoPct * 100, 62.9, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 202189, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 25.3, 'al 60%: EBITDA %', 0.15);
 
 ok(p80.ingresos, 1065148, 'al 80%: ingresos', 50);
 ok(p80.margenBrutoPct * 100, 64.6, 'al 80%: margen bruto %', 0.15);
@@ -240,6 +269,13 @@ ok(p80.ebitda, 387974, 'al 80%: EBITDA', 50);
 ok(p100.ingresos, 1325750, 'al 100%: ingresos', 50);
 ok(p100.margenBrutoPct * 100, 68.0, 'al 100%: margen bruto %', 0.15);
 ok(p100.ebitda, 601959, 'al 100%: EBITDA', 50);
+
+/* El deslizador no baja del 40%. El EBITDA de 2027 solo se vuelve positivo
+   a partir del 41%, y el recorrido no es monotono: entre 38% y 39% Kinder
+   pasa de 30 a 31 niños, abre un grupo y el EBITDA cae. */
+ok(MOTOR.OCUPACION_2027_MINIMA * 100, 40, 'ocupacion minima del deslizador', 0);
+esIgual(MOTOR.resumen2027({ ocupacion:0.41, gastosMes:25000 }).ebitda > 0, true,
+        'a 41% el EBITDA ya es positivo');
 
 /* Coherencia interna en cualquier punto del deslizador. */
 for (const o of [0.30, 0.45, 0.72, 0.91, 1.00]){
@@ -257,7 +293,7 @@ ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
 ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
-ok(p100.ingresos - p60.ingresos, 525441, 'la ocupacion mueve los ingresos', 100);
+ok(p100.ingresos - p60.ingresos, 527470, 'la ocupacion mueve los ingresos', 100);
 esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
 
 /* El contraste que hay que poder explicar: el margen bruto cae respecto a
@@ -276,7 +312,7 @@ ok(p.kinder.precio45, 587, 'partida Kinder: precio 4,5 h', 0);
 ok(p.kinder.precio8, 786, 'partida Kinder: precio 8 h', 0);
 ok(p.kinder.pct45, 0.70, 'partida Kinder: % plan 4,5 h', 0);
 ok(p.kinder.costoGrupo, 2700, 'partida Kinder: costo por grupo', 0);
-ok(p.afterSchool.ocupacion, 0.36, 'partida After School: ocupacion', 0.001);
+ok(p.afterSchool.ocupacion, 80/212, 'partida After School: la ocupacion de hoy', 0.001);
 ok(p.cumpleanos.eventosSemana, 1.4, 'partida Cumpleanos: eventos por semana', 0.001);
 ok(p.veranito.mayAgo.ocupacion, 0.84, 'partida Veranito may-ago: ocupacion', 0.001);
 ok(p.veranito.eneMar.ocupacion, 0.38, 'partida Veranito ene-mar: ocupacion', 0.001);

@@ -509,7 +509,18 @@ const MOTOR = (function(){
   /* ========================================================================
      KINDER
      ====================================================================== */
-  const KINDER_PARTIDA = { ninos:29, precio45:587, precio8:786, pct45:0.70, costoGrupo:2700 };
+  /* El costo por grupo sale de sus partes y no es un numero suelto: si
+     alguien lo revisa, la cuenta esta a la vista. Es el costo ya ajustado
+     que contempla el proyecto, y por eso el margen bruto de 2027 cae contra
+     2026, cuando el grupo costaba unos $1.680. */
+  const KINDER_COSTO_PROFESOR = 1200;
+  const KINDER_COSTO_ASISTENTE = 600;
+  const PRESTACIONES = 0.50;
+  const KINDER_COSTO_GRUPO = (KINDER_COSTO_PROFESOR + KINDER_COSTO_ASISTENTE) * (1 + PRESTACIONES);
+  const KINDER_COSTO_GRUPO_2026 = 1680;   // sin el ajuste salarial
+
+  const KINDER_PARTIDA = { ninos:29, precio45:587, precio8:786, pct45:0.70,
+                           costoGrupo:KINDER_COSTO_GRUPO };
   const KINDER_NINOS_POR_GRUPO = 10;
   const KINDER_CAPACIDAD = 80;
 
@@ -574,9 +585,10 @@ const MOTOR = (function(){
     ],
   };
 
-  /* precio1v cubre el sabado y Baby & Me: ambos corren una vez por semana y
-     pagan la misma tarifa. Es un solo control. */
-  const AS_PARTIDA = { ocupacion:0.36, precio2v:169.06, precio1v:111.28, precioTelas:200 };
+  /* precio1v cubre el sabado: corre una vez por semana. Baby & Me tenia
+     esta misma tarifa cuando vivia aqui; como unidad propia tiene la suya. */
+  const AS_OCUPACION_HOY = 80 / 212;   // 80 alumnos inscritos sobre 212 cupos
+  const AS_PARTIDA = { ocupacion:AS_OCUPACION_HOY, precio2v:169.06, precio1v:111.28, precioTelas:200 };
 
   const AS_CUPOS_TOTALES =
     AS_DISCIPLINAS.reduce((s,d) => s + d.cupos * d.sesiones, 0) + AS_SABADO.cupos;
@@ -589,23 +601,58 @@ const MOTOR = (function(){
     return d.sesiones >= 2 ? c.precio2v : c.precio1v;
   }
 
+  /* Reparto por resto mayor. Redondear cada disciplina por su lado parece
+     inofensivo y no lo es: los saltos se acumulan y el total deja de ser el
+     que anuncia la ocupacion. Con 212 cupos no habia ninguna ocupacion que
+     diera los 80 alumnos reales, saltaba de 78 a 81.
+
+     Aqui se reparten primero los enteros y despues las unidades que sobran,
+     a las disciplinas con mayor fraccion pendiente. La suma es siempre
+     round(total x ocupacion), que es lo que el cliente espera al leer el
+     porcentaje. */
+  function repartirEnteros(cupos, ocupacion){
+    const total = Math.round(cupos.reduce((s, c) => s + c, 0) * ocupacion);
+    const exactos = cupos.map(c => c * ocupacion);
+    const base = exactos.map(Math.floor);
+    let sobran = total - base.reduce((s, x) => s + x, 0);
+
+    const orden = exactos
+      .map((x, i) => ({ i, resto: x - Math.floor(x) }))
+      .sort((a, b) => b.resto - a.resto);
+
+    /* Si sobran mas unidades que disciplinas se dan varias vueltas; si el
+       total pedido es menor que la suma de los enteros, se devuelven. */
+    let k = 0;
+    while (sobran > 0){ base[orden[k % orden.length].i]++; sobran--; k++; }
+    k = 0;
+    while (sobran < 0){
+      const i = orden[orden.length - 1 - (k % orden.length)].i;
+      if (base[i] > 0){ base[i]--; sobran++; }
+      k++;
+    }
+    return base;
+  }
+
   function afterSchool(p){
     const c = Object.assign({}, AS_PARTIDA, p || {});
+    const franjas = AS_DISCIPLINAS.map(d => d.cupos * d.sesiones).concat([AS_SABADO.cupos]);
+    const reparto = repartirEnteros(franjas, c.ocupacion);
+
     let facturacion = 0, alumnos = 0, costo = 0;
     const detalle = [];
 
-    for (const d of AS_DISCIPLINAS){
-      const cupos = d.cupos * d.sesiones;
-      /* Alumnos enteros por disciplina: no existe medio inscrito, y sin este
-         redondeo el consolidado se aleja de las cifras de la spec. */
-      const al = Math.round(cupos * c.ocupacion);
+    AS_DISCIPLINAS.forEach((d, i) => {
+      const cupos = franjas[i], al = reparto[i];
       const ingreso = al * asPrecio(d, c);
+      /* Sin alumnos no se dicta, y lo que no se dicta no cuesta. Llenar los
+         cupos que ya existen, en cambio, no mueve el costo: la clase ya se
+         esta dictando. */
       const gasto = al > 0 ? d.horasSem * SEM_MES * d.costoHora : 0;
       alumnos += al; facturacion += ingreso; costo += gasto;
       detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto });
-    }
+    });
 
-    const alSab = Math.round(AS_SABADO.cupos * c.ocupacion);
+    const alSab = reparto[reparto.length - 1];
     const ingSab = alSab * c.precio1v;
     const gastoSab = alSab > 0 ? AS_COSTO_SABADO : 0;
     alumnos += alSab; facturacion += ingSab; costo += gastoSab;
@@ -726,6 +773,11 @@ const MOTOR = (function(){
   const OTROS_INGRESOS = 10900;
   const GASTOS_MES_PARTIDA = 25000;
   const OCUPACION_2027_PARTIDA = 0.60;
+  /* El deslizador no baja de aqui: por debajo del 41% el EBITDA de 2027 es
+     negativo y no se quiere exponer una perdida en pantalla delante del
+     cliente. El recorrido tampoco es monotono cerca del suelo, porque entre
+     38% y 39% Kinder abre un grupo y el EBITDA cae de golpe. */
+  const OCUPACION_2027_MINIMA = 0.40;
 
   function conPorcentajes(x){
     x.margenBruto = x.ingresos - x.manoDeObra;
@@ -809,12 +861,15 @@ const MOTOR = (function(){
   return {
     SEM_MES, REAL,
     KINDER_CAPACIDAD, KINDER_NINOS_POR_GRUPO,
-    AS_DISCIPLINAS, AS_SABADO, AS_CUPOS_TOTALES, AS_COSTO_SABADO,
+    KINDER_COSTO_PROFESOR, KINDER_COSTO_ASISTENTE, PRESTACIONES,
+    KINDER_COSTO_GRUPO, KINDER_COSTO_GRUPO_2026,
+    AS_DISCIPLINAS, AS_SABADO, AS_CUPOS_TOTALES, AS_COSTO_SABADO, AS_OCUPACION_HOY,
+    repartirEnteros,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
     BABY_CUPOS, BABY_ALUMNOS_HOY,
     ANIOS, UNIDADES_2025, UNIDADES_2026, VERANITO_2026,
-    OTROS_INGRESOS, GASTOS_MES_PARTIDA, OCUPACION_2027_PARTIDA,
+    OTROS_INGRESOS, GASTOS_MES_PARTIDA, OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA,
     kinder, afterSchool, baby, cumpleanos, veranito,
     consolidar, escenario, resumen, resumen2027, partida, plan,
   };
@@ -1510,7 +1565,8 @@ function montarResumen(contenedor){
     restauradores.push(p => c.restaurar(lee(p)));
     panel.appendChild(c.wrap);
   };
-  reg({ etiqueta:'Ocupacion 2027', tipo:'range', min:30, max:100, paso:1, valor:est.ocupacion*100,
+  reg({ etiqueta:'Ocupacion 2027', tipo:'range', min:MOTOR.OCUPACION_2027_MINIMA*100, max:100, paso:1,
+        valor:est.ocupacion*100,
         formato:x => x + '%',
         alCambiar:x => { est.ocupacion = x/100; pintar(); } }, p => p.ocupacion*100);
   reg({ etiqueta:'Gastos operativos mensuales', tipo:'number', min:0, max:200000, paso:500,
