@@ -773,11 +773,21 @@ const MOTOR = (function(){
   const OTROS_INGRESOS = 10900;
   const GASTOS_MES_PARTIDA = 25000;
   const OCUPACION_2027_PARTIDA = 0.60;
-  /* El deslizador no baja de aqui: por debajo del 41% el EBITDA de 2027 es
-     negativo y no se quiere exponer una perdida en pantalla delante del
-     cliente. El recorrido tampoco es monotono cerca del suelo, porque entre
-     38% y 39% Kinder abre un grupo y el EBITDA cae de golpe. */
-  const OCUPACION_2027_MINIMA = 0.40;
+  /* Suelo y paso del deslizador de 2027. Van juntos y son los dos los que
+     sostienen una garantia de la reunion: el EBITDA nunca puede bajar
+     mientras el cliente sube la ocupacion.
+
+     El suelo saca la zona de perdida, que llega hasta el 40%.
+
+     El paso resuelve algo menos evidente. Un grupo de Kinder cuesta $32.400
+     al año y un punto de ocupacion solo aporta unos $13.200, asi que con
+     paso de un punto el EBITDA retrocede cada vez que Kinder cruza un
+     escalon de diez niños: pasa en 51%, 64%, 76% y 89%. Con cinco puntos
+     cada movimiento aporta unos $66.000 y absorbe el grupo entero.
+
+     Bajar el paso a 1 vuelve a romperlo. La suite lo comprueba. */
+  const OCUPACION_2027_MINIMA = 0.45;
+  const OCUPACION_2027_PASO = 5;
 
   function conPorcentajes(x){
     x.margenBruto = x.ingresos - x.manoDeObra;
@@ -869,7 +879,8 @@ const MOTOR = (function(){
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
     BABY_CUPOS, BABY_ALUMNOS_HOY,
     ANIOS, UNIDADES_2025, UNIDADES_2026, VERANITO_2026,
-    OTROS_INGRESOS, GASTOS_MES_PARTIDA, OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA,
+    OTROS_INGRESOS, GASTOS_MES_PARTIDA,
+    OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA, OCUPACION_2027_PASO,
     kinder, afterSchool, baby, cumpleanos, veranito,
     consolidar, escenario, resumen, resumen2027, partida, plan,
   };
@@ -1565,8 +1576,8 @@ function montarResumen(contenedor){
     restauradores.push(p => c.restaurar(lee(p)));
     panel.appendChild(c.wrap);
   };
-  reg({ etiqueta:'Ocupacion 2027', tipo:'range', min:MOTOR.OCUPACION_2027_MINIMA*100, max:100, paso:1,
-        valor:est.ocupacion*100,
+  reg({ etiqueta:'Ocupacion 2027', tipo:'range', min:MOTOR.OCUPACION_2027_MINIMA*100, max:100,
+        paso:MOTOR.OCUPACION_2027_PASO, valor:est.ocupacion*100,
         formato:x => x + '%',
         alCambiar:x => { est.ocupacion = x/100; pintar(); } }, p => p.ocupacion*100);
   reg({ etiqueta:'Gastos operativos mensuales', tipo:'number', min:0, max:200000, paso:500,

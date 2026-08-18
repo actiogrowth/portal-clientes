@@ -270,12 +270,55 @@ ok(p100.ingresos, 1325750, 'al 100%: ingresos', 50);
 ok(p100.margenBrutoPct * 100, 68.0, 'al 100%: margen bruto %', 0.15);
 ok(p100.ebitda, 601959, 'al 100%: EBITDA', 50);
 
-/* El deslizador no baja del 40%. El EBITDA de 2027 solo se vuelve positivo
-   a partir del 41%, y el recorrido no es monotono: entre 38% y 39% Kinder
-   pasa de 30 a 31 niños, abre un grupo y el EBITDA cae. */
-ok(MOTOR.OCUPACION_2027_MINIMA * 100, 40, 'ocupacion minima del deslizador', 0);
-esIgual(MOTOR.resumen2027({ ocupacion:0.41, gastosMes:25000 }).ebitda > 0, true,
-        'a 41% el EBITDA ya es positivo');
+/* ==========================================================================
+   EL DESLIZADOR NUNCA PUEDE BAJAR EL EBITDA
+
+   Es un requisito de la reunion, no una preferencia: si el cliente sube la
+   ocupacion y el numero baja, la proyeccion pierde credibilidad aunque la
+   aritmetica sea correcta.
+
+   Y baja de verdad si el paso es fino. Un grupo de Kinder cuesta $32.400 al
+   año y un punto de ocupacion solo aporta unos $13.200, asi que cada vez
+   que Kinder cruza un escalon de diez niños el EBITDA retrocede. Con paso
+   de cinco puntos cada movimiento aporta unos $66.000 y absorbe el grupo.
+
+   El suelo y el paso viven en el motor porque son los dos juntos los que
+   sostienen esta garantia: cambiar uno solo la rompe.
+   ========================================================================== */
+console.log('\nRECORRIDO DEL DESLIZADOR');
+
+ok(MOTOR.OCUPACION_2027_MINIMA * 100, 45, 'ocupacion minima del deslizador', 0);
+ok(MOTOR.OCUPACION_2027_PASO, 5, 'paso del deslizador, en puntos', 0);
+
+const posiciones = [];
+for (let o = MOTOR.OCUPACION_2027_MINIMA * 100; o <= 100; o += MOTOR.OCUPACION_2027_PASO) posiciones.push(o);
+
+esIgual(posiciones.includes(MOTOR.OCUPACION_2027_PARTIDA * 100), true,
+        'la ocupacion de partida cae en una posicion del deslizador');
+
+let subeSiempre = true, positivoSiempre = true, caida = '';
+let anterior = null;
+for (const o of posiciones){
+  const p = MOTOR.resumen2027({ ocupacion:o/100, gastosMes:MOTOR.GASTOS_MES_PARTIDA });
+  if (p.ebitda < 0) positivoSiempre = false;
+  if (anterior !== null && p.ebitda < anterior.eb){
+    subeSiempre = false;
+    caida = `${anterior.o}% -> ${o}%`;
+  }
+  anterior = { o, eb: p.ebitda };
+}
+esIgual(positivoSiempre, true, 'el EBITDA es positivo en todo el recorrido');
+esIgual(subeSiempre, true, 'y nunca baja mientras la ocupacion sube' + (caida ? ' · cae en ' + caida : ''));
+
+/* La prueba de que el paso fino si la rompe: si alguien lo devuelve a 1,
+   esta comprobacion recuerda por que estaba en 5. */
+let caidasConPasoFino = 0, prev = null;
+for (let o = 45; o <= 100; o++){
+  const eb = MOTOR.resumen2027({ ocupacion:o/100, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda;
+  if (prev !== null && eb < prev) caidasConPasoFino++;
+  prev = eb;
+}
+esIgual(caidasConPasoFino, 4, 'con paso de 1 punto habria cuatro retrocesos');
 
 /* Coherencia interna en cualquier punto del deslizador. */
 for (const o of [0.30, 0.45, 0.72, 0.91, 1.00]){
