@@ -248,6 +248,86 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
   background:var(--superficie)}
 
 /* ==========================================================================
+   SECCION 2 · TARJETA DE ANCHO COMPLETO
+   Una por unidad, apiladas. La tabla desglosada a la izquierda y las cifras
+   con los controles a la derecha: el cliente ve de donde sale cada dolar
+   mientras Ricardo mueve el deslizador.
+   ========================================================================== */
+.unidad-ancha{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:20px 24px 18px;margin-bottom:14px}
+.ua-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.ua-cab h3{font-size:24px;font-weight:700;letter-spacing:-.3px;color:var(--marca-verde-profundo)}
+.ua-cuerpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);
+  gap:24px;align-items:start;margin-top:12px}
+.ua-tabla{overflow-x:auto}
+.ua-lado{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
+
+table.desglose{width:100%;border-collapse:collapse}
+table.desglose th, table.desglose td{padding:9px 12px;vertical-align:baseline}
+table.desglose thead th{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);text-align:left;white-space:nowrap}
+table.desglose thead th.num{text-align:right}
+table.desglose tbody th{text-align:left;font-size:14px;font-weight:500;color:var(--texto-principal)}
+table.desglose td.num{text-align:right;font-size:15px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+table.desglose tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.desglose tbody tr:last-child{border-bottom:none}
+/* Filas que no son un renglon mas sino el cierre de la cuenta: el total y
+   su prorrateo. Sin esta distincion se leerian como dos temporadas mas. */
+table.desglose tbody tr.suma{border-top:1px solid var(--borde);background:var(--superficie-sutil)}
+table.desglose tbody tr.suma th{font-weight:700}
+table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
+table.desglose tbody tr.suma.destacada th,
+table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
+
+/* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
+   cuerpo se ata al ancho de su celda para no salirse nunca. */
+.ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+.ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
+
+
+/* ==========================================================================
+   SECCION 3 · CUADRO RESUMEN
+   ========================================================================== */
+.tabla-caja{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  overflow-x:auto;margin-top:16px}
+table.resumen{width:100%;border-collapse:collapse;min-width:640px}
+table.resumen th, table.resumen td{padding:14px 20px;text-align:right;vertical-align:baseline}
+table.resumen thead th{font-size:12px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);white-space:nowrap}
+table.resumen tbody th{text-align:left;font-size:16px;font-weight:500;color:var(--texto-principal);
+  white-space:nowrap}
+table.resumen tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.resumen tbody tr:last-child{border-bottom:none}
+table.resumen td b{font-size:var(--cifra-3);font-weight:600;font-variant-numeric:tabular-nums;
+  display:block;white-space:nowrap}
+.porcentaje{font-size:var(--menudo);color:var(--texto-secundario);
+  font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+/* Margen bruto y EBITDA son las dos lineas que el cliente busca. */
+table.resumen tr.destacada{background:var(--marca-tenue)}
+table.resumen tr.destacada th{font-weight:700;color:var(--marca-verde-profundo)}
+table.resumen tr.destacada td b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1px;
+  color:var(--marca-verde-profundo)}
+table.resumen tr.ebitda{background:var(--marca-verde-profundo)}
+table.resumen tr.ebitda th{color:var(--texto-sobre-oscuro)}
+table.resumen tr.ebitda td b{color:var(--texto-sobre-oscuro)}
+table.resumen tr.ebitda .porcentaje{color:var(--texto-sobre-oscuro-3)}
+/* La columna de 2027 es la unica viva; se distingue sin gritar. */
+table.resumen th:last-child, table.resumen td:last-child{
+  box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
+
+.notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
+  padding-left:14px;border-left:2px solid var(--borde)}
+
+/* Bloque que pertenece a una unidad concreta: el resultado de Veranito, el
+   valor de vida de Kinder, el potencial de Baby and Me. */
+.unidad-extra:empty{display:none}
+.bloque-unidad{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
+  border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:14px;line-height:1.5}
+.bloque-unidad strong{font-weight:700;color:var(--marca-verde-profundo)}
+
+/* ==========================================================================
    SECCION 1 · HOJA DE RUTA
 
    Una sola vista. La reticula es la del gantt del portal: columna fija de
