@@ -64,22 +64,48 @@ const { MOTOR, DATOS, FORMATO } = cargarBloques(['motor', 'datos', 'formato']);
    ========================================================================== */
 console.log('\nKINDER');
 
+/* La facturacion sale del reparto entero entre los dos planes, no de un
+   ticket promedio. Un niño paga un plan o el otro; con el promedio la tabla
+   desglosada de la tarjeta no sumaria su propio total, que es justo lo que
+   el cliente comprueba. */
 const kHoy = MOTOR.kinder({ ninos: 29 });
-ok(kHoy.facturacion, 18754.30, 'hoy 29 ninos: facturacion calculada', 0.01);
+esIgual(kHoy.detalle.length, 2, 'hoy 29 ninos: dos planes en el desglose');
+esIgual(kHoy.detalle[0].ninos + kHoy.detalle[1].ninos, 29, 'los dos planes suman los niños');
+ok(kHoy.detalle.reduce((s, d) => s + d.facturacion, 0), kHoy.facturacion,
+   'hoy 29 ninos: el desglose suma la facturacion', 0.01);
+ok(kHoy.detalle[0].ninos, 20, 'hoy: 70% de 29 son 20 niños en plan 4,5 h', 0);
+ok(kHoy.detalle[1].ninos, 9, 'hoy: los otros 9 en plan 8 h', 0);
+ok(kHoy.facturacion, 20*587 + 9*786, 'hoy 29 ninos: facturacion', 0.01);
 esIgual(kHoy.grupos, 3, 'hoy 29 ninos: grupos');
 ok(kHoy.costo, 8100, 'hoy 29 ninos: costo', 0);
 
 const k60 = MOTOR.kinder({ ninos: 48 });
-ok(k60.facturacion, 31042, 'al 60% (48 ninos): facturacion');
-esIgual(k60.grupos, 5, 'al 60%: grupos');
-ok(k60.costo, 13500, 'al 60%: costo', 0);
-ok(k60.margen, 17542, 'al 60%: margen');
+ok(k60.detalle.reduce((s, d) => s + d.facturacion, 0), k60.facturacion,
+   'a 48 ninos: el desglose suma la facturacion', 0.01);
+ok(k60.facturacion, 34*587 + 14*786, 'a 48 ninos: facturacion', 0.01);
+esIgual(k60.grupos, 5, 'a 48 ninos: grupos');
+ok(k60.costo, 13500, 'a 48 ninos: costo', 0);
 
+/* A capacidad llena el reparto es exacto (56 y 24) y coincide con lo que
+   daba el ticket promedio. */
 const k100 = MOTOR.kinder({ ninos: 80 });
-ok(k100.facturacion, 51736, 'al 100% (80 ninos): facturacion', 0.01);
-esIgual(k100.grupos, 8, 'al 100%: grupos');
-ok(k100.costo, 21600, 'al 100%: costo', 0);
-ok(k100.margen, 30136, 'al 100%: margen');
+ok(k100.facturacion, 51736, 'a 80 ninos: facturacion', 0.01);
+ok(k100.detalle[0].ninos, 56, 'a 80 ninos: 56 en plan 4,5 h', 0);
+ok(k100.detalle[1].ninos, 24, 'a 80 ninos: 24 en plan 8 h', 0);
+ok(k100.detalle.reduce((s, d) => s + d.facturacion, 0), 51736,
+   'a 80 ninos: el desglose suma la facturacion', 0.01);
+esIgual(k100.grupos, 8, 'a 80 ninos: grupos');
+ok(k100.costo, 21600, 'a 80 ninos: costo', 0);
+ok(k100.margen, 30136, 'a 80 ninos: margen');
+
+/* El desglose tiene que cuadrar en todo el recorrido, no solo en los
+   escenarios elegidos. */
+for (const n of [29, 33, 41, 55, 67, 73, 80]){
+  const k = MOTOR.kinder({ ninos: n });
+  ok(k.detalle.reduce((s, d) => s + d.facturacion, 0), k.facturacion,
+     `a ${n} ninos el desglose cuadra`, 0.01);
+  esIgual(k.detalle.reduce((s, d) => s + d.ninos, 0), n, `a ${n} ninos los planes suman`);
+}
 
 const k2028 = MOTOR.kinder({ ninos: 100, precio45: 687, precio8: 886 });
 ok(k2028.facturacion, 74670, 'con 100 ninos y precio +$100: facturacion', 0.01);
@@ -111,7 +137,7 @@ ok(MOTOR.KINDER_COSTO_GRUPO_2026, 1680, 'costo por grupo de 2026, sin el ajuste'
 esIgual(MOTOR.KINDER_COSTO_GRUPO_2026 < 2700, true, 'el ajuste salarial encarece el grupo');
 
 // La brecha entre lo real y lo calculado: tarifas viejas sin migrar.
-ok(kHoy.facturacion - MOTOR.REAL.kinder.facturacion, 1692, 'brecha tarifas sin migrar', 0.5);
+ok(kHoy.facturacion - MOTOR.REAL.kinder.facturacion, 1752, 'brecha tarifas sin migrar', 0.5);
 
 /* ==========================================================================
    AFTER SCHOOL
@@ -200,6 +226,18 @@ ok(c100.margen, 4726, 'al 100%: margen', 0);
 
 esIgual(Number.isInteger(MOTOR.cumpleanos({ eventosSemana: 1.4 }).eventos), true, 'los eventos siempre son enteros');
 
+/* Desglose para la tabla de la tarjeta. */
+esIgual(c60.detalle.length, 1, 'Cumpleanos: una linea de desglose');
+ok(c60.detalle[0].facturacion, c60.facturacion, 'y suma la facturacion', 0.01);
+ok(c60.detalle[0].costo, c60.costo, 'y el costo', 0.01);
+ok(c60.detalle[0].cantidad, 10, 'con los eventos del mes', 0);
+
+const bDet = MOTOR.baby({ ocupacion: 1 }).detalle;
+esIgual(bDet.length, 1, 'Baby and Me: su unica sesion');
+ok(bDet[0].facturacion, 776, 'y suma su facturacion', 0.01);
+ok(bDet[0].costo, 433, 'y su costo', 0.01);
+ok(bDet[0].cupos, 8, 'con sus ocho cupos', 0);
+
 /* ==========================================================================
    VERANITO
    ========================================================================== */
@@ -257,14 +295,14 @@ const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
 const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
-ok(p60.ingresos, 798280, 'al 60%: ingresos', 50);
+ok(p60.ingresos, 797325, 'al 60%: ingresos', 50);
 ok(p60.margenBrutoPct * 100, 62.9, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 202189, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 25.3, 'al 60%: EBITDA %', 0.15);
+ok(p60.ebitda, 201234, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 25.2, 'al 60%: EBITDA %', 0.15);
 
-ok(p80.ingresos, 1065148, 'al 80%: ingresos', 50);
+ok(p80.ingresos, 1064670, 'al 80%: ingresos', 50);
 ok(p80.margenBrutoPct * 100, 64.6, 'al 80%: margen bruto %', 0.15);
-ok(p80.ebitda, 387974, 'al 80%: EBITDA', 50);
+ok(p80.ebitda, 387497, 'al 80%: EBITDA', 50);
 
 ok(p100.ingresos, 1325750, 'al 100%: ingresos', 50);
 ok(p100.margenBrutoPct * 100, 68.0, 'al 100%: margen bruto %', 0.15);
@@ -336,7 +374,7 @@ ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
 ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
-ok(p100.ingresos - p60.ingresos, 527470, 'la ocupacion mueve los ingresos', 100);
+ok(p100.ingresos - p60.ingresos, 528426, 'la ocupacion mueve los ingresos', 100);
 esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
 
 /* El contraste que hay que poder explicar: el margen bruto cae respecto a

@@ -136,7 +136,7 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
 /* Dos por fila. Con cuatro unidades quedan dos filas de dos, y cada tarjeta
    tiene ancho suficiente para que sus tres cifras no se pisen. Por debajo de
    ~950 px pasa a una sola columna, que es mas ancha todavia. */
-.unidades{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:14px}
+/* Las tarjetas de unidad van apiladas a ancho completo, no en reticula. */
 .unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
   padding:18px 20px 16px;display:flex;flex-direction:column;
   container-type:inline-size}
@@ -238,41 +238,112 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
    Lo que el cliente ve primero es lo que logra al terminar cada fase; los
    entregables estan debajo para quien pregunte.
    ========================================================================== */
-/* La reticula del gantt: una columna fija para el rotulo y una flexible
-   para los meses, compartida por la cabecera de tiempos y cada fase. Es lo
-   unico que hace que los meses caigan en la misma x en las cinco filas.
-   Cambiar --rotulo-ruta las mueve todas a la vez. */
-:root{ --rotulo-ruta:190px; }
-.tl, .fase-rejilla{display:grid;grid-template-columns:var(--rotulo-ruta) 1fr;gap:10px;align-items:center}
-.tl{margin-bottom:10px}
+/* La reticula del gantt es la del portal: una columna fija para el rotulo y
+   una flexible para los meses, compartida entre la cabecera de tiempos y
+   cada fila de unidad. Es lo unico que hace que las celdas caigan en la
+   misma x en las siete filas. Cambiar --rotulo-ruta las mueve a la vez. */
+:root{ --rotulo-ruta:225px; }
+.tl{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;
+  padding:10px;margin-bottom:12px;display:flex;flex-direction:column;gap:6px}
+.tl-fila, .fu-rejilla{display:grid;grid-template-columns:var(--rotulo-ruta) 1fr;gap:6px;align-items:center}
 .tl-tag{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
-  color:var(--texto-secundario)}
-.meses, .gantt{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
+  color:var(--texto-secundario);padding-left:10px}
+.gantt{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
 .mo{font-size:14px;font-weight:600;text-transform:uppercase;color:var(--texto-secundario);
-  text-align:center;padding:7px 0;border-radius:6px;background:var(--superficie)}
+  text-align:center;padding:6px 0;border-radius:6px;background:var(--fondo)}
 /* El cambio de año se marca una sola vez, donde ocurre. */
 .mo.anio-nuevo{color:var(--marca-verde-profundo);box-shadow:inset 2px 0 0 var(--marca-verde-profundo)}
 
-.fase{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  margin-bottom:12px;overflow:hidden}
-.fase>summary{cursor:pointer;padding:18px 24px;list-style:none;display:block}
-.fase>summary::-webkit-details-marker{display:none}
-.fase>summary:hover{background:var(--superficie-sutil)}
-.fase-info{display:flex;align-items:baseline;gap:10px;min-width:0}
-.fase-num{font-size:20px;font-weight:700;color:var(--marca-verde-profundo);letter-spacing:-.3px;
-  white-space:nowrap}
-.fase-cuenta{font-size:15px;font-weight:700;background:var(--marca-tenue);
-  color:var(--marca-verde-medio);border-radius:999px;padding:3px 11px;flex-shrink:0}
-/* La barra ocupa sus tres meses por grid-column, no por porcentaje: asi
-   coincide con la cabecera aunque cambie el ancho de la ventana. */
-.barra{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
-  border-radius:8px;padding:10px 14px;font-size:16px;font-weight:600;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fase.transversal .barra{background:var(--marca-verde-claro);
-  background-image:repeating-linear-gradient(135deg,transparent 0 9px,rgba(255,255,255,.13) 9px 18px)}
-.fase.transversal .fase-num{color:var(--marca-verde-medio)}
-.fase-abrir{font-size:var(--menudo);color:var(--marca-verde-medio);font-weight:600;
-  display:inline-block;margin-top:10px}
+/* Las fases viven en la linea de tiempo y son clicables: son la segunda
+   entrada a los entregables, por fase en vez de por unidad. */
+.barra-fase{font-family:var(--font);cursor:pointer;text-align:left;
+  background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border:2px solid var(--marca-verde-profundo);border-radius:8px;padding:8px 13px;
+  display:flex;flex-direction:column;gap:1px;overflow:hidden;transition:.15s}
+.barra-fase:hover{background:var(--marca-verde-medio);border-color:var(--marca-verde-medio)}
+.barra-fase[aria-current="true"]{background:var(--superficie);color:var(--marca-verde-profundo);
+  box-shadow:0 0 0 2px var(--marca-sombra)}
+.bf-num{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bf-n{font-size:11px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Una fila por unidad de negocio, con la flecha a la izquierda. */
+.fila-unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;
+  margin-bottom:8px;overflow:hidden}
+.fila-unidad[open]{border-color:var(--marca-verde-profundo)}
+.fila-unidad>summary{cursor:pointer;padding:11px 10px;list-style:none;display:block}
+.fila-unidad>summary::-webkit-details-marker{display:none}
+.fila-unidad>summary:hover{background:var(--superficie-sutil)}
+.fu-info{display:flex;align-items:center;gap:10px;min-width:0;padding-left:4px}
+.fu-flecha{width:20px;height:20px;border-radius:5px;border:1px solid var(--borde);
+  display:flex;align-items:center;justify-content:center;font-size:10px;
+  color:var(--texto-secundario);flex-shrink:0}
+.fila-unidad[open] .fu-flecha{border-color:var(--marca-verde-profundo);
+  color:var(--marca-verde-profundo);background:var(--marca-realce)}
+.fu-nombre{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fu-n{margin-left:auto;font-size:12px;font-weight:700;color:var(--marca-verde-medio);
+  background:var(--marca-tenue);border-radius:999px;padding:2px 10px;flex-shrink:0}
+
+/* La celda marca donde hay trabajo. Sin trabajo queda la pista, para que se
+   vea el hueco en vez de un vacio sin explicar. */
+.celda{height:26px;border-radius:4px;background:var(--borde);opacity:.45}
+.celda.con-trabajo{background:var(--marca-verde-medio);opacity:1}
+.celda.banda{background:var(--marca-verde-claro);opacity:1;
+  background-image:repeating-linear-gradient(135deg,transparent 0 9px,rgba(255,255,255,.16) 9px 18px)}
+.fila-unidad.transversal .fu-nombre{color:var(--marca-verde-medio)}
+
+.fu-cuerpo{background:var(--superficie-sutil);border-top:1px solid var(--borde);padding:6px 16px 14px}
+.fu-fase{padding-top:10px}
+.fu-fase-h{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--marca-verde-profundo);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.fu-fase-h::before{content:"";width:8px;height:8px;border-radius:50%;
+  background:var(--marca-verde-profundo);flex-shrink:0}
+.fu-vacio{font-size:14px;color:var(--texto-secundario);padding:14px 4px;line-height:1.5}
+
+/* Panel que se abre al elegir una fase en la linea de tiempo. */
+.panel-fase{background:var(--superficie);border:1px solid var(--marca-verde-profundo);
+  border-radius:14px;padding:20px 24px;margin-bottom:14px}
+.pf-cab{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.pf-cab h4{font-size:19px;font-weight:700;color:var(--marca-verde-profundo)}
+.pf-cerrar{margin-left:auto;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;
+  background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
+  border-radius:999px;padding:5px 14px}
+.pf-cerrar:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+.grupo-unidad{margin-top:14px}
+.gu-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.gu-nombre{font-size:15px;font-weight:700;color:var(--marca-verde-profundo)}
+.gu-n{font-size:12px;color:var(--texto-secundario)}
+
+/* ==========================================================================
+   SECCION 2 · TARJETA DE ANCHO COMPLETO
+   Una por unidad, apiladas. La tabla desglosada a la izquierda y las cifras
+   con los controles a la derecha: el cliente ve de donde sale cada dolar
+   mientras Ricardo mueve el deslizador.
+   ========================================================================== */
+.unidad-ancha{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:20px 24px 18px;margin-bottom:14px}
+.ua-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.ua-cab h3{font-size:24px;font-weight:700;letter-spacing:-.3px;color:var(--marca-verde-profundo)}
+.ua-cuerpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);
+  gap:24px;align-items:start;margin-top:12px}
+.ua-tabla{overflow-x:auto}
+.ua-lado{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
+
+table.desglose{width:100%;border-collapse:collapse}
+table.desglose th, table.desglose td{padding:9px 12px;vertical-align:baseline}
+table.desglose thead th{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);text-align:left;white-space:nowrap}
+table.desglose thead th.num{text-align:right}
+table.desglose tbody th{text-align:left;font-size:14px;font-weight:500;color:var(--texto-principal)}
+table.desglose td.num{text-align:right;font-size:15px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+table.desglose tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.desglose tbody tr:last-child{border-bottom:none}
+
+/* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
+   cuerpo se ata al ancho de su celda para no salirse nunca. */
+.ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+.ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
+
 .logro{font-size:18px;line-height:1.45;max-width:80ch;margin-top:12px}
 .logro strong{font-weight:700;color:var(--marca-verde-profundo)}
 
@@ -526,14 +597,27 @@ const MOTOR = (function(){
 
   function kinder(p){
     const c = Object.assign({}, KINDER_PARTIDA, p || {});
-    const ticket = c.pct45 * c.precio45 + (1 - c.pct45) * c.precio8;
+
+    /* Reparto entero entre los dos planes. Un niño paga uno o el otro, asi
+       que la facturacion sale de la suma de los dos y no de un ticket
+       promedio: con el promedio la tabla desglosada de la tarjeta no
+       sumaria su propio total, que es lo que el cliente comprueba. */
+    const ninos45 = Math.round(c.ninos * c.pct45);
+    const ninos8 = c.ninos - ninos45;
+    const detalle = [
+      { nombre:'Plan 4,5 horas', ninos:ninos45, precio:c.precio45, facturacion:ninos45 * c.precio45 },
+      { nombre:'Plan 8 horas',   ninos:ninos8,  precio:c.precio8,  facturacion:ninos8 * c.precio8 },
+    ];
+    const facturacion = detalle.reduce((s, d) => s + d.facturacion, 0);
+
     /* El costo escala por escalon, no proporcionalmente: un niño mas puede
        abrir un grupo entero. Pasar de 30 a 31 suma un costoGrupo completo. */
     const grupos = Math.ceil(c.ninos / KINDER_NINOS_POR_GRUPO);
-    const facturacion = c.ninos * ticket;
     const costo = grupos * c.costoGrupo;
+
     return {
-      ninos: c.ninos, ticket, grupos, facturacion, costo,
+      ninos: c.ninos, ninos45, ninos8, grupos, facturacion, costo, detalle,
+      ticket: c.ninos ? facturacion / c.ninos : 0,
       margen: facturacion - costo,
       excedeCapacidad: c.ninos > KINDER_CAPACIDAD,
     };
@@ -679,7 +763,11 @@ const MOTOR = (function(){
     /* Misma regla que en After School: sin alumnos no se dicta, y lo que no
        se dicta no cuesta. Por eso hoy Baby and Me no arrastra costo. */
     const costo = alumnos > 0 ? c.horasSem * SEM_MES * c.costoHora : 0;
-    return { alumnos, cupos:BABY_CUPOS, facturacion, costo, margen: facturacion - costo };
+    const detalle = [{ nombre:'Sesion semanal', cupos:BABY_CUPOS, alumnos,
+                       precio:c.precio, facturacion, costo,
+                       horas:c.horasSem }];
+    return { alumnos, cupos:BABY_CUPOS, facturacion, costo, detalle,
+             margen: facturacion - costo };
   }
 
   /* ========================================================================
@@ -695,7 +783,10 @@ const MOTOR = (function(){
     const eventos = Math.round(c.eventosSemana * SEM_MES);
     const facturacion = eventos * c.precio;
     const costo = eventos * c.costoEvento;
-    return { eventos, facturacion, costo, margen: facturacion - costo };
+    const detalle = [{ nombre:'Eventos del mes', cantidad:eventos,
+                       porSemana:c.eventosSemana, precio:c.precio,
+                       facturacion, costo }];
+    return { eventos, facturacion, costo, detalle, margen: facturacion - costo };
   }
 
   /* ========================================================================
@@ -1310,254 +1401,492 @@ function barraReinicio(contenedor, texto){
 /* ==========================================================================
    SECCION 1 · HOJA DE RUTA
 
-   La retícula del gantt es la del portal: una columna fija para el rotulo y
-   una flexible para los meses, compartida entre la cabecera de tiempos y
-   cada fila. Asi los meses caen en la misma x en las cinco filas, que es lo
-   unico que hace legible un gantt.
-   ========================================================================== */
-function montarRuta(contenedor){
-  const meses = DATOS.MESES;
+   Replica el gantt de "Avance del proyecto" del portal del cliente: una
+   columna fija para el rotulo y una flexible para los meses, compartida
+   entre la cabecera de tiempos y cada fila, que es lo unico que hace que
+   las celdas caigan en la misma x. Cada fila es una unidad de negocio y se
+   despliega con la flecha de la izquierda.
 
+   Sobre eso, las cuatro fases viven en la linea de tiempo y son clicables:
+   al elegir una se despliegan sus entregables agrupados por unidad. Son dos
+   entradas a lo mismo, por unidad y por fase, que es como se pregunta en
+   una reunion.
+   ========================================================================== */
+const UNIDADES_RUTA = ['Gerencia', 'Kinder', 'After School', 'Veranito', 'Cumpleaños', 'Baby and Me'];
+
+/* Una unidad tiene trabajo en un mes si tiene algun entregable en la fase
+   que cubre ese mes. Los transversales no cuentan aqui: van en su propia
+   banda para no llenar la fila de Gerencia los doce meses. */
+function mesesConTrabajo(unidad){
+  const meses = new Set();
+  for (const f of DATOS.FASES){
+    if (f.numero === 0) continue;
+    if (DATOS.ENTREGABLES.some(e => e.fase === f.numero && e.unidad === unidad)){
+      for (let m = f.desde; m <= f.hasta; m++) meses.add(m);
+    }
+  }
+  return meses;
+}
+
+/* Lista de filas con la descripcion al clic. Sin fecha individual: las de
+   la hoja no calzan con las fases nuevas y mostrarlas dejaria la
+   contradiccion a la vista. */
+function listaEntregables(lista){
+  const cont = nodo('div', 'entregables');
+  for (const e of lista){
+    const fila = nodo('details', 'entregable');
+    const s = document.createElement('summary');
+    const nom = nodo('span', 'ent-nombre', e.nombre);
+    nom.title = e.nombre;
+    const etq = nodo('div', 'ent-etiquetas');
+    etq.appendChild(nodo('span', 'chip', e.unidad));
+    etq.appendChild(nodo('span', 'chip seg', e.segmento));
+    const ver = nodo('span', 'ent-abrir', 'Ver');
+    fila.addEventListener('toggle', () => { ver.textContent = fila.open ? 'Ocultar' : 'Ver'; });
+    s.append(nom, etq, ver);
+    fila.appendChild(s);
+    fila.appendChild(nodo('div', 'ent-nota', e.nota));
+    cont.appendChild(fila);
+  }
+  return cont;
+}
+
+function montarRuta(contenedor){
+  let faseAbierta = null;
+
+  /* ---------- Cabecera: fases y meses ---------- */
   const tl = nodo('div', 'tl');
-  const izq = nodo('div', 'tl-l');
-  izq.appendChild(nodo('span', 'tl-tag', 'Meses'));
-  tl.appendChild(izq);
-  const filaMeses = nodo('div', 'meses');
-  meses.forEach((m, i) => {
-    const c = nodo('div', 'mo', m);
-    /* El cambio de año se marca una sola vez, donde ocurre. */
-    if (i === 4) c.classList.add('anio-nuevo');
-    filaMeses.appendChild(c);
-  });
+
+  const filaFases = nodo('div', 'tl-fila');
+  filaFases.appendChild(nodo('span', 'tl-tag', 'Fases'));
+  const gantFases = nodo('div', 'gantt');
+  const botonesFase = [];
+  for (const f of DATOS.FASES){
+    if (f.numero === 0) continue;
+    const b = nodo('button', 'barra-fase');
+    b.style.gridColumn = (f.desde + 1) + ' / span ' + (f.hasta - f.desde + 1);
+    b.appendChild(nodo('span', 'bf-num', 'Fase ' + f.numero));
+    b.appendChild(nodo('span', 'bf-n',
+      DATOS.ENTREGABLES.filter(e => e.fase === f.numero).length + ' entregables'));
+    b.addEventListener('click', () => elegirFase(faseAbierta === f.numero ? null : f.numero));
+    gantFases.appendChild(b);
+    botonesFase.push({ f, b });
+  }
+  filaFases.appendChild(gantFases);
+  tl.appendChild(filaFases);
+
+  const filaMeses = nodo('div', 'tl-fila');
+  filaMeses.appendChild(nodo('span', 'tl-tag', 'Meses'));
+  const meses = nodo('div', 'gantt');
+  DATOS.MESES.forEach((m, i) => meses.appendChild(nodo('div', 'mo' + (i === 4 ? ' anio-nuevo' : ''), m)));
+  filaMeses.appendChild(meses);
   tl.appendChild(filaMeses);
   contenedor.appendChild(tl);
 
-  for (const fase of DATOS.FASES){
-    const lista = DATOS.ENTREGABLES.filter(e => e.fase === fase.numero);
-    const esTransversal = fase.numero === 0;
+  /* ---------- Panel de la fase elegida ---------- */
+  const panelFase = nodo('div', 'panel-fase');
+  panelFase.style.display = 'none';
+  contenedor.appendChild(panelFase);
 
-    const det = nodo('details', 'fase' + (esTransversal ? ' transversal' : ''));
+  function elegirFase(n){
+    faseAbierta = n;
+    for (const par of botonesFase) par.b.setAttribute('aria-current', par.f.numero === n ? 'true' : 'false');
+    panelFase.textContent = '';
+    if (n === null){ panelFase.style.display = 'none'; return; }
+    panelFase.style.display = '';
+
+    const fase = DATOS.FASES.find(f => f.numero === n);
+    const cab = nodo('div', 'pf-cab');
+    cab.appendChild(nodo('h4', null, 'Fase ' + n + ' · ' + fase.rango));
+    const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
+    cerrar.addEventListener('click', () => elegirFase(null));
+    cab.appendChild(cerrar);
+    panelFase.appendChild(cab);
+
+    const logro = nodo('p', 'logro');
+    logro.append(nodo('strong', null, 'Al terminar: ' + fase.logro),
+                 document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
+    panelFase.appendChild(logro);
+
+    /* Agrupados por unidad de negocio, que es como se pregunta en la
+       reunion: "y en esta fase, que le toca a Kinder". */
+    for (const u of UNIDADES_RUTA){
+      const suyos = DATOS.ENTREGABLES.filter(e => e.fase === n && e.unidad === u);
+      if (!suyos.length) continue;
+      const grupo = nodo('div', 'grupo-unidad');
+      const gh = nodo('div', 'gu-cab');
+      gh.appendChild(nodo('span', 'gu-nombre', u));
+      gh.appendChild(nodo('span', 'gu-n', suyos.length + (suyos.length === 1 ? ' entregable' : ' entregables')));
+      grupo.appendChild(gh);
+      grupo.appendChild(listaEntregables(suyos));
+      panelFase.appendChild(grupo);
+    }
+  }
+
+  /* ---------- Una fila por unidad ---------- */
+  for (const u of UNIDADES_RUTA){
+    const suyos = DATOS.ENTREGABLES.filter(e => e.unidad === u && e.fase !== 0);
+    const conTrabajo = mesesConTrabajo(u);
+
+    const fila = nodo('details', 'fila-unidad');
     const sum = document.createElement('summary');
+    const rejilla = nodo('div', 'fu-rejilla');
 
-    const rejilla = nodo('div', 'fase-rejilla');
-    const info = nodo('div', 'fase-info');
-    info.appendChild(nodo('span', 'fase-num', esTransversal ? 'Transversales' : `Fase ${fase.numero}`));
-    info.appendChild(nodo('span', 'fase-cuenta', String(lista.length)));
+    const info = nodo('div', 'fu-info');
+    const flecha = nodo('span', 'fu-flecha', '▸');
+    info.appendChild(flecha);
+    info.appendChild(nodo('span', 'fu-nombre', u));
+    info.appendChild(nodo('span', 'fu-n', String(suyos.length)));
     rejilla.appendChild(info);
 
     const gantt = nodo('div', 'gantt');
-    const barra = nodo('div', 'barra', fase.rango);
-    /* +1 porque las columnas de CSS grid empiezan en 1, no en 0. */
-    barra.style.gridColumn = `${fase.desde + 1} / span ${fase.hasta - fase.desde + 1}`;
-    gantt.appendChild(barra);
+    for (let m = 0; m < 12; m++){
+      gantt.appendChild(nodo('div', 'celda' + (conTrabajo.has(m) ? ' con-trabajo' : '')));
+    }
     rejilla.appendChild(gantt);
     sum.appendChild(rejilla);
+    fila.appendChild(sum);
+    fila.addEventListener('toggle', () => { flecha.textContent = fila.open ? '▾' : '▸'; });
 
-    const logro = nodo('p', 'logro');
-    const fuerte = nodo('strong', null, esTransversal ? fase.logro : `Al terminar: ${fase.logro}`);
-    logro.append(fuerte, document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
-    sum.appendChild(logro);
-
-    const abrir = nodo('span', 'fase-abrir', '▼ ver los entregables');
-    det.addEventListener('toggle', () => {
-      abrir.textContent = det.open ? '▲ ocultar entregables' : '▼ ver los entregables';
-    });
-    sum.appendChild(abrir);
-    det.appendChild(sum);
-
-    /* Sin fecha individual: las de la hoja no calzan con las fases nuevas
-       —hay entregables de fase 2 y 3 fechados en octubre, que caeria en
-       fase 1— y mostrarlas dejaria la contradiccion a la vista. El rango de
-       la fase es el compromiso; las fechas exactas se definen al firmar. */
-    const cont = nodo('div', 'entregables');
-    for (const e of lista){
-      const fila = nodo('details', 'entregable');
-      const s = document.createElement('summary');
-      const nom = nodo('span', 'ent-nombre', e.nombre);
-      nom.title = e.nombre;
-      const etq = nodo('div', 'ent-etiquetas');
-      etq.appendChild(nodo('span', 'chip', e.unidad));
-      etq.appendChild(nodo('span', 'chip seg', e.segmento));
-      const ver = nodo('span', 'ent-abrir', 'Ver');
-      fila.addEventListener('toggle', () => { ver.textContent = fila.open ? 'Ocultar' : 'Ver'; });
-      s.append(nom, etq, ver);
-      fila.appendChild(s);
-      fila.appendChild(nodo('div', 'ent-nota', e.nota));
-      cont.appendChild(fila);
+    const cuerpo = nodo('div', 'fu-cuerpo');
+    if (!suyos.length){
+      /* Baby and Me no tiene entregables propios en la hoja: su campaña
+         figura bajo Kinder. Se dice, en vez de dejar la fila muda. */
+      cuerpo.appendChild(nodo('p', 'fu-vacio',
+        'Sin entregables propios en la hoja de compromisos. Su campaña de captacion figura dentro de Kinder.'));
+    } else {
+      for (const f of DATOS.FASES){
+        if (f.numero === 0) continue;
+        const deFase = suyos.filter(e => e.fase === f.numero);
+        if (!deFase.length) continue;
+        const bloque = nodo('div', 'fu-fase');
+        bloque.appendChild(nodo('div', 'fu-fase-h', 'Fase ' + f.numero + ' · ' + f.rango));
+        bloque.appendChild(listaEntregables(deFase));
+        cuerpo.appendChild(bloque);
+      }
     }
-    det.appendChild(cont);
-    contenedor.appendChild(det);
+    fila.appendChild(cuerpo);
+    contenedor.appendChild(fila);
   }
+
+  /* ---------- Banda transversal ---------- */
+  const transversales = DATOS.ENTREGABLES.filter(e => e.fase === 0);
+  const banda = nodo('details', 'fila-unidad transversal');
+  const sumT = document.createElement('summary');
+  const rejT = nodo('div', 'fu-rejilla');
+  const infoT = nodo('div', 'fu-info');
+  const flechaT = nodo('span', 'fu-flecha', '▸');
+  infoT.appendChild(flechaT);
+  const nombreT = nodo('span', 'fu-nombre', 'Transversales');
+  /* El rotulo va corto para que quepa en la columna fija; la frase completa
+     queda en el title y en la cabecera del cuerpo desplegado. */
+  nombreT.title = 'Durante todo el proyecto';
+  infoT.appendChild(nombreT);
+  infoT.appendChild(nodo('span', 'fu-n', String(transversales.length)));
+  rejT.appendChild(infoT);
+  const gantT = nodo('div', 'gantt');
+  const bandaBarra = nodo('div', 'celda banda');
+  bandaBarra.style.gridColumn = '1 / span 12';
+  gantT.appendChild(bandaBarra);
+  rejT.appendChild(gantT);
+  sumT.appendChild(rejT);
+  banda.appendChild(sumT);
+  banda.addEventListener('toggle', () => { flechaT.textContent = banda.open ? '▾' : '▸'; });
+  const cuerpoT = nodo('div', 'fu-cuerpo');
+  const encT = nodo('div', 'fu-fase');
+  encT.appendChild(nodo('div', 'fu-fase-h', 'Durante todo el proyecto · los doce meses'));
+  encT.appendChild(listaEntregables(transversales));
+  cuerpoT.appendChild(encT);
+  banda.appendChild(cuerpoT);
+  contenedor.appendChild(banda);
 }
 
 /* ==========================================================================
    SECCION 2 · DETALLE POR UNIDAD
 
-   Cada unidad arranca en su ocupacion real de hoy, no en un escenario. Al
-   eliminarse "Donde estan hoy", esta seccion es la que carga el punto de
-   partida: se ve donde estan y desde ahi se mueve el deslizador.
+   Una tarjeta de ancho completo por unidad, apiladas. Cada una lleva su
+   tabla desglosada a la izquierda y las cifras y los controles a la
+   derecha, de modo que el cliente ve de donde sale cada dolar mientras
+   Ricardo mueve el deslizador.
+
+   Todas arrancan en la ocupacion real de hoy: al eliminarse "Donde estan
+   hoy", es esta seccion la que carga el punto de partida.
    ========================================================================== */
 function montarUnidades(contenedor){
   const inicial = () => MOTOR.partida();
   let est = inicial();
   const restauradores = [];
-  const unidades = nodo('div', 'unidades');
+
   const reg = (cfg, lee) => {
     const c = control(cfg);
     restauradores.push(p => c.restaurar(lee(p)));
     return c.wrap;
   };
 
-  /* ---------- Kinder ---------- */
-  const tK = tarjeta('Kinder');
-  const v = DATOS.VALOR_VIDA;
-  tK.extra.appendChild(bloqueDestacado(
-    `Valor de vida de una familia: <strong>${F.dinero(v.kinder.valor)}</strong> contra ` +
-    `${F.dinero(v.kinder.adquisicion)} de costo de adquisicion. ` +
-    `Relacion de <strong>${Math.round(v.kinder.relacion)} a 1</strong>.`));
-  tK.controles.append(
-    reg({ etiqueta:'Niños', tipo:'range', min:29, max:100, paso:1, valor:est.kinder.ninos,
-          formato:x => x + ' niños', ancho:true,
-          alCambiar:x => { est.kinder.ninos = x; pintar(); } }, p => p.kinder.ninos),
-    reg({ etiqueta:'% plan 4,5 h', tipo:'range', min:0, max:100, paso:1, valor:est.kinder.pct45*100,
-          formato:x => x + '%', ancho:true,
-          alCambiar:x => { est.kinder.pct45 = x/100; pintar(); } }, p => p.kinder.pct45*100),
-    reg({ etiqueta:'Precio plan 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio45,
-          alCambiar:x => { est.kinder.precio45 = x; pintar(); } }, p => p.kinder.precio45),
-    reg({ etiqueta:'Precio plan 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio8,
-          alCambiar:x => { est.kinder.precio8 = x; pintar(); } }, p => p.kinder.precio8),
-    reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.kinder.costoGrupo,
-          ancho:true, alCambiar:x => { est.kinder.costoGrupo = x; pintar(); } }, p => p.kinder.costoGrupo),
-  );
-  unidades.appendChild(tK.art);
+  /* Cada unidad declara de donde sale su ocupacion, que columnas tiene su
+     tabla y como se arman sus filas. Lo que cambia entre unidades son los
+     datos, no la forma de la tarjeta. */
+  const FICHAS = [
+    {
+      nombre: 'Kinder',
+      columnas: ['Plan', 'Niños', 'Precio', 'Facturacion'],
+      calcular: () => MOTOR.kinder(est.kinder),
+      ocupacion: r => ({ texto: r.ninos + ' de ' + MOTOR.KINDER_CAPACIDAD + ' niños',
+                         frac: r.ninos / MOTOR.KINDER_CAPACIDAD }),
+      apoyo: r => r.grupos + ' grupos abiertos · ticket promedio ' + F.precio(r.ticket),
+      filas: r => r.detalle.map(d => [d.nombre, d.ninos, F.precio(d.precio), F.dinero(d.facturacion)])
+                   .concat([['Costo de los grupos', r.grupos, F.precio(est.kinder.costoGrupo),
+                             '−' + F.dinero(r.costo)]]),
+      aviso: r => r.excedeCapacidad
+        ? r.ninos + ' niños no caben en la capacidad actual: requiere habilitar salones adicionales.' : null,
+      controles: () => [
+        reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1,
+              valor: est.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100, formato:x => x + '%', ancho:true,
+              alCambiar:x => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * x / 100); pintar(); } },
+            p => p.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100),
+        reg({ etiqueta:'Mezcla 4,5 h / 8 h', tipo:'range', min:0, max:100, paso:5, valor:est.kinder.pct45*100,
+              formato:x => x + ' / ' + (100 - x), ancho:true,
+              alCambiar:x => { est.kinder.pct45 = x/100; pintar(); } }, p => p.kinder.pct45*100),
+        reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio45,
+              alCambiar:x => { est.kinder.precio45 = x; pintar(); } }, p => p.kinder.precio45),
+        reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio8,
+              alCambiar:x => { est.kinder.precio8 = x; pintar(); } }, p => p.kinder.precio8),
+        reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.kinder.costoGrupo,
+              ancho:true, alCambiar:x => { est.kinder.costoGrupo = x; pintar(); } }, p => p.kinder.costoGrupo),
+      ],
+      extra: () => {
+        const v = DATOS.VALOR_VIDA;
+        return 'Valor de vida de una familia: <strong>' + F.dinero(v.kinder.valor) + '</strong> contra ' +
+               F.dinero(v.kinder.adquisicion) + ' de costo de adquisicion. Relacion de <strong>' +
+               Math.round(v.kinder.relacion) + ' a 1</strong>.';
+      },
+    },
+    {
+      nombre: 'After School',
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Facturacion', 'Costo'],
+      calcular: () => MOTOR.afterSchool(est.afterSchool),
+      ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
+                         frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
+      apoyo: () => '',
+      filas: r => r.detalle.map(d => [d.nombre, d.cupos, d.alumnos, F.dinero(d.facturacion),
+                                      d.costo ? '−' + F.dinero(d.costo) : '—']),
+      controles: () => [
+        reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
+              formato:x => x + '%', ancho:true,
+              alCambiar:x => { est.afterSchool.ocupacion = x/100; pintar(); } }, p => p.afterSchool.ocupacion*100),
+        reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
+              alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
+        reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
+              alCambiar:x => { est.afterSchool.precioTelas = x; pintar(); } }, p => p.afterSchool.precioTelas),
+        reg({ etiqueta:'Precio sabado', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio1v,
+              alCambiar:x => { est.afterSchool.precio1v = x; pintar(); } }, p => p.afterSchool.precio1v),
+      ],
+    },
+    {
+      nombre: 'Veranito',
+      columnas: ['Temporada', 'Cupos', 'Vendidos', 'Facturacion', 'Costo'],
+      calcular: () => {
+        const may = MOTOR.veranito(Object.assign({}, est.veranito, est.veranito.mayAgo));
+        const ene = MOTOR.veranito(Object.assign({}, est.veranito, est.veranito.eneMar));
+        return { may, ene,
+                 facturacion: may.facturacion + ene.facturacion,
+                 costo: may.costo + ene.costo,
+                 margen: may.margen + ene.margen };
+      },
+      ocupacion: r => {
+        const c = r.may.cupos + r.ene.cupos, cap = r.may.cuposTemporada + r.ene.cuposTemporada;
+        return { texto: c + ' de ' + cap + ' cupos al año', frac: c / cap };
+      },
+      /* La cifra anual es la que manda, pero prorrateada a mes es la que se
+         compara con las otras cuatro unidades. Se dan las dos. */
+      apoyo: r => 'Ticket real ' + F.precio(r.may.ticket) + ' · prorrateado a mes: ' +
+                  F.dinero(r.facturacion / 12) + ' de facturacion y ' + F.dinero(r.margen / 12) + ' de margen',
+      filas: r => [
+        ['Mayo a agosto', r.may.cuposTemporada, r.may.cupos, F.dinero(r.may.facturacion),
+         '−' + F.dinero(r.may.costo)],
+        ['Enero a marzo', r.ene.cuposTemporada, r.ene.cupos, F.dinero(r.ene.facturacion),
+         '−' + F.dinero(r.ene.costo)],
+      ],
+      controles: () => [
+        reg({ etiqueta:'Ocupacion mayo–agosto', tipo:'range', min:0, max:100, paso:1,
+              valor:est.veranito.mayAgo.ocupacion*100, formato:x => x + '%', ancho:true,
+              alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100; pintar(); } },
+            p => p.veranito.mayAgo.ocupacion*100),
+        reg({ etiqueta:'Ocupacion enero–marzo', tipo:'range', min:0, max:100, paso:1,
+              valor:est.veranito.eneMar.ocupacion*100, formato:x => x + '%', ancho:true,
+              alCambiar:x => { est.veranito.eneMar.ocupacion = x/100; pintar(); } },
+            p => p.veranito.eneMar.ocupacion*100),
+        reg({ etiqueta:'Semanas', tipo:'range', min:1, max:16, paso:1, valor:est.veranito.semanas,
+              formato:x => x + ' semanas',
+              alCambiar:x => { est.veranito.semanas = x; pintar(); } }, p => p.veranito.semanas),
+        reg({ etiqueta:'Cupos por semana', tipo:'range', min:0, max:50, paso:1, valor:est.veranito.cuposSemana,
+              formato:x => x + ' cupos',
+              alCambiar:x => { est.veranito.cuposSemana = x; pintar(); } }, p => p.veranito.cuposSemana),
+        reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:900, paso:1, valor:est.veranito.precio45,
+              alCambiar:x => { est.veranito.precio45 = x; pintar(); } }, p => p.veranito.precio45),
+        reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:900, paso:1, valor:est.veranito.precio8,
+              alCambiar:x => { est.veranito.precio8 = x; pintar(); } }, p => p.veranito.precio8),
+      ],
+      nota: () => NOTA_COSTO_VERANITO,
+      extra: () => {
+        const p = DATOS.PRUEBA_VERANITO, v = DATOS.VALOR_VIDA;
+        return 'De ' + F.dinero(p.anterior) + ' en 2025 a ' + F.dinero(p.actual) +
+               ' en 2026 en la misma temporada: <strong>' + F.pct(p.crecimiento) +
+               ' de crecimiento</strong> con una inversion acumulada de ' + F.dinero(p.inversion) +
+               ' — relacion de <strong>' + Math.round(p.relacion) + ' a 1</strong>. Costo de adquisicion de ' +
+               F.precio(v.veranito.adquisicion) + ' contra ' + F.precio(v.veranito.ventaPorCliente) +
+               ' de venta por cliente nuevo.';
+      },
+    },
+    {
+      nombre: 'Cumpleaños',
+      columnas: ['Concepto', 'Al mes', 'Precio', 'Facturacion', 'Costo'],
+      calcular: () => MOTOR.cumpleanos(est.cumpleanos),
+      ocupacion: r => {
+        const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
+        return { texto: r.eventos + ' de ' + tope + ' eventos al mes', frac: r.eventos / tope };
+      },
+      apoyo: () => 'Tope real: ' + MOTOR.CUMPLE_TOPE_SEMANA + ' eventos por semana.',
+      filas: r => r.detalle.map(d => [
+        d.nombre + ' · ' + d.porSemana.toFixed(1).replace('.', ',') + ' por semana',
+        d.cantidad, F.precio(d.precio), F.dinero(d.facturacion), '−' + F.dinero(d.costo)]),
+      controles: () => [
+        reg({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
+              valor:est.cumpleanos.eventosSemana,
+              formato:x => x.toFixed(1).replace('.', ',') + ' por semana', ancho:true,
+              alCambiar:x => { est.cumpleanos.eventosSemana = x; pintar(); } }, p => p.cumpleanos.eventosSemana),
+        reg({ etiqueta:'Precio del paquete', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.precio,
+              alCambiar:x => { est.cumpleanos.precio = x; pintar(); } }, p => p.cumpleanos.precio),
+        reg({ etiqueta:'Costo por evento', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.costoEvento,
+              alCambiar:x => { est.cumpleanos.costoEvento = x; pintar(); } }, p => p.cumpleanos.costoEvento),
+      ],
+    },
+    {
+      nombre: 'Baby and Me',
+      columnas: ['Concepto', 'Cupos', 'Alumnos', 'Precio', 'Facturacion'],
+      calcular: () => MOTOR.baby(est.baby),
+      ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
+      apoyo: r => {
+        const potencial = r.cupos * est.baby.precio * 12;
+        return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
+               F.dinero(potencial) + ' al año a plena ocupacion';
+      },
+      filas: r => r.detalle.map(d => [
+        d.nombre + ' · ' + d.horas + ' horas semanales', d.cupos, d.alumnos,
+        F.precio(d.precio), F.dinero(d.facturacion)]),
+      controles: () => [
+        reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.baby.ocupacion*100,
+              formato:x => x + '%', ancho:true,
+              alCambiar:x => { est.baby.ocupacion = x/100; pintar(); } }, p => p.baby.ocupacion*100),
+        reg({ etiqueta:'Precio mensual', tipo:'number', min:0, max:900, paso:1, valor:est.baby.precio,
+              ancho:true, alCambiar:x => { est.baby.precio = x; pintar(); } }, p => p.baby.precio),
+      ],
+    },
+  ];
 
-  /* ---------- After School ---------- */
-  const tA = tarjeta('After School');
-  tA.controles.append(
-    reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
-          formato:x => x + '%', ancho:true,
-          alCambiar:x => { est.afterSchool.ocupacion = x/100; pintar(); } }, p => p.afterSchool.ocupacion*100),
-    reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
-          alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
-    reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
-          alCambiar:x => { est.afterSchool.precioTelas = x; pintar(); } }, p => p.afterSchool.precioTelas),
-    reg({ etiqueta:'Precio sabado · 1 vez/sem', tipo:'number', min:0, max:900, paso:0.01,
-          valor:est.afterSchool.precio1v, ancho:true,
-          alCambiar:x => { est.afterSchool.precio1v = x; pintar(); } }, p => p.afterSchool.precio1v),
-  );
-  unidades.appendChild(tA.art);
+  const tarjetas = FICHAS.map(ficha => {
+    const art = nodo('article', 'unidad-ancha');
 
-  /* ---------- Cumpleaños ---------- */
-  const tC = tarjeta('Cumpleaños');
-  tC.controles.append(
-    reg({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
-          valor:est.cumpleanos.eventosSemana, formato:x => x.toFixed(1).replace('.', ',') + ' por semana',
-          ancho:true, alCambiar:x => { est.cumpleanos.eventosSemana = x; pintar(); } },
-        p => p.cumpleanos.eventosSemana),
-    reg({ etiqueta:'Precio del paquete', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.precio,
-          alCambiar:x => { est.cumpleanos.precio = x; pintar(); } }, p => p.cumpleanos.precio),
-    reg({ etiqueta:'Costo por evento', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.costoEvento,
-          alCambiar:x => { est.cumpleanos.costoEvento = x; pintar(); } }, p => p.cumpleanos.costoEvento),
-  );
-  unidades.appendChild(tC.art);
+    const cab = nodo('div', 'ua-cab');
+    cab.appendChild(nodo('h3', null, ficha.nombre));
+    const pastillaCaja = nodo('span', 'ua-pastilla');
+    cab.appendChild(pastillaCaja);
+    art.appendChild(cab);
 
-  /* ---------- Baby and Me ---------- */
-  const tB = tarjeta('Baby and Me');
-  tB.controles.append(
-    reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.baby.ocupacion*100,
-          formato:x => x + '%', ancho:true,
-          alCambiar:x => { est.baby.ocupacion = x/100; pintar(); } }, p => p.baby.ocupacion*100),
-    reg({ etiqueta:'Precio mensual', tipo:'number', min:0, max:900, paso:1, valor:est.baby.precio,
-          ancho:true, alCambiar:x => { est.baby.precio = x; pintar(); } }, p => p.baby.precio),
-  );
-  unidades.appendChild(tB.art);
+    const apoyo = nodo('div', 'cifra-apoyo');
+    art.appendChild(apoyo);
 
-  /* ---------- Veranito ---------- */
-  const tV = tarjeta('Veranito');
-  tV.nota.textContent = NOTA_COSTO_VERANITO;
-  const pv = DATOS.PRUEBA_VERANITO, vv = DATOS.VALOR_VIDA;
-  tV.extra.appendChild(bloqueDestacado(
-    `De ${F.dinero(pv.anterior)} en 2025 a ${F.dinero(pv.actual)} en 2026 en la misma temporada: ` +
-    `<strong>${F.pct(pv.crecimiento)} de crecimiento</strong> con una inversion acumulada de ` +
-    `${F.dinero(pv.inversion)} — relacion de <strong>${Math.round(pv.relacion)} a 1</strong>. ` +
-    `Costo de adquisicion de ${F.precio(vv.veranito.adquisicion)} contra ` +
-    `${F.precio(vv.veranito.ventaPorCliente)} de venta por cliente nuevo.`));
-  tV.controles.append(
-    reg({ etiqueta:'Ocupacion mayo–agosto', tipo:'range', min:0, max:100, paso:1,
-          valor:est.veranito.mayAgo.ocupacion*100, formato:x => x + '%', ancho:true,
-          alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100; pintar(); } },
-        p => p.veranito.mayAgo.ocupacion*100),
-    reg({ etiqueta:'Ocupacion enero–marzo', tipo:'range', min:0, max:100, paso:1,
-          valor:est.veranito.eneMar.ocupacion*100, formato:x => x + '%', ancho:true,
-          alCambiar:x => { est.veranito.eneMar.ocupacion = x/100; pintar(); } },
-        p => p.veranito.eneMar.ocupacion*100),
-    reg({ etiqueta:'Semanas por temporada', tipo:'range', min:1, max:16, paso:1,
-          valor:est.veranito.semanas, formato:x => x + ' semanas',
-          alCambiar:x => { est.veranito.semanas = x; pintar(); } }, p => p.veranito.semanas),
-    reg({ etiqueta:'Cupos por semana', tipo:'range', min:0, max:50, paso:1,
-          valor:est.veranito.cuposSemana, formato:x => x + ' cupos',
-          alCambiar:x => { est.veranito.cuposSemana = x; pintar(); } }, p => p.veranito.cuposSemana),
-    reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:900, paso:1, valor:est.veranito.precio45,
-          alCambiar:x => { est.veranito.precio45 = x; pintar(); } }, p => p.veranito.precio45),
-    reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:900, paso:1, valor:est.veranito.precio8,
-          alCambiar:x => { est.veranito.precio8 = x; pintar(); } }, p => p.veranito.precio8),
-  );
-  unidades.appendChild(tV.art);
+    const aviso = nodo('div', 'aviso');
+    aviso.style.display = 'none';
+    art.appendChild(aviso);
 
-  contenedor.appendChild(unidades);
+    const cuerpo = nodo('div', 'ua-cuerpo');
+
+    /* Izquierda: la tabla desglosada, que es de donde sale cada dolar. */
+    const cajaTabla = nodo('div', 'ua-tabla');
+    const tabla = document.createElement('table');
+    tabla.className = 'desglose';
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    ficha.columnas.forEach((c, i) => {
+      const th = document.createElement('th');
+      th.textContent = c;
+      if (i > 0) th.className = 'num';
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tabla.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    tabla.appendChild(tbody);
+    cajaTabla.appendChild(tabla);
+    cuerpo.appendChild(cajaTabla);
+
+    /* Derecha: las tres cifras y los controles. */
+    const lado = nodo('div', 'ua-lado');
+    const cifras = nodo('div', 'cifras');
+    const refs = {};
+    for (const par of [['facturacion','Facturacion'],['costo','Costo'],['margen','Margen']]){
+      const bloque = nodo('div', 'cifra-bloque' + (par[0] === 'margen' ? ' destacada' : ''));
+      bloque.appendChild(nodo('span', 'etiqueta', par[1]));
+      refs[par[0]] = nodo('b');
+      bloque.appendChild(refs[par[0]]);
+      cifras.appendChild(bloque);
+    }
+    lado.appendChild(cifras);
+
+    const controles = nodo('div', 'controles');
+    ficha.controles().forEach(w => controles.appendChild(w));
+    lado.appendChild(controles);
+    cuerpo.appendChild(lado);
+    art.appendChild(cuerpo);
+
+    if (ficha.extra) art.appendChild(bloqueDestacado(ficha.extra()));
+    art.appendChild(nodo('p', 'nota-costo', ficha.nota ? ficha.nota() : NOTA_COSTO));
+
+    contenedor.appendChild(art);
+    return { ficha, pastillaCaja, apoyo, aviso, tbody, refs, pastillaNodo:null };
+  });
+
   barraReinicio(contenedor, 'Reiniciar valores');
 
-  function temporada(clave){
-    return MOTOR.veranito(Object.assign({}, est.veranito, est.veranito[clave]));
-  }
-
   function pintar(){
-    const k = MOTOR.kinder(est.kinder);
-    ponCifras(tK.refs, k);
-    ponPastilla(tK, `${k.ninos} de ${MOTOR.KINDER_CAPACIDAD} niños · ${F.pct(k.ninos/MOTOR.KINDER_CAPACIDAD)}`,
-                k.ninos / MOTOR.KINDER_CAPACIDAD);
-    tK.apoyo.textContent = `${k.grupos} grupos · ticket ${F.precio(k.ticket)}`;
-    tK.aviso.style.display = k.excedeCapacidad ? '' : 'none';
-    tK.aviso.textContent = `${k.ninos} niños no caben en la capacidad actual: requiere habilitar salones adicionales.`;
+    for (const t of tarjetas){
+      const r = t.ficha.calcular();
 
-    const a = MOTOR.afterSchool(est.afterSchool);
-    ponCifras(tA.refs, a);
-    const fracA = a.alumnos / MOTOR.AS_CUPOS_TOTALES;
-    ponPastilla(tA, `${a.alumnos} de ${MOTOR.AS_CUPOS_TOTALES} · ${F.pct(fracA)}`, fracA);
-    tA.apoyo.textContent = '';
+      const oc = t.ficha.ocupacion(r);
+      if (t.pastillaNodo) t.pastillaNodo.remove();
+      t.pastillaNodo = pastilla(oc.texto + ' · ' + F.pct(oc.frac), oc.frac);
+      t.pastillaCaja.appendChild(t.pastillaNodo);
 
-    const c = MOTOR.cumpleanos(est.cumpleanos);
-    ponCifras(tC.refs, c);
-    const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
-    ponPastilla(tC, `${c.eventos} de ${tope} eventos · ${F.pct(c.eventos/tope)}`, c.eventos/tope);
-    tC.apoyo.textContent = `Tope real: ${MOTOR.CUMPLE_TOPE_SEMANA} por semana.`;
+      t.apoyo.textContent = t.ficha.apoyo(r);
 
-    const b = MOTOR.baby(est.baby);
-    ponCifras(tB.refs, b);
-    ponPastilla(tB, `${b.alumnos} de ${b.cupos} cupos · ${F.pct(b.alumnos/b.cupos)}`, b.alumnos/b.cupos);
-    /* Se dice sin disfrazarlo: hoy no tiene un solo alumno, y el argumento
-       es el potencial, no un resultado que no existe. */
-    const potencial = b.cupos * est.baby.precio * 12;
-    tB.apoyo.textContent = b.alumnos === 0
-      ? `Unidad sin alumnos hoy · potencial de ${F.dinero(potencial)} al año a plena ocupacion`
-      : `Potencial de ${F.dinero(potencial)} al año a plena ocupacion`;
+      const av = t.ficha.aviso ? t.ficha.aviso(r) : null;
+      t.aviso.style.display = av ? '' : 'none';
+      if (av) t.aviso.textContent = av;
 
-    const vMay = temporada('mayAgo'), vEne = temporada('eneMar');
-    const anual = { facturacion: vMay.facturacion + vEne.facturacion,
-                    costo: vMay.costo + vEne.costo,
-                    margen: vMay.margen + vEne.margen };
-    ponCifras(tV.refs, anual);
-    const cupos = vMay.cupos + vEne.cupos, cap = vMay.cuposTemporada + vEne.cuposTemporada;
-    ponPastilla(tV, `${cupos} de ${cap} cupos al año · ${F.pct(cupos/cap)}`, cupos/cap);
-    tV.apoyo.textContent =
-      `Mayo–agosto ${F.dinero(vMay.facturacion)} · enero–marzo ${F.dinero(vEne.facturacion)} · ` +
-      `ticket real ${F.precio(vMay.ticket)}`;
+      t.tbody.textContent = '';
+      for (const fila of t.ficha.filas(r)){
+        const tr = document.createElement('tr');
+        fila.forEach((celda, i) => {
+          const td = document.createElement(i === 0 ? 'th' : 'td');
+          if (i === 0) td.scope = 'row'; else td.className = 'num';
+          td.textContent = celda;
+          tr.appendChild(td);
+        });
+        t.tbody.appendChild(tr);
+      }
+
+      t.refs.facturacion.textContent = F.dinero(r.facturacion);
+      t.refs.costo.textContent = F.dinero(r.costo);
+      t.refs.margen.textContent = F.dinero(r.margen);
+    }
   }
 
   function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
   pintar();
   REINICIOS.push(reiniciar);
 }
+
 
 /* ==========================================================================
    SECCION 3 · CUADRO RESUMEN
