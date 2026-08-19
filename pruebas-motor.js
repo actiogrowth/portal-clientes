@@ -640,22 +640,58 @@ esIgual(pmResto.ultimaDifiere, true, 'y la ultima absorbe el ajuste');
    ========================================================================== */
 console.log('\nENTREGABLES');
 
-esIgual(DATOS.ENTREGABLES.length, 35, 'total de entregables');
+esIgual(DATOS.ENTREGABLES.length, 41, 'total de entregables');
 const porFase = n => DATOS.ENTREGABLES.filter(e => e.fase === n).length;
-esIgual(porFase(1), 6,  'Fase 1');
+esIgual(porFase(1), 12, 'Fase 1');
 esIgual(porFase(2), 11, 'Fase 2');
-esIgual(porFase(3), 6,  'Fase 3');
-esIgual(porFase(4), 9,  'Fase 4');
-esIgual(porFase(0), 3,  'Durante todo el proyecto');
+esIgual(porFase(3), 8,  'Fase 3');
+esIgual(porFase(4), 8,  'Fase 4');
+esIgual(porFase(0), 2,  'Durante todo el proyecto');
 
-esIgual(DATOS.ENTREGABLES.some(e => e.nombre === 'Plataforma de cursos para profesoras'
-        && e.unidad === 'Kinder' && e.segmento === 'Servicio' && e.fase === 4),
-        true, 'el entregable 35 esta, en Kinder y fase 4');
+/* Baby and Me deja de ser una fila vacia en el gantt: pasa de cero
+   entregables propios a siete. */
+esIgual(DATOS.ENTREGABLES.filter(e => e.unidad === 'Baby and Me').length, 7,
+        'Baby and Me tiene siete entregables propios');
 
-esIgual(DATOS.ENTREGABLES.every(e => e.unidad && e.segmento && e.nota),
-        true, 'todos traen unidad, segmento y descripcion');
-esIgual(new Set(DATOS.ENTREGABLES.map(e => e.unidad)).size, 5,
-        'cinco unidades incluyendo Gerencia');
+esIgual(DATOS.ENTREGABLES.every(e => e.unidad && e.segmento && e.nota && e.fecha),
+        true, 'todos traen unidad, segmento, fecha y descripcion');
+esIgual(new Set(DATOS.ENTREGABLES.map(e => e.unidad)).size, 6,
+        'seis unidades incluyendo Gerencia');
+
+/* ==========================================================================
+   LAS FECHAS CAEN DENTRO DE SU FASE
+
+   Es lo que permite mostrarlas y colocar el conteo del gantt en el mes que
+   toca. Mientras no calzaban, mostrarlas habria dejado a la vista que un
+   entregable de fase 2 vencia en un mes de fase 1.
+   ========================================================================== */
+console.log('\nFECHAS');
+
+const fuera = DATOS.ENTREGABLES.filter(e => {
+  if (e.fase === 0) return false;
+  const f = DATOS.FASES.find(x => x.numero === e.fase);
+  return e.mes == null || e.mes < f.desde || e.mes > f.hasta;
+});
+esIgual(fuera.length, 0, 'ninguna fecha se sale de su fase');
+if (fuera.length) fuera.forEach(e => console.log('       ' + e.nombre + ' · ' + e.fecha));
+
+esIgual(DATOS.ENTREGABLES.filter(e => e.fase !== 0).every(e => e.mes >= 0 && e.mes < 12),
+        true, 'todas caen dentro de los doce meses');
+esIgual(DATOS.ENTREGABLES.filter(e => e.fase === 0).every(e => e.mes === null),
+        true, 'los transversales no tienen mes propio');
+
+/* Septiembre queda sin entregas: ese mes se dedica a cerrar el proyecto 1.
+   La hoja de ruta tiene que decirlo, o el mes se lee como un hueco. */
+esIgual(DATOS.ENTREGABLES.filter(e => e.mes === 0).length, 0,
+        'septiembre no tiene entregas');
+esIgual(Math.min(...DATOS.ENTREGABLES.filter(e => e.mes != null).map(e => e.mes)), 1,
+        'la primera entrega cae en octubre');
+
+/* El reparto por mes tiene que sumar los 39 con fase. */
+const porMes = {};
+DATOS.ENTREGABLES.forEach(e => { if (e.mes != null) porMes[e.mes] = (porMes[e.mes] || 0) + 1; });
+esIgual(Object.values(porMes).reduce((a, b) => a + b, 0), 39,
+        'los 39 con fase se reparten entre los meses');
 
 /* ==========================================================================
    HOJA DE RUTA

@@ -376,6 +376,16 @@ table.resumen th:last-child, table.resumen td:last-child{
 .bf-n{font-size:11px;font-weight:600;opacity:.72;margin-top:1px}
 .banda-fase[aria-current="true"] .bf-n{opacity:.6}
 
+/* Septiembre no tiene entregas y su hueco esta explicado arriba: se marca
+   distinto para que no se lea como un mes olvidado. */
+.banda-arranque{background:var(--estado-neutro-suave);border:1px dashed var(--estado-neutro);
+  border-radius:8px;padding:8px 10px;display:flex;align-items:center;overflow:hidden}
+.ba-titulo{font-size:12px;font-weight:700;color:var(--estado-neutro-fuerte);
+  line-height:1.2;text-align:center;width:100%}
+.ba-nota{display:flex;align-items:center;padding-left:14px;font-size:12.5px;
+  line-height:1.35;color:var(--texto-secundario)}
+.celda-ruta.arranque[data-nivel="0"]{background:var(--estado-neutro-suave);
+  background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(130,136,142,.16) 6px 12px)}
 .mo{font-size:14px;font-weight:600;text-transform:uppercase;color:var(--texto-secundario);
   text-align:center;padding:5px 0;border-radius:6px;background:var(--fondo)}
 /* El cambio de año se marca una sola vez, donde ocurre. */
@@ -1154,117 +1164,153 @@ const FASES = [
     remate:'' },
 ];
 
+/* Indice de mes dentro de la linea de tiempo, contando septiembre de 2026
+   como cero. Las fechas de la hoja ya calzan con sus fases, asi que se
+   pueden mostrar y el conteo del gantt cae en el mes que toca. */
+function mesDe(fecha){
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(fecha);
+  if (!m) return null;                       // "Durante todo el proyecto"
+  const mes = Number(m[2]), anio = Number(m[3]);
+  const i = (anio - 2026) * 12 + (mes - 9);
+  return i >= 0 && i < 12 ? i : null;
+}
+
 const ENTREGABLES = [
-  { fase:1, unidad:'Gerencia', segmento:'Ventas', fecha:'31/10/2026',
+  /* ---------- Fase 1 · septiembre a diciembre de 2026 ---------- */
+  { fase:1, unidad:'Gerencia', segmento:'Ventas', fecha:'30/10/2026',
     nombre:'Pasarela de pago para cada unidad de negocio',
     nota:'Un solo sistema de cobro conectado a la cuenta bancaria, con separacion por unidad para conciliar.' },
-  { fase:1, unidad:'Kinder', segmento:'Ventas', fecha:'30/11/2026',
+  { fase:1, unidad:'Kinder', segmento:'Ventas', fecha:'30/10/2026',
     nombre:'Pagina de inscripcion de Kinder',
     nota:'Donde la familia formaliza la matricula y paga. Conecta con la pasarela unificada.' },
-  { fase:1, unidad:'After School', segmento:'Ventas', fecha:'30/11/2026',
+  { fase:1, unidad:'After School', segmento:'Ventas', fecha:'30/10/2026',
     nombre:'Pagina de inscripcion de After School',
     nota:'Donde la familia formaliza la inscripcion y paga. Conecta con la pasarela unificada.' },
+  { fase:1, unidad:'Veranito', segmento:'Servicio', fecha:'30/10/2026',
+    nombre:'Optimizar pagina de venta en diseño y usabilidad',
+    nota:'Se optimizara la pagina de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
+  { fase:1, unidad:'After School', segmento:'Marketing', fecha:'30/10/2026',
+    nombre:'Landing page de captacion',
+    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+  { fase:1, unidad:'After School', segmento:'Marketing', fecha:'30/10/2026',
+    nombre:'Video de ventas (Mini VSL)',
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
+  { fase:1, unidad:'Baby and Me', segmento:'Servicio', fecha:'30/10/2026',
+    nombre:'Modelo de negocio',
+    nota:'Definicion de como opera y gana dinero Baby and Me: servicios que se ofrecen, a quien, con que estructura de horarios y cupos, y como se conecta con las demas unidades.' },
+  { fase:1, unidad:'Baby and Me', segmento:'Finanzas', fecha:'30/10/2026',
+    nombre:'Estrategia de precios',
+    nota:'Definicion de precios por servicio, con la logica detras de cada uno: costos, punto de equilibrio, comparacion con el mercado y politica de descuentos o planes.' },
+  { fase:1, unidad:'Veranito', segmento:'Marketing', fecha:'15/11/2026',
+    nombre:'Campaña de captacion — temporada enero a marzo',
+    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripcion.' },
   { fase:1, unidad:'Veranito', segmento:'Ventas', fecha:'30/11/2026',
     nombre:'Pagina de compra optimizada',
     nota:'Mejora sobre la pagina existente.' },
   { fase:1, unidad:'Cumpleaños', segmento:'Ventas', fecha:'30/11/2026',
     nombre:'Pagina de compra de paquetes',
     nota:'Con precio diferenciado para familias de otras unidades.' },
-  { fase:1, unidad:'Veranito', segmento:'Servicio', fecha:'31/10/2026',
-    nombre:'Optimizar pagina de venta en diseño y usabilidad',
-    nota:'Se optimizara la pagina de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
+  { fase:1, unidad:'Baby and Me', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Pagina de inscripcion de Baby and Me',
+    nota:'Donde la familia formaliza la matricula y paga. Conecta con la pasarela unificada.' },
 
-  { fase:2, unidad:'Gerencia', segmento:'Servicio', fecha:'31/12/2026',
-    nombre:'Cuadros de capacidad productiva por unidad',
-    nota:'Capacidad instalada contra ocupacion real, conectados a datos en vivo. Muestra cuantos cupos hay disponibles y cuantos se estan usando en cada unidad.' },
-  { fase:2, unidad:'Gerencia', segmento:'Finanzas', fecha:'31/01/2027',
-    nombre:'Tablero financiero por unidad de negocio',
-    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver que unidad genera utilidad real y cual solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
-  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'31/12/2026',
-    nombre:'Modulo administrativo de Kinder',
-    nota:'El sistema donde el equipo del centro registra y gestiona el dia a dia: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quien pago y quien no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
-  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'31/01/2027',
-    nombre:'Tablero de operacion de Kinder',
-    nota:'La vista de resumen que lee del modulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicacion por los padres. Amplia los tableros del proyecto 1.' },
-  { fase:2, unidad:'After School', segmento:'Servicio', fecha:'31/12/2026',
-    nombre:'Modulo administrativo de After School',
-    nota:'El sistema donde el equipo registra y gestiona el dia a dia: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripcion mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
-  { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'31/01/2027',
-    nombre:'Modulo administrativo y tablero de Cumpleaños',
-    nota:'Sistema para registrar y gestionar las reservas: que fin de semana, que paquete, que familia. Incluye la vista de ocupacion, que muestra cuantos de los espacios disponibles al año se estan usando.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
-    nombre:'Landing page de captacion',
-    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
-    nombre:'Video de ventas (Mini VSL)',
-    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+  /* ---------- Fase 2 · diciembre de 2026 a marzo de 2027 ---------- */
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'15/12/2026',
     nombre:'Anuncios y piezas graficas para redes',
     nota:'Piezas visuales y textos para pauta y para publicacion organica.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'15/12/2026',
     nombre:'Campaña en Meta',
     nota:'Diseño, estrategia y configuracion: publicos, presupuesto y estructura. No incluye la inversion publicitaria.' },
-  { fase:2, unidad:'Veranito', segmento:'Marketing', fecha:'15/11/2026',
-    nombre:'Campaña de captacion — temporada enero a marzo',
-    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripcion.' },
-
-  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'31/01/2027',
+  { fase:2, unidad:'Gerencia', segmento:'Servicio', fecha:'15/12/2026',
+    nombre:'Cuadros de capacidad productiva por unidad',
+    nota:'Capacidad instalada contra ocupacion real, conectados a datos en vivo. Muestra cuantos cupos hay disponibles y cuantos se estan usando en cada unidad.' },
+  { fase:2, unidad:'Gerencia', segmento:'Finanzas', fecha:'15/12/2026',
+    nombre:'Tablero financiero por unidad de negocio',
+    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver que unidad genera utilidad real y cual solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'30/12/2026',
+    nombre:'Modulo administrativo de Kinder',
+    nota:'El sistema donde el equipo del centro registra y gestiona el dia a dia: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quien pago y quien no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'After School', segmento:'Servicio', fecha:'30/12/2026',
+    nombre:'Modulo administrativo de After School',
+    nota:'El sistema donde el equipo registra y gestiona el dia a dia: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripcion mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'29/01/2027',
+    nombre:'Tablero de operacion de Kinder',
+    nota:'La vista de resumen que lee del modulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicacion por los padres. Amplia los tableros del proyecto 1.' },
+  { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'29/01/2027',
+    nombre:'Modulo administrativo y tablero de Cumpleaños',
+    nota:'Sistema para registrar y gestionar las reservas: que fin de semana, que paquete, que familia. Incluye la vista de ocupacion, que muestra cuantos de los espacios disponibles al año se estan usando.' },
+  { fase:2, unidad:'Gerencia', segmento:'Ventas', fecha:'29/01/2027',
     nombre:'Sistema de automatizacion para identificacion de intencion',
     nota:'Lee los mensajes que llegan por WhatsApp, Instagram y formularios, y determina a que unidad de negocio corresponde cada interesado y que tan cerca esta de comprar. Enruta cada conversacion al lugar correcto.' },
-  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'28/02/2027',
-    nombre:'Solucion de respuesta automatica (Setter)',
-    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversacion requiere una persona.' },
-  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'28/02/2027',
-    nombre:'Sistema de venta cruzada entre unidades',
-    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahi identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automaticos, la vista de cuantas familias participan en una, dos o mas unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
-  { fase:3, unidad:'Kinder', segmento:'Marketing', fecha:'31/01/2027',
+  { fase:2, unidad:'Kinder', segmento:'Marketing', fecha:'29/01/2027',
     nombre:'Anuncios y piezas graficas para redes',
     nota:'Kinder pierde niños cada año por edad, asi que necesita captacion activa todo el año y no solo en temporada. Textos para pauta y para publicacion de videos anclados organicos.' },
-  { fase:3, unidad:'Cumpleaños', segmento:'Marketing', fecha:'31/10/2026',
+  { fase:2, unidad:'Gerencia', segmento:'Ventas', fecha:'26/02/2027',
+    nombre:'Solucion de respuesta automatica (Setter)',
+    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversacion requiere una persona.' },
+
+  /* ---------- Fase 3 · marzo a junio de 2027 ---------- */
+  { fase:3, unidad:'Cumpleaños', segmento:'Marketing', fecha:'26/03/2027',
     nombre:'Estrategia de captacion interna',
     nota:'Mensajes automaticos a familias de otras unidades con cumpleaños proximos.' },
-  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'28/02/2027',
+  { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
     nombre:'Sitio web de Vida en Arte',
     nota:'El sitio de la marca, con una seccion por unidad de negocio. Cada unidad tiene su propia entrada de captacion dentro del mismo sitio.' },
-
-  { fase:4, unidad:'Gerencia', segmento:'Finanzas', fecha:'31/03/2027',
+  { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
+    nombre:'Sistema de venta cruzada entre unidades',
+    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahi identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automaticos, la vista de cuantas familias participan en una, dos o mas unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
+  { fase:3, unidad:'Gerencia', segmento:'Finanzas', fecha:'26/03/2027',
     nombre:'Proyeccion de ingresos recurrentes',
     nota:'Con las suscripciones activas de Kinder y After School se puede saber cuanto va a entrar el mes siguiente antes de que ocurra.' },
-  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/06/2027',
-    nombre:'Aplicacion de gerencia',
-    nota:'Punto unico de entrada con todas las unidades conectadas: ocupacion, ingresos y estado en una sola pantalla. Es la capa que reune todo lo anterior.' },
-  { fase:4, unidad:'After School', segmento:'Servicio', fecha:'31/03/2027',
+  { fase:3, unidad:'After School', segmento:'Servicio', fecha:'30/04/2027',
     nombre:'App de servicio (niveles y progreso)',
     nota:'Registro de niños, progresion por disciplina, logros por nivel y graduaciones. La solucion del checklist operativo antes de arrancar clases.' },
-  { fase:4, unidad:'Veranito', segmento:'Marketing', fecha:'30/04/2027',
+  { fase:3, unidad:'Veranito', segmento:'Marketing', fecha:'30/04/2027',
     nombre:'Campaña de captacion — temporada junio a agosto',
     nota:'Campaña para la segunda temporada, ajustada con los resultados de la primera.' },
-  { fase:4, unidad:'Gerencia', segmento:'Ventas', fecha:'30/04/2027',
+  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'30/04/2027',
     nombre:'Modulo de afiliados',
     nota:'Modulo para generar descuentos a los clientes que traigan recomendados, para incentivar la recomendacion del negocio.' },
-  { fase:4, unidad:'Gerencia', segmento:'Marketing', fecha:'30/04/2027',
+  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'30/04/2027',
     nombre:'Estrategia de marketing de afiliados',
     nota:'La estrategia con la que se otorgan los descuentos por recomendados.' },
-  { fase:4, unidad:'Kinder', segmento:'Marketing', fecha:'31/03/2027',
-    nombre:'Campaña de Baby and Me',
-    nota:'Landing, Mini VSL, campaña en Meta, anuncios y piezas graficas para redes.' },
-  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/06/2027',
+
+  /* ---------- Fase 4 · junio a septiembre de 2027 ---------- */
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Landing page de captacion',
+    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Video de ventas (Mini VSL)',
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Anuncios y piezas graficas para redes',
+    nota:'Piezas visuales y textos para pauta y para publicacion organica.' },
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Campaña en Meta',
+    nota:'Diseño, estrategia y configuracion: publicos, presupuesto y estructura. No incluye la inversion publicitaria.' },
+  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/07/2027',
+    nombre:'Aplicacion de gerencia',
+    nota:'Punto unico de entrada con todas las unidades conectadas: ocupacion, ingresos y estado en una sola pantalla. Es la capa que reune todo lo anterior.' },
+  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/07/2027',
     nombre:'Manuales de procesos por rol',
     nota:'Documentar los procesos de Vida en Arte por rol.' },
-  { fase:4, unidad:'Kinder', segmento:'Servicio', fecha:'30/06/2027',
+  { fase:4, unidad:'Gerencia', segmento:'Marketing', fecha:'30/07/2027',
+    nombre:'Estrategia para recoleccion de reseñas en Google',
+    nota:'Mejorar las calificaciones y la presencia de Vida en Arte en Google.' },
+  { fase:4, unidad:'Kinder', segmento:'Servicio', fecha:'27/08/2027',
     nombre:'Plataforma de cursos para profesoras',
     nota:'Un modulo de la aplicacion de VEAKids para montar cursos dirigidos a las profesoras.' },
 
+  /* ---------- Durante todo el proyecto ---------- */
   { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
     nombre:'Asesoria estrategica del negocio',
     nota:'Se atienden las situaciones que presente el cliente de forma constante, para asesorarlo en como darles solucion.' },
   { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
     nombre:'Soporte tecnico remoto',
     nota:'Soporte virtual ante novedades con las aplicaciones, paginas web y plataformas creadas por la empresa.' },
-  { fase:0, unidad:'Gerencia', segmento:'Marketing', fecha:'Durante todo el proyecto',
-    nombre:'Estrategia para recoleccion de reseñas en Google',
-    nota:'Mejorar las calificaciones y la presencia de Vida en Arte en Google.' },
 ];
+/* El mes se deriva de la fecha una sola vez, al cargar. */
+ENTREGABLES.forEach(e => { e.mes = mesDe(e.fecha); });
 
 /* --------------------------------------------------------------------------
    Las relaciones que Ricardo dice en voz alta. Se calculan, no se escriben:
@@ -1540,16 +1586,21 @@ function barraReinicio(contenedor, texto){
    entradas a lo mismo, por unidad y por fase, que es como se pregunta en
    una reunion.
    ========================================================================== */
+/* Septiembre no tiene entregas: el proyecto arranca el 10 pero el primer
+   mes se dedica a cerrar los pendientes del contrato actual, y la primera
+   entrega es el 30 de octubre. Se marca, o el mes se lee como un hueco. */
+const MES_ARRANQUE = 0;
+const NOMBRE_MES = ['septiembre de 2026','octubre de 2026','noviembre de 2026','diciembre de 2026',
+                    'enero de 2027','febrero de 2027','marzo de 2027','abril de 2027',
+                    'mayo de 2027','junio de 2027','julio de 2027','agosto de 2027'];
+
 const UNIDADES_RUTA = ['Gerencia', 'Kinder', 'After School', 'Veranito', 'Cumpleaños', 'Baby and Me'];
 
-/* Cuantos entregables de una unidad caen en un mes. Como la hoja no fija
-   fechas individuales —y las que trae no calzan con las fases nuevas— la
-   densidad de un mes es la de su fase: repartirla por meses seria inventar
-   un calendario que nadie acordo. El numero se imprime una sola vez por
-   tramo, en su mes central, para que tres celdas de "5" no se lean como
-   quince. */
-function densidad(unidad, fase){
-  return DATOS.ENTREGABLES.filter(e => e.fase === fase && e.unidad === unidad).length;
+/* Cuantos entregables de una unidad vencen en un mes. Las fechas de la hoja
+   ya calzan con sus fases, asi que el conteo cae en el mes que le toca a
+   cada entregable y no repartido por su tramo. */
+function densidad(unidad, mes){
+  return DATOS.ENTREGABLES.filter(e => e.unidad === unidad && e.mes === mes).length;
 }
 function faseDelMes(m){
   return DATOS.FASES.find(f => f.numero !== 0 && m >= f.desde && m <= f.hasta);
@@ -1563,9 +1614,9 @@ function nivelDensidad(n){
   return 4;
 }
 
-/* Lista de filas con la descripcion al clic. Sin fecha individual: las de
-   la hoja no calzan con las fases nuevas y mostrarlas dejaria la
-   contradiccion a la vista. */
+/* Lista de filas con la descripcion al clic. La fecha se muestra: desde la
+   ultima version de la hoja todas caen dentro de su fase, asi que ya no
+   contradice al tramo en el que aparece. */
 function listaEntregables(lista){
   const cont = nodo('div', 'entregables');
   for (const e of lista){
@@ -1578,7 +1629,7 @@ function listaEntregables(lista){
     etq.appendChild(nodo('span', 'chip seg', e.segmento));
     const ver = nodo('span', 'ent-abrir', 'Ver');
     fila.addEventListener('toggle', () => { ver.textContent = fila.open ? 'Ocultar' : 'Ver'; });
-    s.append(nom, etq, ver);
+    s.append(nom, etq, nodo('span', 'ent-fecha', e.fecha), ver);
     fila.appendChild(s);
     fila.appendChild(nodo('div', 'ent-nota', e.nota));
     cont.appendChild(fila);
@@ -1602,6 +1653,24 @@ function montarRuta(contenedor){
   let seleccion = null;   // {tipo:'fase'|'celda', fase, unidad}
 
   const tablero = nodo('div', 'ruta-tablero');
+
+  /* ---------- Arranque ----------
+     Septiembre no tiene entregas y sin decirlo se lee como un mes muerto.
+     Lleva su propia banda para que el hueco quede explicado. */
+  const filaArranque = nodo('div', 'tl-fila');
+  filaArranque.appendChild(nodo('span', 'tl-tag', 'Arranque'));
+  const gantArranque = nodo('div', 'gantt');
+  const bandaArranque = nodo('div', 'banda-arranque');
+  bandaArranque.style.gridColumn = (MES_ARRANQUE + 1) + ' / span 1';
+  bandaArranque.appendChild(nodo('span', 'ba-titulo', 'Cierre del proyecto 1'));
+  gantArranque.appendChild(bandaArranque);
+  const notaArranque = nodo('div', 'ba-nota');
+  notaArranque.style.gridColumn = (MES_ARRANQUE + 2) + ' / span 11';
+  notaArranque.textContent = 'El proyecto arranca el 10 de septiembre; el primer mes se dedica a ' +
+    'completar los entregables pendientes del contrato actual. La primera entrega es el 30 de octubre.';
+  gantArranque.appendChild(notaArranque);
+  filaArranque.appendChild(gantArranque);
+  tablero.appendChild(filaArranque);
 
   /* ---------- Bandas de fase ---------- */
   const filaFases = nodo('div', 'tl-fila');
@@ -1647,21 +1716,23 @@ function montarRuta(contenedor){
     const gantt = nodo('div', 'gantt');
     for (let m = 0; m < 12; m++){
       const f = faseDelMes(m);
-      const n = densidad(u, f.numero);
+      const n = densidad(u, m);
       const c = nodo('button', 'celda-ruta');
       c.dataset.nivel = String(nivelDensidad(n));
+      if (m === MES_ARRANQUE) c.classList.add('arranque');
       if (n > 0){
-        c.title = u + ' · Fase ' + f.numero + ' · ' + n +
+        c.title = u + ' · ' + DATOS.MESES[m] + ' · ' + n +
                   (n === 1 ? ' entregable' : ' entregables');
-        /* El conteo una sola vez por tramo, en su mes central. */
-        if (m === f.desde + 1) c.appendChild(nodo('span', 'cr-n', String(n)));
-        c.addEventListener('click', () => elegir({ tipo:'celda', fase:f.numero, unidad:u }));
+        c.appendChild(nodo('span', 'cr-n', String(n)));
+        c.addEventListener('click', () => elegir({ tipo:'mes', mes:m, unidad:u }));
       } else {
         c.disabled = true;
-        c.title = u + ' · sin entregables en la fase ' + f.numero;
+        c.title = m === MES_ARRANQUE
+          ? 'Septiembre se dedica a cerrar el proyecto 1'
+          : u + ' · sin entregas en ' + DATOS.MESES[m];
       }
       gantt.appendChild(c);
-      celdas.push({ c, unidad:u, fase:f.numero });
+      celdas.push({ c, unidad:u, mes:m, fase:f.numero });
     }
     fila.appendChild(gantt);
     tablero.appendChild(fila);
@@ -1692,7 +1763,8 @@ function montarRuta(contenedor){
   contenedor.appendChild(panel);
 
   function mismaSeleccion(a, b){
-    return a && b && a.tipo === b.tipo && a.fase === b.fase && a.unidad === b.unidad;
+    return a && b && a.tipo === b.tipo && a.fase === b.fase
+        && a.unidad === b.unidad && a.mes === b.mes;
   }
 
   function elegir(sel){
@@ -1705,7 +1777,7 @@ function montarRuta(contenedor){
     }
     bandaT.setAttribute('aria-current', sel && sel.tipo === 'fase' && sel.fase === 0 ? 'true' : 'false');
     for (const q of celdas){
-      const activa = sel && ((sel.tipo === 'celda' && sel.unidad === q.unidad && sel.fase === q.fase)
+      const activa = sel && ((sel.tipo === 'mes' && sel.unidad === q.unidad && sel.mes === q.mes)
                           || (sel.tipo === 'fase' && sel.fase === q.fase));
       q.c.setAttribute('aria-current', activa ? 'true' : 'false');
     }
@@ -1714,10 +1786,10 @@ function montarRuta(contenedor){
     if (!sel){ panel.style.display = 'none'; return; }
     panel.style.display = '';
 
-    const fase = DATOS.FASES.find(f => f.numero === sel.fase);
+    const fase = sel.tipo === 'fase' ? DATOS.FASES.find(f => f.numero === sel.fase) : null;
     const cab = nodo('div', 'pr-cab');
-    const titulo = sel.tipo === 'celda'
-      ? sel.unidad + ' · ' + (sel.fase === 0 ? 'durante todo el proyecto' : 'fase ' + sel.fase)
+    const titulo = sel.tipo === 'mes'
+      ? sel.unidad + ' · ' + NOMBRE_MES[sel.mes]
       : (sel.fase === 0 ? 'Durante todo el proyecto' : 'Fase ' + sel.fase + ' · ' + fase.rango);
     cab.appendChild(nodo('h4', null, titulo));
     const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
@@ -1725,16 +1797,16 @@ function montarRuta(contenedor){
     cab.appendChild(cerrar);
     panel.appendChild(cab);
 
-    if (sel.fase !== 0){
+    if (fase && sel.fase !== 0){
       const logro = nodo('p', 'logro');
       logro.append(nodo('strong', null, 'Al terminar: ' + fase.logro),
                    document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
       panel.appendChild(logro);
     }
 
-    if (sel.tipo === 'celda'){
+    if (sel.tipo === 'mes'){
       panel.appendChild(listaEntregables(
-        DATOS.ENTREGABLES.filter(e => e.fase === sel.fase && e.unidad === sel.unidad)));
+        DATOS.ENTREGABLES.filter(e => e.mes === sel.mes && e.unidad === sel.unidad)));
     } else {
       /* Agrupados por unidad, que es como se pregunta: "y en esta fase,
          que le toca a Kinder". */
