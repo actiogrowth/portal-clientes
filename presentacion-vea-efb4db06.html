@@ -73,6 +73,7 @@
   --cifra-1:56px;   /* consolidado y deltas */
   --cifra-2:34px;   /* cifras por unidad */
   --cifra-3:22px;   /* cifras de apoyo */
+  --cifra-2027:46px; /* margen bruto y EBITDA en la columna de 2027 */
   --cuerpo:16px;
   --menudo:13px;    /* solo notas al pie, nunca cifras */
 }
@@ -327,6 +328,16 @@ table.resumen tr.ebitda .porcentaje{color:var(--texto-sobre-oscuro-3)}
 /* La columna de 2027 es la unica viva; se distingue sin gritar. */
 table.resumen th:last-child, table.resumen td:last-child{
   box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
+/* 2025 y 2026 son datos cerrados: se estrechan y le dejan el ancho a 2027,
+   que es la columna que se mueve durante la reunion. */
+table.resumen th:nth-child(2), table.resumen td:nth-child(2),
+table.resumen th:nth-child(3), table.resumen td:nth-child(3){
+  width:13%;padding-left:10px;padding-right:10px}
+table.resumen th:last-child, table.resumen td:last-child{width:34%}
+/* Las tres lineas que el cliente busca —ingresos, margen bruto y EBITDA—
+   van mas grandes solo en 2027. Los porcentajes no se tocan. */
+table.resumen tr.grande td:last-child b{font-size:var(--cifra-2)}
+table.resumen tr.grande.destacada td:last-child b{font-size:var(--cifra-2027)}
 
 .notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
 .notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
@@ -2488,16 +2499,17 @@ function montarResumen(contenedor){
 
   const tbody = document.createElement('tbody');
   const FILAS = [
-    { clave:'ingresos',   rotulo:'Ingresos' },
+    { clave:'ingresos',   rotulo:'Ingresos', grande:true },
     { clave:'manoDeObra', rotulo:'(−) Costo de mano de obra' },
-    { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, pct:'margenBrutoPct' },
+    { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, grande:true, pct:'margenBrutoPct' },
     { clave:'gastos',     rotulo:'(−) Gastos operativos' },
-    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, fuerte:true, pct:'ebitdaPct' },
+    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, fuerte:true, grande:true, pct:'ebitdaPct' },
   ];
   const celdas = {};
   for (const f of FILAS){
     const tr = document.createElement('tr');
     if (f.destacada) tr.className = 'destacada' + (f.fuerte ? ' ebitda' : '');
+    if (f.grande) tr.classList.add('grande');
     const th = document.createElement('th');
     th.scope = 'row';
     th.textContent = f.rotulo;
