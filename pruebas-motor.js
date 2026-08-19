@@ -665,13 +665,13 @@ esIgual(pmResto.ultimaDifiere, true, 'y la ultima absorbe el ajuste');
    ========================================================================== */
 console.log('\nENTREGABLES');
 
-esIgual(DATOS.ENTREGABLES.length, 41, 'total de entregables');
+esIgual(DATOS.ENTREGABLES.length, 42, 'total de entregables');
 const porFase = n => DATOS.ENTREGABLES.filter(e => e.fase === n).length;
 esIgual(porFase(1), 12, 'Fase 1');
 esIgual(porFase(2), 11, 'Fase 2');
 esIgual(porFase(3), 8,  'Fase 3');
 esIgual(porFase(4), 8,  'Fase 4');
-esIgual(porFase(0), 2,  'Durante todo el proyecto');
+esIgual(porFase(0), 3,  'Durante todo el proyecto');
 
 /* Baby and Me deja de ser una fila vacia en el gantt: pasa de cero
    entregables propios a siete. */
