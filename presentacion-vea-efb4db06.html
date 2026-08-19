@@ -1165,7 +1165,7 @@ const MOTOR = (function(){
 /* Cifra cerrada por el equipo. Los cuatro campos se editan en pantalla y
    estos son sus valores de partida. Se negocia en dolares, no en
    porcentajes: los porcentajes que se muestran se derivan del monto. */
-const INVERSION = { total:71500, primero:25000, cuotas:10, final:7750 };
+const INVERSION = { total:74500, primero:25000, cuotas:10, final:10750 };
 
 /* El proyecto va del 10 de septiembre de 2026 al 10 de septiembre de 2027.
    Doce meses, cuatro fases de tres meses cada una, contadas del 10 al 10:
@@ -2635,11 +2635,6 @@ function montarInversion(contenedor){
   const desglose = nodo('div', 'plan-desglose');
   contenedor.appendChild(desglose);
 
-  /* El contexto se calcula contra el cuadro resumen, no se escribe: si
-     alguien mueve una tarifa, la proporcion se corrige sola en vez de
-     quedar contradiciendo la seccion 3. */
-  const contexto = nodo('div', 'hallazgo');
-  contenedor.appendChild(contexto);
   barraReinicio(contenedor, 'Reiniciar plan');
 
   function fila(rotulo, monto, glosa){
@@ -2685,22 +2680,6 @@ function montarInversion(contenedor){
       desglose.appendChild(suma);
     }
 
-    /* Las dos proporciones que ponen la cifra en escala: contra lo que el
-       negocio va a generar cada mes, y contra lo que gana el primer año. */
-    const p2027 = MOTOR.resumen2027({ ocupacion:MOTOR.OCUPACION_2027_PARTIDA,
-                                      gastosMes:MOTOR.GASTOS_MES_PARTIDA });
-    const ebitdaMes = p2027.ebitda / 12;
-    const incremento = p2027.ebitda - MOTOR.resumen(2026).ebitda;
-    const cuota = pl.valido && pl.meses > 0 ? pl.mensualidad : 0;
-
-    contexto.innerHTML =
-      (cuota
-        ? 'La mensualidad de <strong>' + F.dinero(cuota) + '</strong> es el <strong>' +
-          F.pct(cuota / ebitdaMes) + '</strong> del EBITDA mensual proyectado a 2027 al ' +
-          F.pct(MOTOR.OCUPACION_2027_PARTIDA) + ' de ocupacion (' + F.dinero(ebitdaMes) + '). '
-        : '') +
-      'La inversion total es el <strong>' + F.pct(est.total / incremento) +
-      '</strong> del incremento de EBITDA del primer año (' + F.dinero(incremento) + ').';
   }
 
   function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
