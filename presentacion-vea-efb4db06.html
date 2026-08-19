@@ -813,17 +813,17 @@ const MOTOR = (function(){
 
        Sabado        2 sesiones de 1 h, 8 niños cada una. Cada niño va una
                      vez por semana, asi que caben 16 y pagan plan de $97.
-       Lunes a jueves 4 sesiones de 1 h, 8 niños cada una. Cada niño va dos
-                     veces por semana, asi que caben 16 —no 32— y pagan
-                     plan de $165.
+       Lunes a jueves 8 sesiones de 1 h —dos diarias durante cuatro dias—, 8
+                     niños cada una. Cada niño va dos veces por semana, asi
+                     que se venden 32 cupos y pagan plan de $165.
 
      Las dos horas del sabado son las mismas que estaban dentro del costo
      del sabado de After School. Se quitaron de alli al separar la unidad:
      las mismas horas no se pagan dos veces.
      ====================================================================== */
   const BABY_FRANJAS = [
-    { nombre:'Sabado',         sesiones:2, cuposSesion:8, horas:1, vecesSemana:1, precio:97 },
-    { nombre:'Lunes a jueves', sesiones:4, cuposSesion:8, horas:1, vecesSemana:2, precio:165 },
+    { nombre:'Sábado',         sesiones:2, cuposSesion:8, horas:1, vecesSemana:1, precio:97 },
+    { nombre:'Lunes a jueves', sesiones:8, cuposSesion:8, horas:1, vecesSemana:2, precio:165 },
   ];
   /* Cupos de una franja: las plazas de todas sus sesiones repartidas entre
      las veces que cada niño asiste. Cuatro sesiones de ocho con asistencia

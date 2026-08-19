@@ -189,25 +189,25 @@ ok(MOTOR.afterSchool({ ocupacion: 0.35 }).costo, 6798.10, 'ni siquiera al 35%', 
    Dos franjas con precio distinto, no una sola sesion:
 
      Sabado      2 sesiones de 1 h, 8 niños cada una = 16 cupos, plan $97
-     Entre semana 4 sesiones de 1 h (lunes a jueves), 8 niños cada una.
-                  Cada niño asiste dos veces por semana, asi que caben 16,
-                  no 32, y pagan plan de $165.
+     Entre semana 8 sesiones de 1 h —dos diarias de lunes a jueves—, 8 niños
+                  cada una. Cada niño asiste dos veces por semana, asi que
+                  se venden 32 cupos y pagan plan de $165.
 
    El costo escala con las sesiones que se dictan: una franja sin alumnos no
    se dicta y no cuesta. Es la misma regla de After School.
    ========================================================================== */
 console.log('\nBABY AND ME');
 
-esIgual(MOTOR.BABY_CUPOS, 32, 'treinta y dos cupos entre las dos franjas');
+esIgual(MOTOR.BABY_CUPOS, 48, 'cuarenta y ocho cupos entre las dos franjas');
 esIgual(MOTOR.BABY_ALUMNOS_HOY, 0, 'cero alumnos hoy');
 
 const b100 = MOTOR.baby({ ocupacion: 1 });
-esIgual(b100.alumnos, 32, 'a plena ocupacion: 32 alumnos');
-ok(b100.facturacion, 4192, 'a plena ocupacion: facturacion mensual', 0);
-ok(b100.facturacion * 12, 50304, 'a plena ocupacion: facturacion anual', 0);
-ok(b100.costo, 649.50, 'a plena ocupacion: costo (6 sesiones x 1 h x 4,33 x $25)', 0.5);
-ok(b100.margen, 3542, 'a plena ocupacion: margen', 1);
-ok(b100.margen / b100.facturacion * 100, 85, 'a plena ocupacion: margen sobre facturacion', 0.5);
+esIgual(b100.alumnos, 48, 'a plena ocupacion: 48 alumnos');
+ok(b100.facturacion, 6832, 'a plena ocupacion: facturacion mensual', 0);
+ok(b100.facturacion * 12, 81984, 'a plena ocupacion: facturacion anual', 0);
+ok(b100.costo, 1082.50, 'a plena ocupacion: costo (10 sesiones x 1 h x 4,33 x $25)', 0.5);
+ok(b100.margen, 5749.50, 'a plena ocupacion: margen', 1);
+ok(b100.margen / b100.facturacion * 100, 84.2, 'a plena ocupacion: margen sobre facturacion', 0.1);
 
 /* El desglose de la tarjeta tiene que sumar su propio total. */
 esIgual(b100.detalle.length, 2, 'dos franjas en el desglose');
@@ -215,10 +215,10 @@ ok(b100.detalle.reduce((s, d) => s + d.facturacion, 0), b100.facturacion, 'el de
 ok(b100.detalle.reduce((s, d) => s + d.costo, 0), b100.costo, 'y el costo', 0.01);
 ok(b100.detalle[0].cupos, 16, 'sabado: 16 cupos', 0);
 ok(b100.detalle[0].precio, 97, 'sabado: plan de $97', 0);
-ok(b100.detalle[1].cupos, 16, 'entre semana: 16 cupos', 0);
+ok(b100.detalle[1].cupos, 32, 'entre semana: 32 cupos', 0);
 ok(b100.detalle[1].precio, 165, 'entre semana: plan de $165', 0);
 ok(b100.detalle[0].facturacion, 1552, 'sabado: facturacion', 0);
-ok(b100.detalle[1].facturacion, 2640, 'entre semana: facturacion', 0);
+ok(b100.detalle[1].facturacion, 5280, 'entre semana: facturacion', 0);
 
 /* Sin alumnos no se dicta, y lo que no se dicta no cuesta. */
 const b0 = MOTOR.baby({ ocupacion: 0 });
@@ -232,11 +232,11 @@ const bSoloSab = MOTOR.baby({ alumnos: [16, 0] });
 ok(bSoloSab.costo, 2 * 4.33 * 25, 'solo sabado: dos sesiones dictadas', 0.5);
 ok(bSoloSab.facturacion, 1552, 'solo sabado: factura solo su franja', 0);
 const bSoloSem = MOTOR.baby({ alumnos: [0, 16] });
-ok(bSoloSem.costo, 4 * 4.33 * 25, 'solo entre semana: cuatro sesiones dictadas', 0.5);
+ok(bSoloSem.costo, 8 * 4.33 * 25, 'solo entre semana: ocho sesiones dictadas', 0.5);
 
 /* El costo por hora es editable: puede atenderla un profesor de Kinder. */
 const bCaro = MOTOR.baby({ ocupacion: 1, costoHora: 40 });
-ok(bCaro.costo, 6 * 4.33 * 40, 'costo por hora editable', 0.5);
+ok(bCaro.costo, 10 * 4.33 * 40, 'costo por hora editable', 0.5);
 esIgual(bCaro.facturacion === b100.facturacion, true, 'y no toca la facturacion');
 /* ==========================================================================
    CUMPLEANOS
@@ -337,22 +337,25 @@ console.log('\nRESUMEN · 2027');
    porque no depende de cuantos cupos se llenen. */
 ok(MOTOR.OTROS_INGRESOS, 10900, 'otros ingresos, fijos', 0);
 
+/* Las cifras de 2027 se movieron al pasar Baby and Me de 32 a 48 cupos:
+   la franja de semana son ocho sesiones, no cuatro. Son 16 cupos mas a $165
+   contra $866 de costo, asi que suben ingresos y EBITDA en los tres puntos. */
 const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
 const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
-ok(p60.ingresos, 822945, 'al 60%: ingresos', 50);
-ok(p60.margenBrutoPct * 100, 64.0, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 226854, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 27.6, 'al 60%: EBITDA %', 0.15);
+ok(p60.ingresos, 840765, 'al 60%: ingresos', 50);
+ok(p60.margenBrutoPct * 100, 64.2, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 239478, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 28.5, 'al 60%: EBITDA %', 0.15);
 
-ok(p80.ingresos, 1098558, 'al 80%: ingresos', 50);
-ok(p80.margenBrutoPct * 100, 65.7, 'al 80%: margen bruto %', 0.15);
-ok(p80.ebitda, 421385, 'al 80%: EBITDA', 50);
+ok(p80.ingresos, 1124298, 'al 80%: ingresos', 50);
+ok(p80.margenBrutoPct * 100, 66.0, 'al 80%: margen bruto %', 0.15);
+ok(p80.ebitda, 441929, 'al 80%: EBITDA', 50);
 
-ok(p100.ingresos, 1366742, 'al 100%: ingresos', 50);
-ok(p100.margenBrutoPct * 100, 69.0, 'al 100%: margen bruto %', 0.15);
-ok(p100.ebitda, 642951, 'al 100%: EBITDA', 50);
+ok(p100.ingresos, 1398422, 'al 100%: ingresos', 50);
+ok(p100.margenBrutoPct * 100, 69.3, 'al 100%: margen bruto %', 0.15);
+ok(p100.ebitda, 669435, 'al 100%: EBITDA', 50);
 
 /* ==========================================================================
    EL DESLIZADOR NUNCA PUEDE BAJAR EL EBITDA
@@ -442,7 +445,7 @@ ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
 ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
-ok(p100.ingresos - p60.ingresos, 543798, 'la ocupacion mueve los ingresos', 100);
+ok(p100.ingresos - p60.ingresos, 557658, 'la ocupacion mueve los ingresos', 100);
 esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
 
 /* El contraste que hay que poder explicar: el margen bruto cae respecto a
