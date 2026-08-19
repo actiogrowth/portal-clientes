@@ -285,6 +285,18 @@ table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font
 .ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
 .ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
 
+/* El control maestro manda sobre los granulares y se distingue de ellos: si
+   los cinco se vieran igual, volveria a pasar que una tarjeta queda en un
+   estado y el cuadro resumen en otro. */
+.control.maestro label span:first-child{font-size:12px;font-weight:700;
+  color:var(--marca-verde-profundo);letter-spacing:.3px}
+.control.maestro label .valor{font-size:17px;color:var(--marca-verde-profundo)}
+.control.maestro input[type=range]{height:22px}
+.separador-control{display:flex;align-items:center;gap:9px;margin:2px 0 -2px;
+  font-size:10.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario)}
+.separador-control::after{content:;flex:1;height:1px;background:var(--borde)}
+
 
 /* ==========================================================================
    SECCION 3 · CUADRO RESUMEN
@@ -1821,9 +1833,18 @@ function montarUnidades(contenedor){
      Se guardan para poder devolverles el valor calculado desde los alumnos
      en cada repintado: si no, el deslizador quedaria diciendo una ocupacion
      que ya no es la que hay. */
+  /* Marca visual entre el control maestro y los de ajuste fino. Devuelve un
+     nodo mas para la lista de controles, no un control. */
+  const separador = texto => {
+    const d = nodo('div', 'control ancho separador-control');
+    d.appendChild(nodo('span', null, texto || 'Ajuste fino'));
+    return d;
+  };
+
   let sincronizables = [];
   const regSync = (cfg, lee) => {
     const c = control(cfg);
+    if (cfg.maestro) c.wrap.classList.add('maestro');
     restauradores.push(p => c.restaurar(lee(p)));
     sincronizables.push(c);
     return c.wrap;
@@ -1831,7 +1852,14 @@ function montarUnidades(contenedor){
 
   /* Cada unidad declara de donde sale su ocupacion, que columnas tiene su
      tabla y como se arman sus filas. Lo que cambia entre unidades son los
-     datos, no la forma de la tarjeta. */
+     datos, no la forma de la tarjeta.
+
+     Todas llevan un control maestro de ocupacion que manda sobre los
+     granulares, y los granulares debajo como ajuste fino. La sincronizacion
+     va en los dos sentidos: el maestro reparte, y tocar un granular
+     recalcula el maestro como alumnos sobre cupos. Sin eso, la seccion 2 y
+     el cuadro resumen podian quedar en estados distintos sin que nada lo
+     indicara, y sus totales dejaban de coincidir. */
   const FICHAS = [
     {
       nombre: 'Kinder',
@@ -1839,6 +1867,7 @@ function montarUnidades(contenedor){
       calcular: () => MOTOR.kinder(est.kinder),
       ocupacion: r => ({ texto: r.ninos + ' de ' + MOTOR.KINDER_CAPACIDAD + ' niños',
                          frac: r.ninos / MOTOR.KINDER_CAPACIDAD }),
+      sincronizar: r => [Math.round(r.ninos / MOTOR.KINDER_CAPACIDAD * 100)],
       apoyo: r => r.grupos + ' grupos abiertos · ticket promedio ' + F.precio(r.ticket),
       filas: r => r.detalle.map(d => [d.nombre, d.ninos, F.precio(d.precio), F.dinero(d.facturacion)])
                    .concat([['Costo de los grupos', r.grupos, F.precio(est.kinder.costoGrupo),
@@ -1846,10 +1875,11 @@ function montarUnidades(contenedor){
       aviso: r => r.excedeCapacidad
         ? r.ninos + ' niños no caben en la capacidad actual: requiere habilitar salones adicionales.' : null,
       controles: () => [
-        reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1,
-              valor: est.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100, formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * x / 100); pintar(); } },
-            p => p.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100),
+        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor: est.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100, formato:x => x + '%', ancho:true,
+                  alCambiar:x => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * x / 100); pintar(); } },
+                p => p.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100),
+        separador(),
         reg({ etiqueta:'Mezcla 4,5 h / 8 h', tipo:'range', min:0, max:100, paso:5, valor:est.kinder.pct45*100,
               formato:x => x + ' / ' + (100 - x), ancho:true,
               alCambiar:x => { est.kinder.pct45 = x/100; pintar(); } }, p => p.kinder.pct45*100),
@@ -1872,11 +1902,10 @@ function montarUnidades(contenedor){
       columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Costo/hora', 'Facturacion', 'Costo'],
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
-         mueve cuantos niños hay. Deslizador y celdas son dos formas de tocar
-         el mismo dato, por eso el deslizador se resincroniza al editar. */
+         mueve cuantos niños hay. */
       ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
-      sincronizar: r => [r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100],
+      sincronizar: r => [Math.round(r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100)],
       apoyo: () => '',
       filas: r => r.detalle.map((d, i) => [
         d.nombre,
@@ -1892,14 +1921,14 @@ function montarUnidades(contenedor){
         d.costo ? '−' + F.dinero(d.costo) : '—',
       ]),
       controles: () => [
-        regSync({ etiqueta:'Ocupacion · reparte entre las disciplinas', tipo:'range',
-                  min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
-                  formato:x => x + '%', ancho:true,
-                  /* El deslizador reparte y vuelve a mandar sobre lo editado. */
+        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:est.afterSchool.ocupacion*100, formato:x => x + '%', ancho:true,
+                  /* Reparte y vuelve a mandar sobre lo editado en la tabla. */
                   alCambiar:x => { est.afterSchool.ocupacion = x/100;
                                    est.afterSchool.alumnos = null;
                                    pintar(); } },
                 p => p.afterSchool.ocupacion*100),
+        separador('Los alumnos de cada disciplina se ajustan en la tabla'),
         reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
               alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
         reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
@@ -1912,8 +1941,7 @@ function montarUnidades(contenedor){
       nombre: 'Veranito',
       columnas: ['Temporada', 'Cupos', 'Vendidos', 'Facturacion', 'Costo'],
       /* La cifra grande es la mensual prorrateada, no la anual: asi Veranito
-         se lee igual que las otras cuatro unidades, que son todas mensuales.
-         El año y el desglose por temporada quedan debajo como apoyo. */
+         se lee igual que las otras cuatro unidades, que son mensuales. */
       calcular: () => {
         const v = MOTOR.veranitoAnual(est.veranito);
         return Object.assign({}, v.mes, { v });
@@ -1922,10 +1950,13 @@ function montarUnidades(contenedor){
         texto: r.v.anual.cupos + ' de ' + r.v.anual.cuposTemporada + ' cupos al año',
         frac: r.v.anual.cupos / r.v.anual.cuposTemporada,
       }),
+      sincronizar: r => [
+        Math.round(r.v.anual.cupos / r.v.anual.cuposTemporada * 100),
+        Math.round(r.v.mayAgo.cupos / r.v.mayAgo.cuposTemporada * 100),
+        Math.round(r.v.eneMar.cupos / r.v.eneMar.cuposTemporada * 100),
+      ],
       apoyo: r => 'Promedio de las dos temporadas prorrateado a doce meses · ' +
                   F.dinero(r.v.anual.facturacion) + ' al año ÷ 12 · ticket real ' + F.precio(r.v.ticket),
-      /* La fila del total cierra la cadena que sostiene la cifra grande: las
-         dos temporadas suman el año, y el año entre doce da el mes. */
       filas: r => [
         ['Mayo a agosto', r.v.mayAgo.cuposTemporada, r.v.mayAgo.cupos,
          F.dinero(r.v.mayAgo.facturacion), '−' + F.dinero(r.v.mayAgo.costo)],
@@ -1937,14 +1968,21 @@ function montarUnidades(contenedor){
           F.dinero(r.v.mes.facturacion), '−' + F.dinero(r.v.mes.costo)] },
       ],
       controles: () => [
-        reg({ etiqueta:'Ocupacion mayo–agosto', tipo:'range', min:0, max:100, paso:1,
-              valor:est.veranito.mayAgo.ocupacion*100, formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100; pintar(); } },
-            p => p.veranito.mayAgo.ocupacion*100),
-        reg({ etiqueta:'Ocupacion enero–marzo', tipo:'range', min:0, max:100, paso:1,
-              valor:est.veranito.eneMar.ocupacion*100, formato:x => x + '%', ancho:true,
-              alCambiar:x => { est.veranito.eneMar.ocupacion = x/100; pintar(); } },
-            p => p.veranito.eneMar.ocupacion*100),
+        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:0, formato:x => x + '%', ancho:true,
+                  alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100;
+                                   est.veranito.eneMar.ocupacion = x/100;
+                                   pintar(); } },
+                () => 0),
+        separador('Cada temporada por separado'),
+        regSync({ etiqueta:'Mayo–agosto', tipo:'range', min:0, max:100, paso:1,
+                  valor:est.veranito.mayAgo.ocupacion*100, formato:x => x + '%',
+                  alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100; pintar(); } },
+                p => p.veranito.mayAgo.ocupacion*100),
+        regSync({ etiqueta:'Enero–marzo', tipo:'range', min:0, max:100, paso:1,
+                  valor:est.veranito.eneMar.ocupacion*100, formato:x => x + '%',
+                  alCambiar:x => { est.veranito.eneMar.ocupacion = x/100; pintar(); } },
+                p => p.veranito.eneMar.ocupacion*100),
         reg({ etiqueta:'Semanas', tipo:'range', min:1, max:16, paso:1, valor:est.veranito.semanas,
               formato:x => x + ' semanas',
               alCambiar:x => { est.veranito.semanas = x; pintar(); } }, p => p.veranito.semanas),
@@ -1975,15 +2013,30 @@ function montarUnidades(contenedor){
         const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
         return { texto: r.eventos + ' de ' + tope + ' eventos al mes', frac: r.eventos / tope };
       },
+      /* El maestro va en porcentaje, como en las otras cuatro, y el control
+         de eventos por semana queda debajo. Sin el maestro, "ponerlo al 65%"
+         no era la misma accion aqui que en el cuadro resumen. */
+      sincronizar: () => [
+        Math.round(est.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100),
+        Math.round(est.cumpleanos.eventosSemana * 10) / 10,
+      ],
       apoyo: () => 'Tope real: ' + MOTOR.CUMPLE_TOPE_SEMANA + ' eventos por semana.',
       filas: r => r.detalle.map(d => [
         d.nombre + ' · ' + d.porSemana.toFixed(1).replace('.', ',') + ' por semana',
         d.cantidad, F.precio(d.precio), F.dinero(d.facturacion), '−' + F.dinero(d.costo)]),
       controles: () => [
-        reg({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
-              valor:est.cumpleanos.eventosSemana,
-              formato:x => x.toFixed(1).replace('.', ',') + ' por semana', ancho:true,
-              alCambiar:x => { est.cumpleanos.eventosSemana = x; pintar(); } }, p => p.cumpleanos.eventosSemana),
+        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:est.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100,
+                  formato:x => x + '%', ancho:true,
+                  alCambiar:x => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * x / 100;
+                                   pintar(); } },
+                p => p.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100),
+        separador(),
+        regSync({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
+                  valor:est.cumpleanos.eventosSemana,
+                  formato:x => x.toFixed(1).replace('.', ',') + ' por semana', ancho:true,
+                  alCambiar:x => { est.cumpleanos.eventosSemana = x; pintar(); } },
+                p => p.cumpleanos.eventosSemana),
         reg({ etiqueta:'Precio del paquete', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.precio,
               alCambiar:x => { est.cumpleanos.precio = x; pintar(); } }, p => p.cumpleanos.precio),
         reg({ etiqueta:'Costo por evento', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.costoEvento,
@@ -1995,9 +2048,11 @@ function montarUnidades(contenedor){
       columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturacion', 'Costo'],
       calcular: () => MOTOR.baby(est.baby),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
-      /* Un deslizador por franja, y cada uno se resincroniza con lo que haya
-         en su celda de alumnos. */
-      sincronizar: r => r.detalle.map(d => d.cupos ? d.alumnos / d.cupos * 100 : 0),
+      sincronizar: r => [
+        Math.round(r.alumnos / r.cupos * 100),
+        Math.round(r.detalle[0].alumnos / r.detalle[0].cupos * 100),
+        Math.round(r.detalle[1].alumnos / r.detalle[1].cupos * 100),
+      ],
       apoyo: r => {
         const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
         return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
@@ -2014,12 +2069,23 @@ function montarUnidades(contenedor){
         F.dinero(d.facturacion),
         d.costo ? '−' + F.dinero(d.costo) : '—',
       ]),
-      /* Las dos franjas tienen planes distintos, asi que llenar una no vale
-         lo mismo que llenar la otra: cada una lleva su propio deslizador. */
-      controles: () => MOTOR.BABY_FRANJAS.map((fr, i) => {
+      /* El maestro reparte entre las dos franjas; cada una se afina debajo.
+         Los planes cuestan distinto —sabado $97, semana $165— asi que
+         llenar una no vale lo mismo que llenar la otra. */
+      controles: () => [
+        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:0, formato:x => x + '%', ancho:true,
+                  alCambiar:x => {
+                    est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
+                      Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * x / 100));
+                    pintar();
+                  } },
+                () => 0),
+        separador('Cada franja por separado'),
+      ].concat(MOTOR.BABY_FRANJAS.map((fr, i) => {
         const cupos = fr.sesiones * fr.cuposSesion / fr.vecesSemana;
-        return regSync({ etiqueta:'Ocupacion · ' + fr.nombre, tipo:'range', min:0, max:100, paso:1,
-                         valor:0, formato:x => x + '%', ancho:true,
+        return regSync({ etiqueta:fr.nombre, tipo:'range', min:0, max:100, paso:1,
+                         valor:0, formato:x => x + '%',
                          alCambiar:x => {
                            const actual = MOTOR.baby(est.baby).detalle.map(d => d.alumnos);
                            actual[i] = Math.round(cupos * x / 100);
@@ -2027,9 +2093,8 @@ function montarUnidades(contenedor){
                            pintar();
                          } },
                        () => 0);
-      }).concat([
-        /* Editable porque puede atenderla un profesor de Kinder, y eso
-           cambia el costo por hora. */
+      })).concat([
+        /* Editable porque puede atenderla un profesor de Kinder. */
         reg({ etiqueta:'Costo por hora', tipo:'number', min:0, max:500, paso:1, valor:est.baby.costoHora,
               ancho:true, alCambiar:x => { est.baby.costoHora = x; pintar(); } }, p => p.baby.costoHora),
       ]),
@@ -2144,7 +2209,10 @@ function montarUnidades(contenedor){
         const valores = t.ficha.sincronizar(r);
         t.sincronizables.forEach((c, i) => {
           if (valores[i] == null) return;
-          if (document.activeElement !== c.inp) c.restaurar(Math.round(valores[i]));
+          /* Sin redondear aqui: hay controles con paso decimal, como los
+             eventos por semana. Cada ficha devuelve el valor ya en las
+             unidades de su control. */
+          if (document.activeElement !== c.inp) c.restaurar(valores[i]);
         });
       }
 
