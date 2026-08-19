@@ -368,10 +368,19 @@ ok(p100.ebitda, 642951, 'al 100%: EBITDA', 50);
 
    El suelo y el paso viven en el motor porque son los dos juntos los que
    sostienen esta garantia: cambiar uno solo la rompe.
+
+   El suelo esta en 5% y no en 45% desde que la ocupacion se comparte con la
+   seccion 2: el deslizador enseña el mismo dato que las tarjetas, que
+   arrancan en la ocupacion real y bajan hasta el 0% de Baby and Me.
+
+   No baja hasta 0 porque entre 0% y 5% si retrocede, por un motivo distinto
+   al de Kinder: ahi se enciende de golpe toda la base de costos. Los valores
+   que la rejilla no puede representar —0%, 37,5%— se muestran exactos en la
+   etiqueta aunque el punto descanse en la posicion mas cercana.
    ========================================================================== */
 console.log('\nRECORRIDO DEL DESLIZADOR');
 
-ok(MOTOR.OCUPACION_2027_MINIMA * 100, 45, 'ocupacion minima del deslizador', 0);
+ok(MOTOR.OCUPACION_2027_MINIMA * 100, 5, 'ocupacion minima del deslizador', 0);
 ok(MOTOR.OCUPACION_2027_PASO, 5, 'paso del deslizador, en puntos', 0);
 
 const posiciones = [];
@@ -391,18 +400,31 @@ for (const o of posiciones){
   }
   anterior = { o, eb: p.ebitda };
 }
-esIgual(positivoSiempre, true, 'el EBITDA es positivo en todo el recorrido');
-esIgual(subeSiempre, true, 'y nunca baja mientras la ocupacion sube' + (caida ? ' · cae en ' + caida : ''));
+esIgual(subeSiempre, true, 'el EBITDA nunca baja mientras la ocupacion sube' + (caida ? ' · cae en ' + caida : ''));
+esIgual(posiciones.length, 20, 'veinte posiciones, de 5% a 100%');
+
+/* El suelo ya no saca la zona de perdida: eso se perdio al compartir el dato
+   con la seccion 2. Queda anotado donde deja de ser negativo, que es lo que
+   hay que saber antes de arrastrar el deslizador delante del cliente. */
+esIgual(positivoSiempre, false, 'por debajo del 40% el EBITDA es negativo');
+esIgual(posiciones.find(o => MOTOR.resumen2027({ ocupacion:o/100, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda >= 0), 40,
+        'y a partir del 40% es positivo');
 
 /* La prueba de que el paso fino si la rompe: si alguien lo devuelve a 1,
    esta comprobacion recuerda por que estaba en 5. */
 let caidasConPasoFino = 0, prev = null;
-for (let o = 45; o <= 100; o++){
+for (let o = MOTOR.OCUPACION_2027_MINIMA * 100; o <= 100; o++){
   const eb = MOTOR.resumen2027({ ocupacion:o/100, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda;
   if (prev !== null && eb < prev) caidasConPasoFino++;
   prev = eb;
 }
-esIgual(caidasConPasoFino, 4, 'con paso de 1 punto habria cuatro retrocesos');
+esIgual(caidasConPasoFino, 7, 'con paso de 1 punto habria siete retrocesos');
+
+/* Y la razon exacta de que el suelo sea 5 y no 0: ahi el retroceso no lo
+   causa Kinder abriendo grupo, sino toda la base de costos encendiendose. */
+const eb0 = MOTOR.resumen2027({ ocupacion:0, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda;
+const eb5 = MOTOR.resumen2027({ ocupacion:0.05, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda;
+esIgual(eb5 < eb0, true, 'del 0% al 5% el EBITDA retrocede: por eso el suelo no es 0');
 
 /* Coherencia interna en cualquier punto del deslizador. */
 for (const o of [0.30, 0.45, 0.72, 0.91, 1.00]){

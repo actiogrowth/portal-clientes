@@ -989,16 +989,28 @@ const MOTOR = (function(){
      sostienen una garantia de la reunion: el EBITDA nunca puede bajar
      mientras el cliente sube la ocupacion.
 
-     El suelo saca la zona de perdida, que llega hasta el 40%.
-
-     El paso resuelve algo menos evidente. Un grupo de Kinder cuesta $32.400
+     El paso resuelve lo menos evidente. Un grupo de Kinder cuesta $32.400
      al año y un punto de ocupacion solo aporta unos $13.200, asi que con
      paso de un punto el EBITDA retrocede cada vez que Kinder cruza un
-     escalon de diez niños: pasa en 51%, 64%, 76% y 89%. Con cinco puntos
-     cada movimiento aporta unos $66.000 y absorbe el grupo entero.
+     escalon de diez niños. Con cinco puntos cada movimiento aporta unos
+     $66.000 y absorbe el grupo entero.
 
-     Bajar el paso a 1 vuelve a romperlo. La suite lo comprueba. */
-  const OCUPACION_2027_MINIMA = 0.45;
+     El suelo baja de 45% a 5% porque el deslizador ya no tiene un valor
+     propio: enseña el mismo dato que la seccion 2, que arranca en la
+     ocupacion real de cada unidad y llega hasta el 0% de Baby and Me. Con
+     el suelo en 45% el deslizador habria dicho 45% mientras el valor
+     compartido decia otra cosa.
+
+     No baja hasta 0 porque ahi si retrocede, y por un motivo distinto al
+     de Kinder: entre 0% y 5% se enciende de golpe toda la base de costos
+     —los $6.798 al mes de After School van completos con el primer alumno—
+     y son $131.074 al año de costo contra $82.489 de ingreso. Del 5% al
+     100% el recorrido es estrictamente creciente.
+
+     Lo que el suelo ya no hace es sacar la zona de perdida: el EBITDA es
+     negativo por debajo del 40%. Es el precio de que las dos secciones
+     hablen del mismo dato. La suite lo comprueba todo. */
+  const OCUPACION_2027_MINIMA = 0.05;
   const OCUPACION_2027_PASO = 5;
 
   function conPorcentajes(x){
@@ -1493,12 +1505,23 @@ function control(cfg){
   inp.addEventListener('input', () => {
     const v = Number(inp.value);
     if (!Number.isFinite(v)) return;   // campo vaciado a media escritura
-    cfg.alCambiar(v);
+    /* La etiqueta se refresca antes de avisar: asi quien escuche puede
+       corregirla despues con el valor real. Al reves, el repintado que
+       dispara alCambiar quedaba pisado por el valor del propio control. */
     refrescarEtiqueta();
+    cfg.alCambiar(v);
   });
 
   wrap.append(lab, inp);
-  return { wrap, inp, restaurar(v){ inp.value = v; refrescarEtiqueta(); } };
+  return { wrap, inp,
+    /* Con 'exacto' se separan las dos cosas: el punto cae donde la rejilla lo
+       permite y la etiqueta dice el valor de verdad. Es lo que deja mostrar
+       el 0% de Baby and Me en un deslizador cuyo minimo es 5. */
+    restaurar(v, exacto){
+      inp.value = v;
+      if (exacto === undefined) refrescarEtiqueta();
+      else val.textContent = cfg.formato(exacto);
+    } };
 }
 
 function pastilla(texto, fraccion){
@@ -1903,6 +1926,39 @@ function actualizarFila(dom, cruda){
   });
 }
 
+/* ==========================================================================
+   OCUPACION COMPARTIDA
+
+   "Detalle por unidad" y "Cuadro resumen" mueven el mismo dato: cuantos de
+   los cupos de cada unidad estan llenos. Antes cada seccion guardaba el suyo,
+   asi que se podia dejar Kinder al 40% en una pestaña y al 60% en la otra sin
+   que nada lo indicara, y los totales dejaban de hablar del mismo escenario.
+
+   Ahora el valor vive aqui una sola vez y cada seccion se suscribe. Manda el
+   ultimo cambio, sea cual sea la pestaña donde se hizo.
+   ========================================================================== */
+const OCUPACION = (() => {
+  const valores = {};
+  const oyentes = [];
+  return {
+    lee: (clave, siFalta) => valores[clave] !== undefined ? valores[clave] : siFalta,
+    /* Se publica en bloque y se avisa una sola vez: la seccion 2 recalcula las
+       cinco unidades en cada repintado. Quien publica no se escucha a si mismo,
+       que es lo que cerraria el ciclo. Se avisa que claves cambiaron para que
+       nadie repare lo que nadie toco. */
+    fija(cambios, origen){
+      const cambiadas = [];
+      for (const clave in cambios){
+        if (valores[clave] === cambios[clave]) continue;
+        valores[clave] = cambios[clave];
+        cambiadas.push(clave);
+      }
+      if (cambiadas.length) oyentes.forEach(o => { if (o.nombre !== origen) o.fn(cambiadas); });
+    },
+    suscribe(nombre, fn){ oyentes.push({ nombre, fn }); },
+  };
+})();
+
 function montarUnidades(contenedor){
   const inicial = () => MOTOR.partida();
   let est = inicial();
@@ -1926,6 +1982,18 @@ function montarUnidades(contenedor){
     return d;
   };
 
+  /* Como se reparte una ocupacion dentro de cada unidad. Es la cuenta que
+     ya hacia cada control maestro, puesta en un solo sitio porque ahora entra
+     tambien desde el cuadro resumen. */
+  const APLICAR = {
+    kinder:      f => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * f); },
+    afterSchool: f => { est.afterSchool.ocupacion = f; est.afterSchool.alumnos = null; },
+    veranito:    f => { est.veranito.mayAgo.ocupacion = f; est.veranito.eneMar.ocupacion = f; },
+    cumpleanos:  f => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * f; },
+    baby:        f => { est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
+                          Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * f)); },
+  };
+
   let sincronizables = [];
   const regSync = (cfg, lee) => {
     const c = control(cfg);
@@ -1947,8 +2015,8 @@ function montarUnidades(contenedor){
      indicara, y sus totales dejaban de coincidir. */
   const FICHAS = [
     {
-      nombre: 'Kinder',
-      columnas: ['Plan', 'Niños', 'Precio', 'Facturacion'],
+      nombre: 'Kinder', clave: 'kinder',
+      columnas: ['Plan', 'Niños', 'Precio', 'Facturación'],
       calcular: () => MOTOR.kinder(est.kinder),
       ocupacion: r => ({ texto: r.ninos + ' de ' + MOTOR.KINDER_CAPACIDAD + ' niños',
                          frac: r.ninos / MOTOR.KINDER_CAPACIDAD }),
@@ -1962,7 +2030,7 @@ function montarUnidades(contenedor){
       controles: () => [
         regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor: est.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100, formato:x => x + '%', ancho:true,
-                  alCambiar:x => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * x / 100); pintar(); } },
+                  alCambiar:x => { APLICAR.kinder(x / 100); pintar(); } },
                 p => p.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100),
         separador(),
         reg({ etiqueta:'Mezcla 4,5 h / 8 h', tipo:'range', min:0, max:100, paso:5, valor:est.kinder.pct45*100,
@@ -1983,8 +2051,8 @@ function montarUnidades(contenedor){
       },
     },
     {
-      nombre: 'After School',
-      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Costo/hora', 'Facturacion', 'Costo'],
+      nombre: 'After School', clave: 'afterSchool',
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Costo/hora', 'Facturación', 'Costo'],
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
          mueve cuantos niños hay. */
@@ -2009,9 +2077,7 @@ function montarUnidades(contenedor){
         regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:est.afterSchool.ocupacion*100, formato:x => x + '%', ancho:true,
                   /* Reparte y vuelve a mandar sobre lo editado en la tabla. */
-                  alCambiar:x => { est.afterSchool.ocupacion = x/100;
-                                   est.afterSchool.alumnos = null;
-                                   pintar(); } },
+                  alCambiar:x => { APLICAR.afterSchool(x / 100); pintar(); } },
                 p => p.afterSchool.ocupacion*100),
         separador('Los alumnos de cada disciplina se ajustan en la tabla'),
         reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
@@ -2023,8 +2089,8 @@ function montarUnidades(contenedor){
       ],
     },
     {
-      nombre: 'Veranito',
-      columnas: ['Temporada', 'Cupos', 'Vendidos', 'Facturacion', 'Costo'],
+      nombre: 'Veranito', clave: 'veranito',
+      columnas: ['Temporada', 'Cupos', 'Vendidos', 'Facturación', 'Costo'],
       /* La cifra grande es la mensual prorrateada, no la anual: asi Veranito
          se lee igual que las otras cuatro unidades, que son mensuales. */
       calcular: () => {
@@ -2055,9 +2121,7 @@ function montarUnidades(contenedor){
       controles: () => [
         regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:0, formato:x => x + '%', ancho:true,
-                  alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100;
-                                   est.veranito.eneMar.ocupacion = x/100;
-                                   pintar(); } },
+                  alCambiar:x => { APLICAR.veranito(x / 100); pintar(); } },
                 () => 0),
         separador('Cada temporada por separado'),
         regSync({ etiqueta:'Mayo–agosto', tipo:'range', min:0, max:100, paso:1,
@@ -2091,8 +2155,8 @@ function montarUnidades(contenedor){
       },
     },
     {
-      nombre: 'Cumpleaños',
-      columnas: ['Concepto', 'Al mes', 'Precio', 'Facturacion', 'Costo'],
+      nombre: 'Cumpleaños', clave: 'cumpleanos',
+      columnas: ['Concepto', 'Al mes', 'Precio', 'Facturación', 'Costo'],
       calcular: () => MOTOR.cumpleanos(est.cumpleanos),
       ocupacion: r => {
         const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
@@ -2113,8 +2177,7 @@ function montarUnidades(contenedor){
         regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:est.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100,
                   formato:x => x + '%', ancho:true,
-                  alCambiar:x => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * x / 100;
-                                   pintar(); } },
+                  alCambiar:x => { APLICAR.cumpleanos(x / 100); pintar(); } },
                 p => p.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100),
         separador(),
         regSync({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
@@ -2129,8 +2192,8 @@ function montarUnidades(contenedor){
       ],
     },
     {
-      nombre: 'Baby and Me',
-      columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturacion', 'Costo'],
+      nombre: 'Baby and Me', clave: 'baby',
+      columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturación', 'Costo'],
       calcular: () => MOTOR.baby(est.baby),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
       sincronizar: r => [
@@ -2160,11 +2223,7 @@ function montarUnidades(contenedor){
       controles: () => [
         regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:0, formato:x => x + '%', ancho:true,
-                  alCambiar:x => {
-                    est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
-                      Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * x / 100));
-                    pintar();
-                  } },
+                  alCambiar:x => { APLICAR.baby(x / 100); pintar(); } },
                 () => 0),
         separador('Cada franja por separado'),
       ].concat(MOTOR.BABY_FRANJAS.map((fr, i) => {
@@ -2276,10 +2335,12 @@ function montarUnidades(contenedor){
   barraReinicio(contenedor, 'Reiniciar valores');
 
   function pintar(){
+    const fracs = {};
     for (const t of tarjetas){
       const r = t.ficha.calcular();
 
       const oc = t.ficha.ocupacion(r);
+      if (t.ficha.clave) fracs[t.ficha.clave] = oc.frac;
       if (t.pastillaNodo) t.pastillaNodo.remove();
       t.pastillaNodo = pastilla(oc.texto + ' · ' + F.pct(oc.frac), oc.frac);
       t.pastillaCaja.appendChild(t.pastillaNodo);
@@ -2315,7 +2376,24 @@ function montarUnidades(contenedor){
       t.refs.costo.textContent = F.dinero(r.costo);
       t.refs.margen.textContent = F.dinero(r.margen);
     }
+
+    /* La ocupacion que sale de estas tarjetas es la que ve el cuadro resumen.
+       Si no cambio nada, fija() no avisa y aqui se detiene el ciclo. */
+    OCUPACION.fija(fracs, 'unidades');
   }
+
+  /* Lo que llega del cuadro resumen se reparte dentro de la unidad que cambio
+     —solo esa: reaplicar las cinco borraria los alumnos editados a mano en la
+     tabla de otra unidad— y se repinta. */
+  OCUPACION.suscribe('unidades', claves => {
+    let toco = false;
+    for (const clave of claves){
+      if (!APLICAR[clave]) continue;
+      APLICAR[clave](OCUPACION.lee(clave));
+      toco = true;
+    }
+    if (toco) pintar();
+  });
 
   function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
   pintar();
@@ -2331,9 +2409,18 @@ function montarUnidades(contenedor){
    ========================================================================== */
 function montarResumen(contenedor){
   /* Un deslizador por unidad en vez de uno solo: la pregunta de la reunion
-     es "Kinder al 80% pero After School al 50%, cuanto da". El paso de cinco
-     puntos se mantiene porque es lo que evita que el EBITDA retroceda cuando
-     Kinder cruza un escalon de grupo. */
+     es "Kinder al 80% pero After School al 50%, cuanto da".
+
+     Estos deslizadores recorren de 0 a 100 de punto en punto, y no de 45 a
+     100 de cinco en cinco como antes. El motivo es que ahora muestran el
+     mismo dato que la seccion 2, que arranca en la ocupacion real de cada
+     unidad —Kinder en 37,5%, Baby and Me en 0%— y ninguno de esos valores
+     cabe en aquella rejilla: el deslizador habria enseñado 45% mientras el
+     valor compartido decia otra cosa.
+
+     Lo que se pierde con el paso de un punto esta medido y documentado en
+     pruebas-motor.js: el EBITDA retrocede cuatro veces al subir la ocupacion,
+     cuando Kinder cruza un escalon de grupo. */
   const UNIDADES_2027 = [
     { clave:'kinder',      rotulo:'Kinder' },
     { clave:'afterSchool', rotulo:'After School' },
@@ -2341,24 +2428,44 @@ function montarResumen(contenedor){
     { clave:'cumpleanos',  rotulo:'Cumpleaños' },
     { clave:'baby',        rotulo:'Baby and Me' },
   ];
+  /* El punto de partida es el que trae la seccion 2, que ya se monto. Los
+     dos botones de reinicio vuelven aqui, para que no haya dos "estados
+     iniciales" distintos segun por donde se reinicie. */
+  const OCUPACIONES_PARTIDA = UNIDADES_2027.reduce(
+    (o, u) => (o[u.clave] = OCUPACION.lee(u.clave, MOTOR.OCUPACION_2027_PARTIDA), o), {});
   const inicial = () => ({
-    ocupaciones: UNIDADES_2027.reduce((o, u) => (o[u.clave] = MOTOR.OCUPACION_2027_PARTIDA, o), {}),
+    ocupaciones: Object.assign({}, OCUPACIONES_PARTIDA),
     gastosMes: MOTOR.GASTOS_MES_PARTIDA,
   });
   let est = inicial();
   const restauradores = [];
+  const deslizadores = {};
+
+  /* La posicion mas cercana que el deslizador puede ocupar. Nunca por debajo
+     del suelo ni fuera del paso: el input rechazaria el valor y se quedaria
+     en otro sitio sin avisar. */
+  const enRejilla = x => {
+    const paso = MOTOR.OCUPACION_2027_PASO;
+    const suelo = MOTOR.OCUPACION_2027_MINIMA * 100;
+    return Math.min(100, Math.max(suelo, Math.round(x / paso) * paso));
+  };
+  /* Un decimal y coma, para que 37,5% no salga como 37.5% ni redondeado a 38. */
+  const PCT = x => (Math.round(x * 10) / 10).toString().replace('.', ',') + '%';
 
   const panel = nodo('div', 'plan-controles');
   const reg = (cfg, lee) => {
     const c = control(cfg);
     restauradores.push(p => c.restaurar(lee(p)));
     panel.appendChild(c.wrap);
+    return c;
   };
   for (const u of UNIDADES_2027){
-    reg({ etiqueta:'Ocupacion · ' + u.rotulo, tipo:'range',
+    deslizadores[u.clave] = reg({ etiqueta:'Ocupación · ' + u.rotulo, tipo:'range',
           min:MOTOR.OCUPACION_2027_MINIMA*100, max:100, paso:MOTOR.OCUPACION_2027_PASO,
-          valor:est.ocupaciones[u.clave]*100, formato:x => x + '%',
-          alCambiar:x => { est.ocupaciones[u.clave] = x/100; pintar(); } },
+          valor:enRejilla(est.ocupaciones[u.clave]*100), formato:PCT,
+          alCambiar:x => { est.ocupaciones[u.clave] = x/100;
+                           OCUPACION.fija({ [u.clave]: x/100 }, 'resumen');
+                           pintar(); } },
         p => p.ocupaciones[u.clave]*100);
   }
   reg({ etiqueta:'Gastos operativos mensuales', tipo:'number', min:0, max:200000, paso:500,
@@ -2428,6 +2535,16 @@ function montarResumen(contenedor){
   barraReinicio(contenedor, 'Reiniciar 2027');
 
   function pintar(){
+    /* Cada deslizador se pone donde diga el valor compartido, salvo el que
+       tenga el foco: moverlo bajo los dedos de quien lo arrastra. El entero
+       es solo lo que se pinta; la cuenta usa el valor exacto. */
+    for (const clave in deslizadores){
+      const c = deslizadores[clave];
+      if (document.activeElement === c.inp) continue;
+      const exacto = est.ocupaciones[clave] * 100;
+      c.restaurar(enRejilla(exacto), exacto);
+    }
+
     const anios = [MOTOR.resumen(2025), MOTOR.resumen(2026),
                    MOTOR.resumen2027({ ocupaciones:est.ocupaciones, gastosMes:est.gastosMes })];
     for (const f of FILAS){
@@ -2447,7 +2564,24 @@ function montarResumen(contenedor){
       'más ingresos.';
   }
 
-  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
+  /* La seccion 2 publica en cada repintado suyo. Aqui se recoge el valor y
+     se repinta, sin volver a publicar: eso es lo que corta el ida y vuelta. */
+  OCUPACION.suscribe('resumen', claves => {
+    for (const clave of claves){
+      if (!(clave in est.ocupaciones)) continue;
+      est.ocupaciones[clave] = OCUPACION.lee(clave);
+    }
+    pintar();
+  });
+
+  /* Reiniciar aqui devuelve tambien la ocupacion compartida al punto de
+     partida, o la seccion 2 se quedaria donde el cliente la dejo. */
+  function reiniciar(){
+    est = inicial();
+    restauradores.forEach(r => r(est));
+    OCUPACION.fija(Object.assign({}, OCUPACIONES_PARTIDA), 'resumen');
+    pintar();
+  }
   pintar();
   REINICIOS.push(reiniciar);
 }
