@@ -281,9 +281,15 @@ table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
 table.desglose tbody tr.suma.destacada th,
 table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
 
-/* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
+/* Las cuatro cifras de la tarjeta caben en una fila del lado derecho; el
    cuerpo se ata al ancho de su celda para no salirse nunca. */
-.ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+.ua-lado .cifras{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0}
+/* Con cuatro cifras la columna se estrecha y "Facturación anual" no cabe en
+   una linea: se cortaba en "Facturación an…", que es justo lo que hay que
+   poder distinguir de la mensual. Se deja envolver, y se reserva el alto de
+   dos lineas en las cuatro para que sus cifras no queden a distinta altura. */
+.ua-lado .cifra-bloque .etiqueta{white-space:normal;overflow:visible;
+  line-height:1.2;min-height:2.4em}
 .ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
 
 /* El control maestro manda sobre los granulares y se distingue de ellos: si
@@ -1993,6 +1999,13 @@ function montarUnidades(contenedor){
     return d;
   };
 
+  /* Cuatro unidades facturan al mes y su año son doce veces eso. Veranito no:
+     es estacional, su cuenta nace anual y la mensual es el prorrateo. Por eso
+     su anual se lee del mismo sitio que la fila "Total al año" de su tabla, y
+     no de multiplicar el prorrateo: dividir entre doce y volver a multiplicar
+     puede devolver un centimo distinto del que la tabla tiene impreso. */
+  const anualDe = (ficha, r) => ficha.anual ? ficha.anual(r) : r.facturacion * 12;
+
   /* Como se reparte una ocupacion dentro de cada unidad. Es la cuenta que
      ya hacia cada control maestro, puesta en un solo sitio porque ahora entra
      tambien desde el cuadro resumen. */
@@ -2117,6 +2130,7 @@ function montarUnidades(contenedor){
         Math.round(r.v.mayAgo.cupos / r.v.mayAgo.cuposTemporada * 100),
         Math.round(r.v.eneMar.cupos / r.v.eneMar.cuposTemporada * 100),
       ],
+      anual: r => r.v.anual.facturacion,
       apoyo: r => 'Promedio de las dos temporadas prorrateado a doce meses · ' +
                   F.dinero(r.v.anual.facturacion) + ' al año ÷ 12 · ticket real ' + F.precio(r.v.ticket),
       filas: r => [
@@ -2310,7 +2324,10 @@ function montarUnidades(contenedor){
     const lado = nodo('div', 'ua-lado');
     const cifras = nodo('div', 'cifras');
     const refs = {};
-    for (const par of [['facturacion','Facturación'],['costo','Costo'],['margen','Margen']]){
+    /* La anual va pegada a la mensual: es la misma cifra en la escala en la
+       que el cliente piensa el año, y asi se comparan las dos de un vistazo. */
+    for (const par of [['facturacion','Facturación'],['anual','Facturación anual'],
+                       ['costo','Costo'],['margen','Margen']]){
       const bloque = nodo('div', 'cifra-bloque' + (par[0] === 'margen' ? ' destacada' : ''));
       bloque.appendChild(nodo('span', 'etiqueta', par[1]));
       refs[par[0]] = nodo('b');
@@ -2375,6 +2392,7 @@ function montarUnidades(contenedor){
       }
 
       t.refs.facturacion.textContent = F.dinero(r.facturacion);
+      t.refs.anual.textContent = F.dinero(anualDe(t.ficha, r));
       t.refs.costo.textContent = F.dinero(r.costo);
       t.refs.margen.textContent = F.dinero(r.margen);
     }
