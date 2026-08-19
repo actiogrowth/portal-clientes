@@ -556,7 +556,7 @@ table.resumen th:last-child, table.resumen td:last-child{
     <section data-seccion="1" class="activa">
       <div class="encabezado-seccion">
         <h2>Hoja de ruta</h2>
-        <p>Del 10 de septiembre de 2026 al 10 de septiembre de 2027. Cuatro fases de tres meses y 35 entregables.</p>
+        <p>Del 10 de septiembre de 2026 al 10 de septiembre de 2027. Cuatro fases de tres meses y <span id="conteo-entregables"></span> entregables.</p>
       </div>
       <div id="ruta"></div>
     </section>
@@ -1231,11 +1231,11 @@ const ENTREGABLES = [
     nombre:'Modulo administrativo de Kinder',
     nota:'El sistema donde el equipo del centro registra y gestiona el dia a dia: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quien pago y quien no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
   { fase:2, unidad:'After School', segmento:'Servicio', fecha:'30/12/2026',
-    nombre:'Modulo administrativo de After School',
-    nota:'El sistema donde el equipo registra y gestiona el dia a dia: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripcion mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
-  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'29/01/2027',
-    nombre:'Tablero de operacion de Kinder',
-    nota:'La vista de resumen que lee del modulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicacion por los padres. Amplia los tableros del proyecto 1.' },
+    nombre:'Módulo administrativo de After School',
+    nota:'El sistema donde el equipo registra y gestiona el día a día: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripción mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'26/02/2027',
+    nombre:'Tablero de operación de Kinder',
+    nota:'La vista de resumen que lee del módulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicación por los padres. Amplía los tableros del proyecto 1.' },
   { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'29/01/2027',
     nombre:'Modulo administrativo y tablero de Cumpleaños',
     nota:'Sistema para registrar y gestionar las reservas: que fin de semana, que paquete, que familia. Incluye la vista de ocupacion, que muestra cuantos de los espacios disponibles al año se estan usando.' },
@@ -1258,10 +1258,10 @@ const ENTREGABLES = [
     nota:'El sitio de la marca, con una seccion por unidad de negocio. Cada unidad tiene su propia entrada de captacion dentro del mismo sitio.' },
   { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
     nombre:'Sistema de venta cruzada entre unidades',
-    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahi identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automaticos, la vista de cuantas familias participan en una, dos o mas unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
-  { fase:3, unidad:'Gerencia', segmento:'Finanzas', fecha:'26/03/2027',
-    nombre:'Proyeccion de ingresos recurrentes',
-    nota:'Con las suscripciones activas de Kinder y After School se puede saber cuanto va a entrar el mes siguiente antes de que ocurra.' },
+    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahí identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automáticos, la vista de cuántas familias participan en una, dos o más unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
+  { fase:3, unidad:'Gerencia', segmento:'Finanzas', fecha:'28/05/2027',
+    nombre:'Proyección de ingresos recurrentes',
+    nota:'Con las suscripciones activas de Kinder y After School se puede saber cuánto va a entrar el mes siguiente antes de que ocurra.' },
   { fase:3, unidad:'After School', segmento:'Servicio', fecha:'30/04/2027',
     nombre:'App de servicio (niveles y progreso)',
     nota:'Registro de niños, progresion por disciplina, logros por nivel y graduaciones. La solucion del checklist operativo antes de arrancar clases.' },
@@ -1651,6 +1651,11 @@ function listaEntregables(lista){
    ========================================================================== */
 function montarRuta(contenedor){
   let seleccion = null;   // {tipo:'fase'|'celda', fase, unidad}
+
+  /* El conteo de la entrada sale de la lista, no escrito aparte: la hoja
+     cambia y un numero a mano se queda atras contradiciendo al gantt. */
+  const rotulo = document.getElementById('conteo-entregables');
+  if (rotulo) rotulo.textContent = ENTREGABLES.length;
 
   const tablero = nodo('div', 'ruta-tablero');
 
