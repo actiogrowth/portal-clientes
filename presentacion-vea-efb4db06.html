@@ -381,9 +381,9 @@ table.resumen th:last-child, table.resumen td:last-child{
 .banda-arranque{background:var(--estado-neutro-suave);border:1px dashed var(--estado-neutro);
   border-radius:8px;padding:8px 10px;display:flex;align-items:center;overflow:hidden}
 .ba-titulo{font-size:12px;font-weight:700;color:var(--estado-neutro-fuerte);
-  line-height:1.2;text-align:center;width:100%}
-.ba-nota{display:flex;align-items:center;padding-left:14px;font-size:12.5px;
-  line-height:1.35;color:var(--texto-secundario)}
+  line-height:1.25;text-align:center;width:100%;text-wrap:balance}
+.ba-nota{display:flex;align-items:center;padding-left:16px;font-size:12.5px;
+  line-height:1.4;color:var(--texto-secundario)}
 .celda-ruta.arranque[data-nivel="0"]{background:var(--estado-neutro-suave);
   background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(130,136,142,.16) 6px 12px)}
 .mo{font-size:14px;font-weight:600;text-transform:uppercase;color:var(--texto-secundario);
@@ -1666,11 +1666,15 @@ function montarRuta(contenedor){
   filaArranque.appendChild(nodo('span', 'tl-tag', 'Arranque'));
   const gantArranque = nodo('div', 'gantt');
   const bandaArranque = nodo('div', 'banda-arranque');
-  bandaArranque.style.gridColumn = (MES_ARRANQUE + 1) + ' / span 1';
+  /* Dos columnas: con una sola, 'Cierre del proyecto 1' se parte en cuatro
+     renglones y la fila entera crece con el. El borde izquierdo se queda en
+     la columna de septiembre —es lo que dice que ese mes no tiene entregas—
+     y el ancho se gana hacia la derecha. */
+  bandaArranque.style.gridColumn = (MES_ARRANQUE + 1) + ' / span 2';
   bandaArranque.appendChild(nodo('span', 'ba-titulo', 'Cierre del proyecto 1'));
   gantArranque.appendChild(bandaArranque);
   const notaArranque = nodo('div', 'ba-nota');
-  notaArranque.style.gridColumn = (MES_ARRANQUE + 2) + ' / span 11';
+  notaArranque.style.gridColumn = (MES_ARRANQUE + 3) + ' / span 10';
   notaArranque.textContent = 'El proyecto arranca el 10 de septiembre; el primer mes se dedica a ' +
     'completar los entregables pendientes del contrato actual. La primera entrega es el 30 de octubre.';
   gantArranque.appendChild(notaArranque);
