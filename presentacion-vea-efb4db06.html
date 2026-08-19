@@ -74,6 +74,8 @@
   --cifra-2:34px;   /* cifras por unidad */
   --cifra-3:22px;   /* cifras de apoyo */
   --cifra-2027:46px; /* margen bruto y EBITDA en la columna de 2027 */
+  --cifra-ingresos:40px;      /* ingresos en 2025 y 2026 */
+  --cifra-ingresos-2027:56px; /* ingresos en la columna que se mueve */
   --cuerpo:16px;
   --menudo:13px;    /* solo notas al pie, nunca cifras */
 }
@@ -327,10 +329,10 @@ table.resumen tr.destacada{background:var(--marca-tenue)}
 table.resumen tr.destacada th{font-weight:700;color:var(--marca-verde-profundo)}
 table.resumen tr.destacada td b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1px;
   color:var(--marca-verde-profundo)}
-table.resumen tr.ebitda{background:var(--marca-verde-profundo)}
-table.resumen tr.ebitda th{color:var(--texto-sobre-oscuro)}
-table.resumen tr.ebitda td b{color:var(--texto-sobre-oscuro)}
-table.resumen tr.ebitda .porcentaje{color:var(--texto-sobre-oscuro-3)}
+table.resumen tr.verde{background:var(--marca-verde-profundo)}
+table.resumen tr.verde th{color:var(--texto-sobre-oscuro)}
+table.resumen tr.verde td b{color:var(--texto-sobre-oscuro)}
+table.resumen tr.verde .porcentaje{color:var(--texto-sobre-oscuro-3)}
 /* La columna de 2027 es la unica viva; se distingue sin gritar. */
 table.resumen th:last-child, table.resumen td:last-child{
   box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
@@ -344,6 +346,12 @@ table.resumen th:last-child, table.resumen td:last-child{width:34%}
    van mas grandes solo en 2027. Los porcentajes no se tocan. */
 table.resumen tr.grande td:last-child b{font-size:var(--cifra-2)}
 table.resumen tr.grande.destacada td:last-child b{font-size:var(--cifra-2027)}
+/* Ingresos por encima de EBITDA en las tres columnas: es la cifra que abre la
+   conversacion. Va despues de .grande a proposito —misma especificidad, gana
+   la ultima— y la jerarquia se mantiene en toda la fila y no solo en 2027,
+   para que el ojo no la pierda al comparar contra 2025. */
+table.resumen tr.ingresos td b{font-size:var(--cifra-ingresos);font-weight:800;letter-spacing:-1px}
+table.resumen tr.ingresos td:last-child b{font-size:var(--cifra-ingresos-2027)}
 
 .notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
 .notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
@@ -2511,17 +2519,19 @@ function montarResumen(contenedor){
 
   const tbody = document.createElement('tbody');
   const FILAS = [
-    { clave:'ingresos',   rotulo:'Ingresos', grande:true },
+    { clave:'ingresos',   rotulo:'Ingresos', grande:true, verde:true },
     { clave:'manoDeObra', rotulo:'(−) Costo de mano de obra' },
     { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, grande:true, pct:'margenBrutoPct' },
     { clave:'gastos',     rotulo:'(−) Gastos operativos' },
-    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, fuerte:true, grande:true, pct:'ebitdaPct' },
+    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, verde:true, grande:true, pct:'ebitdaPct' },
   ];
   const celdas = {};
   for (const f of FILAS){
     const tr = document.createElement('tr');
-    if (f.destacada) tr.className = 'destacada' + (f.fuerte ? ' ebitda' : '');
+    if (f.destacada) tr.className = 'destacada';
+    if (f.verde) tr.classList.add('verde');
     if (f.grande) tr.classList.add('grande');
+    if (f.clave === 'ingresos') tr.classList.add('ingresos');
     const th = document.createElement('th');
     th.scope = 'row';
     th.textContent = f.rotulo;
