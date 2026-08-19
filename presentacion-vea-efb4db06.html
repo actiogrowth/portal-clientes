@@ -74,6 +74,8 @@
   --cifra-2:34px;   /* cifras por unidad */
   --cifra-3:22px;   /* cifras de apoyo */
   --cifra-2027:46px; /* margen bruto y EBITDA en la columna de 2027 */
+  --cifra-ingresos:40px;      /* ingresos en 2025 y 2026 */
+  --cifra-ingresos-2027:56px; /* ingresos en la columna que se mueve */
   --cuerpo:16px;
   --menudo:13px;    /* solo notas al pie, nunca cifras */
 }
@@ -281,9 +283,15 @@ table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
 table.desglose tbody tr.suma.destacada th,
 table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
 
-/* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
+/* Las cuatro cifras de la tarjeta caben en una fila del lado derecho; el
    cuerpo se ata al ancho de su celda para no salirse nunca. */
-.ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+.ua-lado .cifras{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0}
+/* Con cuatro cifras la columna se estrecha y "Facturación anual" no cabe en
+   una linea: se cortaba en "Facturación an…", que es justo lo que hay que
+   poder distinguir de la mensual. Se deja envolver, y se reserva el alto de
+   dos lineas en las cuatro para que sus cifras no queden a distinta altura. */
+.ua-lado .cifra-bloque .etiqueta{white-space:normal;overflow:visible;
+  line-height:1.2;min-height:2.4em}
 .ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
 
 /* El control maestro manda sobre los granulares y se distingue de ellos: si
@@ -321,10 +329,10 @@ table.resumen tr.destacada{background:var(--marca-tenue)}
 table.resumen tr.destacada th{font-weight:700;color:var(--marca-verde-profundo)}
 table.resumen tr.destacada td b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1px;
   color:var(--marca-verde-profundo)}
-table.resumen tr.ebitda{background:var(--marca-verde-profundo)}
-table.resumen tr.ebitda th{color:var(--texto-sobre-oscuro)}
-table.resumen tr.ebitda td b{color:var(--texto-sobre-oscuro)}
-table.resumen tr.ebitda .porcentaje{color:var(--texto-sobre-oscuro-3)}
+table.resumen tr.verde{background:var(--marca-verde-profundo)}
+table.resumen tr.verde th{color:var(--texto-sobre-oscuro)}
+table.resumen tr.verde td b{color:var(--texto-sobre-oscuro)}
+table.resumen tr.verde .porcentaje{color:var(--texto-sobre-oscuro-3)}
 /* La columna de 2027 es la unica viva; se distingue sin gritar. */
 table.resumen th:last-child, table.resumen td:last-child{
   box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
@@ -338,6 +346,12 @@ table.resumen th:last-child, table.resumen td:last-child{width:34%}
    van mas grandes solo en 2027. Los porcentajes no se tocan. */
 table.resumen tr.grande td:last-child b{font-size:var(--cifra-2)}
 table.resumen tr.grande.destacada td:last-child b{font-size:var(--cifra-2027)}
+/* Ingresos por encima de EBITDA en las tres columnas: es la cifra que abre la
+   conversacion. Va despues de .grande a proposito —misma especificidad, gana
+   la ultima— y la jerarquia se mantiene en toda la fila y no solo en 2027,
+   para que el ojo no la pierda al comparar contra 2025. */
+table.resumen tr.ingresos td b{font-size:var(--cifra-ingresos);font-weight:800;letter-spacing:-1px}
+table.resumen tr.ingresos td:last-child b{font-size:var(--cifra-ingresos-2027)}
 
 .notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
 .notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
@@ -1165,7 +1179,7 @@ const MOTOR = (function(){
 /* Cifra cerrada por el equipo. Los cuatro campos se editan en pantalla y
    estos son sus valores de partida. Se negocia en dolares, no en
    porcentajes: los porcentajes que se muestran se derivan del monto. */
-const INVERSION = { total:74500, primero:25000, cuotas:10, final:10750 };
+const INVERSION = { total:77500, primero:28000, cuotas:10, final:5000 };
 
 /* El proyecto va del 10 de septiembre de 2026 al 10 de septiembre de 2027.
    Doce meses, cuatro fases de tres meses cada una, contadas del 10 al 10:
@@ -1993,6 +2007,13 @@ function montarUnidades(contenedor){
     return d;
   };
 
+  /* Cuatro unidades facturan al mes y su año son doce veces eso. Veranito no:
+     es estacional, su cuenta nace anual y la mensual es el prorrateo. Por eso
+     su anual se lee del mismo sitio que la fila "Total al año" de su tabla, y
+     no de multiplicar el prorrateo: dividir entre doce y volver a multiplicar
+     puede devolver un centimo distinto del que la tabla tiene impreso. */
+  const anualDe = (ficha, r) => ficha.anual ? ficha.anual(r) : r.facturacion * 12;
+
   /* Como se reparte una ocupacion dentro de cada unidad. Es la cuenta que
      ya hacia cada control maestro, puesta en un solo sitio porque ahora entra
      tambien desde el cuadro resumen. */
@@ -2117,8 +2138,7 @@ function montarUnidades(contenedor){
         Math.round(r.v.mayAgo.cupos / r.v.mayAgo.cuposTemporada * 100),
         Math.round(r.v.eneMar.cupos / r.v.eneMar.cuposTemporada * 100),
       ],
-      apoyo: r => 'Promedio de las dos temporadas prorrateado a doce meses · ' +
-                  F.dinero(r.v.anual.facturacion) + ' al año ÷ 12 · ticket real ' + F.precio(r.v.ticket),
+      anual: r => r.v.anual.facturacion,
       filas: r => [
         ['Mayo a agosto', r.v.mayAgo.cuposTemporada, r.v.mayAgo.cupos,
          F.dinero(r.v.mayAgo.facturacion), '−' + F.dinero(r.v.mayAgo.costo)],
@@ -2278,8 +2298,13 @@ function montarUnidades(contenedor){
     cab.appendChild(pastillaCaja);
     art.appendChild(cab);
 
-    const apoyo = nodo('div', 'cifra-apoyo');
-    art.appendChild(apoyo);
+    /* Solo las fichas que declaran linea de apoyo tienen nodo. Veranito no la
+       lleva: su tabla ya dice el total al año y el prorrateo mensual. */
+    let apoyo = null;
+    if (ficha.apoyo){
+      apoyo = nodo('div', 'cifra-apoyo');
+      art.appendChild(apoyo);
+    }
 
     const aviso = nodo('div', 'aviso');
     aviso.style.display = 'none';
@@ -2310,7 +2335,10 @@ function montarUnidades(contenedor){
     const lado = nodo('div', 'ua-lado');
     const cifras = nodo('div', 'cifras');
     const refs = {};
-    for (const par of [['facturacion','Facturación'],['costo','Costo'],['margen','Margen']]){
+    /* La anual va pegada a la mensual: es la misma cifra en la escala en la
+       que el cliente piensa el año, y asi se comparan las dos de un vistazo. */
+    for (const par of [['facturacion','Facturación'],['anual','Facturación anual'],
+                       ['costo','Costo'],['margen','Margen']]){
       const bloque = nodo('div', 'cifra-bloque' + (par[0] === 'margen' ? ' destacada' : ''));
       bloque.appendChild(nodo('span', 'etiqueta', par[1]));
       refs[par[0]] = nodo('b');
@@ -2347,7 +2375,7 @@ function montarUnidades(contenedor){
       t.pastillaNodo = pastilla(oc.texto + ' · ' + F.pct(oc.frac), oc.frac);
       t.pastillaCaja.appendChild(t.pastillaNodo);
 
-      t.apoyo.textContent = t.ficha.apoyo(r);
+      if (t.apoyo) t.apoyo.textContent = t.ficha.apoyo(r);
 
       const av = t.ficha.aviso ? t.ficha.aviso(r) : null;
       t.aviso.style.display = av ? '' : 'none';
@@ -2375,6 +2403,7 @@ function montarUnidades(contenedor){
       }
 
       t.refs.facturacion.textContent = F.dinero(r.facturacion);
+      t.refs.anual.textContent = F.dinero(anualDe(t.ficha, r));
       t.refs.costo.textContent = F.dinero(r.costo);
       t.refs.margen.textContent = F.dinero(r.margen);
     }
@@ -2490,17 +2519,19 @@ function montarResumen(contenedor){
 
   const tbody = document.createElement('tbody');
   const FILAS = [
-    { clave:'ingresos',   rotulo:'Ingresos', grande:true },
+    { clave:'ingresos',   rotulo:'Ingresos', grande:true, verde:true },
     { clave:'manoDeObra', rotulo:'(−) Costo de mano de obra' },
     { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, grande:true, pct:'margenBrutoPct' },
     { clave:'gastos',     rotulo:'(−) Gastos operativos' },
-    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, fuerte:true, grande:true, pct:'ebitdaPct' },
+    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, verde:true, grande:true, pct:'ebitdaPct' },
   ];
   const celdas = {};
   for (const f of FILAS){
     const tr = document.createElement('tr');
-    if (f.destacada) tr.className = 'destacada' + (f.fuerte ? ' ebitda' : '');
+    if (f.destacada) tr.className = 'destacada';
+    if (f.verde) tr.classList.add('verde');
     if (f.grande) tr.classList.add('grande');
+    if (f.clave === 'ingresos') tr.classList.add('ingresos');
     const th = document.createElement('th');
     th.scope = 'row';
     th.textContent = f.rotulo;
