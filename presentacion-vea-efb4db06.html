@@ -2131,8 +2131,6 @@ function montarUnidades(contenedor){
         Math.round(r.v.eneMar.cupos / r.v.eneMar.cuposTemporada * 100),
       ],
       anual: r => r.v.anual.facturacion,
-      apoyo: r => 'Promedio de las dos temporadas prorrateado a doce meses · ' +
-                  F.dinero(r.v.anual.facturacion) + ' al año ÷ 12 · ticket real ' + F.precio(r.v.ticket),
       filas: r => [
         ['Mayo a agosto', r.v.mayAgo.cuposTemporada, r.v.mayAgo.cupos,
          F.dinero(r.v.mayAgo.facturacion), '−' + F.dinero(r.v.mayAgo.costo)],
@@ -2292,8 +2290,13 @@ function montarUnidades(contenedor){
     cab.appendChild(pastillaCaja);
     art.appendChild(cab);
 
-    const apoyo = nodo('div', 'cifra-apoyo');
-    art.appendChild(apoyo);
+    /* Solo las fichas que declaran linea de apoyo tienen nodo. Veranito no la
+       lleva: su tabla ya dice el total al año y el prorrateo mensual. */
+    let apoyo = null;
+    if (ficha.apoyo){
+      apoyo = nodo('div', 'cifra-apoyo');
+      art.appendChild(apoyo);
+    }
 
     const aviso = nodo('div', 'aviso');
     aviso.style.display = 'none';
@@ -2364,7 +2367,7 @@ function montarUnidades(contenedor){
       t.pastillaNodo = pastilla(oc.texto + ' · ' + F.pct(oc.frac), oc.frac);
       t.pastillaCaja.appendChild(t.pastillaNodo);
 
-      t.apoyo.textContent = t.ficha.apoyo(r);
+      if (t.apoyo) t.apoyo.textContent = t.ficha.apoyo(r);
 
       const av = t.ficha.aviso ? t.ficha.aviso(r) : null;
       t.aviso.style.display = av ? '' : 'none';
