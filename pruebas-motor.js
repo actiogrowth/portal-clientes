@@ -456,7 +456,7 @@ esIgual(p60.ebitdaPct > a26.ebitdaPct, true, 'y aun asi el EBITDA sube');
 console.log('\nPARTIDA');
 
 const p = MOTOR.partida();
-ok(p.kinder.ninos, 29, 'partida Kinder: ninos', 0);
+ok(p.kinder.ninos, 30, 'partida Kinder: ninos', 0);
 ok(p.kinder.precio45, 587, 'partida Kinder: precio 4,5 h', 0);
 ok(p.kinder.precio8, 786, 'partida Kinder: precio 8 h', 0);
 ok(p.kinder.pct45, 0.70, 'partida Kinder: % plan 4,5 h', 0);
@@ -470,7 +470,7 @@ ok(p.veranito.eneMar.ocupacion, 0.38, 'partida Veranito ene-mar: ocupacion', 0.0
 // de reinicio no restaura nada porque los controles ya la mutaron.
 const p2 = MOTOR.partida();
 p2.kinder.ninos = 999;
-ok(MOTOR.partida().kinder.ninos, 29, 'partida() devuelve copia nueva cada vez', 0);
+ok(MOTOR.partida().kinder.ninos, 30, 'partida() devuelve copia nueva cada vez', 0);
 
 /* ==========================================================================
    FORMATO
