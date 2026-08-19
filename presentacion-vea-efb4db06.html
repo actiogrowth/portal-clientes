@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Proyecto 2 · Vida en Arte</title>
+<title>Vida en Arte 360</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -73,6 +73,7 @@
   --cifra-1:56px;   /* consolidado y deltas */
   --cifra-2:34px;   /* cifras por unidad */
   --cifra-3:22px;   /* cifras de apoyo */
+  --cifra-2027:46px; /* margen bruto y EBITDA en la columna de 2027 */
   --cuerpo:16px;
   --menudo:13px;    /* solo notas al pie, nunca cifras */
 }
@@ -136,7 +137,7 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
 /* Dos por fila. Con cuatro unidades quedan dos filas de dos, y cada tarjeta
    tiene ancho suficiente para que sus tres cifras no se pisen. Por debajo de
    ~950 px pasa a una sola columna, que es mas ancha todavia. */
-.unidades{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:14px}
+/* Las tarjetas de unidad van apiladas a ancho completo, no en reticula. */
 .unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
   padding:18px 20px 16px;display:flex;flex-direction:column;
   container-type:inline-size}
@@ -226,49 +227,6 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
   font-variant-numeric:tabular-nums;line-height:1.05;display:block;white-space:nowrap}
 .consolidado .menor b{font-size:clamp(22px, 12cqw, var(--cifra-2));letter-spacing:-1px}
 
-.delta{background:var(--marca-verde-medio);border-radius:14px;padding:20px 26px;margin-top:12px;
-  display:flex;align-items:baseline;gap:26px;flex-wrap:wrap;color:var(--texto-sobre-oscuro)}
-.delta .rotulo{font-size:15px;font-weight:500;color:var(--texto-sobre-oscuro-3)}
-.delta b{font-size:var(--cifra-1);font-weight:800;letter-spacing:-2px;
-  font-variant-numeric:tabular-nums;line-height:1.05;white-space:nowrap}
-/* Positivo en verde de estado sobre el verde de marca. El signo + va
-   explicito: a tres metros el color solo no distingue signo. */
-.delta b[data-signo="mas"]  {color:#7BE8A8}
-.delta b[data-signo="menos"]{color:#FFB3AD}
-.delta .anual{font-size:var(--cifra-3);font-weight:600;color:var(--texto-sobre-oscuro-3);
-  font-variant-numeric:tabular-nums}
-
-/* ==========================================================================
-   SECCION 5 · ESCENARIOS
-   ========================================================================== */
-.segmentado{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.segmentado-rotulo{font-size:12px;font-weight:600;letter-spacing:.9px;
-  text-transform:uppercase;color:var(--texto-secundario);margin-right:4px}
-.segmentado button{font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;
-  background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
-  border-radius:999px;padding:8px 18px}
-.segmentado button:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
-.segmentado button[aria-current="true"]{background:var(--marca-verde-profundo);
-  color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
-
-/* Los tres escenarios calculados a la vez. Separan que parte del salto
-   viene del volumen y que parte del precio, que es la pregunta que el
-   cliente hace en cuanto ve la cifra de 2028. */
-.escenarios{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:12px;margin-top:12px}
-.escenario{font-family:var(--font);text-align:left;cursor:pointer;
-  background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  padding:16px 18px;display:flex;flex-direction:column;gap:2px;
-  container-type:inline-size;color:inherit}
-.escenario:hover{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
-.escenario[aria-current="true"]{border-color:var(--marca-verde-profundo);
-  box-shadow:0 0 0 2px var(--marca-sombra);background:var(--marca-tenue)}
-.esc-titulo{font-size:16px;font-weight:700;color:var(--marca-verde-profundo)}
-.esc-glosa{font-size:var(--menudo);color:var(--texto-secundario)}
-.escenario b{font-size:clamp(24px, 17cqw, 40px);font-weight:800;letter-spacing:-1.4px;
-  font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px;white-space:nowrap}
-.esc-margen{font-size:var(--menudo);color:var(--texto-secundario);font-variant-numeric:tabular-nums}
-
 .barra-acciones{display:flex;justify-content:flex-end;margin:14px 0 0}
 .barra-acciones button{font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;
   background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
@@ -281,29 +239,222 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
    Lo que el cliente ve primero es lo que logra al terminar cada fase; los
    entregables estan debajo para quien pregunte.
    ========================================================================== */
-.fase{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
-  margin-bottom:12px;overflow:hidden}
-.fase>summary{cursor:pointer;padding:20px 24px;list-style:none;display:block}
-.fase>summary::-webkit-details-marker{display:none}
-.fase>summary:hover{background:var(--superficie-sutil)}
-.fase-cab{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:9px}
-.fase-num{font-size:21px;font-weight:700;color:var(--marca-verde-profundo);letter-spacing:-.3px}
-.fase-cierra{font-size:15px;color:var(--texto-secundario)}
-.fase-cuenta{font-size:var(--menudo);font-weight:600;background:var(--marca-tenue);
-  color:var(--marca-verde-medio);border-radius:999px;padding:3px 11px;margin-left:auto}
-.fase-abrir{font-size:var(--menudo);color:var(--marca-verde-medio);font-weight:600;
-  display:inline-block;margin-top:10px}
-.logro{font-size:19px;line-height:1.45;max-width:80ch}
+
+/* Celda editable dentro de una tabla de desglose. */
+.celda-editable{font-family:var(--font);font-size:15px;font-weight:600;text-align:right;
+  font-variant-numeric:tabular-nums;width:72px;padding:4px 7px;
+  border:1px solid var(--borde);border-radius:6px;background:var(--superficie-sutil);
+  color:var(--texto-principal)}
+.celda-editable:focus{outline:2px solid var(--marca-borde-suave);outline-offset:-1px;
+  background:var(--superficie)}
+
+/* ==========================================================================
+   SECCION 2 · TARJETA DE ANCHO COMPLETO
+   Una por unidad, apiladas. La tabla desglosada a la izquierda y las cifras
+   con los controles a la derecha: el cliente ve de donde sale cada dolar
+   mientras Ricardo mueve el deslizador.
+   ========================================================================== */
+.unidad-ancha{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:20px 24px 18px;margin-bottom:14px}
+.ua-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.ua-cab h3{font-size:24px;font-weight:700;letter-spacing:-.3px;color:var(--marca-verde-profundo)}
+.ua-cuerpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);
+  gap:24px;align-items:start;margin-top:12px}
+.ua-tabla{overflow-x:auto}
+.ua-lado{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
+
+table.desglose{width:100%;border-collapse:collapse}
+table.desglose th, table.desglose td{padding:9px 12px;vertical-align:baseline}
+table.desglose thead th{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);text-align:left;white-space:nowrap}
+table.desglose thead th.num{text-align:right}
+table.desglose tbody th{text-align:left;font-size:14px;font-weight:500;color:var(--texto-principal)}
+table.desglose td.num{text-align:right;font-size:15px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+table.desglose tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.desglose tbody tr:last-child{border-bottom:none}
+/* Filas que no son un renglon mas sino el cierre de la cuenta: el total y
+   su prorrateo. Sin esta distincion se leerian como dos temporadas mas. */
+table.desglose tbody tr.suma{border-top:1px solid var(--borde);background:var(--superficie-sutil)}
+table.desglose tbody tr.suma th{font-weight:700}
+table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
+table.desglose tbody tr.suma.destacada th,
+table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
+
+/* Las tres cifras de la tarjeta caben en una fila del lado derecho; el
+   cuerpo se ata al ancho de su celda para no salirse nunca. */
+.ua-lado .cifras{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+.ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
+
+/* El control maestro manda sobre los granulares y se distingue de ellos: si
+   los cinco se vieran igual, volveria a pasar que una tarjeta queda en un
+   estado y el cuadro resumen en otro. */
+.control.maestro label span:first-child{font-size:12px;font-weight:700;
+  color:var(--marca-verde-profundo);letter-spacing:.3px}
+.control.maestro label .valor{font-size:17px;color:var(--marca-verde-profundo)}
+.control.maestro input[type=range]{height:22px}
+.separador-control{display:flex;align-items:center;gap:9px;margin:2px 0 -2px;
+  font-size:10.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario)}
+.separador-control::after{content:;flex:1;height:1px;background:var(--borde)}
+
+
+/* ==========================================================================
+   SECCION 3 · CUADRO RESUMEN
+   ========================================================================== */
+.tabla-caja{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  overflow-x:auto;margin-top:16px}
+table.resumen{width:100%;border-collapse:collapse;min-width:640px}
+table.resumen th, table.resumen td{padding:14px 20px;text-align:right;vertical-align:baseline}
+table.resumen thead th{font-size:12px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);white-space:nowrap}
+table.resumen tbody th{text-align:left;font-size:16px;font-weight:500;color:var(--texto-principal);
+  white-space:nowrap}
+table.resumen tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.resumen tbody tr:last-child{border-bottom:none}
+table.resumen td b{font-size:var(--cifra-3);font-weight:600;font-variant-numeric:tabular-nums;
+  display:block;white-space:nowrap}
+.porcentaje{font-size:var(--menudo);color:var(--texto-secundario);
+  font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+/* Margen bruto y EBITDA son las dos lineas que el cliente busca. */
+table.resumen tr.destacada{background:var(--marca-tenue)}
+table.resumen tr.destacada th{font-weight:700;color:var(--marca-verde-profundo)}
+table.resumen tr.destacada td b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1px;
+  color:var(--marca-verde-profundo)}
+table.resumen tr.ebitda{background:var(--marca-verde-profundo)}
+table.resumen tr.ebitda th{color:var(--texto-sobre-oscuro)}
+table.resumen tr.ebitda td b{color:var(--texto-sobre-oscuro)}
+table.resumen tr.ebitda .porcentaje{color:var(--texto-sobre-oscuro-3)}
+/* La columna de 2027 es la unica viva; se distingue sin gritar. */
+table.resumen th:last-child, table.resumen td:last-child{
+  box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
+/* 2025 y 2026 son datos cerrados: se estrechan y le dejan el ancho a 2027,
+   que es la columna que se mueve durante la reunion. */
+table.resumen th:nth-child(2), table.resumen td:nth-child(2),
+table.resumen th:nth-child(3), table.resumen td:nth-child(3){
+  width:13%;padding-left:10px;padding-right:10px}
+table.resumen th:last-child, table.resumen td:last-child{width:34%}
+/* Las tres lineas que el cliente busca —ingresos, margen bruto y EBITDA—
+   van mas grandes solo en 2027. Los porcentajes no se tocan. */
+table.resumen tr.grande td:last-child b{font-size:var(--cifra-2)}
+table.resumen tr.grande.destacada td:last-child b{font-size:var(--cifra-2027)}
+
+.notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
+  padding-left:14px;border-left:2px solid var(--borde)}
+
+/* Bloque que pertenece a una unidad concreta: el resultado de Veranito, el
+   valor de vida de Kinder, el potencial de Baby and Me. */
+.unidad-extra:empty{display:none}
+.bloque-unidad{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
+  border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:14px;line-height:1.5}
+.bloque-unidad strong{font-weight:700;color:var(--marca-verde-profundo)}
+
+/* ==========================================================================
+   SECCION 1 · HOJA DE RUTA
+
+   Una sola vista. La reticula es la del gantt del portal: columna fija de
+   rotulo y columna flexible de meses, compartida por la cabecera de fases,
+   la de meses y todas las filas. Es lo unico que hace que las celdas caigan
+   en la misma x. Cambiar --rotulo-ruta las mueve a la vez.
+
+   La profundidad se construye con sombra suave y jerarquia de color: el
+   tablero flota sobre el fondo, las bandas de fase mandan, las celdas se
+   ordenan por intensidad. Nada de perspectiva.
+   ========================================================================== */
+:root{ --rotulo-ruta:190px; }
+.ruta-tablero{background:var(--superficie);border:1px solid var(--borde);border-radius:16px;
+  padding:16px;box-shadow:0 6px 22px var(--marca-sombra);
+  display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.tl-fila, .fila-ruta{display:grid;grid-template-columns:var(--rotulo-ruta) 1fr;gap:8px;align-items:stretch}
+.tl-tag{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--texto-secundario);padding-left:10px;align-self:center}
+.gantt{display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+
+/* Bandas de fase: nombre y logro a la vista, no detras de un clic. */
+.banda-fase{font-family:var(--font);text-align:left;cursor:pointer;
+  background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border:2px solid var(--marca-verde-profundo);border-radius:10px;padding:11px 14px;
+  display:flex;flex-direction:column;gap:3px;overflow:hidden;
+  box-shadow:0 3px 10px var(--marca-sombra);transition:.15s}
+.banda-fase:hover{background:var(--marca-verde-medio);border-color:var(--marca-verde-medio);
+  box-shadow:0 6px 18px var(--marca-sombra-fuerte)}
+.banda-fase[aria-current="true"]{background:var(--superficie);color:var(--marca-verde-profundo);
+  box-shadow:0 0 0 3px var(--marca-sombra), 0 6px 18px var(--marca-sombra-fuerte)}
+.bf-num{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.bf-logro{font-size:13px;font-weight:500;line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bf-n{font-size:11px;font-weight:600;opacity:.72;margin-top:1px}
+.banda-fase[aria-current="true"] .bf-n{opacity:.6}
+
+/* Septiembre no tiene entregas y su hueco esta explicado arriba: se marca
+   distinto para que no se lea como un mes olvidado. */
+.banda-arranque{background:var(--estado-neutro-suave);border:1px dashed var(--estado-neutro);
+  border-radius:8px;padding:8px 10px;display:flex;align-items:center;overflow:hidden}
+.ba-titulo{font-size:12px;font-weight:700;color:var(--estado-neutro-fuerte);
+  line-height:1.25;text-align:center;width:100%;text-wrap:balance}
+.ba-nota{display:flex;align-items:center;padding-left:16px;font-size:12.5px;
+  line-height:1.4;color:var(--texto-secundario)}
+.celda-ruta.arranque[data-nivel="0"]{background:var(--estado-neutro-suave);
+  background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(130,136,142,.16) 6px 12px)}
+.mo{font-size:14px;font-weight:600;text-transform:uppercase;color:var(--texto-secundario);
+  text-align:center;padding:5px 0;border-radius:6px;background:var(--fondo)}
+/* El cambio de año se marca una sola vez, donde ocurre. */
+.mo.anio-nuevo{color:var(--marca-verde-profundo);box-shadow:inset 2px 0 0 var(--marca-verde-profundo)}
+
+/* Una fila por unidad. */
+.fila-ruta{padding:2px 0}
+.fr-info{display:flex;align-items:center;gap:10px;min-width:0;padding-left:10px}
+.fr-nombre{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr-n{margin-left:auto;font-size:12px;font-weight:700;color:var(--marca-verde-medio);
+  background:var(--marca-tenue);border-radius:999px;padding:2px 10px;flex-shrink:0}
+.fila-ruta.transversal .fr-nombre{color:var(--marca-verde-medio)}
+
+/* La celda dice cuanto trabajo hay, con intensidad y con el numero. Cuatro
+   escalones: mas matices no se distinguen proyectados. El conteo se imprime
+   una sola vez por tramo, en su mes central, para que tres celdas de "5" no
+   se lean como quince. */
+.celda-ruta{position:relative;height:38px;border:none;border-radius:6px;padding:0;
+  font-family:var(--font);cursor:pointer;transition:.13s;
+  display:flex;align-items:center;justify-content:center}
+.celda-ruta[data-nivel="0"]{background:var(--borde-suave);cursor:default}
+.celda-ruta[data-nivel="1"]{background:#CFE0D4}
+.celda-ruta[data-nivel="2"]{background:#9BBFA6}
+.celda-ruta[data-nivel="3"]{background:var(--marca-verde-claro)}
+.celda-ruta[data-nivel="4"]{background:var(--marca-verde-profundo)}
+.cr-n{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;
+  color:var(--marca-verde-profundo);pointer-events:none}
+.celda-ruta[data-nivel="3"] .cr-n,
+.celda-ruta[data-nivel="4"] .cr-n{color:var(--texto-sobre-oscuro)}
+.celda-ruta:not([disabled]):hover{transform:translateY(-1px);
+  box-shadow:0 4px 12px var(--marca-sombra-fuerte)}
+.celda-ruta[aria-current="true"]{box-shadow:0 0 0 2px var(--marca-verde-profundo),
+  0 4px 12px var(--marca-sombra-fuerte)}
+.celda-ruta.banda{background:var(--marca-verde-claro);
+  background-image:repeating-linear-gradient(135deg,transparent 0 10px,rgba(255,255,255,.15) 10px 20px)}
+.celda-ruta.banda .cr-n{font-size:13px;font-weight:700;color:var(--texto-sobre-oscuro)}
+
+/* Panel que se abre al pulsar una celda o una banda. */
+.panel-ruta{background:var(--superficie);border:1px solid var(--marca-verde-profundo);
+  border-radius:14px;padding:20px 24px;margin-bottom:14px;
+  box-shadow:0 8px 26px var(--marca-sombra)}
+.pr-cab{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.pr-cab h4{font-size:19px;font-weight:700;color:var(--marca-verde-profundo)}
+.pf-cerrar{margin-left:auto;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;
+  background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
+  border-radius:999px;padding:5px 14px}
+.pf-cerrar:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+.grupo-unidad{margin-top:14px}
+.gu-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.gu-nombre{font-size:15px;font-weight:700;color:var(--marca-verde-profundo)}
+.gu-n{font-size:12px;color:var(--texto-secundario)}
+.logro{font-size:17px;line-height:1.45;max-width:80ch;margin-bottom:4px}
 .logro strong{font-weight:700;color:var(--marca-verde-profundo)}
 
-/* El display va condicionado a [open]. Declarado suelto, este display pisa
-   el ocultamiento nativo del <details> y los 34 entregables quedan a la
-   vista con la fase cerrada, que es justo lo que la spec prohibe. */
-.fase:not([open]) > .entregables{display:none}
-.fase[open] > .entregables{display:flex}
-/* Lista de filas de ancho completo, como la seccion Documentos del portal:
-   se lee de arriba abajo en una sola linea de lectura en vez de en zigzag
-   por una cuadricula, y los nombres largos dejan de partir la retícula. */
+/* La lista de entregables del panel no necesita el marco de la fase. */
+.panel-ruta .entregables{border-top:none;padding:10px 0 0;display:flex;
+  flex-direction:column;gap:6px}
+
 .entregables{border-top:1px solid var(--borde-suave);padding:14px 24px 20px;
   flex-direction:column;gap:6px}
 .entregable{background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
@@ -356,18 +507,14 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
    SECCION 6 · INVERSION
    ========================================================================== */
 .inversion-caja{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
-  border-radius:16px;padding:44px 40px;text-align:center}
+  border-radius:16px;padding:26px 32px;text-align:center}
 .inversion-caja .etiqueta{font-size:13px;font-weight:600;letter-spacing:1.1px;
   text-transform:uppercase;color:var(--texto-sobre-oscuro-2);display:block;margin-bottom:8px}
-.inversion-caja b{font-size:82px;font-weight:800;letter-spacing:-3.5px;
+.inversion-caja b{font-size:41px;font-weight:800;letter-spacing:-1.8px;
   font-variant-numeric:tabular-nums;display:block;line-height:1}
 /* Solo aparece mientras el monto siga siendo el de ejemplo. Desaparece sola
    cuando alguien pone la cifra real, asi que no hay que acordarse de
    quitarla. */
-.marca-ejemplo{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte);
-  border:1px solid var(--estado-riesgo);border-radius:10px;padding:11px 16px;
-  margin-bottom:14px;font-size:14px;font-weight:600}
-
 /* Estructura de pago. Los controles van arriba y el desglose debajo, para
    que Ricardo mueva un porcentaje y el cliente vea moverse los montos. */
 .plan-controles{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
@@ -408,66 +555,50 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
   <header>
     <div class="marca-actio"><img src="logo-actio-verde.png" alt="Actio Growth"></div>
     <div class="titulo">
-      <h1>Proyecto 2</h1>
-      <p>Vida en Arte · propuesta de continuidad</p>
+      <h1>Vida en Arte 360</h1>
+      <p>septiembre 2026 a septiembre 2027</p>
     </div>
     <div class="marca-cliente"><img src="logo-cliente.png" alt="Vida en Arte"></div>
   </header>
 
-  <nav id="nav" aria-label="Secciones de la presentacion"></nav>
+  <nav id="nav" aria-label="Secciones de la presentación"></nav>
 
   <main id="main">
     <section data-seccion="1" class="activa">
       <div class="encabezado-seccion">
-        <h2>Lo que vamos a construir</h2>
-        <p>Treinta y cuatro entregables en cuatro fases, mas lo que corre durante todo el proyecto.</p>
+        <h2>Hoja de ruta</h2>
+        <p>Del 10 de septiembre de 2026 al 10 de septiembre de 2027. Cuatro fases de tres meses y <span id="conteo-entregables"></span> entregables.</p>
       </div>
-      <div id="fases"></div>
+      <div id="ruta"></div>
     </section>
 
     <section data-seccion="2">
       <div class="encabezado-seccion">
-        <h2>Donde estan hoy</h2>
-        <p>Las cuatro unidades con su ocupacion real.</p>
+        <h2>Detalle por unidad</h2>
+        <p>Las cinco unidades con su capacidad, sus precios y su margen. Los controles se mueven durante la conversación.</p>
       </div>
-      <div id="hoy"></div>
+      <div id="unidades"></div>
     </section>
 
     <section data-seccion="3">
       <div class="encabezado-seccion">
-        <h2>Al 60% de ocupacion</h2>
-        <p>Los controles se mueven durante la conversacion y los numeros se recalculan al instante.</p>
+        <h2>Cuadro resumen</h2>
+        <p>2025 cerrado, 2026 estimado y 2027 proyectado. La ocupación y los gastos de 2027 se mueven aquí.</p>
       </div>
-      <div id="sim-60"></div>
+      <div id="resumen"></div>
     </section>
 
     <section data-seccion="4">
       <div class="encabezado-seccion">
-        <h2>Al 100% de ocupacion</h2>
-        <p>La capacidad instalada llena, sin ampliar nada.</p>
-      </div>
-      <div id="sim-100"></div>
-    </section>
-
-    <section data-seccion="5">
-      <div class="encabezado-seccion">
-        <h2>2028</h2>
-        <p>Kinder a 100 ninos con el precio subido cien dolares.</p>
-      </div>
-      <div id="sim-2028"></div>
-    </section>
-
-    <section data-seccion="6">
-      <div class="encabezado-seccion">
-        <h2>La inversion</h2>
+        <h2>La inversión</h2>
       </div>
       <div id="inversion"></div>
     </section>
   </main>
 
   <footer>
-    <span>Actio Growth · Vida en Arte · agosto 2026</span>
-    <span>Los calculos cubren mano de obra directa unicamente.</span>
+    <span>Actio Growth · Vida en Arte 360</span>
+    <span>Los cálculos cubren mano de obra directa únicamente.</span>
   </footer>
 
 </div>
@@ -508,20 +639,44 @@ const MOTOR = (function(){
   /* ========================================================================
      KINDER
      ====================================================================== */
-  const KINDER_PARTIDA = { ninos:29, precio45:587, precio8:786, pct45:0.70, costoGrupo:2700 };
+  /* El costo por grupo sale de sus partes y no es un numero suelto: si
+     alguien lo revisa, la cuenta esta a la vista. Es el costo ya ajustado
+     que contempla el proyecto, y por eso el margen bruto de 2027 cae contra
+     2026, cuando el grupo costaba unos $1.680. */
+  const KINDER_COSTO_PROFESOR = 1200;
+  const KINDER_COSTO_ASISTENTE = 600;
+  const PRESTACIONES = 0.50;
+  const KINDER_COSTO_GRUPO = (KINDER_COSTO_PROFESOR + KINDER_COSTO_ASISTENTE) * (1 + PRESTACIONES);
+  const KINDER_COSTO_GRUPO_2026 = 1680;   // sin el ajuste salarial
+
+  const KINDER_PARTIDA = { ninos:30, precio45:587, precio8:786, pct45:0.70,
+                           costoGrupo:KINDER_COSTO_GRUPO };
   const KINDER_NINOS_POR_GRUPO = 10;
   const KINDER_CAPACIDAD = 80;
 
   function kinder(p){
     const c = Object.assign({}, KINDER_PARTIDA, p || {});
-    const ticket = c.pct45 * c.precio45 + (1 - c.pct45) * c.precio8;
+
+    /* Reparto entero entre los dos planes. Un niño paga uno o el otro, asi
+       que la facturacion sale de la suma de los dos y no de un ticket
+       promedio: con el promedio la tabla desglosada de la tarjeta no
+       sumaria su propio total, que es lo que el cliente comprueba. */
+    const ninos45 = Math.round(c.ninos * c.pct45);
+    const ninos8 = c.ninos - ninos45;
+    const detalle = [
+      { nombre:'Plan 4,5 horas', ninos:ninos45, precio:c.precio45, facturacion:ninos45 * c.precio45 },
+      { nombre:'Plan 8 horas',   ninos:ninos8,  precio:c.precio8,  facturacion:ninos8 * c.precio8 },
+    ];
+    const facturacion = detalle.reduce((s, d) => s + d.facturacion, 0);
+
     /* El costo escala por escalon, no proporcionalmente: un niño mas puede
        abrir un grupo entero. Pasar de 30 a 31 suma un costoGrupo completo. */
     const grupos = Math.ceil(c.ninos / KINDER_NINOS_POR_GRUPO);
-    const facturacion = c.ninos * ticket;
     const costo = grupos * c.costoGrupo;
+
     return {
-      ninos: c.ninos, ticket, grupos, facturacion, costo,
+      ninos: c.ninos, ninos45, ninos8, grupos, facturacion, costo, detalle,
+      ticket: c.ninos ? facturacion / c.ninos : 0,
       margen: facturacion - costo,
       excedeCapacidad: c.ninos > KINDER_CAPACIDAD,
     };
@@ -548,33 +703,36 @@ const MOTOR = (function(){
   const AS_ASISTENTE = 18;  // Telas requiere asistente ademas del profesor
 
   const AS_DISCIPLINAS = [
-    { nombre:'ParKour 6-14', cupos:20, sesiones:2, horasSem:8, costoHora:AS_PROFESOR*2,             alumnosHoy:41, precioHoy:109 },
-    { nombre:'ParKour 15+',  cupos:20, sesiones:2, horasSem:4, costoHora:AS_PROFESOR*2,             alumnosHoy:1,  precioHoy:139 },
-    { nombre:'Telas 6-14',   cupos:10, sesiones:2, horasSem:8, costoHora:AS_PROFESOR+AS_ASISTENTE,  alumnosHoy:28, precioHoy:117, telas:true },
-    { nombre:'Telas 15+',    cupos:10, sesiones:2, horasSem:4, costoHora:AS_PROFESOR+AS_ASISTENTE,  alumnosHoy:3,  precioHoy:110, telas:true },
-    { nombre:'ParKids 3-5',  cupos:8,  sesiones:2, horasSem:4, costoHora:AS_PROFESOR,               alumnosHoy:7,  precioHoy:125 },
-    { nombre:'Baby & Me',    cupos:8,  sesiones:1, horasSem:4, costoHora:AS_PROFESOR,               alumnosHoy:0,  precioHoy:111.28 },
+    { nombre:'ParKour 6-14', cupos:20, sesiones:2, horasSem:8, costoHora:AS_PROFESOR*2 },
+    { nombre:'ParKour 15+',  cupos:20, sesiones:2, horasSem:4, costoHora:AS_PROFESOR*2 },
+    { nombre:'Telas 6-14',   cupos:10, sesiones:2, horasSem:8, costoHora:AS_PROFESOR+AS_ASISTENTE, telas:true },
+    { nombre:'Telas 15+',    cupos:10, sesiones:2, horasSem:4, costoHora:AS_PROFESOR+AS_ASISTENTE, telas:true },
+    { nombre:'ParKids 3-5',  cupos:8,  sesiones:2, horasSem:4, costoHora:AS_PROFESOR },
   ];
+  /* Baby & Me salio de aqui: desde la spec v2 es unidad propia. Solo se fue
+     su franja de entre semana (8 cupos y 4 horas). La del sabado se sigue
+     dictando dentro de After School y por eso sigue en AS_SABADO. */
 
   /* El sabado se vende como un bloque de 76 cupos a tarifa de una vez por
      semana, pero su costo se arma disciplina por disciplina igual que entre
      semana. Hoy no se dicta: cero alumnos inscritos. */
   const AS_SABADO = {
     cupos: 76,
-    alumnosHoy: 0,
     disciplinas: [
       { nombre:'ParKour Adultos', horas:1, costoHora:AS_PROFESOR*2 },
       { nombre:'ParKour 6-14',    horas:2, costoHora:AS_PROFESOR*2 },
       { nombre:'Telas Adultos',   horas:1, costoHora:AS_PROFESOR+AS_ASISTENTE },
       { nombre:'Telas 6-14',      horas:2, costoHora:AS_PROFESOR+AS_ASISTENTE },
       { nombre:'ParKids',         horas:3, costoHora:AS_PROFESOR },
-      { nombre:'Baby & Me',       horas:2, costoHora:AS_PROFESOR },
+      /* Baby & Me tenia aqui 2 h. Se fueron con la unidad al separarla: las
+         mismas horas no se pagan dos veces. */
     ],
   };
 
-  /* precio1v cubre el sabado y Baby & Me: ambos corren una vez por semana y
-     pagan la misma tarifa. Es un solo control. */
-  const AS_PARTIDA = { ocupacion:0.36, precio2v:169.06, precio1v:111.28, precioTelas:200 };
+  /* precio1v cubre el sabado: corre una vez por semana. Baby & Me tenia
+     esta misma tarifa cuando vivia aqui; como unidad propia tiene la suya. */
+  const AS_OCUPACION_HOY = 80 / 212;   // 80 alumnos inscritos sobre 212 cupos
+  const AS_PARTIDA = { ocupacion:AS_OCUPACION_HOY, precio2v:169.06, precio1v:111.28, precioTelas:200 };
 
   const AS_CUPOS_TOTALES =
     AS_DISCIPLINAS.reduce((s,d) => s + d.cupos * d.sesiones, 0) + AS_SABADO.cupos;
@@ -587,50 +745,132 @@ const MOTOR = (function(){
     return d.sesiones >= 2 ? c.precio2v : c.precio1v;
   }
 
+  /* Reparto por resto mayor. Redondear cada disciplina por su lado parece
+     inofensivo y no lo es: los saltos se acumulan y el total deja de ser el
+     que anuncia la ocupacion. Con 212 cupos no habia ninguna ocupacion que
+     diera los 80 alumnos reales, saltaba de 78 a 81.
+
+     Aqui se reparten primero los enteros y despues las unidades que sobran,
+     a las disciplinas con mayor fraccion pendiente. La suma es siempre
+     round(total x ocupacion), que es lo que el cliente espera al leer el
+     porcentaje. */
+  function repartirEnteros(cupos, ocupacion){
+    const total = Math.round(cupos.reduce((s, c) => s + c, 0) * ocupacion);
+    const exactos = cupos.map(c => c * ocupacion);
+    const base = exactos.map(Math.floor);
+    let sobran = total - base.reduce((s, x) => s + x, 0);
+
+    const orden = exactos
+      .map((x, i) => ({ i, resto: x - Math.floor(x) }))
+      .sort((a, b) => b.resto - a.resto);
+
+    /* Si sobran mas unidades que disciplinas se dan varias vueltas; si el
+       total pedido es menor que la suma de los enteros, se devuelven. */
+    let k = 0;
+    while (sobran > 0){ base[orden[k % orden.length].i]++; sobran--; k++; }
+    k = 0;
+    while (sobran < 0){
+      const i = orden[orden.length - 1 - (k % orden.length)].i;
+      if (base[i] > 0){ base[i]--; sobran++; }
+      k++;
+    }
+    return base;
+  }
+
   function afterSchool(p){
     const c = Object.assign({}, AS_PARTIDA, p || {});
+    const franjas = AS_DISCIPLINAS.map(d => d.cupos * d.sesiones).concat([AS_SABADO.cupos]);
+    const reparto = repartirEnteros(franjas, c.ocupacion);
+
     let facturacion = 0, alumnos = 0, costo = 0;
     const detalle = [];
 
-    for (const d of AS_DISCIPLINAS){
-      const cupos = d.cupos * d.sesiones;
-      /* Alumnos enteros por disciplina: no existe medio inscrito, y sin este
-         redondeo el consolidado se aleja de las cifras de la spec. */
-      const al = Math.round(cupos * c.ocupacion);
+    AS_DISCIPLINAS.forEach((d, i) => {
+      const cupos = franjas[i];
+      /* alumnos explicito gana sobre el reparto: la tabla de la tarjeta
+         permite editar cada disciplina por separado, que es como se
+         pregunta "y si ParKour va lleno y ParKids a la mitad". */
+      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0)) : reparto[i];
+      const costoHora = (c.costosHora && c.costosHora[i] != null) ? c.costosHora[i] : d.costoHora;
       const ingreso = al * asPrecio(d, c);
-      const gasto = al > 0 ? d.horasSem * SEM_MES * d.costoHora : 0;
+      /* Sin alumnos no se dicta, y lo que no se dicta no cuesta. Llenar los
+         cupos que ya existen, en cambio, no mueve el costo: la clase ya se
+         esta dictando. */
+      const gasto = al > 0 ? d.horasSem * SEM_MES * costoHora : 0;
       alumnos += al; facturacion += ingreso; costo += gasto;
-      detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto });
-    }
+      detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto,
+                     costoHora, horasSem:d.horasSem });
+    });
 
-    const alSab = Math.round(AS_SABADO.cupos * c.ocupacion);
+    const iSab = AS_DISCIPLINAS.length;
+    const alSab = c.alumnos ? Math.max(0, Math.round(c.alumnos[iSab] || 0)) : reparto[iSab];
     const ingSab = alSab * c.precio1v;
     const gastoSab = alSab > 0 ? AS_COSTO_SABADO : 0;
     alumnos += alSab; facturacion += ingSab; costo += gastoSab;
-    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab, costo:gastoSab });
+    detalle.push({ nombre:'Sábado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab,
+                   costo:gastoSab, esSabado:true });
 
     return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
   }
 
-  /* Hoy no usa los precios nuevos: usa las tarifas vigentes de cada
-     disciplina y los alumnos realmente inscritos. Los precios nuevos
-     aplican solo a las proyecciones. */
-  function afterSchoolHoy(){
-    let facturacion = 0, alumnos = 0, costo = 0;
+  /* ========================================================================
+     BABY AND ME
+
+     Unidad propia desde la spec v2, separada de After School por su
+     potencial. Hoy no tiene un solo alumno, y la tarjeta lo dice: el
+     argumento es el potencial, no un resultado que no existe.
+
+     Dos franjas con precio distinto:
+
+       Sabado        2 sesiones de 1 h, 8 niños cada una. Cada niño va una
+                     vez por semana, asi que caben 16 y pagan plan de $97.
+       Lunes a jueves 8 sesiones de 1 h —dos diarias durante cuatro dias—, 8
+                     niños cada una. Cada niño va dos veces por semana, asi
+                     que se venden 32 cupos y pagan plan de $165.
+
+     Las dos horas del sabado son las mismas que estaban dentro del costo
+     del sabado de After School. Se quitaron de alli al separar la unidad:
+     las mismas horas no se pagan dos veces.
+     ====================================================================== */
+  const BABY_FRANJAS = [
+    { nombre:'Sábado',         sesiones:2, cuposSesion:8, horas:1, vecesSemana:1, precio:97 },
+    { nombre:'Lunes a jueves', sesiones:8, cuposSesion:8, horas:1, vecesSemana:2, precio:165 },
+  ];
+  /* Cupos de una franja: las plazas de todas sus sesiones repartidas entre
+     las veces que cada niño asiste. Cuatro sesiones de ocho con asistencia
+     dos veces por semana son dieciseis niños, no treinta y dos. */
+  const babyCuposFranja = f => f.sesiones * f.cuposSesion / f.vecesSemana;
+  const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCuposFranja(f), 0);
+  const BABY_ALUMNOS_HOY = 0;
+  /* Los precios viven en la partida y no en la franja: son editables en
+     pantalla, igual que los de After School y Cumpleaños. La franja se
+     queda con el suyo como valor de respaldo. */
+  const BABY_PARTIDA = { ocupacion:0, costoHora:AS_PROFESOR,
+                         precios:BABY_FRANJAS.map(f => f.precio) };
+
+  function baby(p){
+    const c = Object.assign({}, BABY_PARTIDA, p || {});
     const detalle = [];
+    let alumnos = 0, facturacion = 0, costo = 0;
 
-    for (const d of AS_DISCIPLINAS){
-      const ingreso = d.alumnosHoy * d.precioHoy;
-      const gasto = d.alumnosHoy > 0 ? d.horasSem * SEM_MES * d.costoHora : 0;
-      alumnos += d.alumnosHoy; facturacion += ingreso; costo += gasto;
-      detalle.push({ nombre:d.nombre, cupos:d.cupos*d.sesiones, alumnos:d.alumnosHoy, facturacion:ingreso, costo:gasto });
-    }
+    BABY_FRANJAS.forEach((f, i) => {
+      const cupos = babyCuposFranja(f);
+      /* alumnos explicito gana sobre la ocupacion: la tarjeta permite
+         editar cada franja por separado. */
+      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0))
+                           : Math.round(cupos * c.ocupacion);
+      const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : f.precio;
+      const ing = al * precio;
+      /* El costo escala con las sesiones que se dictan: una franja sin
+         alumnos no se dicta y no cuesta. */
+      const gasto = al > 0 ? f.sesiones * f.horas * SEM_MES * c.costoHora : 0;
+      alumnos += al; facturacion += ing; costo += gasto;
+      detalle.push({ nombre:f.nombre, cupos, alumnos:al, precio, facturacion:ing, costo:gasto,
+                     sesiones:f.sesiones, horas:f.horas, vecesSemana:f.vecesSemana });
+    });
 
-    const gastoSab = AS_SABADO.alumnosHoy > 0 ? AS_COSTO_SABADO : 0;
-    alumnos += AS_SABADO.alumnosHoy; costo += gastoSab;
-    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:AS_SABADO.alumnosHoy, facturacion:0, costo:gastoSab });
-
-    return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
+    return { alumnos, cupos:BABY_CUPOS, facturacion, costo, detalle,
+             margen: facturacion - costo };
   }
 
   /* ========================================================================
@@ -646,7 +886,10 @@ const MOTOR = (function(){
     const eventos = Math.round(c.eventosSemana * SEM_MES);
     const facturacion = eventos * c.precio;
     const costo = eventos * c.costoEvento;
-    return { eventos, facturacion, costo, margen: facturacion - costo };
+    const detalle = [{ nombre:'Eventos del mes', cantidad:eventos,
+                       porSemana:c.eventosSemana, precio:c.precio,
+                       facturacion, costo }];
+    return { eventos, facturacion, costo, detalle, margen: facturacion - costo };
   }
 
   /* ========================================================================
@@ -679,6 +922,35 @@ const MOTOR = (function(){
     return { cupos, cuposTemporada, ticket, facturacion, costo, margen: facturacion - costo };
   }
 
+  /* Las dos temporadas juntas, en las dos unidades de tiempo que hacen
+     falta: el año, que es como funciona Veranito de verdad, y el mes
+     prorrateado, que es lo que la deja comparable con las otras cuatro
+     unidades, todas mensuales.
+
+     La cadena queda explicita —temporadas suman el año, el año entre doce
+     da el mes— porque en la tarjeta se ven las tres cosas a la vez y
+     tienen que cuadrar entre si. */
+  function veranitoAnual(p){
+    const base = p || {};
+    const comun = Object.assign({}, VERANITO_PARTIDA, base);
+    const mayAgo = veranito(Object.assign({}, comun, base.mayAgo || VERANITO_PARTIDA.mayAgo));
+    const eneMar = veranito(Object.assign({}, comun, base.eneMar || VERANITO_PARTIDA.eneMar));
+
+    const anual = {
+      facturacion: mayAgo.facturacion + eneMar.facturacion,
+      costo: mayAgo.costo + eneMar.costo,
+      margen: mayAgo.margen + eneMar.margen,
+      cupos: mayAgo.cupos + eneMar.cupos,
+      cuposTemporada: mayAgo.cuposTemporada + eneMar.cuposTemporada,
+    };
+    const mes = {
+      facturacion: anual.facturacion / 12,
+      costo: anual.costo / 12,
+      margen: anual.margen / 12,
+    };
+    return { mayAgo, eneMar, anual, mes, ticket: mayAgo.ticket };
+  }
+
   /* ========================================================================
      CONSOLIDADO
 
@@ -696,31 +968,109 @@ const MOTOR = (function(){
     const k = kinder({ ninos: Math.round(KINDER_CAPACIDAD * ocupacion) });
     const a = afterSchool({ ocupacion });
     const c = cumpleanos({ eventosSemana: CUMPLE_TOPE_SEMANA * ocupacion });
-    return Object.assign(consolidar([k,a,c]), { kinder:k, afterSchool:a, cumpleanos:c });
+    const b = baby({ ocupacion });
+    return Object.assign(consolidar([k,a,c,b]), { kinder:k, afterSchool:a, cumpleanos:c, baby:b });
   }
 
-  /* El escenario Hoy toma la facturacion real de cada unidad, pero el costo
-     calculado: el costo si responde a las reglas (grupos abiertos, horas
-     dictadas), y es lo que hace comparable el margen contra las
-     proyecciones. */
-  function escenarioHoy(){
-    const k = { facturacion: REAL.kinder.facturacion,
-                costo: kinder({ ninos: REAL.kinder.ninos }).costo };
-    k.margen = k.facturacion - k.costo;
+  /* ========================================================================
+     CUADRO RESUMEN
 
-    const aHoy = afterSchoolHoy();
-    const a = { facturacion: REAL.afterSchool.facturacion, costo: aHoy.costo };
-    a.margen = a.facturacion - a.costo;
+     2025 y 2026 son datos cerrados: no se calculan, se declaran. 2026 se
+     estimo con siete meses reales llevados a doce, salvo Veranito, que usa
+     la facturacion real de sus dos temporadas.
 
-    /* Los eventos de hoy se derivan de lo facturado, no de la capacidad:
-       $2.642 al mes a $450 el paquete son 5,87 eventos, y ese es el volumen
-       que genera costo. */
-    const eventos = REAL.cumpleanos.facturacion / CUMPLE_PARTIDA.precio;
-    const c = { facturacion: REAL.cumpleanos.facturacion,
-                costo: eventos * CUMPLE_PARTIDA.costoEvento, eventos };
-    c.margen = c.facturacion - c.costo;
+     2027 si se calcula, con las mismas reglas de las unidades, y es lo
+     unico que mueven los dos controles.
+     ====================================================================== */
+  const ANIOS = {
+    2025: { ingresos:477150, manoDeObra:120044, gastos:295066 },
+    2026: { ingresos:531459, manoDeObra:107160, gastos:300000 },
+  };
+  /* Orden: Kinder, After School, Veranito, Cumpleaños, Baby and Me, otros. */
+  const UNIDADES_2025 = [207548, 143891, 92174, 18017, 2365, 13156];
+  const UNIDADES_2026 = [232032, 133675, 121421, 31706, 1752, 10874];
+  const VERANITO_2026 = { eneMar:36413, mayAgo:85008 };
 
-    return Object.assign(consolidar([k,a,c]), { kinder:k, afterSchool:a, cumpleanos:c });
+  /* Renglon fijo al nivel de 2026. No escala con la ocupacion porque no
+     depende de cuantos cupos se llenen. */
+  const OTROS_INGRESOS = 10900;
+  const GASTOS_MES_PARTIDA = 25000;
+  const OCUPACION_2027_PARTIDA = 0.60;
+  /* Suelo y paso del deslizador de 2027. Van juntos y son los dos los que
+     sostienen una garantia de la reunion: el EBITDA nunca puede bajar
+     mientras el cliente sube la ocupacion.
+
+     El paso resuelve lo menos evidente. Un grupo de Kinder cuesta $32.400
+     al año y un punto de ocupacion solo aporta unos $13.200, asi que con
+     paso de un punto el EBITDA retrocede cada vez que Kinder cruza un
+     escalon de diez niños. Con cinco puntos cada movimiento aporta unos
+     $66.000 y absorbe el grupo entero.
+
+     El suelo baja de 45% a 5% porque el deslizador ya no tiene un valor
+     propio: enseña el mismo dato que la seccion 2, que arranca en la
+     ocupacion real de cada unidad y llega hasta el 0% de Baby and Me. Con
+     el suelo en 45% el deslizador habria dicho 45% mientras el valor
+     compartido decia otra cosa.
+
+     No baja hasta 0 porque ahi si retrocede, y por un motivo distinto al
+     de Kinder: entre 0% y 5% se enciende de golpe toda la base de costos
+     —los $6.798 al mes de After School van completos con el primer alumno—
+     y son $131.074 al año de costo contra $82.489 de ingreso. Del 5% al
+     100% el recorrido es estrictamente creciente.
+
+     Lo que el suelo ya no hace es sacar la zona de perdida: el EBITDA es
+     negativo por debajo del 40%. Es el precio de que las dos secciones
+     hablen del mismo dato. La suite lo comprueba todo. */
+  const OCUPACION_2027_MINIMA = 0.05;
+  const OCUPACION_2027_PASO = 5;
+
+  function conPorcentajes(x){
+    x.margenBruto = x.ingresos - x.manoDeObra;
+    x.margenBrutoPct = x.ingresos ? x.margenBruto / x.ingresos : 0;
+    x.ebitda = x.margenBruto - x.gastos;
+    x.ebitdaPct = x.ingresos ? x.ebitda / x.ingresos : 0;
+    return x;
+  }
+
+  function resumen(anio){
+    return conPorcentajes(Object.assign({ anio }, ANIOS[anio]));
+  }
+
+  /* Una ocupacion por unidad. El deslizador unico se conserva como atajo
+     —ocupacion aplica a las cinco— porque es lo que usa el resto del motor,
+     pero la seccion 3 mueve cada unidad por su lado. */
+  function ocupacionesDe(p){
+    const base = (p && p.ocupacion !== undefined) ? p.ocupacion : OCUPACION_2027_PARTIDA;
+    const o = Object.assign(
+      { kinder:base, afterSchool:base, veranito:base, cumpleanos:base, baby:base },
+      (p && p.ocupaciones) || {});
+    return o;
+  }
+
+  function resumen2027(p){
+    const o = ocupacionesDe(p);
+    const gastosMes = p && p.gastosMes !== undefined ? p.gastosMes : GASTOS_MES_PARTIDA;
+
+    const k = kinder({ ninos: Math.round(KINDER_CAPACIDAD * o.kinder) });
+    const a = afterSchool({ ocupacion: o.afterSchool });
+    const c = cumpleanos({ eventosSemana: CUMPLE_TOPE_SEMANA * o.cumpleanos });
+    const b = baby({ ocupacion: o.baby });
+    const mes = Object.assign(consolidar([k,a,c,b]), { kinder:k, afterSchool:a, cumpleanos:c, baby:b });
+    const vMay = veranito({ ocupacion:o.veranito });
+    const vEne = veranito({ ocupacion:o.veranito });
+
+    const ingresos = mes.facturacion * 12 + vMay.facturacion + vEne.facturacion + OTROS_INGRESOS;
+    const manoDeObra = mes.costo * 12 + vMay.costo + vEne.costo;
+
+    return conPorcentajes({
+      anio: 2027, ingresos, manoDeObra, gastos: gastosMes * 12,
+      otrosIngresos: OTROS_INGRESOS, ocupaciones: o, gastosMes,
+      unidades: {
+        kinder: mes.kinder, afterSchool: mes.afterSchool,
+        cumpleanos: mes.cumpleanos, baby: mes.baby,
+        veranito: { mayAgo:vMay, eneMar:vEne },
+      },
+    });
   }
 
   /* ========================================================================
@@ -734,16 +1084,19 @@ const MOTOR = (function(){
   function plan(p){
     const total  = Math.max(0, Math.round(p.total || 0));
     const meses  = Math.max(0, Math.round(p.meses || 0));
-    const pctPri = p.pctPrimero || 0;
-    const pctFin = p.pctFinal || 0;
+    /* Los campos de la seccion 4 son montos, no porcentajes: el equipo
+       negocia en dolares. Se sigue aceptando el porcentaje para no romper a
+       quien llame asi, y el porcentaje mostrado se deriva del monto. */
+    const pctPri = p.primero != null ? (total ? p.primero / total : 0) : (p.pctPrimero || 0);
+    const pctFin = p.final   != null ? (total ? p.final   / total : 0) : (p.pctFinal   || 0);
 
     /* Invalido si los dos pagos con porcentaje se comen mas del total, o si
        sobra dinero y no hay mensualidades donde ponerlo. */
     const valido = pctPri >= 0 && pctFin >= 0 && pctPri + pctFin <= 1.0000001
                 && (meses > 0 || pctPri + pctFin >= 0.9999999);
 
-    const primero = Math.round(total * pctPri);
-    const final   = Math.round(total * pctFin);
+    const primero = p.primero != null ? Math.max(0, Math.round(p.primero)) : Math.round(total * pctPri);
+    const final   = p.final   != null ? Math.max(0, Math.round(p.final))   : Math.round(total * pctFin);
     const resto   = total - primero - final;
 
     const mensualidad = meses > 0 ? Math.floor(resto / meses) : 0;
@@ -753,6 +1106,8 @@ const MOTOR = (function(){
 
     const suma = primero + final + (meses > 0 ? mensualidad * (meses - 1) + ultima : 0);
     return { total, primero, final, meses, mensualidad, ultima, resto, suma, valido,
+             pctPrimero: total ? primero / total : 0,
+             pctFinal:   total ? final   / total : 0,
              ultimaDifiere: meses > 0 && ultima !== mensualidad };
   }
 
@@ -763,6 +1118,7 @@ const MOTOR = (function(){
       kinder: KINDER_PARTIDA,
       afterSchool: AS_PARTIDA,
       cumpleanos: CUMPLE_PARTIDA,
+      baby: BABY_PARTIDA,
       veranito: VERANITO_PARTIDA,
     }));
   }
@@ -770,11 +1126,18 @@ const MOTOR = (function(){
   return {
     SEM_MES, REAL,
     KINDER_CAPACIDAD, KINDER_NINOS_POR_GRUPO,
-    AS_DISCIPLINAS, AS_SABADO, AS_CUPOS_TOTALES, AS_COSTO_SABADO,
+    KINDER_COSTO_PROFESOR, KINDER_COSTO_ASISTENTE, PRESTACIONES,
+    KINDER_COSTO_GRUPO, KINDER_COSTO_GRUPO_2026,
+    AS_DISCIPLINAS, AS_SABADO, AS_CUPOS_TOTALES, AS_COSTO_SABADO, AS_OCUPACION_HOY,
+    repartirEnteros,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
-    kinder, afterSchool, afterSchoolHoy, cumpleanos, veranito,
-    consolidar, escenario, escenarioHoy, partida, plan,
+    BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS,
+    ANIOS, UNIDADES_2025, UNIDADES_2026, VERANITO_2026,
+    OTROS_INGRESOS, GASTOS_MES_PARTIDA,
+    OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA, OCUPACION_2027_PASO,
+    kinder, afterSchool, baby, cumpleanos, veranito,
+    consolidar, escenario, resumen, resumen2027, partida, plan, veranitoAnual,
   };
 })();
 </script>
@@ -799,160 +1162,188 @@ const MOTOR = (function(){
      disciplina de After School.
    ========================================================================== */
 
-/* El monto se define aqui para poder ajustarlo hasta el ultimo momento sin
-   tocar nada mas del archivo. VALOR DE EJEMPLO: Ricardo lo fija antes de
-   la reunion. */
-const INVERSION = 96000;
+/* Cifra cerrada por el equipo. Los cuatro campos se editan en pantalla y
+   estos son sus valores de partida. Se negocia en dolares, no en
+   porcentajes: los porcentajes que se muestran se derivan del monto. */
+const INVERSION = { total:74500, primero:25000, cuotas:10, final:10750 };
 
-/* Centinela. Mientras INVERSION siga valiendo esto, la seccion 6 muestra un
-   aviso de que el monto es de relleno. En cuanto se ponga la cifra real el
-   aviso se va solo: nadie tiene que acordarse de borrarlo, que es
-   justamente como se cuela un monto falso a una reunion. */
-const INVERSION_EJEMPLO = 96000;
+/* El proyecto va del 10 de septiembre de 2026 al 10 de septiembre de 2027.
+   Doce meses, cuatro fases de tres meses cada una, contadas del 10 al 10:
+   los rangos de la spec ("septiembre – diciembre") nombran el mes de inicio
+   y el de cierre, no cuatro meses de trabajo. */
+const MESES = ['SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO'];
 
 const FASES = [
-  { numero:1, cierra:'30 de noviembre',
-    logro:'Las cuatro unidades cobran en linea.',
-    remate:'Se acaba perder una inscripcion porque no habia como pagar.' },
-  { numero:2, cierra:'31 de enero',
-    logro:'Ve sus numeros.',
-    remate:'Cuantos cupos libres hay, quien pago, que margen deja cada unidad. Y After School arranca con su motor de captacion completo.' },
-  { numero:3, cierra:'28 de febrero',
-    logro:'Nadie que pregunta se queda sin respuesta,',
-    remate:'y las familias que ya tiene empiezan a comprar en otras unidades.' },
-  { numero:4, cierra:'30 de junio',
-    logro:'El negocio se maneja desde una pantalla',
-    remate:'y los procesos quedan documentados.' },
-  { numero:0, cierra:'Durante todo el proyecto',
+  { numero:1, desde:0, hasta:2, rango:'septiembre a diciembre de 2026',
+    logro:'Las cuatro unidades cobran en línea.',
+    remate:'Se acaba perder una inscripción porque no había cómo pagar.' },
+  { numero:2, desde:3, hasta:5, rango:'diciembre de 2026 a marzo de 2027',
+    logro:'Ve sus números.',
+    remate:'Cuántos cupos libres hay, quién pagó, qué margen deja cada unidad. Y After School arranca con su motor de captación completo.' },
+  { numero:3, desde:6, hasta:8, rango:'marzo a junio de 2027',
+    logro:'Nadie que pregunta se queda sin respuesta.',
+    remate:'Y las familias que ya tiene empiezan a comprar en otras unidades.' },
+  { numero:4, desde:9, hasta:11, rango:'junio a septiembre de 2027',
+    logro:'El negocio se maneja desde una pantalla.',
+    remate:'Y los procesos quedan documentados.' },
+  { numero:0, desde:0, hasta:11, rango:'los doce meses',
     logro:'Lo que corre en paralelo a las cuatro fases.',
     remate:'' },
 ];
 
+/* Indice de mes dentro de la linea de tiempo, contando septiembre de 2026
+   como cero. Las fechas de la hoja ya calzan con sus fases, asi que se
+   pueden mostrar y el conteo del gantt cae en el mes que toca. */
+function mesDe(fecha){
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(fecha);
+  if (!m) return null;                       // "Durante todo el proyecto"
+  const mes = Number(m[2]), anio = Number(m[3]);
+  const i = (anio - 2026) * 12 + (mes - 9);
+  return i >= 0 && i < 12 ? i : null;
+}
+
 const ENTREGABLES = [
-  { fase:1, unidad:'Gerencia', segmento:'Ventas', fecha:'31/10/2026',
+  /* ---------- Fase 1 · septiembre a diciembre de 2026 ---------- */
+  { fase:1, unidad:'Gerencia', segmento:'Ventas', fecha:'30/10/2026',
     nombre:'Pasarela de pago para cada unidad de negocio',
-    nota:'Un solo sistema de cobro conectado a la cuenta bancaria, con separacion por unidad para conciliar.' },
-  { fase:1, unidad:'Kinder', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de inscripcion de Kinder',
-    nota:'Donde la familia formaliza la matricula y paga. Conecta con la pasarela unificada.' },
-  { fase:1, unidad:'After School', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de inscripcion de After School',
-    nota:'Donde la familia formaliza la inscripcion y paga. Conecta con la pasarela unificada.' },
-  { fase:1, unidad:'Veranito', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de compra optimizada',
-    nota:'Mejora sobre la pagina existente.' },
-  { fase:1, unidad:'Cumpleaños', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de compra de paquetes',
-    nota:'Con precio diferenciado para familias de otras unidades.' },
-  { fase:1, unidad:'Veranito', segmento:'Servicio', fecha:'31/10/2026',
-    nombre:'Optimizar pagina de venta en diseño y usabilidad',
-    nota:'Se optimizara la pagina de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
-
-  { fase:2, unidad:'Gerencia', segmento:'Servicio', fecha:'31/12/2026',
-    nombre:'Cuadros de capacidad productiva por unidad',
-    nota:'Capacidad instalada contra ocupacion real, conectados a datos en vivo. Muestra cuantos cupos hay disponibles y cuantos se estan usando en cada unidad.' },
-  { fase:2, unidad:'Gerencia', segmento:'Finanzas', fecha:'31/01/2027',
-    nombre:'Tablero financiero por unidad de negocio',
-    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver que unidad genera utilidad real y cual solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
-  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'31/12/2026',
-    nombre:'Modulo administrativo de Kinder',
-    nota:'El sistema donde el equipo del centro registra y gestiona el dia a dia: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quien pago y quien no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
-  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'31/01/2027',
-    nombre:'Tablero de operacion de Kinder',
-    nota:'La vista de resumen que lee del modulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicacion por los padres. Amplia los tableros del proyecto 1.' },
-  { fase:2, unidad:'After School', segmento:'Servicio', fecha:'31/12/2026',
-    nombre:'Modulo administrativo de After School',
-    nota:'El sistema donde el equipo registra y gestiona el dia a dia: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripcion mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
-  { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'31/01/2027',
-    nombre:'Modulo administrativo y tablero de Cumpleaños',
-    nota:'Sistema para registrar y gestionar las reservas: que fin de semana, que paquete, que familia. Incluye la vista de ocupacion, que muestra cuantos de los espacios disponibles al año se estan usando.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
-    nombre:'Landing page de captacion',
-    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+    nota:'Un solo sistema de cobro conectado a la cuenta bancaria, con separación por unidad para conciliar.' },
+  { fase:1, unidad:'Kinder', segmento:'Ventas', fecha:'30/10/2026',
+    nombre:'Página de inscripción de Kinder',
+    nota:'Donde la familia formaliza la matrícula y paga. Conecta con la pasarela unificada.' },
+  { fase:1, unidad:'After School', segmento:'Ventas', fecha:'30/10/2026',
+    nombre:'Página de inscripción de After School',
+    nota:'Donde la familia formaliza la inscripción y paga. Conecta con la pasarela unificada.' },
+  { fase:1, unidad:'Veranito', segmento:'Servicio', fecha:'30/10/2026',
+    nombre:'Optimizar página de venta en diseño y usabilidad',
+    nota:'Se optimizara la página de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
+  { fase:1, unidad:'After School', segmento:'Marketing', fecha:'30/10/2026',
+    nombre:'Landing page de captación',
+    nota:'Página donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+  { fase:1, unidad:'After School', segmento:'Marketing', fecha:'30/10/2026',
     nombre:'Video de ventas (Mini VSL)',
-    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
-    nombre:'Anuncios y piezas graficas para redes',
-    nota:'Piezas visuales y textos para pauta y para publicacion organica.' },
-  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'31/10/2026',
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edición y montaje.' },
+  { fase:1, unidad:'Baby and Me', segmento:'Servicio', fecha:'30/10/2026',
+    nombre:'Modelo de negocio',
+    nota:'Definición de cómo opera y gana dinero Baby and Me: servicios que se ofrecen, a quién, con qué estructura de horarios y cupos, y cómo se conecta con las demás unidades.' },
+  { fase:1, unidad:'Baby and Me', segmento:'Finanzas', fecha:'30/10/2026',
+    nombre:'Estrategia de precios',
+    nota:'Definición de precios por servicio, con la lógica detras de cada uno: costos, punto de equilibrio, comparación con el mercado y política de descuentos o planes.' },
+  { fase:1, unidad:'Veranito', segmento:'Marketing', fecha:'15/11/2026',
+    nombre:'Campaña de captación — temporada enero a marzo',
+    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripción.' },
+  { fase:1, unidad:'Veranito', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Página de compra optimizada',
+    nota:'Mejora sobre la página existente.' },
+  { fase:1, unidad:'Cumpleaños', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Página de compra de paquetes',
+    nota:'Con precio diferenciado para familias de otras unidades.' },
+  { fase:1, unidad:'Baby and Me', segmento:'Ventas', fecha:'30/11/2026',
+    nombre:'Página de inscripción de Baby and Me',
+    nota:'Donde la familia formaliza la matrícula y paga. Conecta con la pasarela unificada.' },
+
+  /* ---------- Fase 2 · diciembre de 2026 a marzo de 2027 ---------- */
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'15/12/2026',
+    nombre:'Anuncios y piezas gráficas para redes',
+    nota:'Piezas visuales y textos para pauta y para publicación orgánica.' },
+  { fase:2, unidad:'After School', segmento:'Marketing', fecha:'15/12/2026',
     nombre:'Campaña en Meta',
-    nota:'Diseño, estrategia y configuracion: publicos, presupuesto y estructura. No incluye la inversion publicitaria.' },
-  { fase:2, unidad:'Veranito', segmento:'Marketing', fecha:'15/11/2026',
-    nombre:'Campaña de captacion — temporada enero a marzo',
-    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripcion.' },
+    nota:'Diseño, estrategia y configuración: públicos, presupuesto y estructura. No incluye la inversión publicitaria.' },
+  { fase:2, unidad:'Gerencia', segmento:'Servicio', fecha:'15/12/2026',
+    nombre:'Cuadros de capacidad productiva por unidad',
+    nota:'Capacidad instalada contra ocupación real, conectados a datos en vivo. Muestra cuántos cupos hay disponibles y cuántos se están usando en cada unidad.' },
+  { fase:2, unidad:'Gerencia', segmento:'Finanzas', fecha:'15/12/2026',
+    nombre:'Tablero financiero por unidad de negocio',
+    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver qué unidad genera utilidad real y cuál solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'30/12/2026',
+    nombre:'Módulo administrativo de Kinder',
+    nota:'El sistema donde el equipo del centro registra y gestiona el día a día: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quién pagó y quién no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'After School', segmento:'Servicio', fecha:'30/12/2026',
+    nombre:'Módulo administrativo de After School',
+    nota:'El sistema donde el equipo registra y gestiona el día a día: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripción mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
+  { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'26/02/2027',
+    nombre:'Tablero de operación de Kinder',
+    nota:'La vista de resumen que lee del módulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicación por los padres. Amplía los tableros del proyecto 1.' },
+  { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'29/01/2027',
+    nombre:'Módulo administrativo y tablero de Cumpleaños',
+    nota:'Sistema para registrar y gestionar las reservas: qué fin de semana, qué paquete, qué familia. Incluye la vista de ocupación, que muestra cuántos de los espacios disponibles al año se están usando.' },
+  { fase:2, unidad:'Gerencia', segmento:'Ventas', fecha:'29/01/2027',
+    nombre:'Sistema de automatización para identificación de intención',
+    nota:'Lee los mensajes que llegan por WhatsApp, Instagram y formularios, y determina a qué unidad de negocio corresponde cada interesado y qué tan cerca está de comprar. Enruta cada conversación al lugar correcto.' },
+  { fase:2, unidad:'Kinder', segmento:'Marketing', fecha:'29/01/2027',
+    nombre:'Anuncios y piezas gráficas para redes',
+    nota:'Kinder pierde niños cada año por edad, así que necesita captación activa todo el año y no solo en temporada. Textos para pauta y para publicación de videos anclados orgánicos.' },
+  { fase:2, unidad:'Gerencia', segmento:'Ventas', fecha:'26/02/2027',
+    nombre:'Solución de respuesta automática (Setter)',
+    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversación requiere una persona.' },
 
-  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'31/01/2027',
-    nombre:'Sistema de automatizacion para identificacion de intencion',
-    nota:'Lee los mensajes que llegan por WhatsApp, Instagram y formularios, y determina a que unidad de negocio corresponde cada interesado y que tan cerca esta de comprar. Enruta cada conversacion al lugar correcto.' },
-  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'28/02/2027',
-    nombre:'Solucion de respuesta automatica (Setter)',
-    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversacion requiere una persona.' },
-  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'28/02/2027',
-    nombre:'Sistema de venta cruzada entre unidades',
-    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahi identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automaticos, la vista de cuantas familias participan en una, dos o mas unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
-  { fase:3, unidad:'Kinder', segmento:'Marketing', fecha:'31/01/2027',
-    nombre:'Anuncios y piezas graficas para redes',
-    nota:'Kinder pierde niños cada año por edad, asi que necesita captacion activa todo el año y no solo en temporada. Textos para pauta y para publicacion de videos anclados organicos.' },
-  { fase:3, unidad:'Cumpleaños', segmento:'Marketing', fecha:'31/10/2026',
-    nombre:'Estrategia de captacion interna',
-    nota:'Mensajes automaticos a familias de otras unidades con cumpleaños proximos.' },
-  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'28/02/2027',
+  /* ---------- Fase 3 · marzo a junio de 2027 ---------- */
+  { fase:3, unidad:'Cumpleaños', segmento:'Marketing', fecha:'26/03/2027',
+    nombre:'Estrategia de captación interna',
+    nota:'Mensajes automáticos a familias de otras unidades con cumpleaños próximos.' },
+  { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
     nombre:'Sitio web de Vida en Arte',
-    nota:'El sitio de la marca, con una seccion por unidad de negocio. Cada unidad tiene su propia entrada de captacion dentro del mismo sitio.' },
-
-  { fase:4, unidad:'Gerencia', segmento:'Finanzas', fecha:'31/03/2027',
-    nombre:'Proyeccion de ingresos recurrentes',
-    nota:'Con las suscripciones activas de Kinder y After School se puede saber cuanto va a entrar el mes siguiente antes de que ocurra.' },
-  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/06/2027',
-    nombre:'Aplicacion de gerencia',
-    nota:'Punto unico de entrada con todas las unidades conectadas: ocupacion, ingresos y estado en una sola pantalla. Es la capa que reune todo lo anterior.' },
-  { fase:4, unidad:'After School', segmento:'Servicio', fecha:'31/03/2027',
+    nota:'El sitio de la marca, con una sección por unidad de negocio. Cada unidad tiene su propia entrada de captación dentro del mismo sitio.' },
+  { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
+    nombre:'Sistema de venta cruzada entre unidades',
+    nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahí identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automáticos, la vista de cuántas familias participan en una, dos o más unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
+  { fase:3, unidad:'Gerencia', segmento:'Finanzas', fecha:'28/05/2027',
+    nombre:'Proyección de ingresos recurrentes',
+    nota:'Con las suscripciones activas de Kinder y After School se puede saber cuánto va a entrar el mes siguiente antes de que ocurra.' },
+  { fase:3, unidad:'After School', segmento:'Servicio', fecha:'30/04/2027',
     nombre:'App de servicio (niveles y progreso)',
-    nota:'Registro de niños, progresion por disciplina, logros por nivel y graduaciones. La solucion del checklist operativo antes de arrancar clases.' },
-  { fase:4, unidad:'Veranito', segmento:'Marketing', fecha:'30/04/2027',
-    nombre:'Campaña de captacion — temporada junio a agosto',
+    nota:'Registro de niños, progresión por disciplina, logros por nivel y graduaciones. La solución del checklist operativo antes de arrancar clases.' },
+  { fase:3, unidad:'Veranito', segmento:'Marketing', fecha:'30/04/2027',
+    nombre:'Campaña de captación — temporada junio a agosto',
     nota:'Campaña para la segunda temporada, ajustada con los resultados de la primera.' },
-  { fase:4, unidad:'Gerencia', segmento:'Ventas', fecha:'30/04/2027',
-    nombre:'Modulo de afiliados',
-    nota:'Modulo para generar descuentos a los clientes que traigan recomendados, para incentivar la recomendacion del negocio.' },
-  { fase:4, unidad:'Gerencia', segmento:'Marketing', fecha:'30/04/2027',
+  { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'30/04/2027',
+    nombre:'Módulo de afiliados',
+    nota:'Módulo para generar descuentos a los clientes que traigan recomendados, para incentivar la recomendación del negocio.' },
+  { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'30/04/2027',
     nombre:'Estrategia de marketing de afiliados',
     nota:'La estrategia con la que se otorgan los descuentos por recomendados.' },
-  { fase:4, unidad:'Kinder', segmento:'Marketing', fecha:'31/03/2027',
-    nombre:'Campaña de Baby and Me',
-    nota:'Landing, Mini VSL, campaña en Meta, anuncios y piezas graficas para redes.' },
-  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/06/2027',
+
+  /* ---------- Fase 4 · junio a septiembre de 2027 ---------- */
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Landing page de captación',
+    nota:'Página donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Video de ventas (Mini VSL)',
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edición y montaje.' },
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Anuncios y piezas gráficas para redes',
+    nota:'Piezas visuales y textos para pauta y para publicación orgánica.' },
+  { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
+    nombre:'Campaña en Meta',
+    nota:'Diseño, estrategia y configuración: públicos, presupuesto y estructura. No incluye la inversión publicitaria.' },
+  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/07/2027',
+    nombre:'Aplicación de gerencia',
+    nota:'Punto único de entrada con todas las unidades conectadas: ocupación, ingresos y estado en una sola pantalla. Es la capa que reúne todo lo anterior.' },
+  { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/07/2027',
     nombre:'Manuales de procesos por rol',
     nota:'Documentar los procesos de Vida en Arte por rol.' },
-
-  { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
-    nombre:'Asesoria estrategica del negocio',
-    nota:'Se atienden las situaciones que presente el cliente de forma constante, para asesorarlo en como darles solucion.' },
-  { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
-    nombre:'Soporte tecnico remoto',
-    nota:'Soporte virtual ante novedades con las aplicaciones, paginas web y plataformas creadas por la empresa.' },
-  { fase:0, unidad:'Gerencia', segmento:'Marketing', fecha:'Durante todo el proyecto',
-    nombre:'Estrategia para recoleccion de reseñas en Google',
+  { fase:4, unidad:'Gerencia', segmento:'Marketing', fecha:'30/07/2027',
+    nombre:'Estrategia para recolección de reseñas en Google',
     nota:'Mejorar las calificaciones y la presencia de Vida en Arte en Google.' },
+  { fase:4, unidad:'Kinder', segmento:'Servicio', fecha:'27/08/2027',
+    nombre:'Plataforma de cursos para profesoras',
+    nota:'Un módulo de la aplicación de VEAKids para montar cursos dirigidos a las profesoras.' },
+
+  /* ---------- Durante todo el proyecto ---------- */
+  { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
+    nombre:'Asesoría estratégica del negocio',
+    nota:'Se atienden las situaciones que presente el cliente de forma constante, para asesorarlo en cómo darles solución.' },
+  { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
+    nombre:'Soporte técnico remoto',
+    nota:'Soporte virtual ante novedades con las aplicaciones, páginas web y plataformas creadas por la empresa.' },
 ];
+/* El mes se deriva de la fecha una sola vez, al cargar. */
+ENTREGABLES.forEach(e => { e.mes = mesDe(e.fecha); });
 
 /* --------------------------------------------------------------------------
-   Seccion 2. Cifras reales de cada unidad y las relaciones que Ricardo dice
-   en voz alta. Se calculan, no se escriben: si alguien corrige una cifra, la
-   relacion se corrige sola en vez de quedar contradiciendola.
+   Las relaciones que Ricardo dice en voz alta. Se calculan, no se escriben:
+   si alguien corrige una cifra, la relacion se corrige sola en vez de quedar
+   contradiciendola.
    -------------------------------------------------------------------------- */
-const UNIDADES_HOY = [
-  { nombre:'Kinder',       ocupados:29,  capacidad:80,  sufijo:'niños',
-    facturacion:MOTOR.REAL.kinder.facturacion,      periodo:'al mes' },
-  { nombre:'After School', ocupados:80,  capacidad:220, sufijo:'alumnos',
-    facturacion:MOTOR.REAL.afterSchool.facturacion, periodo:'al mes' },
-  { nombre:'Cumpleaños',   ocupados:6,   capacidad:17,  sufijo:'eventos',
-    facturacion:MOTOR.REAL.cumpleanos.facturacion,  periodo:'al mes' },
-  { nombre:'Veranito',     ocupados:463, capacidad:550, sufijo:'cupos',
-    facturacion:MOTOR.REAL.veranito.mayAgo,         periodo:'por temporada' },
-];
-
 const PRUEBA_VERANITO = {
   anterior:MOTOR.REAL.veranito.anual2025,
   actual:MOTOR.REAL.veranito.mayAgo,
@@ -966,7 +1357,7 @@ const VALOR_VIDA = { kinder:{ valor:14088, adquisicion:500 },
 VALOR_VIDA.kinder.relacion   = VALOR_VIDA.kinder.valor / VALOR_VIDA.kinder.adquisicion;
 VALOR_VIDA.veranito.relacion = VALOR_VIDA.veranito.ventaPorCliente / VALOR_VIDA.veranito.adquisicion;
 
-const DATOS = { INVERSION, FASES, ENTREGABLES, UNIDADES_HOY, PRUEBA_VERANITO, VALOR_VIDA };
+const DATOS = { INVERSION, MESES, FASES, ENTREGABLES, PRUEBA_VERANITO, VALOR_VIDA };
 </script>
 
 <script id="formato">
@@ -1006,6 +1397,13 @@ const FORMATO = (function(){
   }
 
   function pct(x){ return Math.round(x * 100) + '%'; }
+
+  /* Un decimal, con la coma local. El cuadro resumen lo necesita porque su
+     tabla esta escrita a un decimal (74,8% · 13,0%) y redondeada a entero
+     dejaria de coincidir con lo que el equipo ya reviso. */
+  function pctDecimal(x){
+    return (Math.round(x * 1000) / 10).toFixed(1).replace('.', ',') + '%';
+  }
   function entero(n){ return String(Math.round(n)); }
 
   /* Suma lo que se VE, no lo que vale. Cada parte se redondea antes de
@@ -1031,22 +1429,17 @@ const FORMATO = (function(){
   }
   const GLIFO = { alto:'●', medio:'◐', bajo:'○' };
 
-  return { miles, dinero, delta, precio, pct, entero, sumaVisible, deltaAnual, nivel, GLIFO };
+  return { miles, dinero, delta, precio, pct, pctDecimal, entero, sumaVisible, deltaAnual, nivel, GLIFO };
 })();
 </script>
 
 <script id="vista">
 /* ==========================================================================
-   VISTA. Navegacion entre secciones.
+   VISTA. Navegacion entre las cuatro secciones.
    ========================================================================== */
-const SECCIONES = [
-  'Entregables',
-  'Donde estan hoy',
-  'Al 60%',
-  'Al 100%',
-  '2028',
-  'La inversion',
-];
+const SECCIONES = ['Hoja de ruta', 'Detalle por unidad', 'Cuadro resumen', 'La inversión'];
+const F = FORMATO;
+const REINICIOS = [];
 
 function irA(n){
   document.querySelectorAll('section[data-seccion]').forEach(s => {
@@ -1072,8 +1465,8 @@ function irA(n){
 })();
 
 /* Flechas para recorrer sin apuntar al boton. En una reunion proyectada
-   Ricardo maneja esto desde el teclado, no desde el mouse. Se ignoran
-   mientras el foco esta en un control: ahi las flechas mueven el valor. */
+   Ricardo maneja esto desde el teclado. Se ignoran mientras el foco esta en
+   un control: ahi las flechas mueven el valor. */
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea')) return;
   const actual = Number(document.querySelector('section.activa').dataset.seccion);
@@ -1082,25 +1475,16 @@ document.addEventListener('keydown', e => {
 });
 
 /* ==========================================================================
-   SIMULADOR
-
-   Cada seccion tiene su propio estado. Si compartieran uno, mover Kinder a
-   60 niños en la seccion 3 dejaria la seccion 4 sin su escenario al 100% y
-   Ricardo perderia el hilo al saltar entre secciones.
+   PIEZAS COMPARTIDAS
    ========================================================================== */
-const F = FORMATO;
-const MARGEN_HOY = MOTOR.escenarioHoy().margen;
-const SIMULADORES = [];
-
 const NOTA_COSTO =
-  'El costo cubre mano de obra directa unicamente. No incluye arriendo, ' +
-  'servicios, administracion ni inversion publicitaria, asi que el margen ' +
+  'El costo cubre mano de obra directa únicamente. No incluye arriendo, ' +
+  'servicios, administración ni inversión publicitaria, así que el margen ' +
   'no es utilidad neta.';
 
 const NOTA_COSTO_VERANITO =
-  'Costo operativo del 20% del ingreso, mano de obra directa unicamente. ' +
-  'Veranito es estacional: sus cifras son por año, no por mes, y por eso ' +
-  'queda fuera del consolidado mensual y solo entra en la facturacion anual.';
+  'Costo operativo del 20% del ingreso, mano de obra directa únicamente. ' +
+  'Veranito es estacional: sus cifras son por temporada y por año, no por mes.';
 
 function nodo(tag, clase, texto){
   const n = document.createElement(tag);
@@ -1132,12 +1516,23 @@ function control(cfg){
   inp.addEventListener('input', () => {
     const v = Number(inp.value);
     if (!Number.isFinite(v)) return;   // campo vaciado a media escritura
-    cfg.alCambiar(v);
+    /* La etiqueta se refresca antes de avisar: asi quien escuche puede
+       corregirla despues con el valor real. Al reves, el repintado que
+       dispara alCambiar quedaba pisado por el valor del propio control. */
     refrescarEtiqueta();
+    cfg.alCambiar(v);
   });
 
   wrap.append(lab, inp);
-  return { wrap, restaurar(v){ inp.value = v; refrescarEtiqueta(); } };
+  return { wrap, inp,
+    /* Con 'exacto' se separan las dos cosas: el punto cae donde la rejilla lo
+       permite y la etiqueta dice el valor de verdad. Es lo que deja mostrar
+       el 0% de Baby and Me en un deslizador cuyo minimo es 5. */
+    restaurar(v, exacto){
+      inp.value = v;
+      if (exacto === undefined) refrescarEtiqueta();
+      else val.textContent = cfg.formato(exacto);
+    } };
 }
 
 function pastilla(texto, fraccion){
@@ -1149,8 +1544,13 @@ function pastilla(texto, fraccion){
   return p;
 }
 
-/* Devuelve la tarjeta y los nodos que hay que repintar en cada cambio.
-   Se construye una sola vez: repintar solo cambia texto, asi el foco no
+function ponPastilla(t, texto, fraccion){
+  if (t.pastillaNodo) t.pastillaNodo.remove();
+  t.pastillaNodo = pastilla(texto, fraccion);
+  t.cab.appendChild(t.pastillaNodo);
+}
+
+/* Se construye una sola vez: repintar solo cambia texto, asi el foco no
    salta del control que Ricardo esta moviendo. */
 function tarjeta(titulo){
   const art = nodo('article', 'unidad');
@@ -1163,7 +1563,7 @@ function tarjeta(titulo){
 
   const cifras = nodo('div', 'cifras');
   const refs = {};
-  for (const [clave, etiqueta] of [['facturacion','Facturacion'],['costo','Costo'],['margen','Margen']]){
+  for (const [clave, etiqueta] of [['facturacion','Facturación'],['costo','Costo'],['margen','Margen']]){
     const bloque = nodo('div', 'cifra-bloque' + (clave === 'margen' ? ' destacada' : ''));
     bloque.appendChild(nodo('span', 'etiqueta', etiqueta));
     refs[clave] = nodo('b', null, '');
@@ -1176,22 +1576,18 @@ function tarjeta(titulo){
   aviso.style.display = 'none';
   art.appendChild(aviso);
 
+  /* Ranura para lo que pertenece a una unidad concreta: el resultado de
+     Veranito, el valor de vida de Kinder, el potencial de Baby and Me. */
+  const extra = nodo('div', 'unidad-extra');
+  art.appendChild(extra);
+
   const controles = nodo('div', 'controles');
   art.appendChild(controles);
 
   const nota = nodo('p', 'nota-costo', NOTA_COSTO);
   art.appendChild(nota);
 
-  return { art, cab, apoyo, refs, aviso, controles, nota };
-}
-
-/* La pastilla se reemplaza entera en cada repintado porque su color y su
-   glifo dependen del nivel. Es un nodo por tarjeta, no una lista: no hay
-   coste en rehacerlo y evita tener que sincronizar tres atributos. */
-function ponPastilla(t, texto, fraccion){
-  if (t.pastillaNodo) t.pastillaNodo.remove();
-  t.pastillaNodo = pastilla(texto, fraccion);
-  t.cab.appendChild(t.pastillaNodo);
+  return { art, cab, apoyo, refs, aviso, extra, controles, nota };
 }
 
 function ponCifras(refs, r){
@@ -1200,582 +1596,1037 @@ function ponCifras(refs, r){
   refs.margen.textContent = F.dinero(r.margen);
 }
 
-/* --------------------------------------------------------------------------
-   Simulador de las tres unidades mensuales mas el consolidado.
-   -------------------------------------------------------------------------- */
-function crearSimulador(contenedor, ocupacionInicial){
-  const inicial = () => {
-    const p = MOTOR.partida();
-    p.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * ocupacionInicial);
-    p.afterSchool.ocupacion = ocupacionInicial;
-    p.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * ocupacionInicial;
-    /* La ocupacion de la seccion se aplica a las cuatro unidades, tambien a
-       las dos temporadas de Veranito. Al 100% las dos temporadas suman los
-       $200.662 que afirma la spec. */
-    p.veranito.mayAgo = Object.assign({}, p.veranito, { ocupacion: ocupacionInicial });
-    p.veranito.eneMar = Object.assign({}, p.veranito, { ocupacion: ocupacionInicial });
-    return p;
-  };
-  let est = inicial();
-  const restauradores = [];
-  const unidades = nodo('div', 'unidades');
-
-  /* Cada control se registra junto con la forma de releer su valor de
-     partida. Emparejarlos por el orden del DOM funcionaria hoy y se
-     rompería en silencio al insertar un control nuevo en medio. */
-  function reg(cfg, lee){
-    const c = control(cfg);
-    restauradores.push(p => c.restaurar(lee(p)));
-    return c.wrap;
-  }
-
-  /* ---------- Kinder ---------- */
-  const tK = tarjeta('Kinder');
-  tK.controles.append(
-    reg({ etiqueta:'Niños', tipo:'range', min:29, max:100, paso:1, valor:est.kinder.ninos,
-          formato:v => v + ' niños', ancho:true,
-          alCambiar:v => { est.kinder.ninos = v; pintar(); } },
-        p => p.kinder.ninos),
-    reg({ etiqueta:'% plan 4,5 h', tipo:'range', min:0, max:100, paso:1, valor:est.kinder.pct45*100,
-          formato:v => v + '%', ancho:true,
-          alCambiar:v => { est.kinder.pct45 = v/100; pintar(); } },
-        p => p.kinder.pct45*100),
-    reg({ etiqueta:'Precio plan 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio45,
-          alCambiar:v => { est.kinder.precio45 = v; pintar(); } },
-        p => p.kinder.precio45),
-    reg({ etiqueta:'Precio plan 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio8,
-          alCambiar:v => { est.kinder.precio8 = v; pintar(); } },
-        p => p.kinder.precio8),
-    reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.kinder.costoGrupo,
-          ancho:true, alCambiar:v => { est.kinder.costoGrupo = v; pintar(); } },
-        p => p.kinder.costoGrupo),
-  );
-  unidades.appendChild(tK.art);
-
-  /* ---------- After School ---------- */
-  const tA = tarjeta('After School');
-  tA.controles.append(
-    reg({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, valor:est.afterSchool.ocupacion*100,
-          formato:v => v + '%', ancho:true,
-          alCambiar:v => { est.afterSchool.ocupacion = v/100; pintar(); } },
-        p => p.afterSchool.ocupacion*100),
-    reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
-          alCambiar:v => { est.afterSchool.precio2v = v; pintar(); } },
-        p => p.afterSchool.precio2v),
-    reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
-          alCambiar:v => { est.afterSchool.precioTelas = v; pintar(); } },
-        p => p.afterSchool.precioTelas),
-    reg({ etiqueta:'Precio 1 vez/sem · sabado y Baby & Me', tipo:'number', min:0, max:900, paso:0.01,
-          valor:est.afterSchool.precio1v, ancho:true,
-          alCambiar:v => { est.afterSchool.precio1v = v; pintar(); } },
-        p => p.afterSchool.precio1v),
-  );
-  unidades.appendChild(tA.art);
-
-  /* ---------- Cumpleaños ---------- */
-  const tC = tarjeta('Cumpleaños');
-  tC.controles.append(
-    reg({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
-          valor:est.cumpleanos.eventosSemana, formato:v => v.toFixed(1).replace('.', ',') + ' por semana',
-          ancho:true, alCambiar:v => { est.cumpleanos.eventosSemana = v; pintar(); } },
-        p => p.cumpleanos.eventosSemana),
-    reg({ etiqueta:'Precio del paquete', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.precio,
-          alCambiar:v => { est.cumpleanos.precio = v; pintar(); } },
-        p => p.cumpleanos.precio),
-    reg({ etiqueta:'Costo por evento', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.costoEvento,
-          alCambiar:v => { est.cumpleanos.costoEvento = v; pintar(); } },
-        p => p.cumpleanos.costoEvento),
-  );
-  unidades.appendChild(tC.art);
-
-  /* ---------- Veranito ----------
-     Cuarta unidad, pero fuera del consolidado mensual: es estacional y
-     promediarla entre doce meses describiria un mes que no existe. Entra
-     en la facturacion anual, que es donde si es comparable. */
-  const tV = tarjeta('Veranito');
-  tV.nota.textContent = NOTA_COSTO_VERANITO;
-  tV.controles.append(
-    reg({ etiqueta:'Ocupacion mayo–agosto', tipo:'range', min:0, max:100, paso:1,
-          valor:est.veranito.mayAgo.ocupacion*100, formato:v => v + '%', ancho:true,
-          alCambiar:v => { est.veranito.mayAgo.ocupacion = v/100; pintar(); } },
-        p => p.veranito.mayAgo.ocupacion*100),
-    reg({ etiqueta:'Ocupacion enero–marzo', tipo:'range', min:0, max:100, paso:1,
-          valor:est.veranito.eneMar.ocupacion*100, formato:v => v + '%', ancho:true,
-          alCambiar:v => { est.veranito.eneMar.ocupacion = v/100; pintar(); } },
-        p => p.veranito.eneMar.ocupacion*100),
-    reg({ etiqueta:'Semanas por temporada', tipo:'range', min:1, max:16, paso:1,
-          valor:est.veranito.mayAgo.semanas, formato:v => v + ' semanas',
-          alCambiar:v => { est.veranito.mayAgo.semanas = est.veranito.eneMar.semanas = v; pintar(); } },
-        p => p.veranito.mayAgo.semanas),
-    reg({ etiqueta:'Cupos por semana', tipo:'range', min:0, max:50, paso:1,
-          valor:est.veranito.mayAgo.cuposSemana, formato:v => v + ' cupos',
-          alCambiar:v => { est.veranito.mayAgo.cuposSemana = est.veranito.eneMar.cuposSemana = v; pintar(); } },
-        p => p.veranito.mayAgo.cuposSemana),
-    reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:900, paso:1,
-          valor:est.veranito.mayAgo.precio45,
-          alCambiar:v => { est.veranito.mayAgo.precio45 = est.veranito.eneMar.precio45 = v; pintar(); } },
-        p => p.veranito.mayAgo.precio45),
-    reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:900, paso:1,
-          valor:est.veranito.mayAgo.precio8,
-          alCambiar:v => { est.veranito.mayAgo.precio8 = est.veranito.eneMar.precio8 = v; pintar(); } },
-        p => p.veranito.mayAgo.precio8),
-  );
-  unidades.appendChild(tV.art);
-
-  contenedor.appendChild(unidades);
-
-  /* ---------- Consolidado ---------- */
-  /* La facturacion va primero y en grande: es lo que se quiere mostrar.
-     El costo es la unica cifra en cuerpo menor. La anual incluye Veranito,
-     la mensual no, y las etiquetas lo dicen para que nadie sume mal. */
-  const cons = nodo('div', 'consolidado');
-  const refsCons = {};
-  for (const [clave, etiqueta, menor] of [
-      ['facturacion', 'Facturacion / mes', false],
-      ['costo',       'Costo / mes',       true],
-      ['margen',      'Margen / mes',      false],
-      ['anual',       'Facturacion anual · con Veranito', false]]){
-    const b = nodo('div', menor ? 'menor' : '');
-    b.appendChild(nodo('span', 'etiqueta', etiqueta));
-    refsCons[clave] = nodo('b');
-    b.appendChild(refsCons[clave]);
-    cons.appendChild(b);
-  }
-  contenedor.appendChild(cons);
-
-  const delta = nodo('div', 'delta');
-  delta.appendChild(nodo('span', 'rotulo', 'Margen contra hoy'));
-  const refDelta = nodo('b');
-  const refDeltaAnual = nodo('span', 'anual');
-  delta.append(refDelta, refDeltaAnual);
-  contenedor.appendChild(delta);
-
-  function pintar(){
-    const k = MOTOR.kinder(est.kinder);
-    const a = MOTOR.afterSchool(est.afterSchool);
-    const c = MOTOR.cumpleanos(est.cumpleanos);
-    const vMay = MOTOR.veranito(est.veranito.mayAgo);
-    const vEne = MOTOR.veranito(est.veranito.eneMar);
-    const v = {
-      facturacion: vMay.facturacion + vEne.facturacion,
-      costo:       vMay.costo + vEne.costo,
-      margen:      vMay.margen + vEne.margen,
-    };
-    /* Consolidado sobre las cifras ya redondeadas: la columna que se ve
-       tiene que sumar el total que se ve. Veranito queda fuera del mensual
-       y entra en el anual. */
-    const total = {
-      facturacion: F.sumaVisible([k.facturacion, a.facturacion, c.facturacion]),
-      costo:       F.sumaVisible([k.costo, a.costo, c.costo]),
-      margen:      F.sumaVisible([k.margen, a.margen, c.margen]),
-    };
-    total.anual = total.facturacion * 12 + Math.round(v.facturacion);
-
-    ponCifras(tK.refs, k);
-    ponCifras(tA.refs, a);
-    ponCifras(tC.refs, c);
-    ponCifras(tV.refs, v);
-
-    ponPastilla(tK, `${k.ninos} de ${MOTOR.KINDER_CAPACIDAD} niños · ${F.pct(k.ninos/MOTOR.KINDER_CAPACIDAD)}`,
-                k.ninos / MOTOR.KINDER_CAPACIDAD);
-    tK.apoyo.textContent = `${k.grupos} grupos · ticket ${F.precio(k.ticket)}`;
-    tK.aviso.style.display = k.excedeCapacidad ? '' : 'none';
-    tK.aviso.textContent = `${k.ninos} niños no caben en la capacidad actual: requiere habilitar salones adicionales.`;
-
-    const fracA = a.alumnos / MOTOR.AS_CUPOS_TOTALES;
-    ponPastilla(tA, `${a.alumnos} de ${MOTOR.AS_CUPOS_TOTALES} · ${F.pct(fracA)}`, fracA);
-    tA.apoyo.textContent = '';
-
-    const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
-    const fracC = c.eventos / tope;
-    ponPastilla(tC, `${c.eventos} de ${tope} eventos · ${F.pct(fracC)}`, fracC);
-    tC.apoyo.textContent = `Tope real: ${MOTOR.CUMPLE_TOPE_SEMANA} por semana.`;
-
-    const cuposV = vMay.cupos + vEne.cupos, capacidadV = vMay.cuposTemporada + vEne.cuposTemporada;
-    ponPastilla(tV, `${cuposV} de ${capacidadV} cupos al año · ${F.pct(cuposV/capacidadV)}`, cuposV/capacidadV);
-    tV.apoyo.textContent =
-      `Mayo–agosto ${F.dinero(vMay.facturacion)} · enero–marzo ${F.dinero(vEne.facturacion)}`;
-
-    refsCons.facturacion.textContent = F.dinero(total.facturacion);
-    refsCons.costo.textContent = F.dinero(total.costo);
-    refsCons.margen.textContent = F.dinero(total.margen);
-    refsCons.anual.textContent = F.dinero(total.anual);
-
-    /* El margen de hoy tambien redondeado: asi el delta es entero y el
-       anual es exactamente doce veces lo que se ve. */
-    const d = total.margen - Math.round(MARGEN_HOY);
-    refDelta.textContent = F.delta(d);
-    refDelta.dataset.signo = d >= 0 ? 'mas' : 'menos';
-    refDeltaAnual.textContent = `${F.deltaAnual(d)} al año`;
-  }
-
-  function reiniciar(){
-    est = inicial();
-    restauradores.forEach(r => r(est));
-    pintar();
-  }
-
-  pintar();
-  const api = { pintar, reiniciar };
-  SIMULADORES.push(api);
-  return api;
+function bloqueDestacado(html){
+  const d = nodo('div', 'bloque-unidad');
+  d.innerHTML = html;
+  return d;
 }
 
-function reiniciarTodo(){ SIMULADORES.forEach(s => s.reiniciar()); }
-
-/* --------------------------------------------------------------------------
-   KINDER 2028
-   Una sola unidad: la seccion es sobre el techo de Kinder, no sobre el
-   consolidado. El aviso de capacidad sale de entrada porque 100 niños ya
-   no caben, y ese es el punto de la seccion.
-   -------------------------------------------------------------------------- */
-function crearKinder2028(contenedor){
-  /* Los tres escenarios que separan que parte del salto viene del volumen y
-     que parte del precio. El segundo es el que sorprende: con 80 niños y el
-     precio subido el margen supera al de 100 niños a precio de hoy, porque
-     100 niños abren dos grupos mas y el precio no cuesta nada. */
-  const ESCENARIOS = [
-    { clave:'ninos',  titulo:'Solo mas niños',  glosa:'100 niños, precio de hoy',
-      ninos:100, aumento:false },
-    { clave:'precio', titulo:'Solo aumento de precio', glosa:'80 niños, precio subido',
-      ninos:80,  aumento:true },
-    { clave:'ambas',  titulo:'Ambas cosas',     glosa:'100 niños y precio subido',
-      ninos:100, aumento:true },
-  ];
-  const PRECIO_HOY = { precio45:587, precio8:786 };
-  const PRECIO_2028 = { precio45:687, precio8:886 };
-
-  const inicial = () => {
-    const p = MOTOR.partida();
-    return Object.assign(p.kinder, { ninos:100 }, PRECIO_2028);
-  };
-  const paramsDe = e => Object.assign({}, MOTOR.partida().kinder,
-    { ninos:e.ninos }, e.aumento ? PRECIO_2028 : PRECIO_HOY);
-
-  let est = inicial();
-  const restauradores = [];
-
-  /* Interruptor de precio. Es lo que pidio la conversacion: poder separar el
-     efecto del precio del efecto del volumen sin tocar los campos a mano. */
-  const barraPrecio = nodo('div', 'segmentado');
-  barraPrecio.appendChild(nodo('span', 'segmentado-rotulo', 'Precio'));
-  const botonesPrecio = [
-    { texto:`Actual · ${F.precio(PRECIO_HOY.precio45)} y ${F.precio(PRECIO_HOY.precio8)}`, v:PRECIO_HOY },
-    { texto:`2028 · ${F.precio(PRECIO_2028.precio45)} y ${F.precio(PRECIO_2028.precio8)}`, v:PRECIO_2028 },
-  ].map(o => {
-    const b = nodo('button', null, o.texto);
-    b.addEventListener('click', () => { Object.assign(est, o.v); sincronizarCampos(); pintar(); });
-    barraPrecio.appendChild(b);
-    return { b, v:o.v };
-  });
-  contenedor.appendChild(barraPrecio);
-
-  const unidades = nodo('div', 'unidades');
-  const card = tarjeta('Kinder 2028');
-  const campos = {};
-  const reg = (cfg, lee, clave) => {
-    const c = control(cfg);
-    restauradores.push(p => c.restaurar(lee(p)));
-    if (clave) campos[clave] = c;
-    return c.wrap;
-  };
-  card.controles.append(
-    reg({ etiqueta:'Niños', tipo:'range', min:29, max:120, paso:1, valor:est.ninos,
-          formato:v => v + ' niños', ancho:true,
-          alCambiar:v => { est.ninos = v; pintar(); } }, p => p.ninos, 'ninos'),
-    reg({ etiqueta:'Precio plan 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.precio45,
-          alCambiar:v => { est.precio45 = v; pintar(); } }, p => p.precio45, 'precio45'),
-    reg({ etiqueta:'Precio plan 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.precio8,
-          alCambiar:v => { est.precio8 = v; pintar(); } }, p => p.precio8, 'precio8'),
-    reg({ etiqueta:'% plan 4,5 h', tipo:'range', min:0, max:100, paso:1, valor:est.pct45*100,
-          formato:v => v + '%', ancho:true,
-          alCambiar:v => { est.pct45 = v/100; pintar(); } }, p => p.pct45*100),
-    reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.costoGrupo,
-          ancho:true, alCambiar:v => { est.costoGrupo = v; pintar(); } }, p => p.costoGrupo),
-  );
-  unidades.appendChild(card.art);
-  contenedor.appendChild(unidades);
-
-  const cons = nodo('div', 'consolidado');
-  const refs = {};
-  for (const [clave, etiqueta] of [
-      ['anual','Facturacion anual de Kinder'],
-      ['margenMes','Margen / mes'],
-      ['grupos','Grupos necesarios']]){
-    const b = nodo('div', clave === 'anual' ? '' : 'menor');
-    b.appendChild(nodo('span', 'etiqueta', etiqueta));
-    refs[clave] = nodo('b');
-    b.appendChild(refs[clave]);
-    cons.appendChild(b);
-  }
-  contenedor.appendChild(cons);
-
-  /* Los tres escenarios calculados y siempre visibles. Ricardo puede
-     señalarlos sin hacer clic; hacer clic carga ese escenario en los
-     controles para seguir moviendolo. */
-  const tira = nodo('div', 'escenarios');
-  const refsEsc = ESCENARIOS.map(e => {
-    const b = nodo('button', 'escenario');
-    b.appendChild(nodo('span', 'esc-titulo', e.titulo));
-    b.appendChild(nodo('span', 'esc-glosa', e.glosa));
-    const anual = nodo('b'); b.appendChild(anual);
-    const margen = nodo('span', 'esc-margen'); b.appendChild(margen);
-    b.addEventListener('click', () => {
-      Object.assign(est, paramsDe(e));
-      sincronizarCampos();
-      pintar();
-    });
-    tira.appendChild(b);
-    return { e, b, anual, margen };
-  });
-  contenedor.appendChild(tira);
-
-  /* Tras cargar un escenario o cambiar el precio, los campos tienen que
-     reflejar el estado nuevo o quedan mintiendo sobre lo que se calcula. */
-  function sincronizarCampos(){
-    campos.ninos.restaurar(est.ninos);
-    campos.precio45.restaurar(est.precio45);
-    campos.precio8.restaurar(est.precio8);
-  }
-
-  function pintar(){
-    const k = MOTOR.kinder(est);
-    ponCifras(card.refs, k);
-    ponPastilla(card, `${k.ninos} niños · ${k.grupos} grupos`, k.excedeCapacidad ? 1 : k.ninos/MOTOR.KINDER_CAPACIDAD);
-    card.apoyo.textContent = `Ticket ${F.precio(k.ticket)}`;
-    card.aviso.style.display = k.excedeCapacidad ? '' : 'none';
-    card.aviso.textContent =
-      `${k.ninos} niños no caben en la capacidad actual de ${MOTOR.KINDER_CAPACIDAD}: ` +
-      'requiere habilitar salones adicionales, y esa es inversion del cliente.';
-    refs.anual.textContent = F.dinero(k.facturacion * 12);
-    refs.margenMes.textContent = F.dinero(k.margen);
-    refs.grupos.textContent = String(k.grupos);
-
-    for (const r of refsEsc){
-      const ke = MOTOR.kinder(paramsDe(r.e));
-      r.anual.textContent = F.dinero(ke.facturacion * 12);
-      r.margen.textContent = `${F.dinero(ke.margen)} de margen al mes · ${ke.grupos} grupos`;
-      const activo = est.ninos === r.e.ninos
-        && est.precio45 === (r.e.aumento ? PRECIO_2028 : PRECIO_HOY).precio45
-        && est.precio8  === (r.e.aumento ? PRECIO_2028 : PRECIO_HOY).precio8;
-      r.b.setAttribute('aria-current', activo ? 'true' : 'false');
-    }
-    for (const bp of botonesPrecio){
-      bp.b.setAttribute('aria-current',
-        est.precio45 === bp.v.precio45 && est.precio8 === bp.v.precio8 ? 'true' : 'false');
-    }
-  }
-
-  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
-  pintar();
-  SIMULADORES.push({ pintar, reiniciar });
-}
-
-function hallazgo(contenedor, html){
-  const h = nodo('div', 'hallazgo');
-  h.innerHTML = html;
-  contenedor.appendChild(h);
-}
-
-/* Va al cierre de cada seccion con controles, no dentro del simulador:
-   la del 100% tiene dos bloques y el boton debe quedar debajo de los dos,
-   no partiendo la seccion por la mitad. Reinicia las tres secciones desde
-   cualquiera de ellas. */
-function barraReinicio(contenedor){
+function barraReinicio(contenedor, texto){
   const barra = nodo('div', 'barra-acciones');
-  const btn = nodo('button', null, 'Reiniciar todo');
-  btn.addEventListener('click', reiniciarTodo);
+  const btn = nodo('button', null, texto || 'Reiniciar');
+  btn.addEventListener('click', () => REINICIOS.forEach(r => r()));
   barra.appendChild(btn);
   contenedor.appendChild(barra);
 }
 
-/* --------------------------------------------------------------------------
-   SECCION 1 · Fases
-   -------------------------------------------------------------------------- */
-function montarFases(contenedor){
-  for (const fase of DATOS.FASES){
-    const lista = DATOS.ENTREGABLES.filter(e => e.fase === fase.numero);
+/* ==========================================================================
+   SECCION 1 · HOJA DE RUTA
 
-    const det = nodo('details', 'fase');
-    const sum = document.createElement('summary');
+   Replica el gantt de "Avance del proyecto" del portal del cliente: una
+   columna fija para el rotulo y una flexible para los meses, compartida
+   entre la cabecera de tiempos y cada fila, que es lo unico que hace que
+   las celdas caigan en la misma x. Cada fila es una unidad de negocio y se
+   despliega con la flecha de la izquierda.
 
-    const cab = nodo('div', 'fase-cab');
-    cab.appendChild(nodo('span', 'fase-num', fase.numero ? `Fase ${fase.numero}` : 'Durante todo el proyecto'));
-    if (fase.numero) cab.appendChild(nodo('span', 'fase-cierra', `cierra el ${fase.cierra}`));
-    cab.appendChild(nodo('span', 'fase-cuenta',
-      `${lista.length} ${lista.length === 1 ? 'entregable' : 'entregables'}`));
-    sum.appendChild(cab);
+   Sobre eso, las cuatro fases viven en la linea de tiempo y son clicables:
+   al elegir una se despliegan sus entregables agrupados por unidad. Son dos
+   entradas a lo mismo, por unidad y por fase, que es como se pregunta en
+   una reunion.
+   ========================================================================== */
+/* Septiembre no tiene entregas: el proyecto arranca el 10 pero el primer
+   mes se dedica a cerrar los pendientes del contrato actual, y la primera
+   entrega es el 30 de octubre. Se marca, o el mes se lee como un hueco. */
+const MES_ARRANQUE = 0;
+const NOMBRE_MES = ['septiembre de 2026','octubre de 2026','noviembre de 2026','diciembre de 2026',
+                    'enero de 2027','febrero de 2027','marzo de 2027','abril de 2027',
+                    'mayo de 2027','junio de 2027','julio de 2027','agosto de 2027'];
 
-    /* Sin esto la tarjeta no dice que se pueda abrir: el triangulo nativo
-       esta oculto para que la cabecera respire. */
-    const abrir = nodo('span', 'fase-abrir');
-    det.addEventListener('toggle', () => {
-      abrir.textContent = det.open ? '▲ ocultar entregables' : '▼ ver los entregables';
-    });
-    abrir.textContent = '▼ ver los entregables';
+const UNIDADES_RUTA = ['Gerencia', 'Kinder', 'After School', 'Veranito', 'Cumpleaños', 'Baby and Me'];
 
-    const logro = nodo('p', 'logro');
-    const fuerte = nodo('strong', null, fase.numero ? `Al terminar: ${fase.logro}` : fase.logro);
-    logro.append(fuerte, document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
-    sum.appendChild(logro);
-    sum.appendChild(abrir);
-    det.appendChild(sum);
+/* Cuantos entregables de una unidad vencen en un mes. Las fechas de la hoja
+   ya calzan con sus fases, asi que el conteo cae en el mes que le toca a
+   cada entregable y no repartido por su tramo. */
+function densidad(unidad, mes){
+  return DATOS.ENTREGABLES.filter(e => e.unidad === unidad && e.mes === mes).length;
+}
+function faseDelMes(m){
+  return DATOS.FASES.find(f => f.numero !== 0 && m >= f.desde && m <= f.hasta);
+}
+/* Cuatro escalones bastan: mas matices no se distinguen proyectados. */
+function nivelDensidad(n){
+  if (n === 0) return 0;
+  if (n === 1) return 1;
+  if (n <= 3) return 2;
+  if (n <= 5) return 3;
+  return 4;
+}
 
-    /* Cada entregable es a su vez un <details>: la descripcion aparece al
-       hacer clic en la fila. Con 34 descripciones siempre visibles la fase
-       abierta se vuelve un muro de texto que nadie lee proyectado. */
-    const cont = nodo('div', 'entregables');
-    for (const e of lista){
-      const fila = nodo('details', 'entregable');
-      const s = document.createElement('summary');
-      const nom = nodo('span', 'ent-nombre', e.nombre);
-      nom.title = e.nombre;                       // el nombre completo al pasar el cursor
-      const etq = nodo('div', 'ent-etiquetas');
-      etq.appendChild(nodo('span', 'chip', e.unidad));
-      etq.appendChild(nodo('span', 'chip seg', e.segmento));
-      const abrir = nodo('span', 'ent-abrir', 'Ver');
-      fila.addEventListener('toggle', () => { abrir.textContent = fila.open ? 'Ocultar' : 'Ver'; });
-      s.append(nom, etq, nodo('span', 'ent-fecha', e.fecha), abrir);
-      fila.appendChild(s);
-      fila.appendChild(nodo('div', 'ent-nota', e.nota));
-      cont.appendChild(fila);
+/* Lista de filas con la descripcion al clic. La fecha se muestra: desde la
+   ultima version de la hoja todas caen dentro de su fase, asi que ya no
+   contradice al tramo en el que aparece. */
+function listaEntregables(lista){
+  const cont = nodo('div', 'entregables');
+  for (const e of lista){
+    const fila = nodo('details', 'entregable');
+    const s = document.createElement('summary');
+    const nom = nodo('span', 'ent-nombre', e.nombre);
+    nom.title = e.nombre;
+    const etq = nodo('div', 'ent-etiquetas');
+    etq.appendChild(nodo('span', 'chip', e.unidad));
+    etq.appendChild(nodo('span', 'chip seg', e.segmento));
+    const ver = nodo('span', 'ent-abrir', 'Ver');
+    fila.addEventListener('toggle', () => { ver.textContent = fila.open ? 'Ocultar' : 'Ver'; });
+    s.append(nom, etq, nodo('span', 'ent-fecha', e.fecha), ver);
+    fila.appendChild(s);
+    fila.appendChild(nodo('div', 'ent-nota', e.nota));
+    cont.appendChild(fila);
+  }
+  return cont;
+}
+
+/* ==========================================================================
+   SECCION 1 · HOJA DE RUTA
+
+   Una sola vista. La reticula es la del gantt del portal —columna fija de
+   rotulo y columna flexible de meses, compartida por la cabecera y todas
+   las filas—, y sobre ella:
+
+     · las cuatro fases como bandas, con su nombre y su logro a la vista;
+     · una fila por unidad, con la carga de trabajo de cada tramo en la
+       intensidad de la celda y el conteo impreso;
+     · al pulsar una celda o una banda, sus entregables debajo.
+   ========================================================================== */
+function montarRuta(contenedor){
+  let seleccion = null;   // {tipo:'fase'|'celda', fase, unidad}
+
+  /* El conteo de la entrada sale de la lista, no escrito aparte: la hoja
+     cambia y un numero a mano se queda atras contradiciendo al gantt. */
+  const rotulo = document.getElementById('conteo-entregables');
+  if (rotulo) rotulo.textContent = ENTREGABLES.length;
+
+  const tablero = nodo('div', 'ruta-tablero');
+
+  /* ---------- Arranque ----------
+     Septiembre no tiene entregas y sin decirlo se lee como un mes muerto.
+     Lleva su propia banda para que el hueco quede explicado. */
+  const filaArranque = nodo('div', 'tl-fila');
+  filaArranque.appendChild(nodo('span', 'tl-tag', 'Arranque'));
+  const gantArranque = nodo('div', 'gantt');
+  const bandaArranque = nodo('div', 'banda-arranque');
+  /* Dos columnas: con una sola, 'Cierre del proyecto 1' se parte en cuatro
+     renglones y la fila entera crece con el. El borde izquierdo se queda en
+     la columna de septiembre —es lo que dice que ese mes no tiene entregas—
+     y el ancho se gana hacia la derecha. */
+  bandaArranque.style.gridColumn = (MES_ARRANQUE + 1) + ' / span 2';
+  bandaArranque.appendChild(nodo('span', 'ba-titulo', 'Cierre del proyecto 1'));
+  gantArranque.appendChild(bandaArranque);
+  const notaArranque = nodo('div', 'ba-nota');
+  notaArranque.style.gridColumn = (MES_ARRANQUE + 3) + ' / span 10';
+  notaArranque.textContent = 'El proyecto arranca el 10 de septiembre; el primer mes se dedica a ' +
+    'completar los entregables pendientes del contrato actual. La primera entrega es el 30 de octubre.';
+  gantArranque.appendChild(notaArranque);
+  filaArranque.appendChild(gantArranque);
+  tablero.appendChild(filaArranque);
+
+  /* ---------- Bandas de fase ---------- */
+  const filaFases = nodo('div', 'tl-fila');
+  filaFases.appendChild(nodo('span', 'tl-tag', 'Fases'));
+  const bandasFase = nodo('div', 'gantt');
+  const botonesFase = [];
+  for (const f of DATOS.FASES){
+    if (f.numero === 0) continue;
+    const b = nodo('button', 'banda-fase');
+    b.style.gridColumn = (f.desde + 1) + ' / span ' + (f.hasta - f.desde + 1);
+    b.appendChild(nodo('span', 'bf-num', 'Fase ' + f.numero));
+    /* El logro va a la vista, no detras de un clic: es lo que el cliente
+       tiene que leer mientras Ricardo habla. */
+    b.appendChild(nodo('span', 'bf-logro', f.logro));
+    b.appendChild(nodo('span', 'bf-n',
+      DATOS.ENTREGABLES.filter(e => e.fase === f.numero).length + ' entregables'));
+    b.addEventListener('click', () => elegir({ tipo:'fase', fase:f.numero }));
+    bandasFase.appendChild(b);
+    botonesFase.push({ f, b });
+  }
+  filaFases.appendChild(bandasFase);
+  tablero.appendChild(filaFases);
+
+  /* ---------- Meses ---------- */
+  const filaMeses = nodo('div', 'tl-fila');
+  filaMeses.appendChild(nodo('span', 'tl-tag', 'Meses'));
+  const meses = nodo('div', 'gantt');
+  DATOS.MESES.forEach((m, i) => meses.appendChild(nodo('div', 'mo' + (i === 4 ? ' anio-nuevo' : ''), m)));
+  filaMeses.appendChild(meses);
+  tablero.appendChild(filaMeses);
+
+  /* ---------- Una fila por unidad ---------- */
+  const celdas = [];
+  for (const u of UNIDADES_RUTA){
+    const total = DATOS.ENTREGABLES.filter(e => e.unidad === u && e.fase !== 0).length;
+
+    const fila = nodo('div', 'fila-ruta');
+    const info = nodo('div', 'fr-info');
+    info.appendChild(nodo('span', 'fr-nombre', u));
+    info.appendChild(nodo('span', 'fr-n', String(total)));
+    fila.appendChild(info);
+
+    const gantt = nodo('div', 'gantt');
+    for (let m = 0; m < 12; m++){
+      const f = faseDelMes(m);
+      const n = densidad(u, m);
+      const c = nodo('button', 'celda-ruta');
+      c.dataset.nivel = String(nivelDensidad(n));
+      if (m === MES_ARRANQUE) c.classList.add('arranque');
+      if (n > 0){
+        c.title = u + ' · ' + DATOS.MESES[m] + ' · ' + n +
+                  (n === 1 ? ' entregable' : ' entregables');
+        c.appendChild(nodo('span', 'cr-n', String(n)));
+        c.addEventListener('click', () => elegir({ tipo:'mes', mes:m, unidad:u }));
+      } else {
+        c.disabled = true;
+        c.title = m === MES_ARRANQUE
+          ? 'Septiembre se dedica a cerrar el proyecto 1'
+          : u + ' · sin entregas en ' + DATOS.MESES[m];
+      }
+      gantt.appendChild(c);
+      celdas.push({ c, unidad:u, mes:m, fase:f.numero });
     }
-    det.appendChild(cont);
-    contenedor.appendChild(det);
+    fila.appendChild(gantt);
+    tablero.appendChild(fila);
+  }
+
+  /* ---------- Banda transversal ---------- */
+  const transversales = DATOS.ENTREGABLES.filter(e => e.fase === 0);
+  const filaT = nodo('div', 'fila-ruta transversal');
+  const infoT = nodo('div', 'fr-info');
+  const nombreT = nodo('span', 'fr-nombre', 'Transversales');
+  nombreT.title = 'Durante todo el proyecto';
+  infoT.appendChild(nombreT);
+  infoT.appendChild(nodo('span', 'fr-n', String(transversales.length)));
+  filaT.appendChild(infoT);
+  const gantT = nodo('div', 'gantt');
+  const bandaT = nodo('button', 'celda-ruta banda');
+  bandaT.style.gridColumn = '1 / span 12';
+  bandaT.appendChild(nodo('span', 'cr-n', transversales.length + ' durante los doce meses'));
+  bandaT.addEventListener('click', () => elegir({ tipo:'fase', fase:0 }));
+  gantT.appendChild(bandaT);
+  filaT.appendChild(gantT);
+  tablero.appendChild(filaT);
+  contenedor.appendChild(tablero);
+
+  /* ---------- Panel de detalle ---------- */
+  const panel = nodo('div', 'panel-ruta');
+  panel.style.display = 'none';
+  contenedor.appendChild(panel);
+
+  function mismaSeleccion(a, b){
+    return a && b && a.tipo === b.tipo && a.fase === b.fase
+        && a.unidad === b.unidad && a.mes === b.mes;
+  }
+
+  function elegir(sel){
+    if (mismaSeleccion(seleccion, sel)) sel = null;
+    seleccion = sel;
+
+    for (const par of botonesFase){
+      par.b.setAttribute('aria-current',
+        sel && sel.tipo === 'fase' && sel.fase === par.f.numero ? 'true' : 'false');
+    }
+    bandaT.setAttribute('aria-current', sel && sel.tipo === 'fase' && sel.fase === 0 ? 'true' : 'false');
+    for (const q of celdas){
+      const activa = sel && ((sel.tipo === 'mes' && sel.unidad === q.unidad && sel.mes === q.mes)
+                          || (sel.tipo === 'fase' && sel.fase === q.fase));
+      q.c.setAttribute('aria-current', activa ? 'true' : 'false');
+    }
+
+    panel.textContent = '';
+    if (!sel){ panel.style.display = 'none'; return; }
+    panel.style.display = '';
+
+    const fase = sel.tipo === 'fase' ? DATOS.FASES.find(f => f.numero === sel.fase) : null;
+    const cab = nodo('div', 'pr-cab');
+    const titulo = sel.tipo === 'mes'
+      ? sel.unidad + ' · ' + NOMBRE_MES[sel.mes]
+      : (sel.fase === 0 ? 'Durante todo el proyecto' : 'Fase ' + sel.fase + ' · ' + fase.rango);
+    cab.appendChild(nodo('h4', null, titulo));
+    const cerrar = nodo('button', 'pf-cerrar', 'Cerrar');
+    cerrar.addEventListener('click', () => elegir(null));
+    cab.appendChild(cerrar);
+    panel.appendChild(cab);
+
+    if (fase && sel.fase !== 0){
+      const logro = nodo('p', 'logro');
+      logro.append(nodo('strong', null, 'Al terminar: ' + fase.logro),
+                   document.createTextNode(fase.remate ? ' ' + fase.remate : ''));
+      panel.appendChild(logro);
+    }
+
+    if (sel.tipo === 'mes'){
+      panel.appendChild(listaEntregables(
+        DATOS.ENTREGABLES.filter(e => e.mes === sel.mes && e.unidad === sel.unidad)));
+    } else {
+      /* Agrupados por unidad, que es como se pregunta: "y en esta fase,
+         que le toca a Kinder". */
+      for (const u of UNIDADES_RUTA){
+        const suyos = DATOS.ENTREGABLES.filter(e => e.fase === sel.fase && e.unidad === u);
+        if (!suyos.length) continue;
+        const grupo = nodo('div', 'grupo-unidad');
+        const gh = nodo('div', 'gu-cab');
+        gh.appendChild(nodo('span', 'gu-nombre', u));
+        gh.appendChild(nodo('span', 'gu-n', suyos.length + (suyos.length === 1 ? ' entregable' : ' entregables')));
+        grupo.appendChild(gh);
+        grupo.appendChild(listaEntregables(suyos));
+        panel.appendChild(grupo);
+      }
+    }
   }
 }
 
-/* --------------------------------------------------------------------------
-   SECCION 2 · Donde estan hoy
-   -------------------------------------------------------------------------- */
-function montarHoy(contenedor){
-  const unidades = nodo('div', 'unidades');
-  for (const u of DATOS.UNIDADES_HOY){
-    const frac = u.ocupados / u.capacidad;
-    const art = nodo('article', 'unidad');
-    const cab = nodo('div', 'unidad-cab');
-    cab.appendChild(nodo('h3', null, u.nombre));
-    art.appendChild(cab);
-    const t = { cab, pastillaNodo:null };
-    ponPastilla(t, `${u.ocupados} de ${u.capacidad} ${u.sufijo} · ${F.pct(frac)}`, frac);
+/* ==========================================================================
+   SECCION 2 · DETALLE POR UNIDAD
 
-    const cifras = nodo('div', 'cifras');
-    const bloque = nodo('div', 'cifra-bloque destacada');
-    bloque.appendChild(nodo('span', 'etiqueta', `Facturacion ${u.periodo}`));
-    bloque.appendChild(nodo('b', null, F.dinero(u.facturacion)));
-    cifras.appendChild(bloque);
-    art.appendChild(cifras);
-    unidades.appendChild(art);
-  }
-  contenedor.appendChild(unidades);
+   Una tarjeta de ancho completo por unidad, apiladas. Cada una lleva su
+   tabla desglosada a la izquierda y las cifras y los controles a la
+   derecha, de modo que el cliente ve de donde sale cada dolar mientras
+   Ricardo mueve el deslizador.
 
-  const p = DATOS.PRUEBA_VERANITO, v = DATOS.VALOR_VIDA;
-  const caja = nodo('div', 'prueba');
-  const titular = nodo('div', 'titular');
-  titular.innerHTML =
-    'Tres unidades operan a un tercio de su capacidad. Veranito, que ya recibio el trabajo, ' +
-    `esta al ${F.pct(DATOS.UNIDADES_HOY[3].ocupados / DATOS.UNIDADES_HOY[3].capacidad)}. ` +
-    '<strong>Lo que se hizo en Veranito es lo que se va a hacer en las otras tres.</strong>';
-  caja.appendChild(titular);
-
-  /* Solo Veranito. Mezclar aqui el valor de vida de Kinder hacia leer las
-     tres cifras como si todas fueran de la misma unidad. */
-  const cifras = nodo('div', 'prueba-cifras');
-  const bloques = [
-    { etiqueta:'Veranito 2025 → 2026', valor:`${F.dinero(p.anterior)} → ${F.dinero(p.actual)}`,
-      glosa:`${F.pct(p.crecimiento)} de crecimiento en la misma temporada` },
-    { etiqueta:'Inversion acumulada en Veranito', valor:F.dinero(p.inversion),
-      glosa:`Marketing, comercial y software · relacion de ${Math.round(p.relacion)} a 1` },
-    { etiqueta:'Adquisicion en Veranito', valor:F.precio(v.veranito.adquisicion),
-      glosa:`Contra ${F.precio(v.veranito.ventaPorCliente)} de venta por cliente nuevo` },
-  ];
-  for (const b of bloques){
-    const d = nodo('div');
-    d.appendChild(nodo('span', 'etiqueta', b.etiqueta));
-    d.appendChild(nodo('b', null, b.valor));
-    d.appendChild(nodo('span', 'glosa', b.glosa));
-    cifras.appendChild(d);
-  }
-  caja.appendChild(cifras);
-  contenedor.appendChild(caja);
-
-  /* El valor de vida es de Kinder, no de Veranito, y va en su propio bloque
-     con la unidad dicha en el titulo. */
-  const kin = nodo('div', 'hallazgo');
-  kin.innerHTML =
-    `<strong>En Kinder</strong>, el valor de vida de una familia es ` +
-    `<strong>${F.dinero(v.kinder.valor)}</strong> contra ${F.dinero(v.kinder.adquisicion)} ` +
-    `de costo de adquisicion: una relacion de <strong>${Math.round(v.kinder.relacion)} a 1</strong>.`;
-  contenedor.appendChild(kin);
-}
-
-/* --------------------------------------------------------------------------
-   SECCION 6 · La inversion
-   -------------------------------------------------------------------------- */
-function montarInversion(contenedor){
-  /* El monto arranca de la constante pero se edita en pantalla: la cifra
-     puede cambiar durante la propia reunion y no se va a recargar el
-     archivo delante del cliente. La constante sigue siendo el valor de
-     partida al que vuelve el reinicio. */
-  const inicial = () => ({
-    total: DATOS.INVERSION,
-    pctPrimero: 0.40,
-    meses: 6,
-    conFinal: false,
-    pctFinal: 0.10,
+   Todas arrancan en la ocupacion real de hoy: al eliminarse "Donde estan
+   hoy", es esta seccion la que carga el punto de partida.
+   ========================================================================== */
+/* Una celda es texto o un campo editable. Se crean una sola vez; despues
+   solo se actualizan valores, y el campo que tiene el foco no se toca para
+   no interrumpir a quien esta escribiendo. */
+function crearFila(tbody, cruda){
+  const celdas = Array.isArray(cruda) ? cruda : cruda.celdas;
+  const tr = document.createElement('tr');
+  if (!Array.isArray(cruda) && cruda.clase) tr.className = cruda.clase;
+  const refs = celdas.map((celda, i) => {
+    const td = document.createElement(i === 0 ? 'th' : 'td');
+    if (i === 0) td.scope = 'row'; else td.className = 'num';
+    const ref = { td, input:null, alCambiar:null };
+    if (celda && typeof celda === 'object' && celda.editable){
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.className = 'celda-editable';
+      inp.inputMode = 'numeric';
+      inp.addEventListener('input', () => {
+        const v = Number(inp.value);
+        /* Un campo a medio escribir no dispara nada: si se recalculara con
+           el valor parcial, el repintado devolveria el numero corregido y
+           se comeria el resto de las teclas. */
+        if (inp.value !== '' && Number.isFinite(v) && ref.alCambiar) ref.alCambiar(v);
+      });
+      /* Al salir del campo se normaliza lo que quedo a medias. */
+      inp.addEventListener('blur', () => {
+        if (inp.value === '' && ref.alCambiar) ref.alCambiar(0);
+      });
+      td.appendChild(inp);
+      ref.input = inp;
+    }
+    tr.appendChild(td);
+    return ref;
   });
+  tbody.appendChild(tr);
+  return { tr, refs };
+}
+
+function actualizarFila(dom, cruda){
+  const celdas = Array.isArray(cruda) ? cruda : cruda.celdas;
+  celdas.forEach((celda, i) => {
+    const ref = dom.refs[i];
+    if (celda && typeof celda === 'object' && celda.editable){
+      if (!ref.input) return;
+      ref.alCambiar = celda.alCambiar;   // se reengancha al estado nuevo
+      ref.input.min = celda.min != null ? celda.min : 0;
+      if (celda.max != null) ref.input.max = celda.max;
+      ref.input.step = celda.paso != null ? celda.paso : 1;
+      if (document.activeElement !== ref.input) ref.input.value = celda.valor;
+    } else if (!ref.input){
+      ref.td.textContent = celda;
+    }
+  });
+}
+
+/* ==========================================================================
+   OCUPACION COMPARTIDA
+
+   "Detalle por unidad" y "Cuadro resumen" mueven el mismo dato: cuantos de
+   los cupos de cada unidad estan llenos. Antes cada seccion guardaba el suyo,
+   asi que se podia dejar Kinder al 40% en una pestaña y al 60% en la otra sin
+   que nada lo indicara, y los totales dejaban de hablar del mismo escenario.
+
+   Ahora el valor vive aqui una sola vez y cada seccion se suscribe. Manda el
+   ultimo cambio, sea cual sea la pestaña donde se hizo.
+   ========================================================================== */
+const OCUPACION = (() => {
+  const valores = {};
+  const oyentes = [];
+  return {
+    lee: (clave, siFalta) => valores[clave] !== undefined ? valores[clave] : siFalta,
+    /* Se publica en bloque y se avisa una sola vez: la seccion 2 recalcula las
+       cinco unidades en cada repintado. Quien publica no se escucha a si mismo,
+       que es lo que cerraria el ciclo. Se avisa que claves cambiaron para que
+       nadie repare lo que nadie toco. */
+    fija(cambios, origen){
+      const cambiadas = [];
+      for (const clave in cambios){
+        if (valores[clave] === cambios[clave]) continue;
+        valores[clave] = cambios[clave];
+        cambiadas.push(clave);
+      }
+      if (cambiadas.length) oyentes.forEach(o => { if (o.nombre !== origen) o.fn(cambiadas); });
+    },
+    suscribe(nombre, fn){ oyentes.push({ nombre, fn }); },
+  };
+})();
+
+function montarUnidades(contenedor){
+  const inicial = () => MOTOR.partida();
   let est = inicial();
   const restauradores = [];
 
-  const aviso = nodo('div', 'marca-ejemplo');
-  contenedor.appendChild(aviso);
+  const reg = (cfg, lee) => {
+    const c = control(cfg);
+    restauradores.push(p => c.restaurar(lee(p)));
+    return c.wrap;
+  };
+
+  /* Deslizadores que representan un dato que tambien se edita en la tabla.
+     Se guardan para poder devolverles el valor calculado desde los alumnos
+     en cada repintado: si no, el deslizador quedaria diciendo una ocupacion
+     que ya no es la que hay. */
+  /* Marca visual entre el control maestro y los de ajuste fino. Devuelve un
+     nodo mas para la lista de controles, no un control. */
+  const separador = texto => {
+    const d = nodo('div', 'control ancho separador-control');
+    d.appendChild(nodo('span', null, texto || 'Ajuste fino'));
+    return d;
+  };
+
+  /* Como se reparte una ocupacion dentro de cada unidad. Es la cuenta que
+     ya hacia cada control maestro, puesta en un solo sitio porque ahora entra
+     tambien desde el cuadro resumen. */
+  const APLICAR = {
+    kinder:      f => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * f); },
+    afterSchool: f => { est.afterSchool.ocupacion = f; est.afterSchool.alumnos = null; },
+    veranito:    f => { est.veranito.mayAgo.ocupacion = f; est.veranito.eneMar.ocupacion = f; },
+    cumpleanos:  f => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * f; },
+    baby:        f => { est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
+                          Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * f)); },
+  };
+
+  let sincronizables = [];
+  const regSync = (cfg, lee) => {
+    const c = control(cfg);
+    if (cfg.maestro) c.wrap.classList.add('maestro');
+    restauradores.push(p => c.restaurar(lee(p)));
+    sincronizables.push(c);
+    return c.wrap;
+  };
+
+  /* Cada unidad declara de donde sale su ocupacion, que columnas tiene su
+     tabla y como se arman sus filas. Lo que cambia entre unidades son los
+     datos, no la forma de la tarjeta.
+
+     Todas llevan un control maestro de ocupacion que manda sobre los
+     granulares, y los granulares debajo como ajuste fino. La sincronizacion
+     va en los dos sentidos: el maestro reparte, y tocar un granular
+     recalcula el maestro como alumnos sobre cupos. Sin eso, la seccion 2 y
+     el cuadro resumen podian quedar en estados distintos sin que nada lo
+     indicara, y sus totales dejaban de coincidir. */
+  const FICHAS = [
+    {
+      nombre: 'Kinder', clave: 'kinder',
+      columnas: ['Plan', 'Niños', 'Precio', 'Facturación'],
+      calcular: () => MOTOR.kinder(est.kinder),
+      ocupacion: r => ({ texto: r.ninos + ' de ' + MOTOR.KINDER_CAPACIDAD + ' niños',
+                         frac: r.ninos / MOTOR.KINDER_CAPACIDAD }),
+      sincronizar: r => [Math.round(r.ninos / MOTOR.KINDER_CAPACIDAD * 100)],
+      apoyo: r => r.grupos + ' grupos abiertos · ticket promedio ' + F.precio(r.ticket),
+      filas: r => r.detalle.map(d => [d.nombre, d.ninos, F.precio(d.precio), F.dinero(d.facturacion)])
+                   .concat([['Costo de los grupos', r.grupos, F.precio(est.kinder.costoGrupo),
+                             '−' + F.dinero(r.costo)]]),
+      aviso: r => r.excedeCapacidad
+        ? r.ninos + ' niños no caben en la capacidad actual: requiere habilitar salones adicionales.' : null,
+      controles: () => [
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor: est.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100, formato:x => x + '%', ancho:true,
+                  alCambiar:x => { APLICAR.kinder(x / 100); pintar(); } },
+                p => p.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100),
+        separador(),
+        reg({ etiqueta:'Mezcla 4,5 h / 8 h', tipo:'range', min:0, max:100, paso:5, valor:est.kinder.pct45*100,
+              formato:x => x + ' / ' + (100 - x), ancho:true,
+              alCambiar:x => { est.kinder.pct45 = x/100; pintar(); } }, p => p.kinder.pct45*100),
+        reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio45,
+              alCambiar:x => { est.kinder.precio45 = x; pintar(); } }, p => p.kinder.precio45),
+        reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:2000, paso:1, valor:est.kinder.precio8,
+              alCambiar:x => { est.kinder.precio8 = x; pintar(); } }, p => p.kinder.precio8),
+        reg({ etiqueta:'Costo por grupo', tipo:'number', min:0, max:9000, paso:50, valor:est.kinder.costoGrupo,
+              ancho:true, alCambiar:x => { est.kinder.costoGrupo = x; pintar(); } }, p => p.kinder.costoGrupo),
+      ],
+      extra: () => {
+        const v = DATOS.VALOR_VIDA;
+        return 'Valor de vida de una familia: <strong>' + F.dinero(v.kinder.valor) + '</strong> contra ' +
+               F.dinero(v.kinder.adquisicion) + ' de costo de adquisición. Relación de <strong>' +
+               Math.round(v.kinder.relacion) + ' a 1</strong>.';
+      },
+    },
+    {
+      nombre: 'After School', clave: 'afterSchool',
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Costo/hora', 'Facturación', 'Costo'],
+      calcular: () => MOTOR.afterSchool(est.afterSchool),
+      /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
+         mueve cuantos niños hay. */
+      ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
+                         frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
+      sincronizar: r => [Math.round(r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100)],
+      apoyo: () => '',
+      filas: r => r.detalle.map((d, i) => [
+        d.nombre,
+        d.cupos,
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
+          alCambiar:v => { est.afterSchool.alumnos = r.detalle.map(x => x.alumnos);
+                           est.afterSchool.alumnos[i] = v; pintar(); } },
+        d.esSabado ? '—'
+          : { editable:true, valor:d.costoHora, min:0, paso:1,
+              alCambiar:v => { est.afterSchool.costosHora = r.detalle.map(x => x.costoHora != null ? x.costoHora : null);
+                               est.afterSchool.costosHora[i] = v; pintar(); } },
+        F.dinero(d.facturacion),
+        d.costo ? '−' + F.dinero(d.costo) : '—',
+      ]),
+      controles: () => [
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:est.afterSchool.ocupacion*100, formato:x => x + '%', ancho:true,
+                  /* Reparte y vuelve a mandar sobre lo editado en la tabla. */
+                  alCambiar:x => { APLICAR.afterSchool(x / 100); pintar(); } },
+                p => p.afterSchool.ocupacion*100),
+        separador('Los alumnos de cada disciplina se ajustan en la tabla'),
+        reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
+              alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
+        reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
+              alCambiar:x => { est.afterSchool.precioTelas = x; pintar(); } }, p => p.afterSchool.precioTelas),
+        reg({ etiqueta:'Precio sábado', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio1v,
+              alCambiar:x => { est.afterSchool.precio1v = x; pintar(); } }, p => p.afterSchool.precio1v),
+      ],
+    },
+    {
+      nombre: 'Veranito', clave: 'veranito',
+      columnas: ['Temporada', 'Cupos', 'Vendidos', 'Facturación', 'Costo'],
+      /* La cifra grande es la mensual prorrateada, no la anual: asi Veranito
+         se lee igual que las otras cuatro unidades, que son mensuales. */
+      calcular: () => {
+        const v = MOTOR.veranitoAnual(est.veranito);
+        return Object.assign({}, v.mes, { v });
+      },
+      ocupacion: r => ({
+        texto: r.v.anual.cupos + ' de ' + r.v.anual.cuposTemporada + ' cupos al año',
+        frac: r.v.anual.cupos / r.v.anual.cuposTemporada,
+      }),
+      sincronizar: r => [
+        Math.round(r.v.anual.cupos / r.v.anual.cuposTemporada * 100),
+        Math.round(r.v.mayAgo.cupos / r.v.mayAgo.cuposTemporada * 100),
+        Math.round(r.v.eneMar.cupos / r.v.eneMar.cuposTemporada * 100),
+      ],
+      apoyo: r => 'Promedio de las dos temporadas prorrateado a doce meses · ' +
+                  F.dinero(r.v.anual.facturacion) + ' al año ÷ 12 · ticket real ' + F.precio(r.v.ticket),
+      filas: r => [
+        ['Mayo a agosto', r.v.mayAgo.cuposTemporada, r.v.mayAgo.cupos,
+         F.dinero(r.v.mayAgo.facturacion), '−' + F.dinero(r.v.mayAgo.costo)],
+        ['Enero a marzo', r.v.eneMar.cuposTemporada, r.v.eneMar.cupos,
+         F.dinero(r.v.eneMar.facturacion), '−' + F.dinero(r.v.eneMar.costo)],
+        { clase:'suma', celdas:['Total al año', r.v.anual.cuposTemporada, r.v.anual.cupos,
+          F.dinero(r.v.anual.facturacion), '−' + F.dinero(r.v.anual.costo)] },
+        { clase:'suma destacada', celdas:['Prorrateado al mes', '', '',
+          F.dinero(r.v.mes.facturacion), '−' + F.dinero(r.v.mes.costo)] },
+      ],
+      controles: () => [
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:0, formato:x => x + '%', ancho:true,
+                  alCambiar:x => { APLICAR.veranito(x / 100); pintar(); } },
+                () => 0),
+        separador('Cada temporada por separado'),
+        regSync({ etiqueta:'Mayo–agosto', tipo:'range', min:0, max:100, paso:1,
+                  valor:est.veranito.mayAgo.ocupacion*100, formato:x => x + '%',
+                  alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100; pintar(); } },
+                p => p.veranito.mayAgo.ocupacion*100),
+        regSync({ etiqueta:'Enero–marzo', tipo:'range', min:0, max:100, paso:1,
+                  valor:est.veranito.eneMar.ocupacion*100, formato:x => x + '%',
+                  alCambiar:x => { est.veranito.eneMar.ocupacion = x/100; pintar(); } },
+                p => p.veranito.eneMar.ocupacion*100),
+        reg({ etiqueta:'Semanas', tipo:'range', min:1, max:16, paso:1, valor:est.veranito.semanas,
+              formato:x => x + ' semanas',
+              alCambiar:x => { est.veranito.semanas = x; pintar(); } }, p => p.veranito.semanas),
+        reg({ etiqueta:'Cupos por semana', tipo:'range', min:0, max:50, paso:1, valor:est.veranito.cuposSemana,
+              formato:x => x + ' cupos',
+              alCambiar:x => { est.veranito.cuposSemana = x; pintar(); } }, p => p.veranito.cuposSemana),
+        reg({ etiqueta:'Precio 4,5 h', tipo:'number', min:0, max:900, paso:1, valor:est.veranito.precio45,
+              alCambiar:x => { est.veranito.precio45 = x; pintar(); } }, p => p.veranito.precio45),
+        reg({ etiqueta:'Precio 8 h', tipo:'number', min:0, max:900, paso:1, valor:est.veranito.precio8,
+              alCambiar:x => { est.veranito.precio8 = x; pintar(); } }, p => p.veranito.precio8),
+      ],
+      nota: () => NOTA_COSTO_VERANITO,
+    },
+    {
+      nombre: 'Cumpleaños', clave: 'cumpleanos',
+      columnas: ['Concepto', 'Al mes', 'Precio', 'Facturación', 'Costo'],
+      calcular: () => MOTOR.cumpleanos(est.cumpleanos),
+      ocupacion: r => {
+        const tope = Math.round(MOTOR.CUMPLE_TOPE_SEMANA * MOTOR.SEM_MES);
+        return { texto: r.eventos + ' de ' + tope + ' eventos al mes', frac: r.eventos / tope };
+      },
+      /* El maestro va en porcentaje, como en las otras cuatro, y el control
+         de eventos por semana queda debajo. Sin el maestro, "ponerlo al 65%"
+         no era la misma accion aqui que en el cuadro resumen. */
+      sincronizar: () => [
+        Math.round(est.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100),
+        Math.round(est.cumpleanos.eventosSemana * 10) / 10,
+      ],
+      apoyo: () => 'Tope real: ' + MOTOR.CUMPLE_TOPE_SEMANA + ' eventos por semana.',
+      filas: r => r.detalle.map(d => [
+        d.nombre + ' · ' + d.porSemana.toFixed(1).replace('.', ',') + ' por semana',
+        d.cantidad, F.precio(d.precio), F.dinero(d.facturacion), '−' + F.dinero(d.costo)]),
+      controles: () => [
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:est.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100,
+                  formato:x => x + '%', ancho:true,
+                  alCambiar:x => { APLICAR.cumpleanos(x / 100); pintar(); } },
+                p => p.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100),
+        separador(),
+        regSync({ etiqueta:'Eventos por semana', tipo:'range', min:0, max:MOTOR.CUMPLE_TOPE_SEMANA, paso:0.1,
+                  valor:est.cumpleanos.eventosSemana,
+                  formato:x => x.toFixed(1).replace('.', ',') + ' por semana', ancho:true,
+                  alCambiar:x => { est.cumpleanos.eventosSemana = x; pintar(); } },
+                p => p.cumpleanos.eventosSemana),
+        reg({ etiqueta:'Precio del paquete', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.precio,
+              alCambiar:x => { est.cumpleanos.precio = x; pintar(); } }, p => p.cumpleanos.precio),
+        reg({ etiqueta:'Costo por evento', tipo:'number', min:0, max:3000, paso:1, valor:est.cumpleanos.costoEvento,
+              alCambiar:x => { est.cumpleanos.costoEvento = x; pintar(); } }, p => p.cumpleanos.costoEvento),
+      ],
+    },
+    {
+      nombre: 'Baby and Me', clave: 'baby',
+      columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturación', 'Costo'],
+      calcular: () => MOTOR.baby(est.baby),
+      ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
+      sincronizar: r => [
+        Math.round(r.alumnos / r.cupos * 100),
+        Math.round(r.detalle[0].alumnos / r.detalle[0].cupos * 100),
+        Math.round(r.detalle[1].alumnos / r.detalle[1].cupos * 100),
+      ],
+      apoyo: r => {
+        const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
+        return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
+               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación';
+      },
+      filas: r => r.detalle.map((d, i) => [
+        d.nombre + ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones') +
+          ' de ' + d.horas + ' h' + (d.vecesSemana > 1 ? ' · ' + d.vecesSemana + ' veces por semana' : ''),
+        d.cupos,
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
+          alCambiar:v => { est.baby.alumnos = r.detalle.map(x => x.alumnos);
+                           est.baby.alumnos[i] = v; pintar(); } },
+        F.precio(d.precio),
+        F.dinero(d.facturacion),
+        d.costo ? '−' + F.dinero(d.costo) : '—',
+      ]),
+      /* El maestro reparte entre las dos franjas; cada una se afina debajo.
+         Los planes cuestan distinto —sabado $97, semana $165— asi que
+         llenar una no vale lo mismo que llenar la otra. */
+      controles: () => [
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
+                  valor:0, formato:x => x + '%', ancho:true,
+                  alCambiar:x => { APLICAR.baby(x / 100); pintar(); } },
+                () => 0),
+        separador('Cada franja por separado'),
+      ].concat(MOTOR.BABY_FRANJAS.map((fr, i) => {
+        const cupos = fr.sesiones * fr.cuposSesion / fr.vecesSemana;
+        return regSync({ etiqueta:fr.nombre, tipo:'range', min:0, max:100, paso:1,
+                         valor:0, formato:x => x + '%',
+                         alCambiar:x => {
+                           const actual = MOTOR.baby(est.baby).detalle.map(d => d.alumnos);
+                           actual[i] = Math.round(cupos * x / 100);
+                           est.baby.alumnos = actual;
+                           pintar();
+                         } },
+                       () => 0);
+      })).concat([
+        separador('Precio de cada plan'),
+        /* Los dos planes cuestan distinto y se editan por separado. El precio
+           no toca el costo: las sesiones dictadas son las mismas cobren lo
+           que cobren, y de ahi salen los $650 del mes. */
+        reg({ etiqueta:'Precio plan sábado', tipo:'number', min:0, max:900, paso:0.01,
+              valor:est.baby.precios[0],
+              alCambiar:x => { est.baby.precios[0] = x; pintar(); } }, p => p.baby.precios[0]),
+        reg({ etiqueta:'Precio plan semana', tipo:'number', min:0, max:900, paso:0.01,
+              valor:est.baby.precios[1],
+              alCambiar:x => { est.baby.precios[1] = x; pintar(); } }, p => p.baby.precios[1]),
+        /* Editable porque puede atenderla un profesor de Kinder. */
+        reg({ etiqueta:'Costo por hora', tipo:'number', min:0, max:500, paso:1, valor:est.baby.costoHora,
+              ancho:true, alCambiar:x => { est.baby.costoHora = x; pintar(); } }, p => p.baby.costoHora),
+      ]),
+    },
+  ];
+
+  /* Al tocar una celda se congela el vector completo con lo que hay en
+     pantalla y se cambia solo esa posicion: si no, el reparto del deslizador
+     volveria a pisar lo editado en el siguiente repintado. */
+  function fijarAlumnosAS(r, i, v){
+    est.afterSchool.alumnos = r.detalle.map(d => d.alumnos);
+    est.afterSchool.alumnos[i] = v;
+  }
+  function fijarCostoAS(r, i, v){
+    est.afterSchool.costosHora = r.detalle.map(d => d.costoHora != null ? d.costoHora : null);
+    est.afterSchool.costosHora[i] = v;
+  }
+
+  const tarjetas = FICHAS.map(ficha => {
+    const art = nodo('article', 'unidad-ancha');
+
+    const cab = nodo('div', 'ua-cab');
+    cab.appendChild(nodo('h3', null, ficha.nombre));
+    const pastillaCaja = nodo('span', 'ua-pastilla');
+    cab.appendChild(pastillaCaja);
+    art.appendChild(cab);
+
+    const apoyo = nodo('div', 'cifra-apoyo');
+    art.appendChild(apoyo);
+
+    const aviso = nodo('div', 'aviso');
+    aviso.style.display = 'none';
+    art.appendChild(aviso);
+
+    const cuerpo = nodo('div', 'ua-cuerpo');
+
+    /* Izquierda: la tabla desglosada, que es de donde sale cada dolar. */
+    const cajaTabla = nodo('div', 'ua-tabla');
+    const tabla = document.createElement('table');
+    tabla.className = 'desglose';
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    ficha.columnas.forEach((c, i) => {
+      const th = document.createElement('th');
+      th.textContent = c;
+      if (i > 0) th.className = 'num';
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tabla.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    tabla.appendChild(tbody);
+    cajaTabla.appendChild(tabla);
+    cuerpo.appendChild(cajaTabla);
+
+    /* Derecha: las tres cifras y los controles. */
+    const lado = nodo('div', 'ua-lado');
+    const cifras = nodo('div', 'cifras');
+    const refs = {};
+    for (const par of [['facturacion','Facturación'],['costo','Costo'],['margen','Margen']]){
+      const bloque = nodo('div', 'cifra-bloque' + (par[0] === 'margen' ? ' destacada' : ''));
+      bloque.appendChild(nodo('span', 'etiqueta', par[1]));
+      refs[par[0]] = nodo('b');
+      bloque.appendChild(refs[par[0]]);
+      cifras.appendChild(bloque);
+    }
+    lado.appendChild(cifras);
+
+    const controles = nodo('div', 'controles');
+    const desde = sincronizables.length;
+    ficha.controles().forEach(w => controles.appendChild(w));
+    const suyos = sincronizables.slice(desde);
+    lado.appendChild(controles);
+    cuerpo.appendChild(lado);
+    art.appendChild(cuerpo);
+
+    if (ficha.extra) art.appendChild(bloqueDestacado(ficha.extra()));
+    art.appendChild(nodo('p', 'nota-costo', ficha.nota ? ficha.nota() : NOTA_COSTO));
+
+    contenedor.appendChild(art);
+    return { ficha, pastillaCaja, apoyo, aviso, tbody, refs, pastillaNodo:null, sincronizables:suyos };
+  });
+
+  barraReinicio(contenedor, 'Reiniciar valores');
+
+  function pintar(){
+    const fracs = {};
+    for (const t of tarjetas){
+      const r = t.ficha.calcular();
+
+      const oc = t.ficha.ocupacion(r);
+      if (t.ficha.clave) fracs[t.ficha.clave] = oc.frac;
+      if (t.pastillaNodo) t.pastillaNodo.remove();
+      t.pastillaNodo = pastilla(oc.texto + ' · ' + F.pct(oc.frac), oc.frac);
+      t.pastillaCaja.appendChild(t.pastillaNodo);
+
+      t.apoyo.textContent = t.ficha.apoyo(r);
+
+      const av = t.ficha.aviso ? t.ficha.aviso(r) : null;
+      t.aviso.style.display = av ? '' : 'none';
+      if (av) t.aviso.textContent = av;
+
+      /* La tabla se construye una vez y luego solo se actualiza. Rehacerla
+         en cada repintado destruia el campo que se estaba escribiendo: por
+         eso solo aceptaba un digito y obligaba a volver a hacer clic. */
+      const filas = t.ficha.filas(r);
+      if (!t.filasDom) t.filasDom = filas.map(cruda => crearFila(t.tbody, cruda));
+      filas.forEach((cruda, i) => actualizarFila(t.filasDom[i], cruda));
+
+      /* El deslizador vuelve al valor que dicen los alumnos. Se calcula
+         desde alumnos sobre cupos, nunca desde la facturacion: el precio no
+         cambia la ocupacion. El que tiene el foco no se toca. */
+      if (t.ficha.sincronizar){
+        const valores = t.ficha.sincronizar(r);
+        t.sincronizables.forEach((c, i) => {
+          if (valores[i] == null) return;
+          /* Sin redondear aqui: hay controles con paso decimal, como los
+             eventos por semana. Cada ficha devuelve el valor ya en las
+             unidades de su control. */
+          if (document.activeElement !== c.inp) c.restaurar(valores[i]);
+        });
+      }
+
+      t.refs.facturacion.textContent = F.dinero(r.facturacion);
+      t.refs.costo.textContent = F.dinero(r.costo);
+      t.refs.margen.textContent = F.dinero(r.margen);
+    }
+
+    /* La ocupacion que sale de estas tarjetas es la que ve el cuadro resumen.
+       Si no cambio nada, fija() no avisa y aqui se detiene el ciclo. */
+    OCUPACION.fija(fracs, 'unidades');
+  }
+
+  /* Lo que llega del cuadro resumen se reparte dentro de la unidad que cambio
+     —solo esa: reaplicar las cinco borraria los alumnos editados a mano en la
+     tabla de otra unidad— y se repinta. */
+  OCUPACION.suscribe('unidades', claves => {
+    let toco = false;
+    for (const clave of claves){
+      if (!APLICAR[clave]) continue;
+      APLICAR[clave](OCUPACION.lee(clave));
+      toco = true;
+    }
+    if (toco) pintar();
+  });
+
+  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
+  pintar();
+  REINICIOS.push(reiniciar);
+}
+
+
+/* ==========================================================================
+   SECCION 3 · CUADRO RESUMEN
+
+   2025 y 2026 son datos cerrados y no se tocan. Solo la columna de 2027
+   responde a los dos controles.
+   ========================================================================== */
+function montarResumen(contenedor){
+  /* Un deslizador por unidad en vez de uno solo: la pregunta de la reunion
+     es "Kinder al 80% pero After School al 50%, cuanto da".
+
+     Estos deslizadores recorren de 0 a 100 de punto en punto, y no de 45 a
+     100 de cinco en cinco como antes. El motivo es que ahora muestran el
+     mismo dato que la seccion 2, que arranca en la ocupacion real de cada
+     unidad —Kinder en 37,5%, Baby and Me en 0%— y ninguno de esos valores
+     cabe en aquella rejilla: el deslizador habria enseñado 45% mientras el
+     valor compartido decia otra cosa.
+
+     Lo que se pierde con el paso de un punto esta medido y documentado en
+     pruebas-motor.js: el EBITDA retrocede cuatro veces al subir la ocupacion,
+     cuando Kinder cruza un escalon de grupo. */
+  const UNIDADES_2027 = [
+    { clave:'kinder',      rotulo:'Kinder' },
+    { clave:'afterSchool', rotulo:'After School' },
+    { clave:'veranito',    rotulo:'Veranito' },
+    { clave:'cumpleanos',  rotulo:'Cumpleaños' },
+    { clave:'baby',        rotulo:'Baby and Me' },
+  ];
+  /* El punto de partida es el que trae la seccion 2, que ya se monto. Los
+     dos botones de reinicio vuelven aqui, para que no haya dos "estados
+     iniciales" distintos segun por donde se reinicie. */
+  const OCUPACIONES_PARTIDA = UNIDADES_2027.reduce(
+    (o, u) => (o[u.clave] = OCUPACION.lee(u.clave, MOTOR.OCUPACION_2027_PARTIDA), o), {});
+  const inicial = () => ({
+    ocupaciones: Object.assign({}, OCUPACIONES_PARTIDA),
+    gastosMes: MOTOR.GASTOS_MES_PARTIDA,
+  });
+  let est = inicial();
+  const restauradores = [];
+  const deslizadores = {};
+
+  /* La posicion mas cercana que el deslizador puede ocupar. Nunca por debajo
+     del suelo ni fuera del paso: el input rechazaria el valor y se quedaria
+     en otro sitio sin avisar. */
+  const enRejilla = x => {
+    const paso = MOTOR.OCUPACION_2027_PASO;
+    const suelo = MOTOR.OCUPACION_2027_MINIMA * 100;
+    return Math.min(100, Math.max(suelo, Math.round(x / paso) * paso));
+  };
+  /* Un decimal y coma, para que 37,5% no salga como 37.5% ni redondeado a 38. */
+  const PCT = x => (Math.round(x * 10) / 10).toString().replace('.', ',') + '%';
+
+  const panel = nodo('div', 'plan-controles');
+  const reg = (cfg, lee) => {
+    const c = control(cfg);
+    restauradores.push(p => c.restaurar(lee(p)));
+    panel.appendChild(c.wrap);
+    return c;
+  };
+  for (const u of UNIDADES_2027){
+    deslizadores[u.clave] = reg({ etiqueta:'Ocupación · ' + u.rotulo, tipo:'range',
+          min:MOTOR.OCUPACION_2027_MINIMA*100, max:100, paso:MOTOR.OCUPACION_2027_PASO,
+          valor:enRejilla(est.ocupaciones[u.clave]*100), formato:PCT,
+          alCambiar:x => { est.ocupaciones[u.clave] = x/100;
+                           OCUPACION.fija({ [u.clave]: x/100 }, 'resumen');
+                           pintar(); } },
+        p => p.ocupaciones[u.clave]*100);
+  }
+  reg({ etiqueta:'Gastos operativos mensuales', tipo:'number', min:0, max:200000, paso:500,
+        valor:est.gastosMes,
+        alCambiar:x => { est.gastosMes = x; pintar(); } }, p => p.gastosMes);
+  contenedor.appendChild(panel);
+
+  const caja = nodo('div', 'tabla-caja');
+  const tabla = document.createElement('table');
+  tabla.className = 'resumen';
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  for (const t of ['', '2025 real', '2026 estimado', '2027 proyectado']){
+    const th = document.createElement('th');
+    th.textContent = t;
+    trh.appendChild(th);
+  }
+  thead.appendChild(trh);
+  tabla.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const FILAS = [
+    { clave:'ingresos',   rotulo:'Ingresos', grande:true },
+    { clave:'manoDeObra', rotulo:'(−) Costo de mano de obra' },
+    { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, grande:true, pct:'margenBrutoPct' },
+    { clave:'gastos',     rotulo:'(−) Gastos operativos' },
+    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, fuerte:true, grande:true, pct:'ebitdaPct' },
+  ];
+  const celdas = {};
+  for (const f of FILAS){
+    const tr = document.createElement('tr');
+    if (f.destacada) tr.className = 'destacada' + (f.fuerte ? ' ebitda' : '');
+    if (f.grande) tr.classList.add('grande');
+    const th = document.createElement('th');
+    th.scope = 'row';
+    th.textContent = f.rotulo;
+    tr.appendChild(th);
+    celdas[f.clave] = [];
+    for (let i = 0; i < 3; i++){
+      const td = document.createElement('td');
+      const cifra = nodo('b');
+      td.appendChild(cifra);
+      let porc = null;
+      if (f.pct){ porc = nodo('span', 'porcentaje'); td.appendChild(porc); }
+      celdas[f.clave].push({ cifra, porc });
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  tabla.appendChild(tbody);
+  caja.appendChild(tabla);
+  contenedor.appendChild(caja);
+
+  /* Las notas de metodo no son decorativas: sin ellas las cifras de 2026 y
+     el tratamiento de Veranito quedan sin explicar y el cliente pregunta. */
+  const notas = nodo('div', 'notas-metodo');
+  for (const t of [
+      '2026 se estima con siete meses reales, de enero a julio, llevados a doce, salvo Veranito, ' +
+      'que usa la facturación real de sus dos temporadas.',
+      'Veranito es estacional: en el resumen anual entra completo y en las vistas mensuales se prorratea.',
+      'Otros ingresos entran como renglón fijo al nivel de 2026 y no escalan con la ocupación.',
+      NOTA_COSTO,
+    ]) notas.appendChild(nodo('p', null, t));
+  contenedor.appendChild(notas);
+
+  const contexto = nodo('div', 'hallazgo');
+  contenedor.appendChild(contexto);
+  barraReinicio(contenedor, 'Reiniciar 2027');
+
+  function pintar(){
+    /* Cada deslizador se pone donde diga el valor compartido, salvo el que
+       tenga el foco: moverlo bajo los dedos de quien lo arrastra. El entero
+       es solo lo que se pinta; la cuenta usa el valor exacto. */
+    for (const clave in deslizadores){
+      const c = deslizadores[clave];
+      if (document.activeElement === c.inp) continue;
+      const exacto = est.ocupaciones[clave] * 100;
+      c.restaurar(enRejilla(exacto), exacto);
+    }
+
+    const anios = [MOTOR.resumen(2025), MOTOR.resumen(2026),
+                   MOTOR.resumen2027({ ocupaciones:est.ocupaciones, gastosMes:est.gastosMes })];
+    for (const f of FILAS){
+      anios.forEach((a, i) => {
+        const c = celdas[f.clave][i];
+        c.cifra.textContent = F.dinero(a[f.clave]);
+        if (c.porc) c.porc.textContent = F.pctDecimal(a[f.pct]) + ' sobre ingresos';
+      });
+    }
+    const a26 = anios[1], a27 = anios[2];
+    contexto.innerHTML =
+      `El margen bruto baja de <strong>${F.pctDecimal(a26.margenBrutoPct)}</strong> en 2026 a ` +
+      `<strong>${F.pctDecimal(a27.margenBrutoPct)}</strong> en 2027 por dos razones: Kinder abre grupos ` +
+      'al llenarse, y cada grupo cuesta más porque el proyecto contempla el ajuste salarial del equipo ' +
+      `docente. El EBITDA sube igual, de <strong>${F.pctDecimal(a26.ebitdaPct)}</strong> a ` +
+      `<strong>${F.pctDecimal(a27.ebitdaPct)}</strong>, porque los gastos fijos se reparten entre muchos ` +
+      'más ingresos.';
+  }
+
+  /* La seccion 2 publica en cada repintado suyo. Aqui se recoge el valor y
+     se repinta, sin volver a publicar: eso es lo que corta el ida y vuelta. */
+  OCUPACION.suscribe('resumen', claves => {
+    for (const clave of claves){
+      if (!(clave in est.ocupaciones)) continue;
+      est.ocupaciones[clave] = OCUPACION.lee(clave);
+    }
+    pintar();
+  });
+
+  /* Reiniciar aqui devuelve tambien la ocupacion compartida al punto de
+     partida, o la seccion 2 se quedaria donde el cliente la dejo. */
+  function reiniciar(){
+    est = inicial();
+    restauradores.forEach(r => r(est));
+    OCUPACION.fija(Object.assign({}, OCUPACIONES_PARTIDA), 'resumen');
+    pintar();
+  }
+  pintar();
+  REINICIOS.push(reiniciar);
+}
+
+/* ==========================================================================
+   SECCION 4 · LA INVERSION
+   ========================================================================== */
+function montarInversion(contenedor){
+  /* Los campos son montos y no porcentajes: el equipo negocia en dolares.
+     Los porcentajes que se muestran se derivan del monto, asi que nunca
+     pueden contradecirlo. */
+  const inicial = () => Object.assign({}, DATOS.INVERSION);
+  let est = inicial();
+  const restauradores = [];
 
   const caja = nodo('div', 'inversion-caja');
-  caja.appendChild(nodo('span', 'etiqueta', 'Inversion del proyecto'));
+  caja.appendChild(nodo('span', 'etiqueta', 'Inversión del proyecto'));
   const refTotal = nodo('b');
   caja.appendChild(refTotal);
   contenedor.appendChild(caja);
 
-  /* ---------- Controles del plan ---------- */
   const panel = nodo('div', 'plan-controles');
   const reg = (cfg, lee) => {
     const c = control(cfg);
     restauradores.push(p => c.restaurar(lee(p)));
     panel.appendChild(c.wrap);
   };
-  reg({ etiqueta:'Monto total', tipo:'number', min:0, max:99999999, paso:100, valor:est.total,
-        alCambiar:v => { est.total = v; pintar(); } }, p => p.total);
-  reg({ etiqueta:'Primer pago', tipo:'range', min:0, max:100, paso:5, valor:est.pctPrimero*100,
-        formato:v => v + '%',
-        alCambiar:v => { est.pctPrimero = v/100; pintar(); } }, p => p.pctPrimero*100);
-  reg({ etiqueta:'Mensualidades', tipo:'range', min:0, max:24, paso:1, valor:est.meses,
-        formato:v => v === 0 ? 'ninguna' : v + (v === 1 ? ' mes' : ' meses'),
-        alCambiar:v => { est.meses = v; pintar(); } }, p => p.meses);
-  reg({ etiqueta:'Pago final', tipo:'range', min:0, max:100, paso:5, valor:est.pctFinal*100,
-        formato:v => v + '%',
-        alCambiar:v => { est.pctFinal = v/100; pintar(); } }, p => p.pctFinal*100);
-
-  const conmutar = nodo('div', 'control ancho');
-  const etqFinal = nodo('label');
-  const chk = document.createElement('input');
-  chk.type = 'checkbox'; chk.checked = est.conFinal;
-  chk.addEventListener('change', () => { est.conFinal = chk.checked; pintar(); });
-  etqFinal.append(chk, nodo('span', null, ' Incluir un pago final contra entrega'));
-  etqFinal.className = 'casilla';
-  conmutar.appendChild(etqFinal);
-  panel.insertBefore(conmutar, panel.children[3]);
-  restauradores.push(p => { chk.checked = p.conFinal; });
+  reg({ etiqueta:'Monto total', tipo:'number', min:0, max:99999999, paso:500, valor:est.total,
+        alCambiar:x => { est.total = x; pintar(); } }, p => p.total);
+  reg({ etiqueta:'Pago inicial', tipo:'number', min:0, max:99999999, paso:250, valor:est.primero,
+        alCambiar:x => { est.primero = x; pintar(); } }, p => p.primero);
+  reg({ etiqueta:'Mensualidades', tipo:'range', min:0, max:24, paso:1, valor:est.cuotas,
+        formato:x => x === 0 ? 'ninguna' : x + (x === 1 ? ' cuota' : ' cuotas'),
+        alCambiar:x => { est.cuotas = x; pintar(); } }, p => p.cuotas);
+  reg({ etiqueta:'Pago final', tipo:'number', min:0, max:99999999, paso:250, valor:est.final,
+        alCambiar:x => { est.final = x; pintar(); } }, p => p.final);
   contenedor.appendChild(panel);
 
-  /* ---------- Desglose ---------- */
   const desglose = nodo('div', 'plan-desglose');
   contenedor.appendChild(desglose);
 
-  const barra = nodo('div', 'barra-acciones');
-  const btn = nodo('button', null, 'Reiniciar plan');
-  btn.addEventListener('click', reiniciar);
-  barra.appendChild(btn);
-  contenedor.appendChild(barra);
+  barraReinicio(contenedor, 'Reiniciar plan');
 
   function fila(rotulo, monto, glosa){
     const f = nodo('div', 'plan-fila');
@@ -1788,80 +2639,52 @@ function montarInversion(contenedor){
   }
 
   function pintar(){
-    const esEjemplo = est.total === INVERSION_EJEMPLO;
-    aviso.style.display = esEjemplo ? '' : 'none';
-    aviso.textContent =
-      'Monto de ejemplo: todavia no se ha fijado la cifra real. Se puede cambiar aqui ' +
-      'mismo o en la constante INVERSION. Este aviso desaparece solo.';
-
     refTotal.textContent = F.dinero(est.total);
-
-    const pl = MOTOR.plan({
-      total: est.total, pctPrimero: est.pctPrimero, meses: est.meses,
-      pctFinal: est.conFinal ? est.pctFinal : 0,
-    });
+    const pl = MOTOR.plan({ total:est.total, primero:est.primero,
+                            meses:est.cuotas, final:est.final });
 
     desglose.textContent = '';
     if (!pl.valido){
-      const err = nodo('div', 'plan-error');
-      err.textContent = est.meses === 0
-        ? 'Sin mensualidades, el primer pago y el pago final tienen que sumar el 100%.'
-        : 'El primer pago y el pago final suman mas del 100% del proyecto.';
-      desglose.appendChild(err);
-      return;
+      desglose.appendChild(nodo('div', 'plan-error',
+        est.cuotas === 0
+          ? 'Sin mensualidades, el pago inicial y el final tienen que sumar el total.'
+          : 'El pago inicial y el pago final juntos se pasan del monto total.'));
+    } else {
+      desglose.appendChild(fila('Pago inicial', pl.primero,
+        F.pctDecimal(pl.pctPrimero) + ' del proyecto, al iniciar'));
+      if (pl.meses > 0){
+        if (pl.ultimaDifiere){
+          desglose.appendChild(fila((pl.meses - 1) + ' cuotas mensuales', pl.mensualidad, 'cada una'));
+          desglose.appendChild(fila('Última cuota', pl.ultima, 'absorbe el ajuste del redondeo'));
+        } else {
+          desglose.appendChild(fila(
+            pl.meses + (pl.meses === 1 ? ' cuota mensual' : ' cuotas mensuales'),
+            pl.mensualidad, 'cada una'));
+        }
+      }
+      if (pl.final > 0){
+        desglose.appendChild(fila('Pago final contra entrega', pl.final,
+          F.pctDecimal(pl.pctFinal) + ' del proyecto'));
+      }
+      const suma = fila('Suma', pl.suma, 'coincide con el monto total');
+      suma.className = 'plan-fila total';
+      desglose.appendChild(suma);
     }
 
-    desglose.appendChild(fila('Primer pago', pl.primero, F.pct(est.pctPrimero) + ' del proyecto'));
-    if (pl.meses > 0){
-      if (pl.ultimaDifiere){
-        desglose.appendChild(fila(
-          `${pl.meses - 1} ${pl.meses - 1 === 1 ? 'mensualidad' : 'mensualidades'}`,
-          pl.mensualidad, 'cada una'));
-        desglose.appendChild(fila('Ultima mensualidad', pl.ultima, 'absorbe el ajuste del redondeo'));
-      } else {
-        desglose.appendChild(fila(
-          `${pl.meses} ${pl.meses === 1 ? 'mensualidad' : 'mensualidades'}`,
-          pl.mensualidad, 'cada una'));
-      }
-    }
-    if (est.conFinal && pl.final > 0){
-      desglose.appendChild(fila('Pago final contra entrega', pl.final, F.pct(est.pctFinal) + ' del proyecto'));
-    }
-    const suma = fila('Suma', pl.suma, 'tiene que coincidir con el monto total');
-    suma.className = 'plan-fila total';
-    desglose.appendChild(suma);
   }
 
   function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
   pintar();
+  REINICIOS.push(reiniciar);
 }
 
 /* ==========================================================================
    MONTAJE
    ========================================================================== */
-montarFases(document.getElementById('fases'));
-montarHoy(document.getElementById('hoy'));
+montarRuta(document.getElementById('ruta'));
+montarUnidades(document.getElementById('unidades'));
+montarResumen(document.getElementById('resumen'));
 montarInversion(document.getElementById('inversion'));
-
-crearSimulador(document.getElementById('sim-60'), 0.6);
-barraReinicio(document.getElementById('sim-60'));
-
-crearSimulador(document.getElementById('sim-100'), 1);
-hallazgo(document.getElementById('sim-100'),
-  'En After School, el costo entre 133 y 220 alumnos <strong>no sube ni un dolar</strong>. ' +
-  'El costo depende de las horas de clase dictadas, no de cuantos niños hay en el aula. ' +
-  'Cada alumno adicional en una clase que ya se dicta es margen casi puro.');
-hallazgo(document.getElementById('sim-100'),
-  'La temporada de enero-marzo rinde <strong>menos de la mitad</strong> que la de mayo-agosto, ' +
-  'con la misma infraestructura y el mismo producto. Cerrar esa brecha vale unos $60.000 anuales.');
-barraReinicio(document.getElementById('sim-100'));
-
-crearKinder2028(document.getElementById('sim-2028'));
-hallazgo(document.getElementById('sim-2028'),
-  'Para 2028 el cuello ya no va a ser la demanda, <strong>va a ser el espacio</strong>. ' +
-  'Y el aumento de precio se sostiene porque para entonces hay lista de espera, igual que en ' +
-  'Veranito, donde este año hubo que dejar entrar niños de mas para atender a padres que no cabian.');
-barraReinicio(document.getElementById('sim-2028'));
 </script>
 
 </body>
