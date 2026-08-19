@@ -2155,15 +2155,6 @@ function montarUnidades(contenedor){
               alCambiar:x => { est.veranito.precio8 = x; pintar(); } }, p => p.veranito.precio8),
       ],
       nota: () => NOTA_COSTO_VERANITO,
-      extra: () => {
-        const p = DATOS.PRUEBA_VERANITO, v = DATOS.VALOR_VIDA;
-        return 'De ' + F.dinero(p.anterior) + ' en 2025 a ' + F.dinero(p.actual) +
-               ' en 2026 en la misma temporada: <strong>' + F.pct(p.crecimiento) +
-               ' de crecimiento</strong> con una inversion acumulada de ' + F.dinero(p.inversion) +
-               ' — relacion de <strong>' + Math.round(p.relacion) + ' a 1</strong>. Costo de adquisicion de ' +
-               F.precio(v.veranito.adquisicion) + ' contra ' + F.precio(v.veranito.ventaPorCliente) +
-               ' de venta por cliente nuevo.';
-      },
     },
     {
       nombre: 'Cumpleaños', clave: 'cumpleanos',
