@@ -550,7 +550,7 @@ table.resumen th:last-child, table.resumen td:last-child{
     <div class="marca-cliente"><img src="logo-cliente.png" alt="Vida en Arte"></div>
   </header>
 
-  <nav id="nav" aria-label="Secciones de la presentacion"></nav>
+  <nav id="nav" aria-label="Secciones de la presentación"></nav>
 
   <main id="main">
     <section data-seccion="1" class="activa">
@@ -564,7 +564,7 @@ table.resumen th:last-child, table.resumen td:last-child{
     <section data-seccion="2">
       <div class="encabezado-seccion">
         <h2>Detalle por unidad</h2>
-        <p>Las cinco unidades con su capacidad, sus precios y su margen. Los controles se mueven durante la conversacion.</p>
+        <p>Las cinco unidades con su capacidad, sus precios y su margen. Los controles se mueven durante la conversación.</p>
       </div>
       <div id="unidades"></div>
     </section>
@@ -572,14 +572,14 @@ table.resumen th:last-child, table.resumen td:last-child{
     <section data-seccion="3">
       <div class="encabezado-seccion">
         <h2>Cuadro resumen</h2>
-        <p>2025 cerrado, 2026 estimado y 2027 proyectado. La ocupacion y los gastos de 2027 se mueven aqui.</p>
+        <p>2025 cerrado, 2026 estimado y 2027 proyectado. La ocupación y los gastos de 2027 se mueven aquí.</p>
       </div>
       <div id="resumen"></div>
     </section>
 
     <section data-seccion="4">
       <div class="encabezado-seccion">
-        <h2>La inversion</h2>
+        <h2>La inversión</h2>
       </div>
       <div id="inversion"></div>
     </section>
@@ -587,7 +587,7 @@ table.resumen th:last-child, table.resumen td:last-child{
 
   <footer>
     <span>Actio Growth · Vida en Arte 360</span>
-    <span>Los calculos cubren mano de obra directa unicamente.</span>
+    <span>Los cálculos cubren mano de obra directa únicamente.</span>
   </footer>
 
 </div>
@@ -796,7 +796,7 @@ const MOTOR = (function(){
     const ingSab = alSab * c.precio1v;
     const gastoSab = alSab > 0 ? AS_COSTO_SABADO : 0;
     alumnos += alSab; facturacion += ingSab; costo += gastoSab;
-    detalle.push({ nombre:'Sabado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab,
+    detalle.push({ nombre:'Sábado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab,
                    costo:gastoSab, esSabado:true });
 
     return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
@@ -1148,11 +1148,11 @@ const MESES = ['SEP','OCT','NOV','DIC','ENE','FEB','MAR','ABR','MAY','JUN','JUL'
 
 const FASES = [
   { numero:1, desde:0, hasta:2, rango:'septiembre a diciembre de 2026',
-    logro:'Las cuatro unidades cobran en linea.',
-    remate:'Se acaba perder una inscripcion porque no habia como pagar.' },
+    logro:'Las cuatro unidades cobran en línea.',
+    remate:'Se acaba perder una inscripción porque no había cómo pagar.' },
   { numero:2, desde:3, hasta:5, rango:'diciembre de 2026 a marzo de 2027',
-    logro:'Ve sus numeros.',
-    remate:'Cuantos cupos libres hay, quien pago, que margen deja cada unidad. Y After School arranca con su motor de captacion completo.' },
+    logro:'Ve sus números.',
+    remate:'Cuántos cupos libres hay, quién pagó, qué margen deja cada unidad. Y After School arranca con su motor de captación completo.' },
   { numero:3, desde:6, hasta:8, rango:'marzo a junio de 2027',
     logro:'Nadie que pregunta se queda sin respuesta,',
     remate:'y las familias que ya tiene empiezan a comprar en otras unidades.' },
@@ -1179,57 +1179,57 @@ const ENTREGABLES = [
   /* ---------- Fase 1 · septiembre a diciembre de 2026 ---------- */
   { fase:1, unidad:'Gerencia', segmento:'Ventas', fecha:'30/10/2026',
     nombre:'Pasarela de pago para cada unidad de negocio',
-    nota:'Un solo sistema de cobro conectado a la cuenta bancaria, con separacion por unidad para conciliar.' },
+    nota:'Un solo sistema de cobro conectado a la cuenta bancaria, con separación por unidad para conciliar.' },
   { fase:1, unidad:'Kinder', segmento:'Ventas', fecha:'30/10/2026',
-    nombre:'Pagina de inscripcion de Kinder',
-    nota:'Donde la familia formaliza la matricula y paga. Conecta con la pasarela unificada.' },
+    nombre:'Página de inscripción de Kinder',
+    nota:'Donde la familia formaliza la matrícula y paga. Conecta con la pasarela unificada.' },
   { fase:1, unidad:'After School', segmento:'Ventas', fecha:'30/10/2026',
-    nombre:'Pagina de inscripcion de After School',
-    nota:'Donde la familia formaliza la inscripcion y paga. Conecta con la pasarela unificada.' },
+    nombre:'Página de inscripción de After School',
+    nota:'Donde la familia formaliza la inscripción y paga. Conecta con la pasarela unificada.' },
   { fase:1, unidad:'Veranito', segmento:'Servicio', fecha:'30/10/2026',
-    nombre:'Optimizar pagina de venta en diseño y usabilidad',
-    nota:'Se optimizara la pagina de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
+    nombre:'Optimizar página de venta en diseño y usabilidad',
+    nota:'Se optimizara la página de Veranito, actualizando su pasarela de pago y revisando su usabilidad.' },
   { fase:1, unidad:'After School', segmento:'Marketing', fecha:'30/10/2026',
-    nombre:'Landing page de captacion',
-    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+    nombre:'Landing page de captación',
+    nota:'Página donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
   { fase:1, unidad:'After School', segmento:'Marketing', fecha:'30/10/2026',
     nombre:'Video de ventas (Mini VSL)',
-    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edición y montaje.' },
   { fase:1, unidad:'Baby and Me', segmento:'Servicio', fecha:'30/10/2026',
     nombre:'Modelo de negocio',
-    nota:'Definicion de como opera y gana dinero Baby and Me: servicios que se ofrecen, a quien, con que estructura de horarios y cupos, y como se conecta con las demas unidades.' },
+    nota:'Definición de cómo opera y gana dinero Baby and Me: servicios que se ofrecen, a quién, con qué estructura de horarios y cupos, y cómo se conecta con las demás unidades.' },
   { fase:1, unidad:'Baby and Me', segmento:'Finanzas', fecha:'30/10/2026',
     nombre:'Estrategia de precios',
-    nota:'Definicion de precios por servicio, con la logica detras de cada uno: costos, punto de equilibrio, comparacion con el mercado y politica de descuentos o planes.' },
+    nota:'Definición de precios por servicio, con la lógica detras de cada uno: costos, punto de equilibrio, comparación con el mercado y política de descuentos o planes.' },
   { fase:1, unidad:'Veranito', segmento:'Marketing', fecha:'15/11/2026',
-    nombre:'Campaña de captacion — temporada enero a marzo',
-    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripcion.' },
+    nombre:'Campaña de captación — temporada enero a marzo',
+    nota:'Campaña completa para la primera temporada del año, lista antes de que abra la inscripción.' },
   { fase:1, unidad:'Veranito', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de compra optimizada',
-    nota:'Mejora sobre la pagina existente.' },
+    nombre:'Página de compra optimizada',
+    nota:'Mejora sobre la página existente.' },
   { fase:1, unidad:'Cumpleaños', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de compra de paquetes',
+    nombre:'Página de compra de paquetes',
     nota:'Con precio diferenciado para familias de otras unidades.' },
   { fase:1, unidad:'Baby and Me', segmento:'Ventas', fecha:'30/11/2026',
-    nombre:'Pagina de inscripcion de Baby and Me',
-    nota:'Donde la familia formaliza la matricula y paga. Conecta con la pasarela unificada.' },
+    nombre:'Página de inscripción de Baby and Me',
+    nota:'Donde la familia formaliza la matrícula y paga. Conecta con la pasarela unificada.' },
 
   /* ---------- Fase 2 · diciembre de 2026 a marzo de 2027 ---------- */
   { fase:2, unidad:'After School', segmento:'Marketing', fecha:'15/12/2026',
-    nombre:'Anuncios y piezas graficas para redes',
-    nota:'Piezas visuales y textos para pauta y para publicacion organica.' },
+    nombre:'Anuncios y piezas gráficas para redes',
+    nota:'Piezas visuales y textos para pauta y para publicación orgánica.' },
   { fase:2, unidad:'After School', segmento:'Marketing', fecha:'15/12/2026',
     nombre:'Campaña en Meta',
-    nota:'Diseño, estrategia y configuracion: publicos, presupuesto y estructura. No incluye la inversion publicitaria.' },
+    nota:'Diseño, estrategia y configuración: públicos, presupuesto y estructura. No incluye la inversión publicitaria.' },
   { fase:2, unidad:'Gerencia', segmento:'Servicio', fecha:'15/12/2026',
     nombre:'Cuadros de capacidad productiva por unidad',
-    nota:'Capacidad instalada contra ocupacion real, conectados a datos en vivo. Muestra cuantos cupos hay disponibles y cuantos se estan usando en cada unidad.' },
+    nota:'Capacidad instalada contra ocupación real, conectados a datos en vivo. Muestra cuántos cupos hay disponibles y cuántos se están usando en cada unidad.' },
   { fase:2, unidad:'Gerencia', segmento:'Finanzas', fecha:'15/12/2026',
     nombre:'Tablero financiero por unidad de negocio',
-    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver que unidad genera utilidad real y cual solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
+    nota:'Ingresos, costos y rentabilidad de cada unidad en una sola vista. Permite ver qué unidad genera utilidad real y cuál solo mueve volumen. Incluye el margen operativo (EBITDA) de cada una.' },
   { fase:2, unidad:'Kinder', segmento:'Servicio', fecha:'30/12/2026',
-    nombre:'Modulo administrativo de Kinder',
-    nota:'El sistema donde el equipo del centro registra y gestiona el dia a dia: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quien pago y quien no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
+    nombre:'Módulo administrativo de Kinder',
+    nota:'El sistema donde el equipo del centro registra y gestiona el día a día: alta de cada niño con su plan y horario, datos de contacto de los padres, control de quién pagó y quién no, cambios de plan y retiros. Es la herramienta de trabajo interna del equipo.' },
   { fase:2, unidad:'After School', segmento:'Servicio', fecha:'30/12/2026',
     nombre:'Módulo administrativo de After School',
     nota:'El sistema donde el equipo registra y gestiona el día a día: alta de cada niño con su disciplina y horario, datos de los padres, control de la suscripción mensual, cambios de horario y retiros. Es la herramienta de trabajo interna del equipo.' },
@@ -1237,25 +1237,25 @@ const ENTREGABLES = [
     nombre:'Tablero de operación de Kinder',
     nota:'La vista de resumen que lee del módulo administrativo: niños inscritos por plan, asistencia y ausencias, uso de la aplicación por los padres. Amplía los tableros del proyecto 1.' },
   { fase:2, unidad:'Cumpleaños', segmento:'Servicio', fecha:'29/01/2027',
-    nombre:'Modulo administrativo y tablero de Cumpleaños',
-    nota:'Sistema para registrar y gestionar las reservas: que fin de semana, que paquete, que familia. Incluye la vista de ocupacion, que muestra cuantos de los espacios disponibles al año se estan usando.' },
+    nombre:'Módulo administrativo y tablero de Cumpleaños',
+    nota:'Sistema para registrar y gestionar las reservas: qué fin de semana, qué paquete, qué familia. Incluye la vista de ocupación, que muestra cuántos de los espacios disponibles al año se están usando.' },
   { fase:2, unidad:'Gerencia', segmento:'Ventas', fecha:'29/01/2027',
-    nombre:'Sistema de automatizacion para identificacion de intencion',
-    nota:'Lee los mensajes que llegan por WhatsApp, Instagram y formularios, y determina a que unidad de negocio corresponde cada interesado y que tan cerca esta de comprar. Enruta cada conversacion al lugar correcto.' },
+    nombre:'Sistema de automatización para identificación de intención',
+    nota:'Lee los mensajes que llegan por WhatsApp, Instagram y formularios, y determina a qué unidad de negocio corresponde cada interesado y qué tan cerca está de comprar. Enruta cada conversación al lugar correcto.' },
   { fase:2, unidad:'Kinder', segmento:'Marketing', fecha:'29/01/2027',
-    nombre:'Anuncios y piezas graficas para redes',
-    nota:'Kinder pierde niños cada año por edad, asi que necesita captacion activa todo el año y no solo en temporada. Textos para pauta y para publicacion de videos anclados organicos.' },
+    nombre:'Anuncios y piezas gráficas para redes',
+    nota:'Kinder pierde niños cada año por edad, así que necesita captación activa todo el año y no solo en temporada. Textos para pauta y para publicación de videos anclados orgánicos.' },
   { fase:2, unidad:'Gerencia', segmento:'Ventas', fecha:'26/02/2027',
-    nombre:'Solucion de respuesta automatica (Setter)',
-    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversacion requiere una persona.' },
+    nombre:'Solución de respuesta automática (Setter)',
+    nota:'Responde de forma inmediata a los interesados, resuelve las dudas frecuentes y agenda o deriva cuando la conversación requiere una persona.' },
 
   /* ---------- Fase 3 · marzo a junio de 2027 ---------- */
   { fase:3, unidad:'Cumpleaños', segmento:'Marketing', fecha:'26/03/2027',
-    nombre:'Estrategia de captacion interna',
-    nota:'Mensajes automaticos a familias de otras unidades con cumpleaños proximos.' },
+    nombre:'Estrategia de captación interna',
+    nota:'Mensajes automáticos a familias de otras unidades con cumpleaños próximos.' },
   { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
     nombre:'Sitio web de Vida en Arte',
-    nota:'El sitio de la marca, con una seccion por unidad de negocio. Cada unidad tiene su propia entrada de captacion dentro del mismo sitio.' },
+    nota:'El sitio de la marca, con una sección por unidad de negocio. Cada unidad tiene su propia entrada de captación dentro del mismo sitio.' },
   { fase:3, unidad:'Gerencia', segmento:'Servicio', fecha:'26/03/2027',
     nombre:'Sistema de venta cruzada entre unidades',
     nota:'Unifica a cada familia en un solo registro con todas las unidades donde participa —hoy una misma familia aparece por separado en cada una— y a partir de ahí identifica y activa oportunidades: la familia de Kinder que puede ir a Veranito, la de After School que puede hacer su cumpleaños en el centro. Incluye las reglas, los mensajes automáticos, la vista de cuántas familias participan en una, dos o más unidades, y un tablero de tareas con alerta de oportunidades para el comercial.' },
@@ -1264,50 +1264,50 @@ const ENTREGABLES = [
     nota:'Con las suscripciones activas de Kinder y After School se puede saber cuánto va a entrar el mes siguiente antes de que ocurra.' },
   { fase:3, unidad:'After School', segmento:'Servicio', fecha:'30/04/2027',
     nombre:'App de servicio (niveles y progreso)',
-    nota:'Registro de niños, progresion por disciplina, logros por nivel y graduaciones. La solucion del checklist operativo antes de arrancar clases.' },
+    nota:'Registro de niños, progresión por disciplina, logros por nivel y graduaciones. La solución del checklist operativo antes de arrancar clases.' },
   { fase:3, unidad:'Veranito', segmento:'Marketing', fecha:'30/04/2027',
-    nombre:'Campaña de captacion — temporada junio a agosto',
+    nombre:'Campaña de captación — temporada junio a agosto',
     nota:'Campaña para la segunda temporada, ajustada con los resultados de la primera.' },
   { fase:3, unidad:'Gerencia', segmento:'Ventas', fecha:'30/04/2027',
-    nombre:'Modulo de afiliados',
-    nota:'Modulo para generar descuentos a los clientes que traigan recomendados, para incentivar la recomendacion del negocio.' },
+    nombre:'Módulo de afiliados',
+    nota:'Módulo para generar descuentos a los clientes que traigan recomendados, para incentivar la recomendación del negocio.' },
   { fase:3, unidad:'Gerencia', segmento:'Marketing', fecha:'30/04/2027',
     nombre:'Estrategia de marketing de afiliados',
     nota:'La estrategia con la que se otorgan los descuentos por recomendados.' },
 
   /* ---------- Fase 4 · junio a septiembre de 2027 ---------- */
   { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
-    nombre:'Landing page de captacion',
-    nota:'Pagina donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
+    nombre:'Landing page de captación',
+    nota:'Página donde llegan las familias interesadas. Incluye diseño, textos y formulario.' },
   { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
     nombre:'Video de ventas (Mini VSL)',
-    nota:'Presenta y vende el servicio en la landing. Incluye guion, edicion y montaje.' },
+    nota:'Presenta y vende el servicio en la landing. Incluye guion, edición y montaje.' },
   { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
-    nombre:'Anuncios y piezas graficas para redes',
-    nota:'Piezas visuales y textos para pauta y para publicacion organica.' },
+    nombre:'Anuncios y piezas gráficas para redes',
+    nota:'Piezas visuales y textos para pauta y para publicación orgánica.' },
   { fase:4, unidad:'Baby and Me', segmento:'Marketing', fecha:'25/06/2027',
     nombre:'Campaña en Meta',
-    nota:'Diseño, estrategia y configuracion: publicos, presupuesto y estructura. No incluye la inversion publicitaria.' },
+    nota:'Diseño, estrategia y configuración: públicos, presupuesto y estructura. No incluye la inversión publicitaria.' },
   { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/07/2027',
-    nombre:'Aplicacion de gerencia',
-    nota:'Punto unico de entrada con todas las unidades conectadas: ocupacion, ingresos y estado en una sola pantalla. Es la capa que reune todo lo anterior.' },
+    nombre:'Aplicación de gerencia',
+    nota:'Punto único de entrada con todas las unidades conectadas: ocupación, ingresos y estado en una sola pantalla. Es la capa que reúne todo lo anterior.' },
   { fase:4, unidad:'Gerencia', segmento:'Servicio', fecha:'30/07/2027',
     nombre:'Manuales de procesos por rol',
     nota:'Documentar los procesos de Vida en Arte por rol.' },
   { fase:4, unidad:'Gerencia', segmento:'Marketing', fecha:'30/07/2027',
-    nombre:'Estrategia para recoleccion de reseñas en Google',
+    nombre:'Estrategia para recolección de reseñas en Google',
     nota:'Mejorar las calificaciones y la presencia de Vida en Arte en Google.' },
   { fase:4, unidad:'Kinder', segmento:'Servicio', fecha:'27/08/2027',
     nombre:'Plataforma de cursos para profesoras',
-    nota:'Un modulo de la aplicacion de VEAKids para montar cursos dirigidos a las profesoras.' },
+    nota:'Un módulo de la aplicación de VEAKids para montar cursos dirigidos a las profesoras.' },
 
   /* ---------- Durante todo el proyecto ---------- */
   { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
-    nombre:'Asesoria estrategica del negocio',
-    nota:'Se atienden las situaciones que presente el cliente de forma constante, para asesorarlo en como darles solucion.' },
+    nombre:'Asesoría estratégica del negocio',
+    nota:'Se atienden las situaciones que presente el cliente de forma constante, para asesorarlo en cómo darles solución.' },
   { fase:0, unidad:'Gerencia', segmento:'Servicio', fecha:'Durante todo el proyecto',
-    nombre:'Soporte tecnico remoto',
-    nota:'Soporte virtual ante novedades con las aplicaciones, paginas web y plataformas creadas por la empresa.' },
+    nombre:'Soporte técnico remoto',
+    nota:'Soporte virtual ante novedades con las aplicaciones, páginas web y plataformas creadas por la empresa.' },
 ];
 /* El mes se deriva de la fecha una sola vez, al cargar. */
 ENTREGABLES.forEach(e => { e.mes = mesDe(e.fecha); });
@@ -1410,7 +1410,7 @@ const FORMATO = (function(){
 /* ==========================================================================
    VISTA. Navegacion entre las cuatro secciones.
    ========================================================================== */
-const SECCIONES = ['Hoja de ruta', 'Detalle por unidad', 'Cuadro resumen', 'La inversion'];
+const SECCIONES = ['Hoja de ruta', 'Detalle por unidad', 'Cuadro resumen', 'La inversión'];
 const F = FORMATO;
 const REINICIOS = [];
 
@@ -1451,12 +1451,12 @@ document.addEventListener('keydown', e => {
    PIEZAS COMPARTIDAS
    ========================================================================== */
 const NOTA_COSTO =
-  'El costo cubre mano de obra directa unicamente. No incluye arriendo, ' +
-  'servicios, administracion ni inversion publicitaria, asi que el margen ' +
+  'El costo cubre mano de obra directa únicamente. No incluye arriendo, ' +
+  'servicios, administración ni inversión publicitaria, así que el margen ' +
   'no es utilidad neta.';
 
 const NOTA_COSTO_VERANITO =
-  'Costo operativo del 20% del ingreso, mano de obra directa unicamente. ' +
+  'Costo operativo del 20% del ingreso, mano de obra directa únicamente. ' +
   'Veranito es estacional: sus cifras son por temporada y por año, no por mes.';
 
 function nodo(tag, clase, texto){
@@ -1525,7 +1525,7 @@ function tarjeta(titulo){
 
   const cifras = nodo('div', 'cifras');
   const refs = {};
-  for (const [clave, etiqueta] of [['facturacion','Facturacion'],['costo','Costo'],['margen','Margen']]){
+  for (const [clave, etiqueta] of [['facturacion','Facturación'],['costo','Costo'],['margen','Margen']]){
     const bloque = nodo('div', 'cifra-bloque' + (clave === 'margen' ? ' destacada' : ''));
     bloque.appendChild(nodo('span', 'etiqueta', etiqueta));
     refs[clave] = nodo('b', null, '');
@@ -1956,7 +1956,7 @@ function montarUnidades(contenedor){
       aviso: r => r.excedeCapacidad
         ? r.ninos + ' niños no caben en la capacidad actual: requiere habilitar salones adicionales.' : null,
       controles: () => [
-        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor: est.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100, formato:x => x + '%', ancho:true,
                   alCambiar:x => { est.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * x / 100); pintar(); } },
                 p => p.kinder.ninos / MOTOR.KINDER_CAPACIDAD * 100),
@@ -1974,7 +1974,7 @@ function montarUnidades(contenedor){
       extra: () => {
         const v = DATOS.VALOR_VIDA;
         return 'Valor de vida de una familia: <strong>' + F.dinero(v.kinder.valor) + '</strong> contra ' +
-               F.dinero(v.kinder.adquisicion) + ' de costo de adquisicion. Relacion de <strong>' +
+               F.dinero(v.kinder.adquisicion) + ' de costo de adquisición. Relación de <strong>' +
                Math.round(v.kinder.relacion) + ' a 1</strong>.';
       },
     },
@@ -2002,7 +2002,7 @@ function montarUnidades(contenedor){
         d.costo ? '−' + F.dinero(d.costo) : '—',
       ]),
       controles: () => [
-        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:est.afterSchool.ocupacion*100, formato:x => x + '%', ancho:true,
                   /* Reparte y vuelve a mandar sobre lo editado en la tabla. */
                   alCambiar:x => { est.afterSchool.ocupacion = x/100;
@@ -2014,7 +2014,7 @@ function montarUnidades(contenedor){
               alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
         reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
               alCambiar:x => { est.afterSchool.precioTelas = x; pintar(); } }, p => p.afterSchool.precioTelas),
-        reg({ etiqueta:'Precio sabado', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio1v,
+        reg({ etiqueta:'Precio sábado', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio1v,
               alCambiar:x => { est.afterSchool.precio1v = x; pintar(); } }, p => p.afterSchool.precio1v),
       ],
     },
@@ -2049,7 +2049,7 @@ function montarUnidades(contenedor){
           F.dinero(r.v.mes.facturacion), '−' + F.dinero(r.v.mes.costo)] },
       ],
       controles: () => [
-        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:0, formato:x => x + '%', ancho:true,
                   alCambiar:x => { est.veranito.mayAgo.ocupacion = x/100;
                                    est.veranito.eneMar.ocupacion = x/100;
@@ -2106,7 +2106,7 @@ function montarUnidades(contenedor){
         d.nombre + ' · ' + d.porSemana.toFixed(1).replace('.', ',') + ' por semana',
         d.cantidad, F.precio(d.precio), F.dinero(d.facturacion), '−' + F.dinero(d.costo)]),
       controles: () => [
-        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:est.cumpleanos.eventosSemana / MOTOR.CUMPLE_TOPE_SEMANA * 100,
                   formato:x => x + '%', ancho:true,
                   alCambiar:x => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * x / 100;
@@ -2137,10 +2137,10 @@ function montarUnidades(contenedor){
       apoyo: r => {
         const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
         return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
-               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupacion';
+               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación';
       },
       filas: r => r.detalle.map((d, i) => [
-        d.nombre + ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesion' : ' sesiones') +
+        d.nombre + ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones') +
           ' de ' + d.horas + ' h' + (d.vecesSemana > 1 ? ' · ' + d.vecesSemana + ' veces por semana' : ''),
         d.cupos,
         { editable:true, valor:d.alumnos, min:0, max:d.cupos,
@@ -2154,7 +2154,7 @@ function montarUnidades(contenedor){
          Los planes cuestan distinto —sabado $97, semana $165— asi que
          llenar una no vale lo mismo que llenar la otra. */
       controles: () => [
-        regSync({ etiqueta:'Ocupacion', tipo:'range', min:0, max:100, paso:1, maestro:true,
+        regSync({ etiqueta:'Ocupación', tipo:'range', min:0, max:100, paso:1, maestro:true,
                   valor:0, formato:x => x + '%', ancho:true,
                   alCambiar:x => {
                     est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
@@ -2235,7 +2235,7 @@ function montarUnidades(contenedor){
     const lado = nodo('div', 'ua-lado');
     const cifras = nodo('div', 'cifras');
     const refs = {};
-    for (const par of [['facturacion','Facturacion'],['costo','Costo'],['margen','Margen']]){
+    for (const par of [['facturacion','Facturación'],['costo','Costo'],['margen','Margen']]){
       const bloque = nodo('div', 'cifra-bloque' + (par[0] === 'margen' ? ' destacada' : ''));
       bloque.appendChild(nodo('span', 'etiqueta', par[1]));
       refs[par[0]] = nodo('b');
@@ -2402,9 +2402,9 @@ function montarResumen(contenedor){
   const notas = nodo('div', 'notas-metodo');
   for (const t of [
       '2026 se estima con siete meses reales, de enero a julio, llevados a doce, salvo Veranito, ' +
-      'que usa la facturacion real de sus dos temporadas.',
+      'que usa la facturación real de sus dos temporadas.',
       'Veranito es estacional: en el resumen anual entra completo y en las vistas mensuales se prorratea.',
-      'Otros ingresos entran como renglon fijo al nivel de 2026 y no escalan con la ocupacion.',
+      'Otros ingresos entran como renglón fijo al nivel de 2026 y no escalan con la ocupación.',
       NOTA_COSTO,
     ]) notas.appendChild(nodo('p', null, t));
   contenedor.appendChild(notas);
@@ -2427,10 +2427,10 @@ function montarResumen(contenedor){
     contexto.innerHTML =
       `El margen bruto baja de <strong>${F.pctDecimal(a26.margenBrutoPct)}</strong> en 2026 a ` +
       `<strong>${F.pctDecimal(a27.margenBrutoPct)}</strong> en 2027 por dos razones: Kinder abre grupos ` +
-      'al llenarse, y cada grupo cuesta mas porque el proyecto contempla el ajuste salarial del equipo ' +
+      'al llenarse, y cada grupo cuesta más porque el proyecto contempla el ajuste salarial del equipo ' +
       `docente. El EBITDA sube igual, de <strong>${F.pctDecimal(a26.ebitdaPct)}</strong> a ` +
       `<strong>${F.pctDecimal(a27.ebitdaPct)}</strong>, porque los gastos fijos se reparten entre muchos ` +
-      'mas ingresos.';
+      'más ingresos.';
   }
 
   function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
@@ -2450,7 +2450,7 @@ function montarInversion(contenedor){
   const restauradores = [];
 
   const caja = nodo('div', 'inversion-caja');
-  caja.appendChild(nodo('span', 'etiqueta', 'Inversion del proyecto'));
+  caja.appendChild(nodo('span', 'etiqueta', 'Inversión del proyecto'));
   const refTotal = nodo('b');
   caja.appendChild(refTotal);
   contenedor.appendChild(caja);
@@ -2509,7 +2509,7 @@ function montarInversion(contenedor){
       if (pl.meses > 0){
         if (pl.ultimaDifiere){
           desglose.appendChild(fila((pl.meses - 1) + ' cuotas mensuales', pl.mensualidad, 'cada una'));
-          desglose.appendChild(fila('Ultima cuota', pl.ultima, 'absorbe el ajuste del redondeo'));
+          desglose.appendChild(fila('Última cuota', pl.ultima, 'absorbe el ajuste del redondeo'));
         } else {
           desglose.appendChild(fila(
             pl.meses + (pl.meses === 1 ? ' cuota mensual' : ' cuotas mensuales'),
