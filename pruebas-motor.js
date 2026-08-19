@@ -742,20 +742,20 @@ esIgual(transversal.desde === 0 && transversal.hasta === 11, true,
    ========================================================================== */
 console.log('\nINVERSION');
 
-ok(DATOS.INVERSION.total, 74500, 'monto del proyecto', 0);
-ok(DATOS.INVERSION.primero, 25000, 'pago inicial', 0);
+ok(DATOS.INVERSION.total, 77500, 'monto del proyecto', 0);
+ok(DATOS.INVERSION.primero, 28000, 'pago inicial', 0);
 ok(DATOS.INVERSION.cuotas, 10, 'numero de mensualidades', 0);
-ok(DATOS.INVERSION.final, 10750, 'pago final', 0);
+ok(DATOS.INVERSION.final, 5000, 'pago final', 0);
 
 const inv = MOTOR.plan({ total:DATOS.INVERSION.total, primero:DATOS.INVERSION.primero,
                          meses:DATOS.INVERSION.cuotas, final:DATOS.INVERSION.final });
-ok(inv.primero, 25000, 'el desglose arranca con los 25.000', 0);
-ok(inv.mensualidad, 3875, 'diez cuotas de 3.875', 0);
-ok(inv.final, 10750, 'y el pago final', 0);
-ok(inv.pctPrimero * 100, 33.6, 'el inicial es el 33,6% del total', 0.1);
-ok(inv.pctFinal * 100, 14.4, 'y el final el 14,4%', 0.1);
+ok(inv.primero, 28000, 'el desglose arranca con los 28.000', 0);
+ok(inv.mensualidad, 4450, 'diez cuotas de 4.450', 0);
+ok(inv.final, 5000, 'y el pago final', 0);
+ok(inv.pctPrimero * 100, 36.1, 'el inicial es el 36,1% del total', 0.1);
+ok(inv.pctFinal * 100, 6.5, 'y el final el 6,5%', 0.1);
 esIgual(inv.ultimaDifiere, false, 'las diez cuotas son iguales');
-esIgual(inv.suma === 74500, true, 'el desglose suma el total');
+esIgual(inv.suma === 77500, true, 'el desglose suma el total');
 
 /* ==========================================================================
    RELACIONES QUE SE DICEN EN VOZ ALTA
