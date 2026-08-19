@@ -831,7 +831,11 @@ const MOTOR = (function(){
   const babyCuposFranja = f => f.sesiones * f.cuposSesion / f.vecesSemana;
   const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCuposFranja(f), 0);
   const BABY_ALUMNOS_HOY = 0;
-  const BABY_PARTIDA = { ocupacion:0, costoHora:AS_PROFESOR };
+  /* Los precios viven en la partida y no en la franja: son editables en
+     pantalla, igual que los de After School y Cumpleaños. La franja se
+     queda con el suyo como valor de respaldo. */
+  const BABY_PARTIDA = { ocupacion:0, costoHora:AS_PROFESOR,
+                         precios:BABY_FRANJAS.map(f => f.precio) };
 
   function baby(p){
     const c = Object.assign({}, BABY_PARTIDA, p || {});
@@ -844,7 +848,7 @@ const MOTOR = (function(){
          editar cada franja por separado. */
       const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0))
                            : Math.round(cupos * c.ocupacion);
-      const precio = c.precios ? c.precios[i] : f.precio;
+      const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : f.precio;
       const ing = al * precio;
       /* El costo escala con las sesiones que se dictan: una franja sin
          alumnos no se dicta y no cuesta. */
@@ -2175,6 +2179,16 @@ function montarUnidades(contenedor){
                          } },
                        () => 0);
       })).concat([
+        separador('Precio de cada plan'),
+        /* Los dos planes cuestan distinto y se editan por separado. El precio
+           no toca el costo: las sesiones dictadas son las mismas cobren lo
+           que cobren, y de ahi salen los $650 del mes. */
+        reg({ etiqueta:'Precio plan sábado', tipo:'number', min:0, max:900, paso:0.01,
+              valor:est.baby.precios[0],
+              alCambiar:x => { est.baby.precios[0] = x; pintar(); } }, p => p.baby.precios[0]),
+        reg({ etiqueta:'Precio plan semana', tipo:'number', min:0, max:900, paso:0.01,
+              valor:est.baby.precios[1],
+              alCambiar:x => { est.baby.precios[1] = x; pintar(); } }, p => p.baby.precios[1]),
         /* Editable porque puede atenderla un profesor de Kinder. */
         reg({ etiqueta:'Costo por hora', tipo:'number', min:0, max:500, paso:1, valor:est.baby.costoHora,
               ancho:true, alCambiar:x => { est.baby.costoHora = x; pintar(); } }, p => p.baby.costoHora),
