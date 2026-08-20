@@ -2569,7 +2569,32 @@ function montarResumen(contenedor){
     ]) notas.appendChild(nodo('p', null, t));
   contenedor.appendChild(notas);
 
+  /* El contraste que hay que poder explicar, anclado al escenario del 60% y
+     no a lo que muestre la columna en ese instante. Antes se leia de la
+     columna viva y, desde que 2027 abre en la ocupacion real, la frase decia
+     que el EBITDA subia mientras enseñaba una caida.
+
+     Se escribe una sola vez, fuera de pintar(), porque sus dos extremos son
+     fijos: la columna de julio es un dato cerrado y el 60% es un escenario
+     declarado. Los porcentajes salen del motor.
+
+     Se comparan porcentajes y nunca montos: julio son siete meses y 2027
+     son doce, asi que sus cifras en dolares no son comparables. */
   const contexto = nodo('div', 'hallazgo');
+  {
+    const jul = MOTOR.resumen(2026);
+    const p60 = MOTOR.resumen2027({ ocupacion:MOTOR.OCUPACION_2027_PARTIDA,
+                                    gastosMes:MOTOR.GASTOS_MES_PARTIDA });
+    contexto.innerHTML =
+      'En el escenario del ' + F.pct(MOTOR.OCUPACION_2027_PARTIDA) + ' de ocupación —no en el ' +
+      'que muestre la columna en este momento— el margen bruto baja de <strong>' +
+      F.pctDecimal(jul.margenBrutoPct) + '</strong> a <strong>' + F.pctDecimal(p60.margenBrutoPct) +
+      '</strong> por dos razones: Kinder abre grupos al llenarse, y cada grupo cuesta más porque el ' +
+      'proyecto contempla el ajuste salarial del equipo docente. El EBITDA sube igual, de <strong>' +
+      F.pctDecimal(jul.ebitdaPct) + '</strong> a <strong>' + F.pctDecimal(p60.ebitdaPct) +
+      '</strong>, porque los gastos fijos se reparten entre muchos más ingresos. Se comparan ' +
+      'porcentajes y no montos: la columna de julio son siete meses y la de 2027, doce.';
+  }
   contenedor.appendChild(contexto);
   barraReinicio(contenedor, 'Reiniciar 2027');
 
@@ -2593,14 +2618,6 @@ function montarResumen(contenedor){
         if (c.porc) c.porc.textContent = F.pctDecimal(a[f.pct]) + ' sobre ingresos';
       });
     }
-    const a26 = anios[1], a27 = anios[2];
-    contexto.innerHTML =
-      `El margen bruto baja de <strong>${F.pctDecimal(a26.margenBrutoPct)}</strong> en 2026 a ` +
-      `<strong>${F.pctDecimal(a27.margenBrutoPct)}</strong> en 2027 por dos razones: Kinder abre grupos ` +
-      'al llenarse, y cada grupo cuesta más porque el proyecto contempla el ajuste salarial del equipo ' +
-      `docente. El EBITDA sube igual, de <strong>${F.pctDecimal(a26.ebitdaPct)}</strong> a ` +
-      `<strong>${F.pctDecimal(a27.ebitdaPct)}</strong>, porque los gastos fijos se reparten entre muchos ` +
-      'más ingresos.';
   }
 
   /* La seccion 2 publica en cada repintado suyo. Aqui se recoge el valor y
