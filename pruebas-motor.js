@@ -300,10 +300,15 @@ ok(vLleno.mes.facturacion, 200662 / 12, 'y su mensual sale del mismo anual', 1);
 
 /* ==========================================================================
    CUADRO RESUMEN
-   El corazon de la reunion. 2025 y 2026 son datos cerrados y se comprueban
-   contra si mismos; 2027 se calcula con las reglas de las unidades.
+   El corazon de la reunion. Las dos primeras columnas son datos cerrados y se
+   comprueban contra si mismos; 2027 se calcula con las reglas de las
+   unidades.
+
+   La segunda ya no es un 2026 estimado a doce meses: son los siete meses
+   reales de enero a julio, sin anualizar. Se sigue leyendo con la clave 2026
+   porque es la del año al que pertenecen.
    ========================================================================== */
-console.log('\nRESUMEN · 2025 Y 2026');
+console.log('\nRESUMEN · 2025 Y LOS SIETE MESES DE 2026');
 
 const a25 = MOTOR.resumen(2025), a26 = MOTOR.resumen(2026);
 
@@ -315,19 +320,21 @@ ok(a25.gastos, 295066, '2025: gastos operativos', 0);
 ok(a25.ebitda, 62040, '2025: EBITDA', 0);
 ok(a25.ebitdaPct * 100, 13.0, '2025: EBITDA %', 0.05);
 
-ok(a26.ingresos, 531459, '2026: ingresos', 0);
-ok(a26.manoDeObra, 107160, '2026: costo de mano de obra', 0);
-ok(a26.margenBruto, 424299, '2026: margen bruto', 0);
-ok(a26.margenBrutoPct * 100, 79.8, '2026: margen bruto %', 0.05);
-ok(a26.gastos, 300000, '2026: gastos operativos', 0);
-ok(a26.ebitda, 124299, '2026: EBITDA', 0);
-ok(a26.ebitdaPct * 100, 23.4, '2026: EBITDA %', 0.05);
+ok(a26.ingresos, 324194, 'a julio 2026: ingresos', 0);
+ok(a26.manoDeObra, 65765, 'a julio 2026: costo de mano de obra', 0);
+ok(a26.margenBruto, 258429, 'a julio 2026: margen bruto', 0);
+ok(a26.margenBrutoPct * 100, 79.7, 'a julio 2026: margen bruto %', 0.05);
+ok(a26.gastos, 175000, 'a julio 2026: gastos operativos', 0);
+esIgual(a26.gastos === 25000 * 7, true, 'que son siete meses a 25.000');
+ok(a26.ebitda, 83429, 'a julio 2026: EBITDA', 0);
+ok(a26.ebitdaPct * 100, 25.7, 'a julio 2026: EBITDA %', 0.05);
 
-/* El desglose por unidad tiene que sumar el total del año, o el cuadro y el
-   detalle se contradicen delante del cliente. */
+/* El desglose por unidad tiene que sumar el total del año. El de 2026 es la
+   estimacion anualizada y ya no es lo que muestra la columna del cuadro, que
+   son siete meses: se comprueba contra si mismo, no contra la columna. */
 const suma = u => u.reduce((s, x) => s + x, 0);
 ok(suma(MOTOR.UNIDADES_2025), 477150, '2025: el desglose por unidad suma el total', 1);
-ok(suma(MOTOR.UNIDADES_2026), 531459, '2026: el desglose por unidad suma el total', 1);
+ok(suma(MOTOR.UNIDADES_2026), 531459, '2026 anualizado: el desglose por unidad suma el total', 1);
 ok(MOTOR.VERANITO_2026.eneMar + MOTOR.VERANITO_2026.mayAgo, 121421,
    '2026: Veranito son sus dos temporadas reales', 0);
 
@@ -442,7 +449,7 @@ ok(gastosAltos.gastos, 360000, 'los gastos mensuales se anualizan por doce', 0);
 ok(p60.ebitda - gastosAltos.ebitda, 60000, 'subir gastos $5.000/mes baja el EBITDA $60.000', 0.5);
 ok(gastosAltos.margenBruto, p60.margenBruto, 'los gastos no tocan el margen bruto', 0.5);
 ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
-ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
+ok(MOTOR.resumen(2026).ebitda, 83429, 'los gastos de 2027 no tocan la columna de 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
 ok(p100.ingresos - p60.ingresos, 557658, 'la ocupacion mueve los ingresos', 100);
@@ -510,8 +517,8 @@ esIgual(FORMATO.pctDecimal(0.798), '79,8%', 'margen bruto de 2026');
 esIgual(FORMATO.pctDecimal(0.234), '23,4%', 'EBITDA de 2026');
 esIgual(FORMATO.pctDecimal(MOTOR.resumen(2025).margenBrutoPct), '74,8%', '2025 desde el motor');
 esIgual(FORMATO.pctDecimal(MOTOR.resumen(2025).ebitdaPct), '13,0%', '2025 EBITDA desde el motor');
-esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).margenBrutoPct), '79,8%', '2026 desde el motor');
-esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).ebitdaPct), '23,4%', '2026 EBITDA desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).margenBrutoPct), '79,7%', 'a julio 2026 desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).ebitdaPct), '25,7%', 'a julio 2026 EBITDA desde el motor');
 esIgual(FORMATO.pct(0.3636), '36%', 'porcentaje redondea');
 esIgual(FORMATO.pct(0.84), '84%', 'porcentaje de Veranito');
 

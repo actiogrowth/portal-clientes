@@ -593,7 +593,7 @@ table.resumen tr.ingresos td:last-child b{font-size:var(--cifra-ingresos-2027)}
     <section data-seccion="3">
       <div class="encabezado-seccion">
         <h2>Cuadro resumen</h2>
-        <p>2025 cerrado, 2026 estimado y 2027 proyectado. La ocupación y los gastos de 2027 se mueven aquí.</p>
+        <p>2025 cerrado, siete meses reales de 2026 y 2027 proyectado. La ocupación y los gastos de 2027 se mueven aquí.</p>
       </div>
       <div id="resumen"></div>
     </section>
@@ -980,24 +980,34 @@ const MOTOR = (function(){
   /* ========================================================================
      CUADRO RESUMEN
 
-     2025 y 2026 son datos cerrados: no se calculan, se declaran. 2026 se
-     estimo con siete meses reales llevados a doce, salvo Veranito, que usa
-     la facturacion real de sus dos temporadas.
+     Las dos primeras columnas son datos cerrados: no se calculan, se
+     declaran. 2025 es el año completo. La segunda ya no es un 2026 estimado
+     sino los siete meses reales de enero a julio, sin anualizar, con los
+     gastos operativos a $25.000 por cada uno de esos siete meses.
+
+     Se declaran ingresos, mano de obra y gastos; el margen bruto, el EBITDA
+     y sus porcentajes salen de ahi, que es lo que impide que la cabecera y
+     el pie digan cosas distintas.
 
      2027 si se calcula, con las mismas reglas de las unidades, y es lo
      unico que mueven los dos controles.
      ====================================================================== */
   const ANIOS = {
     2025: { ingresos:477150, manoDeObra:120044, gastos:295066 },
-    2026: { ingresos:531459, manoDeObra:107160, gastos:300000 },
+    2026: { ingresos:324194, manoDeObra:65765, gastos:25000 * 7 },
   };
-  /* Orden: Kinder, After School, Veranito, Cumpleaños, Baby and Me, otros. */
+  /* Orden: Kinder, After School, Veranito, Cumpleaños, Baby and Me, otros.
+
+     Ojo con los de 2026: son la estimacion anualizada del año completo, que
+     es de donde salio OTROS_INGRESOS. Ya no es lo que muestra la columna del
+     cuadro, que ahora son siete meses reales. Se conservan porque siguen
+     siendo la referencia del año y la suite comprueba que cuadran entre si. */
   const UNIDADES_2025 = [207548, 143891, 92174, 18017, 2365, 13156];
   const UNIDADES_2026 = [232032, 133675, 121421, 31706, 1752, 10874];
   const VERANITO_2026 = { eneMar:36413, mayAgo:85008 };
 
-  /* Renglon fijo al nivel de 2026. No escala con la ocupacion porque no
-     depende de cuantos cupos se llenen. */
+  /* Renglon fijo anual, al nivel del año 2026 completo. No escala con la
+     ocupacion porque no depende de cuantos cupos se llenen. */
   const OTROS_INGRESOS = 10900;
   const GASTOS_MES_PARTIDA = 25000;
   const OCUPACION_2027_PARTIDA = 0.60;
@@ -2429,8 +2439,8 @@ function montarUnidades(contenedor){
 /* ==========================================================================
    SECCION 3 · CUADRO RESUMEN
 
-   2025 y 2026 son datos cerrados y no se tocan. Solo la columna de 2027
-   responde a los dos controles.
+   Las dos primeras columnas son datos cerrados y no se tocan: ni la de 2025
+   ni la de los siete meses de 2026. Solo la de 2027 responde a los controles.
    ========================================================================== */
 function montarResumen(contenedor){
   /* Un deslizador por unidad en vez de uno solo: la pregunta de la reunion
@@ -2503,7 +2513,7 @@ function montarResumen(contenedor){
   tabla.className = 'resumen';
   const thead = document.createElement('thead');
   const trh = document.createElement('tr');
-  for (const t of ['', '2025 real', '2026 estimado', '2027 proyectado']){
+  for (const t of ['', '2025 real', 'A julio 2026 · 7 meses', '2027 proyectado']){
     const th = document.createElement('th');
     th.textContent = t;
     trh.appendChild(th);
@@ -2550,10 +2560,11 @@ function montarResumen(contenedor){
      el tratamiento de Veranito quedan sin explicar y el cliente pregunta. */
   const notas = nodo('div', 'notas-metodo');
   for (const t of [
-      '2026 se estima con siete meses reales, de enero a julio, llevados a doce, salvo Veranito, ' +
-      'que usa la facturación real de sus dos temporadas.',
+      'La columna de 2026 recoge la facturación real de enero a julio, siete meses. Los gastos ' +
+      'operativos van a ' + F.dinero(MOTOR.GASTOS_MES_PARTIDA) + ' al mes por esos siete meses. Las cifras no están anualizadas.',
       'Veranito es estacional: en el resumen anual entra completo y en las vistas mensuales se prorratea.',
-      'Otros ingresos entran como renglón fijo al nivel de 2026 y no escalan con la ocupación.',
+      'En 2027, otros ingresos entran como renglón fijo anual de ' + F.dinero(MOTOR.OTROS_INGRESOS) +
+      ', al nivel del año 2026 completo, y no escalan con la ocupación.',
       NOTA_COSTO,
     ]) notas.appendChild(nodo('p', null, t));
   contenedor.appendChild(notas);
