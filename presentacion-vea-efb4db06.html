@@ -2586,8 +2586,8 @@ function montarResumen(contenedor){
     const p60 = MOTOR.resumen2027({ ocupacion:MOTOR.OCUPACION_2027_PARTIDA,
                                     gastosMes:MOTOR.GASTOS_MES_PARTIDA });
     contexto.innerHTML =
-      'En el escenario del ' + F.pct(MOTOR.OCUPACION_2027_PARTIDA) + ' de ocupación —no en el ' +
-      'que muestre la columna en este momento— el margen bruto baja de <strong>' +
+      'Con las cinco unidades al ' + F.pct(MOTOR.OCUPACION_2027_PARTIDA) + ' de ocupación, ' +
+      'el margen bruto baja de <strong>' +
       F.pctDecimal(jul.margenBrutoPct) + '</strong> a <strong>' + F.pctDecimal(p60.margenBrutoPct) +
       '</strong> por dos razones: Kinder abre grupos al llenarse, y cada grupo cuesta más porque el ' +
       'proyecto contempla el ajuste salarial del equipo docente. El EBITDA sube igual, de <strong>' +
