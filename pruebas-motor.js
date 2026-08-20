@@ -665,6 +665,113 @@ esIgual(pmResto.suma === 100000, true, 'con resto indivisible sigue sumando');
 esIgual(pmResto.ultimaDifiere, true, 'y la ultima absorbe el ajuste');
 
 /* ==========================================================================
+   LOS EDITABLES DE LA SECCION 2 LLEGAN A 2027, Y SOLO A 2027
+
+   El fallo que lo motiva se vio con el cliente delante: se cambio un costo en
+   Kinder y el cuadro resumen no se movio. Viajaba la ocupacion y nada mas, de
+   modo que la tarjeta y el cuadro calculaban unidades distintas.
+
+   Aqui se fija la regla en las dos direcciones: cada parametro editable mueve
+   2027, y ninguno mueve las dos columnas de la izquierda, que son hechos
+   ocurridos y no proyecciones.
+   ========================================================================== */
+console.log('\nEDITABLES CONECTADOS A 2027');
+
+/* El estado de la seccion 2 a una ocupacion dada: el mismo reparto que hace
+   la tarjeta al mover su control maestro. */
+function estadoAl(o){
+  const p = MOTOR.partida();
+  p.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * o);
+  p.afterSchool.ocupacion = o;
+  p.afterSchool.alumnos = null;
+  p.veranito.mayAgo.ocupacion = o;
+  p.veranito.eneMar.ocupacion = o;
+  p.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * o;
+  p.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
+    Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * o));
+  return p;
+}
+
+/* Un caso por cada campo que la seccion 2 deja tocar. */
+const EDITABLES = [
+  ['Kinder · mezcla de planes',      e => { e.kinder.pct45 = 0.30; }],
+  ['Kinder · precio 4,5 h',          e => { e.kinder.precio45 = 700; }],
+  ['Kinder · precio 8 h',            e => { e.kinder.precio8 = 900; }],
+  ['Kinder · costo por grupo',       e => { e.kinder.costoGrupo = 4000; }],
+  ['After School · precio 2v',       e => { e.afterSchool.precio2v = 250; }],
+  ['After School · precio Telas',    e => { e.afterSchool.precioTelas = 300; }],
+  ['After School · precio sabado',   e => { e.afterSchool.precio1v = 200; }],
+  ['After School · alumnos',         e => { e.afterSchool.alumnos = [30,30,30,30,30,30]; }],
+  ['After School · costos por hora', e => { e.afterSchool.costosHora = [80,80,80,80,80,null]; }],
+  ['Veranito · semanas',             e => { e.veranito.semanas = 14; }],
+  ['Veranito · cupos por semana',    e => { e.veranito.cuposSemana = 40; }],
+  ['Veranito · precio 4,5 h',        e => { e.veranito.precio45 = 260; }],
+  ['Veranito · precio 8 h',          e => { e.veranito.precio8 = 300; }],
+  ['Cumpleanos · precio',            e => { e.cumpleanos.precio = 600; }],
+  ['Cumpleanos · costo por evento',  e => { e.cumpleanos.costoEvento = 260; }],
+  ['Baby and Me · precio sabado',    e => { e.baby.precios[0] = 150; }],
+  ['Baby and Me · precio semana',    e => { e.baby.precios[1] = 250; }],
+  ['Baby and Me · costo por hora',   e => { e.baby.costoHora = 40; }],
+];
+
+const base27 = MOTOR.resumen2027({ unidades: estadoAl(0.60) });
+
+let quietos = [];
+for (const [nombre, tocar] of EDITABLES){
+  const e = estadoAl(0.60);
+  tocar(e);
+  const r = MOTOR.resumen2027({ unidades: e });
+  if (r.ingresos === base27.ingresos && r.manoDeObra === base27.manoDeObra) quietos.push(nombre);
+}
+esIgual(quietos.length, 0, 'los ' + EDITABLES.length + ' parametros editables mueven 2027' +
+        (quietos.length ? ' · quietos: ' + quietos.join(', ') : ''));
+
+esIgual(MOTOR.resumen2027({ unidades: estadoAl(0.80) }).ingresos !== base27.ingresos, true,
+        'y la ocupacion, que ya viajaba, lo sigue moviendo');
+
+/* Ningun editable puede mover un dolar de 2025 ni de la columna de julio: son
+   hechos ocurridos, se declaran aparte y no pasan por resumen2027. */
+const izq = () => JSON.stringify([MOTOR.resumen(2025), MOTOR.resumen(2026)]);
+const izqAntes = izq();
+let izqSeMovio = false;
+for (const [, tocar] of EDITABLES){
+  const e = estadoAl(0.60);
+  tocar(e);
+  MOTOR.resumen2027({ unidades: e });
+  if (izq() !== izqAntes) izqSeMovio = true;
+}
+esIgual(izqSeMovio, false, 'y ninguno toca 2025 ni la columna de julio');
+ok(MOTOR.resumen(2026).ingresos, 324194, 'julio sigue en su cifra', 0);
+ok(MOTOR.resumen(2025).ingresos, 477150, '2025 sigue en la suya', 0);
+
+/* La tarjeta y el cuadro salen del mismo calculo. Si una unidad aportara al
+   cuadro algo distinto de lo que enseña su tarjeta, el cliente lo ve al sumar
+   las cinco: es la cuenta que dejo 182,42 de descuadre cuando Veranito
+   entraba por una via propia. */
+const eMix = estadoAl(0.60);
+eMix.kinder.costoGrupo = 4000;
+eMix.veranito.cuposSemana = 40;
+const rMix = MOTOR.resumen2027({ unidades: eMix });
+const sumaTarjetas =
+  (MOTOR.kinder(eMix.kinder).facturacion + MOTOR.afterSchool(eMix.afterSchool).facturacion +
+   MOTOR.cumpleanos(eMix.cumpleanos).facturacion + MOTOR.baby(eMix.baby).facturacion) * 12 +
+  MOTOR.veranitoAnual(eMix.veranito).anual.facturacion + MOTOR.OTROS_INGRESOS;
+ok(sumaTarjetas, rMix.ingresos, 'la suma de las cinco tarjetas es la fila de ingresos', 0.01);
+
+/* La garantia, otra vez, por el camino que usa la pantalla: con el estado
+   completo y no con el atajo de la ocupacion. Conectar los costos podia haber
+   creado escalones nuevos. */
+let subeConEstado = true, caidaEstado = '';
+let prevEstado = null;
+for (let o = MOTOR.OCUPACION_2027_MINIMA * 100; o <= 100; o += MOTOR.OCUPACION_2027_PASO){
+  const eb = MOTOR.resumen2027({ unidades: estadoAl(o/100), gastosMes: MOTOR.GASTOS_MES_PARTIDA }).ebitda;
+  if (prevEstado !== null && eb < prevEstado.eb){ subeConEstado = false; caidaEstado = prevEstado.o + '% -> ' + o + '%'; }
+  prevEstado = { o, eb };
+}
+esIgual(subeConEstado, true, 'con el estado completo el EBITDA tampoco retrocede' +
+        (caidaEstado ? ' · cae en ' + caidaEstado : ''));
+
+/* ==========================================================================
    ENTREGABLES
    El conteo por fase es una afirmacion de la presentacion: si alguien
    agrega o mueve uno en la hoja y lo transcribe mal aqui, el titulo de la

@@ -1062,20 +1062,35 @@ const MOTOR = (function(){
     return o;
   }
 
+  /* 2027 se arma con el estado completo de cada unidad, no solo con su
+     ocupacion. La regla que sostiene el cuadro: lo que muestra la tarjeta de
+     una unidad y lo que esa unidad aporta aqui salen del mismo calculo con el
+     mismo estado. Antes solo viajaba la ocupacion, de modo que cambiar un
+     precio o un costo movia la tarjeta y dejaba el cuadro donde estaba.
+
+     Sin 'unidades' se cae al escenario declarado —los valores de partida a la
+     ocupacion que se pida—, que es lo que usan la frase del 60% y la suite. */
   function resumen2027(p){
     const o = ocupacionesDe(p);
     const gastosMes = p && p.gastosMes !== undefined ? p.gastosMes : GASTOS_MES_PARTIDA;
+    const u = (p && p.unidades) || null;
 
-    const k = kinder({ ninos: Math.round(KINDER_CAPACIDAD * o.kinder) });
-    const a = afterSchool({ ocupacion: o.afterSchool });
-    const c = cumpleanos({ eventosSemana: CUMPLE_TOPE_SEMANA * o.cumpleanos });
-    const b = baby({ ocupacion: o.baby });
+    const k = kinder(u ? u.kinder : { ninos: Math.round(KINDER_CAPACIDAD * o.kinder) });
+    const a = afterSchool(u ? u.afterSchool : { ocupacion: o.afterSchool });
+    const c = cumpleanos(u ? u.cumpleanos : { eventosSemana: CUMPLE_TOPE_SEMANA * o.cumpleanos });
+    const b = baby(u ? u.baby : { ocupacion: o.baby });
     const mes = Object.assign(consolidar([k,a,c,b]), { kinder:k, afterSchool:a, cumpleanos:c, baby:b });
-    const vMay = veranito({ ocupacion:o.veranito });
-    const vEne = veranito({ ocupacion:o.veranito });
 
-    const ingresos = mes.facturacion * 12 + vMay.facturacion + vEne.facturacion + OTROS_INGRESOS;
-    const manoDeObra = mes.costo * 12 + vMay.costo + vEne.costo;
+    /* Veranito entra por veranitoAnual en los dos casos. Antes se sumaban dos
+       llamadas sueltas a la misma ocupacion, y esa era la via por la que
+       "cupos por semana" empujaba el cuadro por el redondeo de alumnos sobre
+       cupos sin propagar su efecto real. */
+    const v = veranitoAnual(u ? u.veranito
+                              : Object.assign({}, VERANITO_PARTIDA,
+                                  { mayAgo:{ ocupacion:o.veranito }, eneMar:{ ocupacion:o.veranito } }));
+
+    const ingresos = mes.facturacion * 12 + v.anual.facturacion + OTROS_INGRESOS;
+    const manoDeObra = mes.costo * 12 + v.anual.costo;
 
     return conPorcentajes({
       anio: 2027, ingresos, manoDeObra, gastos: gastosMes * 12,
@@ -1083,7 +1098,7 @@ const MOTOR = (function(){
       unidades: {
         kinder: mes.kinder, afterSchool: mes.afterSchool,
         cumpleanos: mes.cumpleanos, baby: mes.baby,
-        veranito: { mayAgo:vMay, eneMar:vEne },
+        veranito: { mayAgo:v.mayAgo, eneMar:v.eneMar, anual:v.anual },
       },
     });
   }
@@ -1988,6 +2003,29 @@ const OCUPACION = (() => {
   };
 })();
 
+/* ==========================================================================
+   PARAMETROS DE LAS UNIDADES
+
+   La ocupacion viaja en los dos sentidos y por eso tiene su propio almacen.
+   Esto es lo otro: precios, costos, mezclas, semanas y cupos, que solo van de
+   "Detalle por unidad" al "Cuadro resumen". Sin este canal el cuadro armaba
+   2027 con los valores de partida, asi que cambiar un costo movia la tarjeta
+   y dejaba el cuadro donde estaba, y el margen dejaba de cuadrar entre las
+   dos pestañas.
+
+   Se publica por referencia y se avisa en cada repintado, tambien cuando no
+   cambia la ocupacion: si no, reiniciar los precios no repintaria el cuadro.
+   ========================================================================== */
+const PARAMETROS = (() => {
+  let valor = null;
+  const oyentes = [];
+  return {
+    lee: () => valor,
+    publica(v){ valor = v; oyentes.forEach(fn => fn()); },
+    suscribe(fn){ oyentes.push(fn); },
+  };
+})();
+
 function montarUnidades(contenedor){
   const inicial = () => MOTOR.partida();
   let est = inicial();
@@ -2415,6 +2453,11 @@ function montarUnidades(contenedor){
     /* La ocupacion que sale de estas tarjetas es la que ve el cuadro resumen.
        Si no cambio nada, fija() no avisa y aqui se detiene el ciclo. */
     OCUPACION.fija(fracs, 'unidades');
+
+    /* Y con ella el resto del estado: el cuadro arma 2027 con este mismo
+       objeto, de modo que no puede calcular una unidad distinta de la que
+       enseña la tarjeta. */
+    PARAMETROS.publica(est);
   }
 
   /* Lo que llega del cuadro resumen se reparte dentro de la unidad que cambio
@@ -2610,7 +2653,8 @@ function montarResumen(contenedor){
     }
 
     const anios = [MOTOR.resumen(2025), MOTOR.resumen(2026),
-                   MOTOR.resumen2027({ ocupaciones:est.ocupaciones, gastosMes:est.gastosMes })];
+                   MOTOR.resumen2027({ unidades:PARAMETROS.lee(),
+                                       ocupaciones:est.ocupaciones, gastosMes:est.gastosMes })];
     for (const f of FILAS){
       anios.forEach((a, i) => {
         const c = celdas[f.clave][i];
@@ -2619,6 +2663,10 @@ function montarResumen(contenedor){
       });
     }
   }
+
+  /* Cualquier cambio de la seccion 2 —un precio, un costo— obliga a repintar
+     aunque la ocupacion no se haya movido. */
+  PARAMETROS.suscribe(() => pintar());
 
   /* La seccion 2 publica en cada repintado suyo. Aqui se recoge el valor y
      se repinta, sin volver a publicar: eso es lo que corta el ida y vuelta. */
