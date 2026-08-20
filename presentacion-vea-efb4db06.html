@@ -127,10 +127,6 @@ section[data-seccion].activa{display:block}
 .nota-costo{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
   border-top:1px solid var(--borde-suave);margin-top:14px;padding-top:10px}
 
-footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
-  font-size:var(--menudo);color:var(--texto-secundario);display:flex;
-  justify-content:space-between;gap:16px;flex-wrap:wrap}
-
 /* ==========================================================================
    TARJETA DE UNIDAD
    Mismo tratamiento visual en las cuatro unidades, como pide la seccion 2:
@@ -609,11 +605,6 @@ table.resumen tr.ingresos td:last-child b{font-size:var(--cifra-ingresos-2027)}
       <div id="inversion"></div>
     </section>
   </main>
-
-  <footer>
-    <span>Actio Growth · Vida en Arte 360</span>
-    <span>Los cálculos cubren mano de obra directa únicamente.</span>
-  </footer>
 
 </div>
 
@@ -2627,12 +2618,10 @@ function montarResumen(contenedor){
    SECCION 4 · LA INVERSION
    ========================================================================== */
 function montarInversion(contenedor){
-  /* Los campos son montos y no porcentajes: el equipo negocia en dolares.
-     Los porcentajes que se muestran se derivan del monto, asi que nunca
-     pueden contradecirlo. */
-  const inicial = () => Object.assign({}, DATOS.INVERSION);
-  let est = inicial();
-  const restauradores = [];
+  /* El plan ya no se negocia en pantalla: las cifras son las acordadas y no
+     se tocan. Los porcentajes se siguen derivando del monto y no se escriben,
+     asi que no pueden contradecirlo. */
+  const est = Object.assign({}, DATOS.INVERSION);
 
   const caja = nodo('div', 'inversion-caja');
   caja.appendChild(nodo('span', 'etiqueta', 'Inversión del proyecto'));
@@ -2640,27 +2629,9 @@ function montarInversion(contenedor){
   caja.appendChild(refTotal);
   contenedor.appendChild(caja);
 
-  const panel = nodo('div', 'plan-controles');
-  const reg = (cfg, lee) => {
-    const c = control(cfg);
-    restauradores.push(p => c.restaurar(lee(p)));
-    panel.appendChild(c.wrap);
-  };
-  reg({ etiqueta:'Monto total', tipo:'number', min:0, max:99999999, paso:500, valor:est.total,
-        alCambiar:x => { est.total = x; pintar(); } }, p => p.total);
-  reg({ etiqueta:'Pago inicial', tipo:'number', min:0, max:99999999, paso:250, valor:est.primero,
-        alCambiar:x => { est.primero = x; pintar(); } }, p => p.primero);
-  reg({ etiqueta:'Mensualidades', tipo:'range', min:0, max:24, paso:1, valor:est.cuotas,
-        formato:x => x === 0 ? 'ninguna' : x + (x === 1 ? ' cuota' : ' cuotas'),
-        alCambiar:x => { est.cuotas = x; pintar(); } }, p => p.cuotas);
-  reg({ etiqueta:'Pago final', tipo:'number', min:0, max:99999999, paso:250, valor:est.final,
-        alCambiar:x => { est.final = x; pintar(); } }, p => p.final);
-  contenedor.appendChild(panel);
-
   const desglose = nodo('div', 'plan-desglose');
   contenedor.appendChild(desglose);
 
-  barraReinicio(contenedor, 'Reiniciar plan');
 
   function fila(rotulo, monto, glosa){
     const f = nodo('div', 'plan-fila');
@@ -2697,7 +2668,7 @@ function montarInversion(contenedor){
         }
       }
       if (pl.final > 0){
-        desglose.appendChild(fila('Pago final contra entrega', pl.final,
+        desglose.appendChild(fila('Cuota 11, Pago final', pl.final,
           F.pctDecimal(pl.pctFinal) + ' del proyecto'));
       }
       const suma = fila('Suma', pl.suma, 'coincide con el monto total');
@@ -2707,9 +2678,7 @@ function montarInversion(contenedor){
 
   }
 
-  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
   pintar();
-  REINICIOS.push(reiniciar);
 }
 
 /* ==========================================================================
