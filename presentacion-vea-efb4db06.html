@@ -2627,35 +2627,16 @@ function montarResumen(contenedor){
    SECCION 4 · LA INVERSION
    ========================================================================== */
 function montarInversion(contenedor){
-  /* Los campos son montos y no porcentajes: el equipo negocia en dolares.
-     Los porcentajes que se muestran se derivan del monto, asi que nunca
-     pueden contradecirlo. */
-  const inicial = () => Object.assign({}, DATOS.INVERSION);
-  let est = inicial();
-  const restauradores = [];
+  /* El plan ya no se negocia en pantalla: las cifras son las acordadas y no
+     se tocan. Los porcentajes se siguen derivando del monto y no se escriben,
+     asi que no pueden contradecirlo. */
+  const est = Object.assign({}, DATOS.INVERSION);
 
   const caja = nodo('div', 'inversion-caja');
   caja.appendChild(nodo('span', 'etiqueta', 'Inversión del proyecto'));
   const refTotal = nodo('b');
   caja.appendChild(refTotal);
   contenedor.appendChild(caja);
-
-  const panel = nodo('div', 'plan-controles');
-  const reg = (cfg, lee) => {
-    const c = control(cfg);
-    restauradores.push(p => c.restaurar(lee(p)));
-    panel.appendChild(c.wrap);
-  };
-  reg({ etiqueta:'Monto total', tipo:'number', min:0, max:99999999, paso:500, valor:est.total,
-        alCambiar:x => { est.total = x; pintar(); } }, p => p.total);
-  reg({ etiqueta:'Pago inicial', tipo:'number', min:0, max:99999999, paso:250, valor:est.primero,
-        alCambiar:x => { est.primero = x; pintar(); } }, p => p.primero);
-  reg({ etiqueta:'Mensualidades', tipo:'range', min:0, max:24, paso:1, valor:est.cuotas,
-        formato:x => x === 0 ? 'ninguna' : x + (x === 1 ? ' cuota' : ' cuotas'),
-        alCambiar:x => { est.cuotas = x; pintar(); } }, p => p.cuotas);
-  reg({ etiqueta:'Pago final', tipo:'number', min:0, max:99999999, paso:250, valor:est.final,
-        alCambiar:x => { est.final = x; pintar(); } }, p => p.final);
-  contenedor.appendChild(panel);
 
   const desglose = nodo('div', 'plan-desglose');
   contenedor.appendChild(desglose);
@@ -2707,9 +2688,7 @@ function montarInversion(contenedor){
 
   }
 
-  function reiniciar(){ est = inicial(); restauradores.forEach(r => r(est)); pintar(); }
   pintar();
-  REINICIOS.push(reiniciar);
 }
 
 /* ==========================================================================
