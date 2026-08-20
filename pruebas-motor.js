@@ -300,10 +300,15 @@ ok(vLleno.mes.facturacion, 200662 / 12, 'y su mensual sale del mismo anual', 1);
 
 /* ==========================================================================
    CUADRO RESUMEN
-   El corazon de la reunion. 2025 y 2026 son datos cerrados y se comprueban
-   contra si mismos; 2027 se calcula con las reglas de las unidades.
+   El corazon de la reunion. Las dos primeras columnas son datos cerrados y se
+   comprueban contra si mismos; 2027 se calcula con las reglas de las
+   unidades.
+
+   La segunda ya no es un 2026 estimado a doce meses: son los siete meses
+   reales de enero a julio, sin anualizar. Se sigue leyendo con la clave 2026
+   porque es la del año al que pertenecen.
    ========================================================================== */
-console.log('\nRESUMEN · 2025 Y 2026');
+console.log('\nRESUMEN · 2025 Y LOS SIETE MESES DE 2026');
 
 const a25 = MOTOR.resumen(2025), a26 = MOTOR.resumen(2026);
 
@@ -315,19 +320,21 @@ ok(a25.gastos, 295066, '2025: gastos operativos', 0);
 ok(a25.ebitda, 62040, '2025: EBITDA', 0);
 ok(a25.ebitdaPct * 100, 13.0, '2025: EBITDA %', 0.05);
 
-ok(a26.ingresos, 531459, '2026: ingresos', 0);
-ok(a26.manoDeObra, 107160, '2026: costo de mano de obra', 0);
-ok(a26.margenBruto, 424299, '2026: margen bruto', 0);
-ok(a26.margenBrutoPct * 100, 79.8, '2026: margen bruto %', 0.05);
-ok(a26.gastos, 300000, '2026: gastos operativos', 0);
-ok(a26.ebitda, 124299, '2026: EBITDA', 0);
-ok(a26.ebitdaPct * 100, 23.4, '2026: EBITDA %', 0.05);
+ok(a26.ingresos, 324194, 'a julio 2026: ingresos', 0);
+ok(a26.manoDeObra, 65765, 'a julio 2026: costo de mano de obra', 0);
+ok(a26.margenBruto, 258429, 'a julio 2026: margen bruto', 0);
+ok(a26.margenBrutoPct * 100, 79.7, 'a julio 2026: margen bruto %', 0.05);
+ok(a26.gastos, 175000, 'a julio 2026: gastos operativos', 0);
+esIgual(a26.gastos === 25000 * 7, true, 'que son siete meses a 25.000');
+ok(a26.ebitda, 83429, 'a julio 2026: EBITDA', 0);
+ok(a26.ebitdaPct * 100, 25.7, 'a julio 2026: EBITDA %', 0.05);
 
-/* El desglose por unidad tiene que sumar el total del año, o el cuadro y el
-   detalle se contradicen delante del cliente. */
+/* El desglose por unidad tiene que sumar el total del año. El de 2026 es la
+   estimacion anualizada y ya no es lo que muestra la columna del cuadro, que
+   son siete meses: se comprueba contra si mismo, no contra la columna. */
 const suma = u => u.reduce((s, x) => s + x, 0);
 ok(suma(MOTOR.UNIDADES_2025), 477150, '2025: el desglose por unidad suma el total', 1);
-ok(suma(MOTOR.UNIDADES_2026), 531459, '2026: el desglose por unidad suma el total', 1);
+ok(suma(MOTOR.UNIDADES_2026), 531459, '2026 anualizado: el desglose por unidad suma el total', 1);
 ok(MOTOR.VERANITO_2026.eneMar + MOTOR.VERANITO_2026.mayAgo, 121421,
    '2026: Veranito son sus dos temporadas reales', 0);
 
@@ -442,7 +449,7 @@ ok(gastosAltos.gastos, 360000, 'los gastos mensuales se anualizan por doce', 0);
 ok(p60.ebitda - gastosAltos.ebitda, 60000, 'subir gastos $5.000/mes baja el EBITDA $60.000', 0.5);
 ok(gastosAltos.margenBruto, p60.margenBruto, 'los gastos no tocan el margen bruto', 0.5);
 ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
-ok(MOTOR.resumen(2026).ebitda, 124299, 'los gastos de 2027 no tocan 2026', 0);
+ok(MOTOR.resumen(2026).ebitda, 83429, 'los gastos de 2027 no tocan la columna de 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
 ok(p100.ingresos - p60.ingresos, 557658, 'la ocupacion mueve los ingresos', 100);
@@ -510,8 +517,8 @@ esIgual(FORMATO.pctDecimal(0.798), '79,8%', 'margen bruto de 2026');
 esIgual(FORMATO.pctDecimal(0.234), '23,4%', 'EBITDA de 2026');
 esIgual(FORMATO.pctDecimal(MOTOR.resumen(2025).margenBrutoPct), '74,8%', '2025 desde el motor');
 esIgual(FORMATO.pctDecimal(MOTOR.resumen(2025).ebitdaPct), '13,0%', '2025 EBITDA desde el motor');
-esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).margenBrutoPct), '79,8%', '2026 desde el motor');
-esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).ebitdaPct), '23,4%', '2026 EBITDA desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).margenBrutoPct), '79,7%', 'a julio 2026 desde el motor');
+esIgual(FORMATO.pctDecimal(MOTOR.resumen(2026).ebitdaPct), '25,7%', 'a julio 2026 EBITDA desde el motor');
 esIgual(FORMATO.pct(0.3636), '36%', 'porcentaje redondea');
 esIgual(FORMATO.pct(0.84), '84%', 'porcentaje de Veranito');
 
@@ -656,6 +663,113 @@ esIgual(pmMal.valido, false, 'inicial mas final por encima del total es invalido
 const pmResto = MOTOR.plan({ total:100000, primero:30000, meses:6, final:0 });
 esIgual(pmResto.suma === 100000, true, 'con resto indivisible sigue sumando');
 esIgual(pmResto.ultimaDifiere, true, 'y la ultima absorbe el ajuste');
+
+/* ==========================================================================
+   LOS EDITABLES DE LA SECCION 2 LLEGAN A 2027, Y SOLO A 2027
+
+   El fallo que lo motiva se vio con el cliente delante: se cambio un costo en
+   Kinder y el cuadro resumen no se movio. Viajaba la ocupacion y nada mas, de
+   modo que la tarjeta y el cuadro calculaban unidades distintas.
+
+   Aqui se fija la regla en las dos direcciones: cada parametro editable mueve
+   2027, y ninguno mueve las dos columnas de la izquierda, que son hechos
+   ocurridos y no proyecciones.
+   ========================================================================== */
+console.log('\nEDITABLES CONECTADOS A 2027');
+
+/* El estado de la seccion 2 a una ocupacion dada: el mismo reparto que hace
+   la tarjeta al mover su control maestro. */
+function estadoAl(o){
+  const p = MOTOR.partida();
+  p.kinder.ninos = Math.round(MOTOR.KINDER_CAPACIDAD * o);
+  p.afterSchool.ocupacion = o;
+  p.afterSchool.alumnos = null;
+  p.veranito.mayAgo.ocupacion = o;
+  p.veranito.eneMar.ocupacion = o;
+  p.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * o;
+  p.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
+    Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * o));
+  return p;
+}
+
+/* Un caso por cada campo que la seccion 2 deja tocar. */
+const EDITABLES = [
+  ['Kinder · mezcla de planes',      e => { e.kinder.pct45 = 0.30; }],
+  ['Kinder · precio 4,5 h',          e => { e.kinder.precio45 = 700; }],
+  ['Kinder · precio 8 h',            e => { e.kinder.precio8 = 900; }],
+  ['Kinder · costo por grupo',       e => { e.kinder.costoGrupo = 4000; }],
+  ['After School · precio 2v',       e => { e.afterSchool.precio2v = 250; }],
+  ['After School · precio Telas',    e => { e.afterSchool.precioTelas = 300; }],
+  ['After School · precio sabado',   e => { e.afterSchool.precio1v = 200; }],
+  ['After School · alumnos',         e => { e.afterSchool.alumnos = [30,30,30,30,30,30]; }],
+  ['After School · costos por hora', e => { e.afterSchool.costosHora = [80,80,80,80,80,null]; }],
+  ['Veranito · semanas',             e => { e.veranito.semanas = 14; }],
+  ['Veranito · cupos por semana',    e => { e.veranito.cuposSemana = 40; }],
+  ['Veranito · precio 4,5 h',        e => { e.veranito.precio45 = 260; }],
+  ['Veranito · precio 8 h',          e => { e.veranito.precio8 = 300; }],
+  ['Cumpleanos · precio',            e => { e.cumpleanos.precio = 600; }],
+  ['Cumpleanos · costo por evento',  e => { e.cumpleanos.costoEvento = 260; }],
+  ['Baby and Me · precio sabado',    e => { e.baby.precios[0] = 150; }],
+  ['Baby and Me · precio semana',    e => { e.baby.precios[1] = 250; }],
+  ['Baby and Me · costo por hora',   e => { e.baby.costoHora = 40; }],
+];
+
+const base27 = MOTOR.resumen2027({ unidades: estadoAl(0.60) });
+
+let quietos = [];
+for (const [nombre, tocar] of EDITABLES){
+  const e = estadoAl(0.60);
+  tocar(e);
+  const r = MOTOR.resumen2027({ unidades: e });
+  if (r.ingresos === base27.ingresos && r.manoDeObra === base27.manoDeObra) quietos.push(nombre);
+}
+esIgual(quietos.length, 0, 'los ' + EDITABLES.length + ' parametros editables mueven 2027' +
+        (quietos.length ? ' · quietos: ' + quietos.join(', ') : ''));
+
+esIgual(MOTOR.resumen2027({ unidades: estadoAl(0.80) }).ingresos !== base27.ingresos, true,
+        'y la ocupacion, que ya viajaba, lo sigue moviendo');
+
+/* Ningun editable puede mover un dolar de 2025 ni de la columna de julio: son
+   hechos ocurridos, se declaran aparte y no pasan por resumen2027. */
+const izq = () => JSON.stringify([MOTOR.resumen(2025), MOTOR.resumen(2026)]);
+const izqAntes = izq();
+let izqSeMovio = false;
+for (const [, tocar] of EDITABLES){
+  const e = estadoAl(0.60);
+  tocar(e);
+  MOTOR.resumen2027({ unidades: e });
+  if (izq() !== izqAntes) izqSeMovio = true;
+}
+esIgual(izqSeMovio, false, 'y ninguno toca 2025 ni la columna de julio');
+ok(MOTOR.resumen(2026).ingresos, 324194, 'julio sigue en su cifra', 0);
+ok(MOTOR.resumen(2025).ingresos, 477150, '2025 sigue en la suya', 0);
+
+/* La tarjeta y el cuadro salen del mismo calculo. Si una unidad aportara al
+   cuadro algo distinto de lo que enseña su tarjeta, el cliente lo ve al sumar
+   las cinco: es la cuenta que dejo 182,42 de descuadre cuando Veranito
+   entraba por una via propia. */
+const eMix = estadoAl(0.60);
+eMix.kinder.costoGrupo = 4000;
+eMix.veranito.cuposSemana = 40;
+const rMix = MOTOR.resumen2027({ unidades: eMix });
+const sumaTarjetas =
+  (MOTOR.kinder(eMix.kinder).facturacion + MOTOR.afterSchool(eMix.afterSchool).facturacion +
+   MOTOR.cumpleanos(eMix.cumpleanos).facturacion + MOTOR.baby(eMix.baby).facturacion) * 12 +
+  MOTOR.veranitoAnual(eMix.veranito).anual.facturacion + MOTOR.OTROS_INGRESOS;
+ok(sumaTarjetas, rMix.ingresos, 'la suma de las cinco tarjetas es la fila de ingresos', 0.01);
+
+/* La garantia, otra vez, por el camino que usa la pantalla: con el estado
+   completo y no con el atajo de la ocupacion. Conectar los costos podia haber
+   creado escalones nuevos. */
+let subeConEstado = true, caidaEstado = '';
+let prevEstado = null;
+for (let o = MOTOR.OCUPACION_2027_MINIMA * 100; o <= 100; o += MOTOR.OCUPACION_2027_PASO){
+  const eb = MOTOR.resumen2027({ unidades: estadoAl(o/100), gastosMes: MOTOR.GASTOS_MES_PARTIDA }).ebitda;
+  if (prevEstado !== null && eb < prevEstado.eb){ subeConEstado = false; caidaEstado = prevEstado.o + '% -> ' + o + '%'; }
+  prevEstado = { o, eb };
+}
+esIgual(subeConEstado, true, 'con el estado completo el EBITDA tampoco retrocede' +
+        (caidaEstado ? ' · cae en ' + caidaEstado : ''));
 
 /* ==========================================================================
    ENTREGABLES
