@@ -274,7 +274,7 @@ const bSoloSab = MOTOR.baby({ alumnos: [16, 0] });
 ok(bSoloSab.costo, 2 * 4.33 * 25, 'solo sabado: dos sesiones dictadas', 0.5);
 ok(bSoloSab.facturacion, 1552, 'solo sabado: factura solo su franja', 0);
 const bSoloSem = MOTOR.baby({ alumnos: [0, 16] });
-ok(bSoloSem.costo, 8 * 4.33 * 25, 'solo entre semana: ocho sesiones dictadas', 0.5);
+ok(bSoloSem.costo, 2 * 2 * 4.33 * 25, 'solo entre semana: dos grupos de dos sesiones', 0.5);
 
 /* El costo por hora es editable: puede atenderla un profesor de Kinder. */
 const bCaro = MOTOR.baby({ ocupacion: 1, costoHora: 40 });
@@ -398,9 +398,9 @@ const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
 ok(p60.ingresos, 938716, 'al 60%: ingresos', 50);
-ok(p60.margenBrutoPct * 100, 70.4, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 360610, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 38.4, 'al 60%: EBITDA %', 0.15);
+ok(p60.margenBrutoPct * 100, 70.7, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 363208, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 38.7, 'al 60%: EBITDA %', 0.15);
 
 ok(p80.ingresos, 1253084, 'al 80%: ingresos', 50);
 ok(p80.margenBrutoPct * 100, 70.0, 'al 80%: margen bruto %', 0.15);
@@ -744,8 +744,7 @@ function estadoAl(o){
   p.veranito.mayAgo.ocupacion = o;
   p.veranito.eneMar.ocupacion = o;
   p.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * o;
-  p.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
-    Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * o));
+  p.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr => Math.round(MOTOR.babyCupos(fr) * o));
   return p;
 }
 

@@ -825,21 +825,42 @@ const MOTOR = (function(){
      del sabado de After School. Se quitaron de alli al separar la unidad:
      las mismas horas no se pagan dos veces.
      ====================================================================== */
+  /* Baby and Me se modela por grupos, igual que After School. Un grupo es una
+     franja horaria fija y un profesor lo atiende entero, porque su capacidad
+     —ocho niños— es el grupo que atiende una persona.
+
+     El modelo anterior cobraba las diez sesiones semanales siempre, asi que un
+     solo niño entre semana costaba 1.082,50 al mes. Con grupos cuesta 216,50:
+     su grupo, que se reune dos veces por semana.
+
+     Los cuatro grupos de entre semana son dos franjas horarias por dos parejas
+     de dias; cada niño asiste dos veces por semana y el sabado una. */
   const BABY_FRANJAS = [
-    { nombre:'Sábado',         sesiones:2, cuposSesion:8, horas:1, vecesSemana:1, precio:97 },
-    { nombre:'Lunes a jueves', sesiones:8, cuposSesion:8, horas:1, vecesSemana:2, precio:165 },
+    { nombre:'Sábado',         grupos:2, capGrupo:8, sesiones:1, precio:97 },
+    { nombre:'Lunes a jueves', grupos:4, capGrupo:8, sesiones:2, precio:165 },
   ];
-  /* Cupos de una franja: las plazas de todas sus sesiones repartidas entre
-     las veces que cada niño asiste. Cuatro sesiones de ocho con asistencia
-     dos veces por semana son dieciseis niños, no treinta y dos. */
-  const babyCuposFranja = f => f.sesiones * f.cuposSesion / f.vecesSemana;
-  const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCuposFranja(f), 0);
+  const babyCupos = f => f.grupos * f.capGrupo;
+  const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCupos(f), 0);
   const BABY_ALUMNOS_HOY = 0;
-  /* Los precios viven en la partida y no en la franja: son editables en
-     pantalla, igual que los de After School y Cumpleaños. La franja se
-     queda con el suyo como valor de respaldo. */
   const BABY_PARTIDA = { ocupacion:0, costoHora:AS_PROFESOR,
                          precios:BABY_FRANJAS.map(f => f.precio) };
+
+  /* Un grupo sin alumnos no se dicta y no cuesta. Se llena uno antes de abrir
+     el siguiente, que es lo realista y lo mas barato. */
+  function babyGrupos(f, alumnos){
+    const dentro = [];
+    let restante = Math.max(0, alumnos);
+    for (let g = 0; g < f.grupos && restante > 0; g++){
+      const enGrupo = Math.min(f.capGrupo, restante);
+      dentro.push(enGrupo);
+      restante -= enGrupo;
+    }
+    return dentro;
+  }
+
+  function babyCostoFranja(f, alumnos, costoHora){
+    return babyGrupos(f, alumnos).length * f.sesiones * costoHora * SEM_MES;
+  }
 
   function baby(p){
     const c = Object.assign({}, BABY_PARTIDA, p || {});
@@ -847,19 +868,18 @@ const MOTOR = (function(){
     let alumnos = 0, facturacion = 0, costo = 0;
 
     BABY_FRANJAS.forEach((f, i) => {
-      const cupos = babyCuposFranja(f);
-      /* alumnos explicito gana sobre la ocupacion: la tarjeta permite
-         editar cada franja por separado. */
-      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0))
-                           : Math.round(cupos * c.ocupacion);
+      const cupos = babyCupos(f);
+      /* Enteros: lo que muestra el campo es lo que usa la cuenta. */
+      const al = Math.round(c.alumnos ? Math.max(0, c.alumnos[i] || 0)
+                                      : cupos * c.ocupacion);
       const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : f.precio;
+      const dentro = babyGrupos(f, al);
       const ing = al * precio;
-      /* El costo escala con las sesiones que se dictan: una franja sin
-         alumnos no se dicta y no cuesta. */
-      const gasto = al > 0 ? f.sesiones * f.horas * SEM_MES * c.costoHora : 0;
+      const gasto = babyCostoFranja(f, al, c.costoHora);
       alumnos += al; facturacion += ing; costo += gasto;
       detalle.push({ nombre:f.nombre, cupos, alumnos:al, precio, facturacion:ing, costo:gasto,
-                     sesiones:f.sesiones, horas:f.horas, vecesSemana:f.vecesSemana });
+                     gruposAbiertos:dentro.length, grupos:f.grupos,
+                     capGrupo:f.capGrupo, sesiones:f.sesiones });
     });
 
     return { alumnos, cupos:BABY_CUPOS, facturacion, costo, detalle,
@@ -1150,7 +1170,7 @@ const MOTOR = (function(){
     AS_PROFESOR, AS_ASISTENTE, asCupos, asGrupos, asCostoDisciplina, asPorProfesor, asReparto,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
-    BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS,
+    BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS, babyCupos, babyGrupos, babyCostoFranja,
     ANIOS, UNIDADES_2025, UNIDADES_2026, VERANITO_2026,
     OTROS_INGRESOS, GASTOS_MES_PARTIDA,
     OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA, OCUPACION_2027_PASO,
@@ -2061,7 +2081,7 @@ function montarUnidades(contenedor){
     veranito:    f => { est.veranito.mayAgo.ocupacion = f; est.veranito.eneMar.ocupacion = f; },
     cumpleanos:  f => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * f; },
     baby:        f => { est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
-                          Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * f)); },
+                          Math.round(MOTOR.babyCupos(fr) * f)); },
   };
 
   let sincronizables = [];
@@ -2270,7 +2290,7 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'Baby and Me', clave: 'baby',
-      columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturación', 'Costo'],
+      columnas: ['Franja', 'Cupos', 'Alumnos', 'Grupos', 'Precio', 'Facturación', 'Costo'],
       calcular: () => MOTOR.baby(est.baby),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
       sincronizar: r => [
@@ -2278,18 +2298,26 @@ function montarUnidades(contenedor){
         Math.round(r.detalle[0].alumnos / r.detalle[0].cupos * 100),
         Math.round(r.detalle[1].alumnos / r.detalle[1].cupos * 100),
       ],
+      /* Las cifras salen del motor: lo que cuesta un grupo, cuantos alumnos lo
+         cubren y hasta donde llega. Si cambia la tarifa, la frase se corrige. */
       apoyo: r => {
         const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
+        const fr = MOTOR.BABY_FRANJAS[1];
+        const grupo = MOTOR.babyCostoFranja(fr, 1, est.baby.costoHora);
+        const paraPagarlo = Math.ceil(grupo / est.baby.precios[1]);
         return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
-               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación';
+               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación. Un grupo cuesta ' +
+               F.precio(grupo) + ' al mes y cubre hasta ' + fr.capGrupo + ' niños: con ' +
+               paraPagarlo + ' alumnos se paga solo, y del ' + (paraPagarlo + 1) + '.º al ' +
+               fr.capGrupo + '.º todo es margen.';
       },
       filas: r => r.detalle.map((d, i) => [
-        d.nombre + ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones') +
-          ' de ' + d.horas + ' h' + (d.vecesSemana > 1 ? ' · ' + d.vecesSemana + ' veces por semana' : ''),
+        d.nombre + ' · ' + d.grupos + ' grupos de ' + d.capGrupo,
         d.cupos,
-        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos, paso:1,
           alCambiar:v => { est.baby.alumnos = r.detalle.map(x => x.alumnos);
                            est.baby.alumnos[i] = v; pintar(); } },
+        d.gruposAbiertos + ' de ' + d.grupos,
         F.precio(d.precio),
         F.dinero(d.facturacion),
         d.costo ? '−' + F.dinero(d.costo) : '—',
@@ -2304,7 +2332,7 @@ function montarUnidades(contenedor){
                 () => 0),
         separador('Cada franja por separado'),
       ].concat(MOTOR.BABY_FRANJAS.map((fr, i) => {
-        const cupos = fr.sesiones * fr.cuposSesion / fr.vecesSemana;
+        const cupos = MOTOR.babyCupos(fr);
         return regSync({ etiqueta:fr.nombre, tipo:'range', min:0, max:100, paso:1,
                          valor:0, formato:x => x + '%',
                          alCambiar:x => {
