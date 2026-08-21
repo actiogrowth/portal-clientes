@@ -2096,18 +2096,30 @@ function montarUnidades(contenedor){
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
          mueve cuantos niños hay. */
-      ocupacion: r => ({ texto: F.cantidad(r.alumnos) + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
+      ocupacion: r => ({ texto: Math.round(r.alumnos) + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
       sincronizar: r => [Math.round(r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100)],
-      apoyo: r => 'El costo sigue a los alumnos por sesión: cada 10 niños de ParKour son un profesor más.',
+      /* La proporcion se calcula, no se escribe: es el costo con una sola
+         plantilla por sesion contra el de plena ocupacion. Si cambian las
+         tarifas o las sesiones, la frase se corrige sola. */
+      apoyo: () => {
+        const base = MOTOR.afterSchool(Object.assign({}, est.afterSchool,
+                       { alumnos: MOTOR.AS_DISCIPLINAS.map(() => 1) })).costo;
+        const lleno = MOTOR.afterSchool(Object.assign({}, est.afterSchool,
+                       { alumnos: null, ocupacion: 1 })).costo;
+        return 'El ' + F.pct(base / lleno) + ' del costo es fijo por sesión: se paga igual con la ' +
+               'sesión llena que con un solo niño. Solo ParKour agrega un profesor cuando la ' +
+               'sesión pasa de 10 niños.';
+      },
       filas: r => r.detalle.map((d, i) => [
         d.nombre + ' · ' + d.sesiones + ' sesiones de ' + d.capSesion,
         d.cupos,
-        /* El deslizador reparte por proporcion y no por cabezas: el 55% de 30
-           cupos son 16,5. Se muestra a dos decimales para que el campo se pueda
-           leer, y la cuenta sigue con el valor exacto: la diferencia queda por
-           debajo del peso con el que se redondea toda la presentacion. */
-        { editable:true, valor:Math.round(d.alumnos * 100) / 100, min:0, max:d.cupos, paso:0.01,
+        /* El deslizador reparte por proporcion y no por cabezas, asi que el 55%
+           de 30 cupos son 16,5. En pantalla va el entero —un campo que dice
+           "16,5 alumnos" no se cree— y la cuenta sigue con el valor exacto,
+           porque redondearla movería el escalon del segundo profesor y con el
+           la garantia de que el EBITDA no retrocede. */
+        { editable:true, valor:Math.round(d.alumnos), min:0, max:d.cupos, paso:1,
           alCambiar:v => { fijarAlumnosAS(r, i, v); pintar(); } },
         F.cantidad(d.porSesion),
         { editable:true, valor:d.precio, min:0, max:900, paso:0.01,
