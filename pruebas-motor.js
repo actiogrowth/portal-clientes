@@ -148,7 +148,7 @@ console.log('\nAFTER SCHOOL');
    fija: el alumno se inscribe en una y asiste a todas sus sesiones, y los
    cupos de la disciplina son sus grupos por la capacidad de cada uno. */
 esIgual(MOTOR.AS_CUPOS_TOTALES, 310, 'trescientos diez cupos entre las ocho disciplinas');
-esIgual(MOTOR.AS_DISCIPLINAS.length, 8, 'ocho disciplinas');
+esIgual(MOTOR.AS_DISCIPLINAS.length, 10, 'diez lineas: cinco de semana y cinco de sabado');
 esIgual(MOTOR.AS_DISCIPLINAS.filter(d => d.sesiones === 1).reduce((s,d) => s + MOTOR.asCupos(d), 0), 114,
         'ciento catorce del sabado');
 esIgual(MOTOR.AS_DISCIPLINAS.filter(d => d.sesiones === 2).reduce((s,d) => s + MOTOR.asCupos(d), 0), 196,
@@ -168,8 +168,8 @@ const as55 = MOTOR.afterSchool({ ocupacion: 0.55 });
 ok(as50.facturacion, 23839.04, 'al 50%: facturacion', 0.01);
 ok(as50.costo, 3546.27, 'al 50%: costo', 0.01);
 ok(as55.facturacion, 26290.14, 'al 55%: facturacion', 0.01);
-ok(as55.costo, 5048.78, 'al 55%: costo', 0.01);
-ok(as55.costo - as50.costo, 1502.51, 'el escalon que abre grupos y suma profesores', 0.01);
+ok(as55.costo, 5343.22, 'al 55%: costo', 0.01);
+ok(as55.costo - as50.costo, 1796.95, 'el escalon que abre grupos y suma profesores', 0.01);
 ok(as55.facturacion - as50.facturacion, 2451.10, 'que los cinco puntos pagan de sobra', 0.01);
 
 /* El fallo que motiva el modelo por grupos: un solo alumno en ParKour 6-14
@@ -222,8 +222,12 @@ esIgual(MOTOR.AS_ALUMNOS_HOY, 80, 'ochenta alumnos inscritos hoy');
 ok(MOTOR.AS_OCUPACION_HOY * 100, 25.8, 'que sobre 310 cupos son 25,8%', 0.05);
 ok(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).alumnos, 80,
    'y la ocupacion de hoy los reproduce', 0);
-ok(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).costo, 2338.20,
+ok(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).costo, 2740.89,
    'con 80 alumnos el costo es el de los grupos que abren', 0.01);
+esIgual(JSON.stringify(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).detalle.map(d => d.alumnos)),
+        '[21,11,10,5,4,10,5,5,3,6]', 'y el reparto de los 80 entre las diez lineas');
+ok(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).facturacion, 12313.28,
+   'con la facturacion que le corresponde', 0.01);
 
 /* ==========================================================================
    BABY AND ME
@@ -398,13 +402,13 @@ const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
 ok(p60.ingresos, 938716, 'al 60%: ingresos', 50);
-ok(p60.margenBrutoPct * 100, 70.7, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 363208, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 38.7, 'al 60%: EBITDA %', 0.15);
+ok(p60.margenBrutoPct * 100, 70.3, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 359675, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 38.3, 'al 60%: EBITDA %', 0.15);
 
 ok(p80.ingresos, 1253084, 'al 80%: ingresos', 50);
 ok(p80.margenBrutoPct * 100, 70.0, 'al 80%: margen bruto %', 0.15);
-ok(p80.ebitda, 577531, 'al 80%: EBITDA', 50);
+ok(p80.ebitda, 576232, 'al 80%: EBITDA', 50);
 
 ok(p100.ingresos, 1560073, 'al 100%: ingresos', 50);
 ok(p100.margenBrutoPct * 100, 72.8, 'al 100%: margen bruto %', 0.15);
@@ -474,7 +478,7 @@ for (let o = MOTOR.OCUPACION_2027_MINIMA * 100; o <= 100; o++){
   if (prev !== null && eb < prev) caidasConPasoFino++;
   prev = eb;
 }
-esIgual(caidasConPasoFino, 7, 'con paso de 1 punto habria siete retrocesos');
+esIgual(caidasConPasoFino, 8, 'con paso de 1 punto habria ocho retrocesos');
 
 /* El suelo del 5% se puso porque del 0% al 5% se encendia de golpe toda la
    base de costos de After School y el EBITDA retrocedia. Con la unidad
@@ -635,10 +639,10 @@ esIgual(pl6.suma === 96000, true, 'sin primer pago tambien cuadra');
 console.log('\nAFTER SCHOOL · POR DISCIPLINA');
 
 const asBase = MOTOR.afterSchool({ ocupacion: 1 });
-esIgual(asBase.detalle.length, 8, 'ocho filas en el desglose');
+esIgual(asBase.detalle.length, 10, 'diez filas en el desglose');
 
 /* alumnos explicito gana sobre la ocupacion. */
-const asMano = MOTOR.afterSchool({ alumnos: [40, 20, 20, 10, 8, 30, 15, 12] });
+const asMano = MOTOR.afterSchool({ alumnos: [40, 20, 20, 10, 8, 20, 10, 10, 5, 12] });
 esIgual(asMano.alumnos, 155, 'los alumnos explicitos mandan');
 esIgual(asMano.detalle[0].alumnos, 40, 'ParKour 6-14 a la mitad');
 ok(asMano.detalle.reduce((s, d) => s + d.facturacion, 0), asMano.facturacion,
@@ -646,12 +650,14 @@ ok(asMano.detalle.reduce((s, d) => s + d.facturacion, 0), asMano.facturacion,
 ok(asMano.detalle.reduce((s, d) => s + d.costo, 0), asMano.costo, 'y el costo', 0.01);
 
 /* Una disciplina sin alumnos no se dicta y no cuesta; las demas si. */
-const asSinParKids = MOTOR.afterSchool({ alumnos: [80, 40, 40, 20, 0, 60, 30, 24] });
-ok(asBase.costo - asSinParKids.costo, 4 * 25 * MOTOR.SEM_MES,
-   'vaciar ParKids quita solo sus cuatro sesiones', 0.5);
+const llenos = MOTOR.AS_DISCIPLINAS.map(d => MOTOR.asCupos(d));
+const asSinParKids = MOTOR.afterSchool({ alumnos: llenos.map((n, i) => i === 4 ? 0 : n) });
+ok(asBase.costo - asSinParKids.costo, 2 * 2 * 25 * MOTOR.SEM_MES,
+   'vaciar ParKids de semana quita sus dos grupos de dos sesiones', 0.5);
 
 /* Los precios son editables uno por uno. */
-const asCaro = MOTOR.afterSchool({ ocupacion: 1, precios: [200, 169.06, 200, 200, 169.06, 111.28, 111.28, 111.28] });
+const asCaro = MOTOR.afterSchool({ ocupacion: 1,
+  precios: MOTOR.AS_DISCIPLINAS.map((d, i) => i === 0 ? 200 : d.precio) });
 ok(asCaro.facturacion - asBase.facturacion, 80 * (200 - 169.06),
    'subir el precio de una disciplina', 0.01);
 esIgual(asCaro.costo === asBase.costo, true, 'y no toca el costo');
@@ -755,7 +761,7 @@ const EDITABLES = [
   ['Kinder · precio 8 h',            e => { e.kinder.precio8 = 900; }],
   ['Kinder · costo por grupo',       e => { e.kinder.costoGrupo = 4000; }],
   ['After School · precios',         e => { e.afterSchool.precios = e.afterSchool.precios.map(x => x + 30); }],
-  ['After School · alumnos',         e => { e.afterSchool.alumnos = [40,20,20,10,8,30,15,12]; }],
+  ['After School · alumnos',         e => { e.afterSchool.alumnos = MOTOR.AS_DISCIPLINAS.map(d => Math.round(MOTOR.asCupos(d) * 0.5)); }],
   ['After School · tarifa profesor', e => { e.afterSchool.profesor = 40; }],
   ['After School · tarifa asistente',e => { e.afterSchool.asistente = 30; }],
   ['Veranito · semanas',             e => { e.veranito.semanas = 14; }],
