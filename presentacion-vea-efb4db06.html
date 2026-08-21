@@ -704,118 +704,76 @@ const MOTOR = (function(){
      una vez por semana paga la tarifa de una vez. Los cupos vendibles de
      cada disciplina son cupos x sesiones; sumados al sabado dan los 220.
      ====================================================================== */
-  const AS_PROFESOR = 25;   // costo por hora de un profesor
-  const AS_ASISTENTE = 18;  // Telas requiere asistente ademas del profesor
+  const AS_PROFESOR = 25;    // costo por hora de un profesor
+  const AS_ASISTENTE = 18;   // Telas necesita asistente ademas del profesor
 
+  /* Ocho disciplinas, todas con sesiones de una hora. Entre semana cada alumno
+     asiste dos veces y el sabado una, asi que los cupos vendibles de una
+     disciplina son sus sesiones por su capacidad, repartidas entre las veces
+     que asiste cada alumno: ocho sesiones de veinte con asistencia dos veces
+     por semana son ochenta cupos, no ciento sesenta. */
   const AS_DISCIPLINAS = [
-    { nombre:'ParKour 6-14', cupos:20, sesiones:2, horasSem:8, costoHora:AS_PROFESOR*2 },
-    { nombre:'ParKour 15+',  cupos:20, sesiones:2, horasSem:4, costoHora:AS_PROFESOR*2 },
-    { nombre:'Telas 6-14',   cupos:10, sesiones:2, horasSem:8, costoHora:AS_PROFESOR+AS_ASISTENTE, telas:true },
-    { nombre:'Telas 15+',    cupos:10, sesiones:2, horasSem:4, costoHora:AS_PROFESOR+AS_ASISTENTE, telas:true },
-    { nombre:'ParKids 3-5',  cupos:8,  sesiones:2, horasSem:4, costoHora:AS_PROFESOR },
+    { nombre:'ParKour 6-14',   capSesion:20, sesiones:8, vecesSemana:2, precio:169.06, tipo:'parkour' },
+    { nombre:'ParKour 15+',    capSesion:20, sesiones:4, vecesSemana:2, precio:169.06, tipo:'parkour' },
+    { nombre:'Telas 6-14',     capSesion:10, sesiones:8, vecesSemana:2, precio:200,    tipo:'telas'   },
+    { nombre:'Telas 15+',      capSesion:10, sesiones:4, vecesSemana:2, precio:200,    tipo:'telas'   },
+    { nombre:'ParKids',        capSesion:8,  sesiones:4, vecesSemana:2, precio:169.06, tipo:'parkids' },
+    { nombre:'ParKour sábado', capSesion:20, sesiones:3, vecesSemana:1, precio:111.28, tipo:'parkour' },
+    { nombre:'Telas sábado',   capSesion:10, sesiones:3, vecesSemana:1, precio:111.28, tipo:'telas'   },
+    { nombre:'ParKids sábado', capSesion:8,  sesiones:3, vecesSemana:1, precio:111.28, tipo:'parkids' },
   ];
-  /* Baby & Me salio de aqui: desde la spec v2 es unidad propia. Solo se fue
-     su franja de entre semana (8 cupos y 4 horas). La del sabado se sigue
-     dictando dentro de After School y por eso sigue en AS_SABADO. */
+  const asCupos = d => d.sesiones * d.capSesion / d.vecesSemana;
+  const AS_CUPOS_TOTALES = AS_DISCIPLINAS.reduce((s, d) => s + asCupos(d), 0);
 
-  /* El sabado se vende como un bloque de 76 cupos a tarifa de una vez por
-     semana, pero su costo se arma disciplina por disciplina igual que entre
-     semana. Hoy no se dicta: cero alumnos inscritos. */
-  const AS_SABADO = {
-    cupos: 76,
-    disciplinas: [
-      { nombre:'ParKour Adultos', horas:1, costoHora:AS_PROFESOR*2 },
-      { nombre:'ParKour 6-14',    horas:2, costoHora:AS_PROFESOR*2 },
-      { nombre:'Telas Adultos',   horas:1, costoHora:AS_PROFESOR+AS_ASISTENTE },
-      { nombre:'Telas 6-14',      horas:2, costoHora:AS_PROFESOR+AS_ASISTENTE },
-      { nombre:'ParKids',         horas:3, costoHora:AS_PROFESOR },
-      /* Baby & Me tenia aqui 2 h. Se fueron con la unidad al separarla: las
-         mismas horas no se pagan dos veces. */
-    ],
+  const AS_ALUMNOS_HOY = 80;
+  const AS_OCUPACION_HOY = AS_ALUMNOS_HOY / AS_CUPOS_TOTALES;
+  const AS_PARTIDA = {
+    ocupacion: AS_OCUPACION_HOY,
+    precios: AS_DISCIPLINAS.map(d => d.precio),
+    profesor: AS_PROFESOR,
+    asistente: AS_ASISTENTE,
   };
 
-  /* precio1v cubre el sabado: corre una vez por semana. Baby & Me tenia
-     esta misma tarifa cuando vivia aqui; como unidad propia tiene la suya. */
-  const AS_OCUPACION_HOY = 80 / 212;   // 80 alumnos inscritos sobre 212 cupos
-  const AS_PARTIDA = { ocupacion:AS_OCUPACION_HOY, precio2v:169.06, precio1v:111.28, precioTelas:200 };
+  /* Cuanto cuesta una sesion segun cuantos niños tenga dentro. Es lo que hace
+     que el costo dependa de los alumnos en vez de ser una cifra fija: once
+     niños en una sesion de ParKour ya son dos profesores.
 
-  const AS_CUPOS_TOTALES =
-    AS_DISCIPLINAS.reduce((s,d) => s + d.cupos * d.sesiones, 0) + AS_SABADO.cupos;
-
-  const AS_COSTO_SABADO =
-    AS_SABADO.disciplinas.reduce((s,d) => s + d.horas * SEM_MES * d.costoHora, 0);
-
-  function asPrecio(d, c){
-    if (d.telas) return c.precioTelas;
-    return d.sesiones >= 2 ? c.precio2v : c.precio1v;
-  }
-
-  /* Reparto por resto mayor. Redondear cada disciplina por su lado parece
-     inofensivo y no lo es: los saltos se acumulan y el total deja de ser el
-     que anuncia la ocupacion. Con 212 cupos no habia ninguna ocupacion que
-     diera los 80 alumnos reales, saltaba de 78 a 81.
-
-     Aqui se reparten primero los enteros y despues las unidades que sobran,
-     a las disciplinas con mayor fraccion pendiente. La suma es siempre
-     round(total x ocupacion), que es lo que el cliente espera al leer el
-     porcentaje. */
-  function repartirEnteros(cupos, ocupacion){
-    const total = Math.round(cupos.reduce((s, c) => s + c, 0) * ocupacion);
-    const exactos = cupos.map(c => c * ocupacion);
-    const base = exactos.map(Math.floor);
-    let sobran = total - base.reduce((s, x) => s + x, 0);
-
-    const orden = exactos
-      .map((x, i) => ({ i, resto: x - Math.floor(x) }))
-      .sort((a, b) => b.resto - a.resto);
-
-    /* Si sobran mas unidades que disciplinas se dan varias vueltas; si el
-       total pedido es menor que la suma de los enteros, se devuelven. */
-    let k = 0;
-    while (sobran > 0){ base[orden[k % orden.length].i]++; sobran--; k++; }
-    k = 0;
-    while (sobran < 0){
-      const i = orden[orden.length - 1 - (k % orden.length)].i;
-      if (base[i] > 0){ base[i]--; sobran++; }
-      k++;
-    }
-    return base;
+     Telas y ParKids no cruzan nunca su escalon, porque su capacidad por sesion
+     coincide con el tamaño del grupo que atiende un profesor. Se calculan con
+     la misma regla igualmente, para que subir la capacidad de una sesion no
+     obligue a tocar el costo aparte. */
+  function asCostoSesion(d, alumnosSesion, c){
+    if (alumnosSesion <= 0) return 0;
+    if (d.tipo === 'telas')   return Math.ceil(alumnosSesion / 10) * (c.profesor + c.asistente);
+    if (d.tipo === 'parkids') return Math.ceil(alumnosSesion / 8)  * c.profesor;
+    return Math.ceil(alumnosSesion / 10) * c.profesor;
   }
 
   function afterSchool(p){
     const c = Object.assign({}, AS_PARTIDA, p || {});
-    const franjas = AS_DISCIPLINAS.map(d => d.cupos * d.sesiones).concat([AS_SABADO.cupos]);
-    const reparto = repartirEnteros(franjas, c.ocupacion);
-
     let facturacion = 0, alumnos = 0, costo = 0;
     const detalle = [];
 
     AS_DISCIPLINAS.forEach((d, i) => {
-      const cupos = franjas[i];
-      /* alumnos explicito gana sobre el reparto: la tabla de la tarjeta
-         permite editar cada disciplina por separado, que es como se
-         pregunta "y si ParKour va lleno y ParKids a la mitad". */
-      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0)) : reparto[i];
-      const costoHora = (c.costosHora && c.costosHora[i] != null) ? c.costosHora[i] : d.costoHora;
-      const ingreso = al * asPrecio(d, c);
-      /* Sin alumnos no se dicta, y lo que no se dicta no cuesta. Llenar los
-         cupos que ya existen, en cambio, no mueve el costo: la clase ya se
-         esta dictando. */
-      const gasto = al > 0 ? d.horasSem * SEM_MES * costoHora : 0;
+      const cupos = asCupos(d);
+      /* alumnos explicito gana sobre la ocupacion: la tabla permite editar
+         cada disciplina por separado, que es como se pregunta "y si ParKour
+         va lleno y ParKids a la mitad". */
+      const al = c.alumnos ? Math.max(0, c.alumnos[i] || 0) : cupos * c.ocupacion;
+      const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : d.precio;
+      /* Los que hay dentro de cada sesion, con reparto parejo. */
+      const porSesion = al * d.vecesSemana / d.sesiones;
+      const ingreso = al * precio;
+      /* Sin alumnos la sesion no se dicta y no cuesta. */
+      const gasto = al > 0 ? d.sesiones * asCostoSesion(d, porSesion, c) * SEM_MES : 0;
       alumnos += al; facturacion += ingreso; costo += gasto;
-      detalle.push({ nombre:d.nombre, cupos, alumnos:al, facturacion:ingreso, costo:gasto,
-                     costoHora, horasSem:d.horasSem });
+      detalle.push({ nombre:d.nombre, cupos, alumnos:al, precio, porSesion,
+                     facturacion:ingreso, costo:gasto,
+                     sesiones:d.sesiones, capSesion:d.capSesion, tipo:d.tipo });
     });
 
-    const iSab = AS_DISCIPLINAS.length;
-    const alSab = c.alumnos ? Math.max(0, Math.round(c.alumnos[iSab] || 0)) : reparto[iSab];
-    const ingSab = alSab * c.precio1v;
-    const gastoSab = alSab > 0 ? AS_COSTO_SABADO : 0;
-    alumnos += alSab; facturacion += ingSab; costo += gastoSab;
-    detalle.push({ nombre:'Sábado', cupos:AS_SABADO.cupos, alumnos:alSab, facturacion:ingSab,
-                   costo:gastoSab, esSabado:true });
-
-    return { alumnos, facturacion, costo, margen: facturacion - costo, detalle };
+    return { alumnos, cupos:AS_CUPOS_TOTALES, facturacion, costo,
+             margen: facturacion - costo, detalle };
   }
 
   /* ========================================================================
@@ -1158,8 +1116,8 @@ const MOTOR = (function(){
     KINDER_CAPACIDAD, KINDER_NINOS_POR_GRUPO,
     KINDER_COSTO_PROFESOR, KINDER_COSTO_ASISTENTE, PRESTACIONES,
     KINDER_COSTO_GRUPO, KINDER_COSTO_GRUPO_2026,
-    AS_DISCIPLINAS, AS_SABADO, AS_CUPOS_TOTALES, AS_COSTO_SABADO, AS_OCUPACION_HOY,
-    repartirEnteros,
+    AS_DISCIPLINAS, AS_CUPOS_TOTALES, AS_OCUPACION_HOY, AS_ALUMNOS_HOY,
+    AS_PROFESOR, AS_ASISTENTE, asCupos, asCostoSesion,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
     BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS,
@@ -1412,6 +1370,14 @@ const FORMATO = (function(){
     return (n < 0 ? '-' : '') + '$' + miles(Math.round(Math.abs(n)));
   }
 
+  /* Conteos que pueden salir con decimales: el 55% de 30 cupos son 16,5
+     alumnos. Se muestra el valor real y no un entero, o la fila diria una
+     cantidad y facturaria otra. */
+  function cantidad(n){
+    const r = Math.round(n * 10) / 10;
+    return String(Number.isInteger(r) ? r : r.toFixed(1)).replace('.', ',');
+  }
+
   /* Signo explicito: a tres metros el color solo no distingue un delta
      positivo de uno negativo. */
   function delta(n){
@@ -1462,7 +1428,7 @@ const FORMATO = (function(){
   }
   const GLIFO = { alto:'●', medio:'◐', bajo:'○' };
 
-  return { miles, dinero, delta, precio, pct, pctDecimal, entero, sumaVisible, deltaAnual, nivel, GLIFO };
+  return { miles, dinero, delta, precio, pct, pctDecimal, entero, cantidad, sumaVisible, deltaAnual, nivel, GLIFO };
 })();
 </script>
 
@@ -2126,24 +2092,26 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'After School', clave: 'afterSchool',
-      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Costo/hora', 'Facturación', 'Costo'],
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Por sesión', 'Precio', 'Facturación', 'Costo'],
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
          mueve cuantos niños hay. */
-      ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
+      ocupacion: r => ({ texto: F.cantidad(r.alumnos) + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
       sincronizar: r => [Math.round(r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100)],
-      apoyo: () => '',
+      apoyo: r => 'El costo sigue a los alumnos por sesión: cada 10 niños de ParKour son un profesor más.',
       filas: r => r.detalle.map((d, i) => [
-        d.nombre,
+        d.nombre + ' · ' + d.sesiones + ' sesiones de ' + d.capSesion,
         d.cupos,
-        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
-          alCambiar:v => { est.afterSchool.alumnos = r.detalle.map(x => x.alumnos);
-                           est.afterSchool.alumnos[i] = v; pintar(); } },
-        d.esSabado ? '—'
-          : { editable:true, valor:d.costoHora, min:0, paso:1,
-              alCambiar:v => { est.afterSchool.costosHora = r.detalle.map(x => x.costoHora != null ? x.costoHora : null);
-                               est.afterSchool.costosHora[i] = v; pintar(); } },
+        /* El deslizador reparte por proporcion y no por cabezas: el 55% de 30
+           cupos son 16,5. Se muestra a dos decimales para que el campo se pueda
+           leer, y la cuenta sigue con el valor exacto: la diferencia queda por
+           debajo del peso con el que se redondea toda la presentacion. */
+        { editable:true, valor:Math.round(d.alumnos * 100) / 100, min:0, max:d.cupos, paso:0.01,
+          alCambiar:v => { fijarAlumnosAS(r, i, v); pintar(); } },
+        F.cantidad(d.porSesion),
+        { editable:true, valor:d.precio, min:0, max:900, paso:0.01,
+          alCambiar:v => { fijarPrecioAS(r, i, v); pintar(); } },
         F.dinero(d.facturacion),
         d.costo ? '−' + F.dinero(d.costo) : '—',
       ]),
@@ -2153,13 +2121,15 @@ function montarUnidades(contenedor){
                   /* Reparte y vuelve a mandar sobre lo editado en la tabla. */
                   alCambiar:x => { APLICAR.afterSchool(x / 100); pintar(); } },
                 p => p.afterSchool.ocupacion*100),
-        separador('Los alumnos de cada disciplina se ajustan en la tabla'),
-        reg({ etiqueta:'Precio 2 veces/sem', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio2v,
-              alCambiar:x => { est.afterSchool.precio2v = x; pintar(); } }, p => p.afterSchool.precio2v),
-        reg({ etiqueta:'Precio Telas', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precioTelas,
-              alCambiar:x => { est.afterSchool.precioTelas = x; pintar(); } }, p => p.afterSchool.precioTelas),
-        reg({ etiqueta:'Precio sábado', tipo:'number', min:0, max:900, paso:0.01, valor:est.afterSchool.precio1v,
-              alCambiar:x => { est.afterSchool.precio1v = x; pintar(); } }, p => p.afterSchool.precio1v),
+        separador('Los alumnos y el precio de cada disciplina se ajustan en la tabla'),
+        /* Las dos tarifas viven aqui y no por disciplina: son la misma persona
+           cobrando lo mismo en cualquiera de las ocho. */
+        reg({ etiqueta:'Profesor por hora', tipo:'number', min:0, max:500, paso:1,
+              valor:est.afterSchool.profesor,
+              alCambiar:x => { est.afterSchool.profesor = x; pintar(); } }, p => p.afterSchool.profesor),
+        reg({ etiqueta:'Asistente por hora', tipo:'number', min:0, max:500, paso:1,
+              valor:est.afterSchool.asistente,
+              alCambiar:x => { est.afterSchool.asistente = x; pintar(); } }, p => p.afterSchool.asistente),
       ],
     },
     {
@@ -2326,9 +2296,9 @@ function montarUnidades(contenedor){
     est.afterSchool.alumnos = r.detalle.map(d => d.alumnos);
     est.afterSchool.alumnos[i] = v;
   }
-  function fijarCostoAS(r, i, v){
-    est.afterSchool.costosHora = r.detalle.map(d => d.costoHora != null ? d.costoHora : null);
-    est.afterSchool.costosHora[i] = v;
+  function fijarPrecioAS(r, i, v){
+    est.afterSchool.precios = r.detalle.map(d => d.precio);
+    est.afterSchool.precios[i] = v;
   }
 
   const tarjetas = FICHAS.map(ficha => {
