@@ -2609,9 +2609,11 @@ function montarResumen(contenedor){
   const FILAS = [
     { clave:'ingresos',   rotulo:'Ingresos', grande:true, verde:true },
     { clave:'manoDeObra', rotulo:'(−) Costo de mano de obra' },
-    { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, grande:true, pct:'margenBrutoPct' },
+    { clave:'margenBruto', rotulo:'Margen bruto', destacada:true, grande:true, pct:'margenBrutoPct',
+      visible: a => F.sumaVisible([a.ingresos, -a.manoDeObra]) },
     { clave:'gastos',     rotulo:'(−) Gastos operativos' },
-    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, verde:true, grande:true, pct:'ebitdaPct' },
+    { clave:'ebitda',     rotulo:'EBITDA', destacada:true, verde:true, grande:true, pct:'ebitdaPct',
+      visible: a => F.sumaVisible([F.sumaVisible([a.ingresos, -a.manoDeObra]), -a.gastos]) },
   ];
   const celdas = {};
   for (const f of FILAS){
@@ -2699,7 +2701,7 @@ function montarResumen(contenedor){
     for (const f of FILAS){
       anios.forEach((a, i) => {
         const c = celdas[f.clave][i];
-        c.cifra.textContent = F.dinero(a[f.clave]);
+        c.cifra.textContent = F.dinero(f.visible ? f.visible(a) : a[f.clave]);
         if (c.porc) c.porc.textContent = F.pctDecimal(a[f.pct]) + ' sobre ingresos';
       });
     }
