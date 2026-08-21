@@ -2284,19 +2284,6 @@ function montarUnidades(contenedor){
         Math.round(r.detalle[0].alumnos / r.detalle[0].cupos * 100),
         Math.round(r.detalle[1].alumnos / r.detalle[1].cupos * 100),
       ],
-      /* Las cifras salen del motor: lo que cuesta un grupo, cuantos alumnos lo
-         cubren y hasta donde llega. Si cambia la tarifa, la frase se corrige. */
-      apoyo: r => {
-        const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
-        const fr = MOTOR.BABY_FRANJAS[1];
-        const grupo = MOTOR.babyCostoFranja(fr, 1, est.baby.costoHora);
-        const paraPagarlo = Math.ceil(grupo / est.baby.precios[1]);
-        return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
-               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación. Un grupo cuesta ' +
-               F.precio(grupo) + ' al mes y cubre hasta ' + fr.capGrupo + ' niños: con ' +
-               paraPagarlo + ' alumnos se paga solo, y del ' + (paraPagarlo + 1) + '.º al ' +
-               fr.capGrupo + '.º todo es margen.';
-      },
       filas: r => r.detalle.map((d, i) => [
         d.nombre + ' · ' + d.grupos + (d.grupos === 1 ? ' grupo de ' : ' grupos de ') + d.capGrupo,
         d.cupos,
