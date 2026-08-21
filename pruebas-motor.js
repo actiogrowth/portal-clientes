@@ -144,14 +144,14 @@ ok(kHoy.facturacion - MOTOR.REAL.kinder.facturacion, 1752, 'brecha tarifas sin m
    ========================================================================== */
 console.log('\nAFTER SCHOOL');
 
-/* Ocho disciplinas de sesiones de una hora. Entre semana cada alumno asiste
-   dos veces y el sabado una, asi que los cupos de una disciplina son sus
-   sesiones por su capacidad entre las veces que asiste cada alumno. */
+/* Ocho disciplinas modeladas por grupos. Un grupo es una franja horaria
+   fija: el alumno se inscribe en una y asiste a todas sus sesiones, y los
+   cupos de la disciplina son sus grupos por la capacidad de cada uno. */
 esIgual(MOTOR.AS_CUPOS_TOTALES, 310, 'trescientos diez cupos entre las ocho disciplinas');
 esIgual(MOTOR.AS_DISCIPLINAS.length, 8, 'ocho disciplinas');
-esIgual(MOTOR.AS_DISCIPLINAS.filter(d => d.vecesSemana === 1).reduce((s,d) => s + MOTOR.asCupos(d), 0), 114,
+esIgual(MOTOR.AS_DISCIPLINAS.filter(d => d.sesiones === 1).reduce((s,d) => s + MOTOR.asCupos(d), 0), 114,
         'ciento catorce del sabado');
-esIgual(MOTOR.AS_DISCIPLINAS.filter(d => d.vecesSemana === 2).reduce((s,d) => s + MOTOR.asCupos(d), 0), 196,
+esIgual(MOTOR.AS_DISCIPLINAS.filter(d => d.sesiones === 2).reduce((s,d) => s + MOTOR.asCupos(d), 0), 196,
         'y ciento noventa y seis de entre semana');
 
 const as100 = MOTOR.afterSchool({ ocupacion: 1 });
@@ -166,26 +166,41 @@ ok(as100.margen / as100.facturacion * 100, 85.7, 'a plena ocupacion: margen sobr
 const as50 = MOTOR.afterSchool({ ocupacion: 0.50 });
 const as55 = MOTOR.afterSchool({ ocupacion: 0.55 });
 ok(as50.facturacion, 23839.04, 'al 50%: facturacion', 0.01);
-ok(as50.costo, 5174.35, 'al 50%: costo, con las sesiones de ParKour a diez', 0.01);
+ok(as50.costo, 3546.27, 'al 50%: costo', 0.01);
 ok(as55.facturacion, 26222.94, 'al 55%: facturacion', 0.01);
-ok(as55.costo, 6798.10, 'al 55%: costo, con las sesiones de ParKour a once', 0.01);
-ok(as55.costo - as50.costo, 1623.75, 'el escalon del segundo profesor de ParKour', 0.01);
+ok(as55.costo, 5048.78, 'al 55%: costo', 0.01);
+ok(as55.costo - as50.costo, 1502.51, 'el escalon que abre grupos y suma profesores', 0.01);
 ok(as55.facturacion - as50.facturacion, 2383.90, 'que los cinco puntos pagan de sobra', 0.01);
 
-/* El escalon esta donde tiene que estar y no antes. */
-esIgual(MOTOR.afterSchool({ ocupacion: 0.50 }).detalle[0].porSesion, 10, 'al 50%: diez por sesion en ParKour');
-esIgual(MOTOR.afterSchool({ ocupacion: 0.55 }).detalle[0].porSesion, 11, 'al 55%: once');
+/* El fallo que motiva el modelo por grupos: un solo alumno en ParKour 6-14
+   costaba 866 al mes, las cuatro franjas abiertas para el. Se llena un grupo
+   antes de abrir el siguiente, asi que cuesta uno: 216,50. */
+const asUno = MOTOR.afterSchool({ alumnos: [1,0,0,0,0,0,0,0] });
+ok(asUno.costo, 216.50, 'un alumno en ParKour 6-14 abre un grupo y cuesta 216,50', 0.01);
+esIgual(MOTOR.asGrupos(MOTOR.AS_DISCIPLINAS[0], 1).length, 1, 'y solo uno');
+esIgual(JSON.stringify(MOTOR.asGrupos(MOTOR.AS_DISCIPLINAS[0], 21)), '[20,1]',
+        'el veintiuno abre el segundo grupo');
+esIgual(MOTOR.afterSchool({ alumnos: [21,0,0,0,0,0,0,0] }).detalle[0].gruposAbiertos, 2,
+        'que es lo que cuenta la tarjeta');
 
-/* Telas y ParKids no cruzan nunca su escalon: su capacidad por sesion es el
-   tamaño del grupo que atiende un profesor. */
-ok(MOTOR.asCostoSesion(MOTOR.AS_DISCIPLINAS[2], 10, { profesor:25, asistente:18 }), 43,
-   'una sesion de Telas llena son profesor y asistente', 0);
-ok(MOTOR.asCostoSesion(MOTOR.AS_DISCIPLINAS[4], 8, { profesor:25, asistente:18 }), 25,
-   'y una de ParKids, un profesor', 0);
-ok(MOTOR.asCostoSesion(MOTOR.AS_DISCIPLINAS[0], 11, { profesor:25, asistente:18 }), 50,
-   'once en ParKour son dos profesores', 0);
-ok(MOTOR.asCostoSesion(MOTOR.AS_DISCIPLINAS[0], 0, { profesor:25, asistente:18 }), 0,
-   'y una sesion vacia no se dicta', 0);
+/* Los dos escalones de un grupo de ParKour: el segundo profesor a los once,
+   y el grupo nuevo a los veintiuno. */
+const pk = MOTOR.AS_DISCIPLINAS[0], tar = MOTOR.partida().afterSchool;
+ok(MOTOR.asCostoDisciplina(pk, 10, tar), 216.50, 'diez niños: un profesor', 0.01);
+ok(MOTOR.asCostoDisciplina(pk, 11, tar), 433, 'once: dos', 0.01);
+ok(MOTOR.asCostoDisciplina(pk, 20, tar), 433, 'veinte: los mismos dos', 0.01);
+ok(MOTOR.asCostoDisciplina(pk, 21, tar), 649.50, 'veintiuno: se abre grupo', 0.01);
+ok(MOTOR.asCostoDisciplina(pk, 0, tar), 0, 'y un grupo sin alumnos no se dicta', 0);
+
+/* Telas y ParKids no cruzan nunca su escalon: la capacidad de su grupo es el
+   tamaño que atiende un profesor. Un grupo de Telas son dos sesiones a 43. */
+const tarifas = { profesor:25, asistente:18 };
+ok(MOTOR.asCostoDisciplina(MOTOR.AS_DISCIPLINAS[2], 10, tarifas), 2 * 43 * MOTOR.SEM_MES,
+   'un grupo lleno de Telas son profesor y asistente', 0.01);
+ok(MOTOR.asCostoDisciplina(MOTOR.AS_DISCIPLINAS[4], 8, tarifas), 2 * 25 * MOTOR.SEM_MES,
+   'y uno de ParKids, un profesor', 0.01);
+ok(MOTOR.asCostoDisciplina(MOTOR.AS_DISCIPLINAS[5], 20, tarifas), 1 * 50 * MOTOR.SEM_MES,
+   'el sabado corre una vez por semana', 0.01);
 
 /* Los 80 alumnos reales de hoy, ahora sobre 310 cupos. */
 esIgual(MOTOR.AS_ALUMNOS_HOY, 80, 'ochenta alumnos inscritos hoy');
@@ -280,7 +295,7 @@ ok(c60.detalle[0].cantidad, 10, 'con los eventos del mes', 0);
 console.log('\nVERANITO');
 
 const vTemp = MOTOR.veranito({ ocupacion: 1 });
-ok(vTemp.facturacion * 2, 200662, 'dos temporadas al 100%', 1);
+ok(vTemp.facturacion * 2, 182420, 'dos temporadas al 100%, con diez semanas', 1);
 ok(vTemp.costo, vTemp.facturacion * 0.20, 'costo operativo = 20% de la facturacion', 0.01);
 ok(MOTOR.TICKET_VERANITO, 182.42, 'ticket real (no el de lista)', 0.01);
 
@@ -295,18 +310,18 @@ esIgual(vCaro.facturacion > vTemp.facturacion, true, 'subir el precio de lista s
 const vHoy = MOTOR.veranitoAnual({
   mayAgo: { ocupacion: 0.84 }, eneMar: { ocupacion: 0.38 },
 });
-ok(vHoy.anual.facturacion, 122404, 'las dos temporadas de hoy suman el año', 1);
+ok(vHoy.anual.facturacion, 111276.20, 'las dos temporadas de hoy suman el año', 1);
 ok(vHoy.mayAgo.facturacion + vHoy.eneMar.facturacion, vHoy.anual.facturacion,
    'el desglose por temporada suma el anual', 0.01);
-ok(vHoy.mes.facturacion, 122404 / 12, 'la cifra mensual es el anual entre doce', 1);
-ok(vHoy.mes.facturacion, 10200, 'que hoy son unos $10.200 al mes', 1);
+ok(vHoy.mes.facturacion, 111276.20 / 12, 'la cifra mensual es el anual entre doce', 1);
+ok(vHoy.mes.facturacion, 9273, 'que hoy son unos $9.273 al mes', 1);
 ok(vHoy.mes.costo, vHoy.anual.costo / 12, 'y el costo va prorrateado igual', 0.01);
 ok(vHoy.mes.margen, vHoy.anual.margen / 12, 'y el margen tambien', 0.01);
 ok(vHoy.mes.facturacion - vHoy.mes.costo, vHoy.mes.margen, 'el margen mensual cuadra', 0.01);
 
 const vLleno = MOTOR.veranitoAnual({ mayAgo:{ ocupacion:1 }, eneMar:{ ocupacion:1 } });
-ok(vLleno.anual.facturacion, 200662, 'a plena ocupacion el anual es el de la spec', 1);
-ok(vLleno.mes.facturacion, 200662 / 12, 'y su mensual sale del mismo anual', 1);
+ok(vLleno.anual.facturacion, 182420, 'a plena ocupacion el anual', 1);
+ok(vLleno.mes.facturacion, 182420 / 12, 'y su mensual sale del mismo anual', 1);
 
 /* ==========================================================================
    CUADRO RESUMEN
@@ -354,27 +369,29 @@ console.log('\nRESUMEN · 2027');
    porque no depende de cuantos cupos se llenen. */
 ok(MOTOR.OTROS_INGRESOS, 10900, 'otros ingresos, fijos', 0);
 
-/* Las cifras de 2027 se movieron al rehacer After School: la unidad pasa de
-   212 cupos a 310 y su costo deja de ser una cifra fija para seguir a los
-   alumnos por sesion. Antes se habian movido al pasar Baby and Me de 32 a 48:
+/* Las cifras de 2027 se mueven otra vez: After School pasa a modelarse por
+   grupos —un grupo vacio no se dicta, asi que con la ocupacion baja cuesta
+   mucho menos— y Veranito arranca en diez semanas en vez de once. Antes se
+   habian movido al rehacer After School por sesiones, y antes al pasar Baby
+   and Me de 32 a 48 cupos:
    la franja de semana son ocho sesiones, no cuatro. Son 16 cupos mas a $165
    contra $866 de costo, asi que suben ingresos y EBITDA en los tres puntos. */
 const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
 const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
-ok(p60.ingresos, 949383, 'al 60%: ingresos', 50);
-ok(p60.margenBrutoPct * 100, 68.3, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 348097, 'al 60%: EBITDA', 50);
-ok(p60.ebitdaPct * 100, 36.7, 'al 60%: EBITDA %', 0.15);
+ok(p60.ingresos, 938438, 'al 60%: ingresos', 50);
+ok(p60.margenBrutoPct * 100, 70.4, 'al 60%: margen bruto %', 0.15);
+ok(p60.ebitda, 360332, 'al 60%: EBITDA', 50);
+ok(p60.ebitdaPct * 100, 38.4, 'al 60%: EBITDA %', 0.15);
 
-ok(p80.ingresos, 1267539, 'al 80%: ingresos', 50);
-ok(p80.margenBrutoPct * 100, 69.8, 'al 80%: margen bruto %', 0.15);
-ok(p80.ebitda, 585170, 'al 80%: EBITDA', 50);
+ok(p80.ingresos, 1252946, 'al 80%: ingresos', 50);
+ok(p80.margenBrutoPct * 100, 70.0, 'al 80%: margen bruto %', 0.15);
+ok(p80.ebitda, 577392, 'al 80%: EBITDA', 50);
 
-ok(p100.ingresos, 1578315, 'al 100%: ingresos', 50);
+ok(p100.ingresos, 1560073, 'al 100%: ingresos', 50);
 ok(p100.margenBrutoPct * 100, 72.8, 'al 100%: margen bruto %', 0.15);
-ok(p100.ebitda, 849327, 'al 100%: EBITDA', 50);
+ok(p100.ebitda, 834734, 'al 100%: EBITDA', 50);
 
 /* ==========================================================================
    EL DESLIZADOR NUNCA PUEDE BAJAR EL EBITDA
@@ -428,9 +445,9 @@ esIgual(posiciones.length, 20, 'veinte posiciones, de 5% a 100%');
 /* El suelo ya no saca la zona de perdida: eso se perdio al compartir el dato
    con la seccion 2. Queda anotado donde deja de ser negativo, que es lo que
    hay que saber antes de arrastrar el deslizador delante del cliente. */
-esIgual(positivoSiempre, false, 'por debajo del 35% el EBITDA es negativo');
-esIgual(posiciones.find(o => MOTOR.resumen2027({ ocupacion:o/100, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda >= 0), 35,
-        'y a partir del 35% es positivo');
+esIgual(positivoSiempre, false, 'por debajo del 30% el EBITDA es negativo');
+esIgual(posiciones.find(o => MOTOR.resumen2027({ ocupacion:o/100, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda >= 0), 30,
+        'y a partir del 30% es positivo');
 
 /* La prueba de que el paso fino si la rompe: si alguien lo devuelve a 1,
    esta comprobacion recuerda por que estaba en 5. */
@@ -442,11 +459,15 @@ for (let o = MOTOR.OCUPACION_2027_MINIMA * 100; o <= 100; o++){
 }
 esIgual(caidasConPasoFino, 7, 'con paso de 1 punto habria siete retrocesos');
 
-/* Y la razon exacta de que el suelo sea 5 y no 0: ahi el retroceso no lo
-   causa Kinder abriendo grupo, sino toda la base de costos encendiendose. */
+/* El suelo del 5% se puso porque del 0% al 5% se encendia de golpe toda la
+   base de costos de After School y el EBITDA retrocedia. Con la unidad
+   modelada por grupos eso ya no pasa: un grupo vacio no se dicta, asi que el
+   costo entra de a poco. El suelo se queda igualmente —es el que hace que la
+   rejilla represente el 0% de Baby and Me— pero conviene que quede escrito
+   que ya no lo sostiene aquel retroceso. */
 const eb0 = MOTOR.resumen2027({ ocupacion:0, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda;
 const eb5 = MOTOR.resumen2027({ ocupacion:0.05, gastosMes:MOTOR.GASTOS_MES_PARTIDA }).ebitda;
-esIgual(eb5 < eb0, true, 'del 0% al 5% el EBITDA retrocede: por eso el suelo no es 0');
+esIgual(eb5 > eb0, true, 'del 0% al 5% el EBITDA ya sube: los grupos vacios no se dictan');
 
 /* Coherencia interna en cualquier punto del deslizador. */
 for (const o of [0.30, 0.45, 0.72, 0.91, 1.00]){
@@ -464,7 +485,7 @@ ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
 ok(MOTOR.resumen(2026).ebitda, 83429, 'los gastos de 2027 no tocan la columna de 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
-ok(p100.ingresos - p60.ingresos, 628932, 'la ocupacion mueve los ingresos', 100);
+ok(p100.ingresos - p60.ingresos, 621635, 'la ocupacion mueve los ingresos', 100);
 esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
 
 /* El contraste que hay que poder explicar: el margen bruto cae respecto a
