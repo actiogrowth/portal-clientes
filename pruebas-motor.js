@@ -167,10 +167,10 @@ const as50 = MOTOR.afterSchool({ ocupacion: 0.50 });
 const as55 = MOTOR.afterSchool({ ocupacion: 0.55 });
 ok(as50.facturacion, 23839.04, 'al 50%: facturacion', 0.01);
 ok(as50.costo, 3546.27, 'al 50%: costo', 0.01);
-ok(as55.facturacion, 26222.94, 'al 55%: facturacion', 0.01);
+ok(as55.facturacion, 26290.14, 'al 55%: facturacion', 0.01);
 ok(as55.costo, 5048.78, 'al 55%: costo', 0.01);
 ok(as55.costo - as50.costo, 1502.51, 'el escalon que abre grupos y suma profesores', 0.01);
-ok(as55.facturacion - as50.facturacion, 2383.90, 'que los cinco puntos pagan de sobra', 0.01);
+ok(as55.facturacion - as50.facturacion, 2451.10, 'que los cinco puntos pagan de sobra', 0.01);
 
 /* El fallo que motiva el modelo por grupos: un solo alumno en ParKour 6-14
    costaba 866 al mes, las cuatro franjas abiertas para el. Se llena un grupo
@@ -202,11 +202,28 @@ ok(MOTOR.asCostoDisciplina(MOTOR.AS_DISCIPLINAS[4], 8, tarifas), 2 * 25 * MOTOR.
 ok(MOTOR.asCostoDisciplina(MOTOR.AS_DISCIPLINAS[5], 20, tarifas), 1 * 50 * MOTOR.SEM_MES,
    'el sabado corre una vez por semana', 0.01);
 
+/* Lo que muestra el campo tiene que ser lo que usa la cuenta. Antes el
+   motor calculaba con 10,32 donde el campo decia 10, y ese 0,32 cruzaba el
+   escalon del segundo profesor: cobraba 2.927 al mes donde la cuenta a mano
+   daba 2.338, 7.067 al año de diferencia entre lo que se ve y lo que se
+   cobra. */
+for (const o of [0, 0.13, 0.2580645, 0.37, 0.5, 0.55, 0.777, 1]){
+  const r = MOTOR.afterSchool({ ocupacion: o });
+  esIgual(r.detalle.every(d => Number.isInteger(d.alumnos)), true,
+          `al ${(o*100).toFixed(1)}%: cada disciplina tiene alumnos enteros`);
+  esIgual(r.alumnos, Math.round(MOTOR.AS_CUPOS_TOTALES * o),
+          `al ${(o*100).toFixed(1)}%: y suman round(310 x ocupacion)`);
+}
+esIgual(MOTOR.afterSchool({ alumnos:[10.4, 0,0,0,0,0,0,0] }).detalle[0].alumnos, 10,
+        'un alumnos explicito con decimales tambien se redondea');
+
 /* Los 80 alumnos reales de hoy, ahora sobre 310 cupos. */
 esIgual(MOTOR.AS_ALUMNOS_HOY, 80, 'ochenta alumnos inscritos hoy');
 ok(MOTOR.AS_OCUPACION_HOY * 100, 25.8, 'que sobre 310 cupos son 25,8%', 0.05);
 ok(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).alumnos, 80,
-   'y la ocupacion de hoy los reproduce', 0.01);
+   'y la ocupacion de hoy los reproduce', 0);
+ok(MOTOR.afterSchool({ ocupacion: MOTOR.AS_OCUPACION_HOY }).costo, 2338.20,
+   'con 80 alumnos el costo es el de los grupos que abren', 0.01);
 
 /* ==========================================================================
    BABY AND ME
@@ -380,14 +397,14 @@ const p60  = MOTOR.resumen2027({ ocupacion: 0.60, gastosMes: 25000 });
 const p80  = MOTOR.resumen2027({ ocupacion: 0.80, gastosMes: 25000 });
 const p100 = MOTOR.resumen2027({ ocupacion: 1.00, gastosMes: 25000 });
 
-ok(p60.ingresos, 938438, 'al 60%: ingresos', 50);
+ok(p60.ingresos, 938716, 'al 60%: ingresos', 50);
 ok(p60.margenBrutoPct * 100, 70.4, 'al 60%: margen bruto %', 0.15);
-ok(p60.ebitda, 360332, 'al 60%: EBITDA', 50);
+ok(p60.ebitda, 360610, 'al 60%: EBITDA', 50);
 ok(p60.ebitdaPct * 100, 38.4, 'al 60%: EBITDA %', 0.15);
 
-ok(p80.ingresos, 1252946, 'al 80%: ingresos', 50);
+ok(p80.ingresos, 1253084, 'al 80%: ingresos', 50);
 ok(p80.margenBrutoPct * 100, 70.0, 'al 80%: margen bruto %', 0.15);
-ok(p80.ebitda, 577392, 'al 80%: EBITDA', 50);
+ok(p80.ebitda, 577531, 'al 80%: EBITDA', 50);
 
 ok(p100.ingresos, 1560073, 'al 100%: ingresos', 50);
 ok(p100.margenBrutoPct * 100, 72.8, 'al 100%: margen bruto %', 0.15);
@@ -485,7 +502,7 @@ ok(MOTOR.resumen(2025).ebitda, 62040, 'los gastos de 2027 no tocan 2025', 0);
 ok(MOTOR.resumen(2026).ebitda, 83429, 'los gastos de 2027 no tocan la columna de 2026', 0);
 
 /* La ocupacion mueve ingresos y mano de obra; otros ingresos no. */
-ok(p100.ingresos - p60.ingresos, 621635, 'la ocupacion mueve los ingresos', 100);
+ok(p100.ingresos - p60.ingresos, 621357, 'la ocupacion mueve los ingresos', 100);
 esIgual(p60.otrosIngresos === p100.otrosIngresos, true, 'otros ingresos no escalan');
 
 /* El contraste que hay que poder explicar: el margen bruto cae respecto a

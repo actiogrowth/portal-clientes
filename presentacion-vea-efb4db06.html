@@ -763,16 +763,34 @@ const MOTOR = (function(){
     return semanal * SEM_MES;
   }
 
+  /* Reparto entero por resto mayor: los enteros primero y las unidades que
+     sobran a las disciplinas con mayor fraccion pendiente. Asi la suma es
+     siempre round(cupos x ocupacion), que es lo que el cliente espera al leer
+     el porcentaje. Redondeando cada disciplina por su lado los saltos se
+     acumulan y los 80 alumnos de hoy saldrian 79. */
+  function asReparto(ocupacion){
+    const exactos = AS_DISCIPLINAS.map(d => asCupos(d) * ocupacion);
+    const enteros = exactos.map(Math.floor);
+    let faltan = Math.round(AS_CUPOS_TOTALES * ocupacion) - enteros.reduce((s,x) => s + x, 0);
+    exactos.map((x, i) => ({ i, frac: x - Math.floor(x) }))
+      .sort((a, b) => b.frac - a.frac)
+      .forEach(({ i }) => { if (faltan > 0){ enteros[i]++; faltan--; } });
+    return enteros;
+  }
+
   function afterSchool(p){
     const c = Object.assign({}, AS_PARTIDA, p || {});
+    const reparto = c.alumnos ? null : asReparto(c.ocupacion);
     let facturacion = 0, alumnos = 0, costo = 0;
     const detalle = [];
 
     AS_DISCIPLINAS.forEach((d, i) => {
       const cupos = asCupos(d);
       /* alumnos explicito gana sobre la ocupacion: la tabla permite editar
-         cada disciplina por separado. */
-      const al = c.alumnos ? Math.max(0, c.alumnos[i] || 0) : cupos * c.ocupacion;
+         cada disciplina por separado. Enteros en los dos casos: lo que se ve
+         en el campo tiene que ser lo que usa el motor, o el 0,32 que no se
+         muestra cruza el escalon del segundo profesor. */
+      const al = c.alumnos ? Math.round(Math.max(0, c.alumnos[i] || 0)) : reparto[i];
       const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : d.precio;
       const dentro = asGrupos(d, al);
       const ingreso = al * precio;
@@ -1129,7 +1147,7 @@ const MOTOR = (function(){
     KINDER_COSTO_PROFESOR, KINDER_COSTO_ASISTENTE, PRESTACIONES,
     KINDER_COSTO_GRUPO, KINDER_COSTO_GRUPO_2026,
     AS_DISCIPLINAS, AS_CUPOS_TOTALES, AS_OCUPACION_HOY, AS_ALUMNOS_HOY,
-    AS_PROFESOR, AS_ASISTENTE, asCupos, asGrupos, asCostoDisciplina, asPorProfesor,
+    AS_PROFESOR, AS_ASISTENTE, asCupos, asGrupos, asCostoDisciplina, asPorProfesor, asReparto,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
     BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS,
@@ -2108,7 +2126,7 @@ function montarUnidades(contenedor){
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
          mueve cuantos niños hay. */
-      ocupacion: r => ({ texto: Math.round(r.alumnos) + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
+      ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
       sincronizar: r => [Math.round(r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100)],
       /* Las tres cifras salen del motor: lo que cuesta abrir un grupo de
@@ -2130,12 +2148,9 @@ function montarUnidades(contenedor){
       filas: r => r.detalle.map((d, i) => [
         d.nombre + ' · ' + d.grupos + ' grupos de ' + d.capGrupo,
         d.cupos,
-        /* El deslizador reparte por proporcion y no por cabezas, asi que el 55%
-           de 30 cupos son 16,5. En pantalla va el entero —un campo que dice
-           "16,5 alumnos" no se cree— y la cuenta sigue con el valor exacto,
-           porque redondearla movería el escalon del segundo profesor y con el
-           la garantia de que el EBITDA no retrocede. */
-        { editable:true, valor:Math.round(d.alumnos), min:0, max:d.cupos, paso:1,
+        /* El motor entrega enteros, asi que el campo muestra exactamente lo
+           que usa la cuenta. */
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos, paso:1,
           alCambiar:v => { fijarAlumnosAS(r, i, v); pintar(); } },
         d.gruposAbiertos + ' de ' + d.grupos,
         { editable:true, valor:d.precio, min:0, max:900, paso:0.01,
