@@ -707,22 +707,25 @@ const MOTOR = (function(){
   const AS_PROFESOR = 25;    // costo por hora de un profesor
   const AS_ASISTENTE = 18;   // Telas necesita asistente ademas del profesor
 
-  /* Ocho disciplinas, todas con sesiones de una hora. Entre semana cada alumno
-     asiste dos veces y el sabado una, asi que los cupos vendibles de una
-     disciplina son sus sesiones por su capacidad, repartidas entre las veces
-     que asiste cada alumno: ocho sesiones de veinte con asistencia dos veces
-     por semana son ochenta cupos, no ciento sesenta. */
+  /* La unidad se modela por grupos y no por sesiones sueltas. Un grupo es una
+     franja horaria fija: el alumno se inscribe en una y asiste a todas sus
+     sesiones. Un grupo sin alumnos no se dicta y no cuesta.
+
+     El modelo anterior repartia los alumnos entre todas las sesiones de la
+     disciplina y pagaba profesor en cada una, de modo que un solo niño en
+     ParKour 6-14 costaba 866 al mes: las cuatro franjas abiertas para el. Con
+     grupos cuesta 216,50, que es una franja de dos sesiones. */
   const AS_DISCIPLINAS = [
-    { nombre:'ParKour 6-14',   capSesion:20, sesiones:8, vecesSemana:2, precio:169.06, tipo:'parkour' },
-    { nombre:'ParKour 15+',    capSesion:20, sesiones:4, vecesSemana:2, precio:169.06, tipo:'parkour' },
-    { nombre:'Telas 6-14',     capSesion:10, sesiones:8, vecesSemana:2, precio:200,    tipo:'telas'   },
-    { nombre:'Telas 15+',      capSesion:10, sesiones:4, vecesSemana:2, precio:200,    tipo:'telas'   },
-    { nombre:'ParKids',        capSesion:8,  sesiones:4, vecesSemana:2, precio:169.06, tipo:'parkids' },
-    { nombre:'ParKour sábado', capSesion:20, sesiones:3, vecesSemana:1, precio:111.28, tipo:'parkour' },
-    { nombre:'Telas sábado',   capSesion:10, sesiones:3, vecesSemana:1, precio:111.28, tipo:'telas'   },
-    { nombre:'ParKids sábado', capSesion:8,  sesiones:3, vecesSemana:1, precio:111.28, tipo:'parkids' },
+    { nombre:'ParKour 6-14',   grupos:4, capGrupo:20, sesiones:2, precio:169.06, tipo:'parkour' },
+    { nombre:'ParKour 15+',    grupos:2, capGrupo:20, sesiones:2, precio:169.06, tipo:'parkour' },
+    { nombre:'Telas 6-14',     grupos:4, capGrupo:10, sesiones:2, precio:200,    tipo:'telas'   },
+    { nombre:'Telas 15+',      grupos:2, capGrupo:10, sesiones:2, precio:200,    tipo:'telas'   },
+    { nombre:'ParKids',        grupos:2, capGrupo:8,  sesiones:2, precio:169.06, tipo:'parkids' },
+    { nombre:'ParKour sábado', grupos:3, capGrupo:20, sesiones:1, precio:111.28, tipo:'parkour' },
+    { nombre:'Telas sábado',   grupos:3, capGrupo:10, sesiones:1, precio:111.28, tipo:'telas'   },
+    { nombre:'ParKids sábado', grupos:3, capGrupo:8,  sesiones:1, precio:111.28, tipo:'parkids' },
   ];
-  const asCupos = d => d.sesiones * d.capSesion / d.vecesSemana;
+  const asCupos = d => d.grupos * d.capGrupo;
   const AS_CUPOS_TOTALES = AS_DISCIPLINAS.reduce((s, d) => s + asCupos(d), 0);
 
   const AS_ALUMNOS_HOY = 80;
@@ -734,42 +737,69 @@ const MOTOR = (function(){
     asistente: AS_ASISTENTE,
   };
 
-  /* Cuanto cuesta una sesion segun cuantos niños tenga dentro. Es lo que hace
-     que el costo dependa de los alumnos en vez de ser una cifra fija: once
-     niños en una sesion de ParKour ya son dos profesores.
+  /* Cuantos niños atiende un profesor, y cuanto cuesta la plantilla de un
+     grupo por sesion. */
+  const asPorProfesor = d => d.tipo === 'parkids' ? 8 : 10;
+  const asTarifaGrupo = (d, c) => d.tipo === 'telas' ? (c.profesor + c.asistente) : c.profesor;
 
-     Telas y ParKids no cruzan nunca su escalon, porque su capacidad por sesion
-     coincide con el tamaño del grupo que atiende un profesor. Se calculan con
-     la misma regla igualmente, para que subir la capacidad de una sesion no
-     obligue a tocar el costo aparte. */
-  function asCostoSesion(d, alumnosSesion, c){
-    if (alumnosSesion <= 0) return 0;
-    if (d.tipo === 'telas')   return Math.ceil(alumnosSesion / 10) * (c.profesor + c.asistente);
-    if (d.tipo === 'parkids') return Math.ceil(alumnosSesion / 8)  * c.profesor;
-    return Math.ceil(alumnosSesion / 10) * c.profesor;
+  /* Los alumnos llenan un grupo antes de abrir el siguiente. Es lo realista y
+     lo mas barato: nadie dicta cuatro franjas vacias para un niño. */
+  function asGrupos(d, alumnos){
+    const dentro = [];
+    let restante = Math.max(0, alumnos);
+    for (let g = 0; g < d.grupos && restante > 0; g++){
+      const enGrupo = Math.min(d.capGrupo, restante);
+      dentro.push(enGrupo);
+      restante -= enGrupo;
+    }
+    return dentro;
+  }
+
+  function asCostoDisciplina(d, alumnos, c){
+    const tarifa = asTarifaGrupo(d, c);
+    const porProf = asPorProfesor(d);
+    const semanal = asGrupos(d, alumnos)
+      .reduce((s, enGrupo) => s + d.sesiones * Math.ceil(enGrupo / porProf) * tarifa, 0);
+    return semanal * SEM_MES;
+  }
+
+  /* Reparto entero por resto mayor: los enteros primero y las unidades que
+     sobran a las disciplinas con mayor fraccion pendiente. Asi la suma es
+     siempre round(cupos x ocupacion), que es lo que el cliente espera al leer
+     el porcentaje. Redondeando cada disciplina por su lado los saltos se
+     acumulan y los 80 alumnos de hoy saldrian 79. */
+  function asReparto(ocupacion){
+    const exactos = AS_DISCIPLINAS.map(d => asCupos(d) * ocupacion);
+    const enteros = exactos.map(Math.floor);
+    let faltan = Math.round(AS_CUPOS_TOTALES * ocupacion) - enteros.reduce((s,x) => s + x, 0);
+    exactos.map((x, i) => ({ i, frac: x - Math.floor(x) }))
+      .sort((a, b) => b.frac - a.frac)
+      .forEach(({ i }) => { if (faltan > 0){ enteros[i]++; faltan--; } });
+    return enteros;
   }
 
   function afterSchool(p){
     const c = Object.assign({}, AS_PARTIDA, p || {});
+    const reparto = c.alumnos ? null : asReparto(c.ocupacion);
     let facturacion = 0, alumnos = 0, costo = 0;
     const detalle = [];
 
     AS_DISCIPLINAS.forEach((d, i) => {
       const cupos = asCupos(d);
       /* alumnos explicito gana sobre la ocupacion: la tabla permite editar
-         cada disciplina por separado, que es como se pregunta "y si ParKour
-         va lleno y ParKids a la mitad". */
-      const al = c.alumnos ? Math.max(0, c.alumnos[i] || 0) : cupos * c.ocupacion;
+         cada disciplina por separado. Enteros en los dos casos: lo que se ve
+         en el campo tiene que ser lo que usa el motor, o el 0,32 que no se
+         muestra cruza el escalon del segundo profesor. */
+      const al = c.alumnos ? Math.round(Math.max(0, c.alumnos[i] || 0)) : reparto[i];
       const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : d.precio;
-      /* Los que hay dentro de cada sesion, con reparto parejo. */
-      const porSesion = al * d.vecesSemana / d.sesiones;
+      const dentro = asGrupos(d, al);
       const ingreso = al * precio;
-      /* Sin alumnos la sesion no se dicta y no cuesta. */
-      const gasto = al > 0 ? d.sesiones * asCostoSesion(d, porSesion, c) * SEM_MES : 0;
+      const gasto = asCostoDisciplina(d, al, c);
       alumnos += al; facturacion += ingreso; costo += gasto;
-      detalle.push({ nombre:d.nombre, cupos, alumnos:al, precio, porSesion,
+      detalle.push({ nombre:d.nombre, cupos, alumnos:al, precio,
                      facturacion:ingreso, costo:gasto,
-                     sesiones:d.sesiones, capSesion:d.capSesion, tipo:d.tipo });
+                     gruposAbiertos:dentro.length, grupos:d.grupos,
+                     enGrupo:dentro, capGrupo:d.capGrupo, sesiones:d.sesiones, tipo:d.tipo });
     });
 
     return { alumnos, cupos:AS_CUPOS_TOTALES, facturacion, costo,
@@ -795,21 +825,42 @@ const MOTOR = (function(){
      del sabado de After School. Se quitaron de alli al separar la unidad:
      las mismas horas no se pagan dos veces.
      ====================================================================== */
+  /* Baby and Me se modela por grupos, igual que After School. Un grupo es una
+     franja horaria fija y un profesor lo atiende entero, porque su capacidad
+     —ocho niños— es el grupo que atiende una persona.
+
+     El modelo anterior cobraba las diez sesiones semanales siempre, asi que un
+     solo niño entre semana costaba 1.082,50 al mes. Con grupos cuesta 216,50:
+     su grupo, que se reune dos veces por semana.
+
+     Los cuatro grupos de entre semana son dos franjas horarias por dos parejas
+     de dias; cada niño asiste dos veces por semana y el sabado una. */
   const BABY_FRANJAS = [
-    { nombre:'Sábado',         sesiones:2, cuposSesion:8, horas:1, vecesSemana:1, precio:97 },
-    { nombre:'Lunes a jueves', sesiones:8, cuposSesion:8, horas:1, vecesSemana:2, precio:165 },
+    { nombre:'Sábado',         grupos:2, capGrupo:8, sesiones:1, precio:97 },
+    { nombre:'Lunes a jueves', grupos:4, capGrupo:8, sesiones:2, precio:165 },
   ];
-  /* Cupos de una franja: las plazas de todas sus sesiones repartidas entre
-     las veces que cada niño asiste. Cuatro sesiones de ocho con asistencia
-     dos veces por semana son dieciseis niños, no treinta y dos. */
-  const babyCuposFranja = f => f.sesiones * f.cuposSesion / f.vecesSemana;
-  const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCuposFranja(f), 0);
+  const babyCupos = f => f.grupos * f.capGrupo;
+  const BABY_CUPOS = BABY_FRANJAS.reduce((s, f) => s + babyCupos(f), 0);
   const BABY_ALUMNOS_HOY = 0;
-  /* Los precios viven en la partida y no en la franja: son editables en
-     pantalla, igual que los de After School y Cumpleaños. La franja se
-     queda con el suyo como valor de respaldo. */
   const BABY_PARTIDA = { ocupacion:0, costoHora:AS_PROFESOR,
                          precios:BABY_FRANJAS.map(f => f.precio) };
+
+  /* Un grupo sin alumnos no se dicta y no cuesta. Se llena uno antes de abrir
+     el siguiente, que es lo realista y lo mas barato. */
+  function babyGrupos(f, alumnos){
+    const dentro = [];
+    let restante = Math.max(0, alumnos);
+    for (let g = 0; g < f.grupos && restante > 0; g++){
+      const enGrupo = Math.min(f.capGrupo, restante);
+      dentro.push(enGrupo);
+      restante -= enGrupo;
+    }
+    return dentro;
+  }
+
+  function babyCostoFranja(f, alumnos, costoHora){
+    return babyGrupos(f, alumnos).length * f.sesiones * costoHora * SEM_MES;
+  }
 
   function baby(p){
     const c = Object.assign({}, BABY_PARTIDA, p || {});
@@ -817,19 +868,18 @@ const MOTOR = (function(){
     let alumnos = 0, facturacion = 0, costo = 0;
 
     BABY_FRANJAS.forEach((f, i) => {
-      const cupos = babyCuposFranja(f);
-      /* alumnos explicito gana sobre la ocupacion: la tarjeta permite
-         editar cada franja por separado. */
-      const al = c.alumnos ? Math.max(0, Math.round(c.alumnos[i] || 0))
-                           : Math.round(cupos * c.ocupacion);
+      const cupos = babyCupos(f);
+      /* Enteros: lo que muestra el campo es lo que usa la cuenta. */
+      const al = Math.round(c.alumnos ? Math.max(0, c.alumnos[i] || 0)
+                                      : cupos * c.ocupacion);
       const precio = (c.precios && c.precios[i] != null) ? c.precios[i] : f.precio;
+      const dentro = babyGrupos(f, al);
       const ing = al * precio;
-      /* El costo escala con las sesiones que se dictan: una franja sin
-         alumnos no se dicta y no cuesta. */
-      const gasto = al > 0 ? f.sesiones * f.horas * SEM_MES * c.costoHora : 0;
+      const gasto = babyCostoFranja(f, al, c.costoHora);
       alumnos += al; facturacion += ing; costo += gasto;
       detalle.push({ nombre:f.nombre, cupos, alumnos:al, precio, facturacion:ing, costo:gasto,
-                     sesiones:f.sesiones, horas:f.horas, vecesSemana:f.vecesSemana });
+                     gruposAbiertos:dentro.length, grupos:f.grupos,
+                     capGrupo:f.capGrupo, sesiones:f.sesiones });
     });
 
     return { alumnos, cupos:BABY_CUPOS, facturacion, costo, detalle,
@@ -865,7 +915,7 @@ const MOTOR = (function(){
      proporcion, para que el control no quede decorativo.
      ====================================================================== */
   const VERANITO_PARTIDA = {
-    semanas:11, cuposSemana:50, precio45:185, precio8:220, pct45:0.75,
+    semanas:10, cuposSemana:50, precio45:185, precio8:220, pct45:0.75,
     mayAgo:{ ocupacion:0.84 }, eneMar:{ ocupacion:0.38 },
   };
   const VERANITO_COSTO_OPERATIVO = 0.20;  // del ingreso
@@ -1117,10 +1167,10 @@ const MOTOR = (function(){
     KINDER_COSTO_PROFESOR, KINDER_COSTO_ASISTENTE, PRESTACIONES,
     KINDER_COSTO_GRUPO, KINDER_COSTO_GRUPO_2026,
     AS_DISCIPLINAS, AS_CUPOS_TOTALES, AS_OCUPACION_HOY, AS_ALUMNOS_HOY,
-    AS_PROFESOR, AS_ASISTENTE, asCupos, asCostoSesion,
+    AS_PROFESOR, AS_ASISTENTE, asCupos, asGrupos, asCostoDisciplina, asPorProfesor, asReparto,
     CUMPLE_TOPE_SEMANA,
     TICKET_LISTA, TICKET_VERANITO, FACTOR_REALIZACION, VERANITO_COSTO_OPERATIVO,
-    BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS,
+    BABY_CUPOS, BABY_ALUMNOS_HOY, BABY_FRANJAS, babyCupos, babyGrupos, babyCostoFranja,
     ANIOS, UNIDADES_2025, UNIDADES_2026, VERANITO_2026,
     OTROS_INGRESOS, GASTOS_MES_PARTIDA,
     OCUPACION_2027_PARTIDA, OCUPACION_2027_MINIMA, OCUPACION_2027_PASO,
@@ -2031,7 +2081,7 @@ function montarUnidades(contenedor){
     veranito:    f => { est.veranito.mayAgo.ocupacion = f; est.veranito.eneMar.ocupacion = f; },
     cumpleanos:  f => { est.cumpleanos.eventosSemana = MOTOR.CUMPLE_TOPE_SEMANA * f; },
     baby:        f => { est.baby.alumnos = MOTOR.BABY_FRANJAS.map(fr =>
-                          Math.round(fr.sesiones * fr.cuposSesion / fr.vecesSemana * f)); },
+                          Math.round(MOTOR.babyCupos(fr) * f)); },
   };
 
   let sincronizables = [];
@@ -2092,36 +2142,37 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'After School', clave: 'afterSchool',
-      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Por sesión', 'Precio', 'Facturación', 'Costo'],
+      columnas: ['Disciplina', 'Cupos', 'Alumnos', 'Grupos', 'Precio', 'Facturación', 'Costo'],
       calcular: () => MOTOR.afterSchool(est.afterSchool),
       /* La ocupacion sale de los alumnos, no de la facturacion: el precio no
          mueve cuantos niños hay. */
-      ocupacion: r => ({ texto: Math.round(r.alumnos) + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
+      ocupacion: r => ({ texto: r.alumnos + ' de ' + MOTOR.AS_CUPOS_TOTALES + ' alumnos',
                          frac: r.alumnos / MOTOR.AS_CUPOS_TOTALES }),
       sincronizar: r => [Math.round(r.alumnos / MOTOR.AS_CUPOS_TOTALES * 100)],
-      /* La proporcion se calcula, no se escribe: es el costo con una sola
-         plantilla por sesion contra el de plena ocupacion. Si cambian las
-         tarifas o las sesiones, la frase se corrige sola. */
+      /* Las tres cifras salen del motor: lo que cuesta abrir un grupo de
+         ParKour, cuantos alumnos lo pagan y hasta donde llega antes de
+         necesitar el segundo profesor. Si cambia una tarifa, la frase se
+         corrige sola. */
       apoyo: () => {
-        const base = MOTOR.afterSchool(Object.assign({}, est.afterSchool,
-                       { alumnos: MOTOR.AS_DISCIPLINAS.map(() => 1) })).costo;
-        const lleno = MOTOR.afterSchool(Object.assign({}, est.afterSchool,
-                       { alumnos: null, ocupacion: 1 })).costo;
-        return 'El ' + F.pct(base / lleno) + ' del costo es fijo por sesión: se paga igual con la ' +
-               'sesión llena que con un solo niño. Solo ParKour agrega un profesor cuando la ' +
-               'sesión pasa de 10 niños.';
+        const d = MOTOR.AS_DISCIPLINAS[0];
+        const grupo = MOTOR.asCostoDisciplina(d, 1, est.afterSchool);
+        const precio = est.afterSchool.precios[0];
+        const paraPagarlo = Math.ceil(grupo / precio);
+        /* Hasta donde llega un profesor: es la regla del costo, no la mitad de
+           la capacidad del grupo. Si sube la capacidad, el techo no se mueve. */
+        const porProfesor = MOTOR.asPorProfesor(d);
+        return 'Un grupo de ' + d.nombre + ' cuesta ' + F.precio(grupo) + ' al mes y cubre hasta ' +
+               porProfesor + ' niños. Con ' + paraPagarlo + ' alumnos se paga solo, y del ' +
+               (paraPagarlo + 1) + '.º al ' + porProfesor + '.º todo es margen.';
       },
       filas: r => r.detalle.map((d, i) => [
-        d.nombre + ' · ' + d.sesiones + ' sesiones de ' + d.capSesion,
+        d.nombre + ' · ' + d.grupos + ' grupos de ' + d.capGrupo,
         d.cupos,
-        /* El deslizador reparte por proporcion y no por cabezas, asi que el 55%
-           de 30 cupos son 16,5. En pantalla va el entero —un campo que dice
-           "16,5 alumnos" no se cree— y la cuenta sigue con el valor exacto,
-           porque redondearla movería el escalon del segundo profesor y con el
-           la garantia de que el EBITDA no retrocede. */
-        { editable:true, valor:Math.round(d.alumnos), min:0, max:d.cupos, paso:1,
+        /* El motor entrega enteros, asi que el campo muestra exactamente lo
+           que usa la cuenta. */
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos, paso:1,
           alCambiar:v => { fijarAlumnosAS(r, i, v); pintar(); } },
-        F.cantidad(d.porSesion),
+        d.gruposAbiertos + ' de ' + d.grupos,
         { editable:true, valor:d.precio, min:0, max:900, paso:0.01,
           alCambiar:v => { fijarPrecioAS(r, i, v); pintar(); } },
         F.dinero(d.facturacion),
@@ -2239,7 +2290,7 @@ function montarUnidades(contenedor){
     },
     {
       nombre: 'Baby and Me', clave: 'baby',
-      columnas: ['Franja', 'Cupos', 'Alumnos', 'Precio', 'Facturación', 'Costo'],
+      columnas: ['Franja', 'Cupos', 'Alumnos', 'Grupos', 'Precio', 'Facturación', 'Costo'],
       calcular: () => MOTOR.baby(est.baby),
       ocupacion: r => ({ texto: r.alumnos + ' de ' + r.cupos + ' cupos', frac: r.alumnos / r.cupos }),
       sincronizar: r => [
@@ -2247,18 +2298,26 @@ function montarUnidades(contenedor){
         Math.round(r.detalle[0].alumnos / r.detalle[0].cupos * 100),
         Math.round(r.detalle[1].alumnos / r.detalle[1].cupos * 100),
       ],
+      /* Las cifras salen del motor: lo que cuesta un grupo, cuantos alumnos lo
+         cubren y hasta donde llega. Si cambia la tarifa, la frase se corrige. */
       apoyo: r => {
         const lleno = MOTOR.baby(Object.assign({}, est.baby, { alumnos:null, ocupacion:1 }));
+        const fr = MOTOR.BABY_FRANJAS[1];
+        const grupo = MOTOR.babyCostoFranja(fr, 1, est.baby.costoHora);
+        const paraPagarlo = Math.ceil(grupo / est.baby.precios[1]);
         return (r.alumnos === 0 ? 'Unidad sin alumnos hoy · potencial de ' : 'Potencial de ') +
-               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación';
+               F.dinero(lleno.facturacion * 12) + ' al año a plena ocupación. Un grupo cuesta ' +
+               F.precio(grupo) + ' al mes y cubre hasta ' + fr.capGrupo + ' niños: con ' +
+               paraPagarlo + ' alumnos se paga solo, y del ' + (paraPagarlo + 1) + '.º al ' +
+               fr.capGrupo + '.º todo es margen.';
       },
       filas: r => r.detalle.map((d, i) => [
-        d.nombre + ' · ' + d.sesiones + (d.sesiones === 1 ? ' sesión' : ' sesiones') +
-          ' de ' + d.horas + ' h' + (d.vecesSemana > 1 ? ' · ' + d.vecesSemana + ' veces por semana' : ''),
+        d.nombre + ' · ' + d.grupos + ' grupos de ' + d.capGrupo,
         d.cupos,
-        { editable:true, valor:d.alumnos, min:0, max:d.cupos,
+        { editable:true, valor:d.alumnos, min:0, max:d.cupos, paso:1,
           alCambiar:v => { est.baby.alumnos = r.detalle.map(x => x.alumnos);
                            est.baby.alumnos[i] = v; pintar(); } },
+        d.gruposAbiertos + ' de ' + d.grupos,
         F.precio(d.precio),
         F.dinero(d.facturacion),
         d.costo ? '−' + F.dinero(d.costo) : '—',
@@ -2273,7 +2332,7 @@ function montarUnidades(contenedor){
                 () => 0),
         separador('Cada franja por separado'),
       ].concat(MOTOR.BABY_FRANJAS.map((fr, i) => {
-        const cupos = fr.sesiones * fr.cuposSesion / fr.vecesSemana;
+        const cupos = MOTOR.babyCupos(fr);
         return regSync({ etiqueta:fr.nombre, tipo:'range', min:0, max:100, paso:1,
                          valor:0, formato:x => x + '%',
                          alCambiar:x => {
