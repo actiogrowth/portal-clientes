@@ -349,7 +349,7 @@ footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
 
 <section id="s-b4">
   <div class="s-eyebrow">Bloque 4 · Altas y bajas del mes</div>
-  <div class="s-sub" style="margin:-6px 0 12px">Entradas, salidas y saldo neto, con el valor de vida al lado para que cada baja pese lo que pesa.</div>
+  <div class="s-sub" style="margin:-6px 0 12px">Entradas, salidas y saldo neto, con lo que deja de entrar cada mes por cada baja.</div>
   <div id="b4"></div>
 </section>
 
@@ -433,7 +433,6 @@ const DEMO_CONFIG = [
   ["precio_45h","587"],
   ["precio_8h","786"],
   ["meta_ninos","50"],
-  ["meses_permanencia","24"],
   ["modo_datos","demo"]
 ];
 
@@ -911,27 +910,22 @@ function pintarCurva(d){
 function pintarB4(d){
   const cont=document.getElementById("b4");
   if(!MOVIMIENTOS.length){
-    /* Estructura completa y vacia, nunca en cero. El valor de vida si se
-       puede calcular, y se muestra porque es lo que le da peso a cada baja
-       cuando empiecen a registrarse. */
-    const meses=p("meses_permanencia");
-    const vida=(d.ticketCobrado!=null&&meses!=null)?d.ticketCobrado*meses:null;
+    /* Estructura completa y vacia, nunca en cero. Lo que cuesta una baja si
+       se puede mostrar, porque sale del ticket cobrado y no de una
+       permanencia estimada. */
     cont.innerHTML=
       avisoSinDato("las altas y bajas del mes",
         "Las fechas de ingreso que hay en el Sheet están tecleadas: 28 de 29 caen en domingo y 24 "+
         "comparten dos días. No describen eventos, así que el histórico no se puede reconstruir. "+
         "Este bloque empieza a contar desde el primer niño que se guarde en el aplicativo.")+
-      (vida!=null?
-        '<div class="tickets" style="margin-top:12px">'+
-          '<div class="ticket a-azul"><div class="ticket-lbl">Valor de vida por niño</div>'+
-          '<div class="ticket-val num">'+dinero(vida)+'</div>'+
-          '<div class="ticket-desc">'+dinero(d.ticketCobrado)+' de ticket cobrado por '+meses+
-            ' meses de permanencia. La permanencia es un parámetro de Config Kínder y hoy es una estimación: '+
-            'con el histórico real habrá que corregirla.</div></div>'+
-          '<div class="ticket"><div class="ticket-lbl">Lo que cuesta una baja</div>'+
-          '<div class="ticket-val num">'+dinero(vida)+'</div>'+
-          '<div class="ticket-desc">Un niño que se va no cuesta el mes que deja de pagar. Cuesta todo lo que '+
-            'habría pagado hasta terminar su ciclo.</div></div>'+
+      (d.ticketCobrado!=null?
+        '<div class="tickets" style="margin-top:12px;grid-template-columns:minmax(190px,340px)">'+
+          '<div class="ticket a-azul"><div class="ticket-lbl">Lo que cuesta una baja</div>'+
+          '<div class="ticket-val num">'+dinero(d.ticketCobrado)+
+            '<span style="font-size:13px;font-weight:600;color:var(--gris2)"> al mes</span></div>'+
+          '<div class="ticket-desc">Es el ticket cobrado: lo que deja de entrar el mes que el niño se va, '+
+            'y todos los meses siguientes. No se multiplica por una permanencia: los meses que se '+
+            'habría quedado no están en ningún dato verificado.</div></div>'+
         '</div>' : "");
     return;
   }
