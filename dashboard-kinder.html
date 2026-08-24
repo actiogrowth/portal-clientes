@@ -675,7 +675,7 @@ function calcular(){
   const mesesParaTarifa=(fechaTarifa!=null)?Math.max(0,mesesEnteros(HOY,fechaTarifa)):null;
   const brecha=(ticketLista!=null&&ticketCobrado!=null)
     ? Math.round((ticketLista-ticketCobrado)*100)/100 : null;
-  const brechaMes=(brecha!=null)?brecha*NINOS.length:null;
+  const brechaMes=(brecha!=null)?brecha*pagos.length:null;
   const brechaAcum=(brechaMes!=null&&mesesParaTarifa!=null)?brechaMes*mesesParaTarifa:null;
 
   /* Un grupo por cada valor distinto de Grupo, en orden. Si el campo llega
@@ -706,6 +706,7 @@ function calcular(){
   return {
     costo,cap,totales,abiertos,meta,activos,recaudo,ticketCobrado,ticketLista,
     fechaTarifa,tarifaVigente,ticketVigente,mesesParaTarifa,brecha,brechaMes,brechaAcum,
+    pagadores:pagos.length,
     grupos,sinGrupo,
     cuposAbiertos: (abiertos!=null&&cap!=null)?abiertos*cap:null,
     cuposTotales:  (totales!=null&&cap!=null)?totales*cap:null,
@@ -1037,8 +1038,9 @@ function pintarB5(d){
     h+='<div class="tickets" style="margin-top:12px">'+
       '<div class="ticket a-azul"><div class="ticket-lbl">Ticket cobrado</div>'+
         '<div class="ticket-val num">'+dinero(cobrado)+'</div>'+
-        '<div class="ticket-desc">Promedio real de lo que pagaron los '+
-          NINOS.filter(n=>n.pago>0).length+' niños en el último mes con datos.</div></div>'+
+        '<div class="ticket-desc">Promedio real de lo que pagaron los '+d.pagadores+
+          ' niños en el último mes con datos'+
+          (d.activos>d.pagadores?', de '+d.activos+' cargados':'')+'.</div></div>'+
       '<div class="ticket"><div class="ticket-lbl">Ticket de lista</div>'+
         '<div class="ticket-val num">'+dinero(ticketLista)+'</div>'+
         '<div class="ticket-desc">'+dineroCorto(p("precio_45h"))+' y '+dineroCorto(p("precio_8h"))+
@@ -1046,10 +1048,14 @@ function pintarB5(d){
           Math.round((1-p("mezcla_45h"))*100)+' que declara el cliente.</div></div>'+
       '<div class="ticket a-naranja"><div class="ticket-lbl">Diferencia</div>'+
         '<div class="ticket-val num">'+dinero(brecha)+'</div>'+
-        '<div class="ticket-desc">Por niño y por mes. Con '+d.activos+' niños son '+
-          dineroCorto(d.brechaMes)+' al mes'+
+        '<div class="ticket-desc">Por niño y por mes. Con los '+d.pagadores+
+          ' niños que pagaron son '+dineroCorto(d.brechaMes)+' al mes'+
           (d.tarifaVigente===false?'':', y '+dineroCorto(d.brechaMes*12)+' al año')+
-          '.</div></div>'+
+          '.'+(d.activos>d.pagadores
+            ? ' Hay '+(d.activos-d.pagadores)+(d.activos-d.pagadores===1?' cargado':' cargados')+
+              ' sin pago: no '+(d.activos-d.pagadores===1?'entra':'entran')+', porque el ticket '+
+              'cobrado es el promedio de los que sí pagaron.'
+            : '')+'</div></div>'+
     '</div>';
 
     /* La diferencia no es permanente: tiene fecha de cierre y un total que
