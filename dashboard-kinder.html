@@ -441,6 +441,7 @@ const DEMO_CONFIG = [
   ["precio_45h","587"],
   ["precio_8h","786"],
   ["meta_ninos","50"],
+  ["fecha_meta","01/03/2027"],
   ["mezcla_45h","0.70"],
   ["fecha_tarifa_nueva","01/01/2027"],
   ["modo_datos","demo"]
@@ -533,6 +534,11 @@ function fecha(s){
   return m?new Date(+m[3],+m[2]-1,+m[1]):null;
 }
 function fmtFecha(d){ return d? d.getDate()+" "+MES[d.getMonth()]+" "+d.getFullYear() : "—"; }
+const MES_LARGO=["enero","febrero","marzo","abril","mayo","junio","julio","agosto",
+  "septiembre","octubre","noviembre","diciembre"];
+function mesAno(d){ return d? MES_LARGO[d.getMonth()]+" de "+d.getFullYear() : "—"; }
+function numero(n,dec){ return n==null?"—":n.toLocaleString("es-PA",
+  {minimumFractionDigits:dec,maximumFractionDigits:dec}); }
 function dinero(n){
   const s=Math.abs(n).toLocaleString("es-PA",{minimumFractionDigits:2,maximumFractionDigits:2});
   return (n<0?"−$":"$")+s;
@@ -678,6 +684,11 @@ function calcular(){
   const brechaMes=(brecha!=null)?brecha*pagos.length:null;
   const brechaAcum=(brechaMes!=null&&mesesParaTarifa!=null)?brechaMes*mesesParaTarifa:null;
 
+  const fechaMeta=fecha(p("fecha_meta"));
+  const mesesParaMeta=(fechaMeta!=null)?Math.max(0,mesesEnteros(HOY,fechaMeta)):null;
+  const faltanMeta=(meta!=null)?Math.max(0,meta-NINOS.length):null;
+  const ritmoRequerido=(faltanMeta!=null&&mesesParaMeta)?faltanMeta/mesesParaMeta:null;
+
   /* Un grupo por cada valor distinto de Grupo, en orden. Si el campo llega
      vacio el niño queda sin asignar y se cuenta aparte: no se le inventa
      un grupo. */
@@ -707,6 +718,7 @@ function calcular(){
     costo,cap,totales,abiertos,meta,activos,recaudo,ticketCobrado,ticketLista,
     fechaTarifa,tarifaVigente,ticketVigente,mesesParaTarifa,brecha,brechaMes,brechaAcum,
     pagadores:pagos.length,
+    fechaMeta,mesesParaMeta,faltanMeta,ritmoRequerido,
     grupos,sinGrupo,
     cuposAbiertos: (abiertos!=null&&cap!=null)?abiertos*cap:null,
     cuposTotales:  (totales!=null&&cap!=null)?totales*cap:null,
@@ -741,9 +753,18 @@ function pintarB1(d){
       '<div class="kpi-lbl">Avance de la meta</div>'+
       '<div class="kpi-val num">'+pct(avance)+'</div>'+
       '<div class="kpi-sub num">'+d.activos+' de '+d.meta+' niños</div>'+
-      '<div class="kpi-sub">La meta es marzo de 2027. Son exactamente '+
+      '<div class="kpi-sub">La meta es '+mesAno(d.fechaMeta)+'. Son exactamente '+
         (d.cap?Math.round(d.meta/d.cap):"—")+' grupos llenos: con menos, algún grupo paga costo completo con cupos muertos.</div>'+
     '</div>'+
+    (d.ritmoRequerido!=null
+      ? '<div class="kpi a-naranja">'+
+          '<div class="kpi-lbl">Ritmo requerido</div>'+
+          '<div class="kpi-val num">'+numero(d.ritmoRequerido,1)+'</div>'+
+          '<div class="kpi-sub num">niños por mes</div>'+
+          '<div class="kpi-sub">'+d.faltanMeta+' niños en '+d.mesesParaMeta+' meses, hasta '+
+            mesAno(d.fechaMeta)+'. Es el ritmo que hace falta, no el que se lleva.</div>'+
+        '</div>'
+      : "")+
     '<div class="kpi a-rojo">'+
       '<div class="kpi-lbl">Capacidad abierta</div>'+
       '<div class="kpi-val num">'+pct(abierta)+'</div>'+
