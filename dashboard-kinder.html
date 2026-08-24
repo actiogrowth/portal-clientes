@@ -321,14 +321,11 @@ footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
 
 <section id="s-b1">
   <div class="s-eyebrow">Bloque 1 · Dónde está la unidad</div>
-  <div class="s-sub" style="margin:-6px 0 12px">La meta manda sobre el potencial. El total de 80 niños es teórico; los 50 de marzo de 2027 son el compromiso.</div>
   <div class="b1" id="b1"></div>
-  <div class="nota" id="b1-nota"></div>
 </section>
 
 <section id="s-b2">
   <div class="s-eyebrow">Bloque 2 · Cada grupo</div>
-  <div class="s-sub" style="margin:-6px 0 12px">El costo es por grupo, no por niño: un grupo cuesta lo mismo con tres niños que con diez. Por eso el punto de equilibrio se mide grupo por grupo.</div>
   <div class="kpis" id="kpis"></div>
   <div class="leyenda">
     <span class="lg"><span class="punto" style="background:var(--azul)"></span>0-30% libre</span>
@@ -349,21 +346,17 @@ footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
 
 <section id="s-curva">
   <div class="s-eyebrow">El camino · De 30 a 50 niños</div>
-  <div class="s-sub" style="margin:-6px 0 12px">El camino a la meta no es cuesta arriba. Abrir un grupo cuesta el costo completo desde el primer día, así que el niño que obliga a abrirlo hace caer el margen de un mes al otro.</div>
   <div class="curva" id="curva"></div>
   <div class="caidas" id="caidas"></div>
-  <div class="nota" id="curva-nota"></div>
 </section>
 
 <section id="s-b4">
   <div class="s-eyebrow">Bloque 4 · Altas y bajas del mes</div>
-  <div class="s-sub" style="margin:-6px 0 12px">Entradas, salidas y saldo neto, con lo que deja de entrar cada mes por cada baja.</div>
   <div id="b4"></div>
 </section>
 
 <section id="s-b5">
   <div class="s-eyebrow">Bloque 5 · Mezcla de planes</div>
-  <div class="s-sub" style="margin:-6px 0 12px">Proporción de media jornada contra jornada completa, y el ticket que resulta.</div>
   <div id="b5"></div>
 </section>
 
@@ -753,8 +746,6 @@ function pintarB1(d){
       '<div class="kpi-lbl">Avance de la meta</div>'+
       '<div class="kpi-val num">'+pct(avance)+'</div>'+
       '<div class="kpi-sub num">'+d.activos+' de '+d.meta+' niños</div>'+
-      '<div class="kpi-sub">La meta es '+mesAno(d.fechaMeta)+'. Son exactamente '+
-        (d.cap?Math.round(d.meta/d.cap):"—")+' grupos llenos: con menos, algún grupo paga costo completo con cupos muertos.</div>'+
     '</div>'+
     (d.ritmoRequerido!=null
       ? '<div class="kpi a-naranja">'+
@@ -775,15 +766,8 @@ function pintarB1(d){
       '<div class="kpi-lbl">Capacidad potencial</div>'+
       '<div class="kpi-val num">'+(potencial!=null?pct(potencial):"—")+'</div>'+
       '<div class="kpi-sub num">'+d.activos+' de '+(d.cuposTotales||"—")+'</div>'+
-      '<div class="kpi-sub">Contexto. Los '+(d.cuposTotales||"—")+' son teóricos: suponen los '+
-        (d.totales||"—")+' grupos abiertos a la vez.</div>'+
     '</div>';
 
-  document.getElementById("b1-nota").textContent=
-    "Sin línea de ritmo mensual todavía: el bloque de altas y bajas empieza a contar desde el primer "+
-    "niño que se guarde en el aplicativo, y hasta tener unos meses de histórico cualquier línea de ritmo "+
-    "sería una recta inventada. El Kínder recibe niños todo el año, así que cuando el histórico exista "+
-    "la línea se traza derecha, sin corregir por temporada. Se agrega después sin rehacer nada.";
 }
 
 function pintarB2(d){
@@ -851,7 +835,6 @@ function pintarB2(d){
 
   const notas=[];
   if(d.sinGrupo) notas.push(d.sinGrupo+" niño"+(d.sinGrupo===1?"":"s")+" sin grupo asignado. No aparecen en ninguna tarjeta: el tablero no les inventa un grupo.");
-  notas.push("El rango de edad es informativo. Sirve para juzgar si el niño que llama entra en ese grupo. El sistema no lo decide.");
   notas.push("El resultado de cada grupo es la suma de lo que pagan sus niños menos "+
     (d.costo!=null?dineroCorto(d.costo):"el costo del grupo")+" de costo.");
   document.getElementById("b2-nota").innerHTML=notas.join("<br>");
@@ -869,10 +852,7 @@ function pintarB3(d){
      4; cuando se abra, pasa solo al 5. Sin cambios de codigo. */
   const siguiente=d.abiertos+1;
   document.getElementById("b3-titulo").textContent="Bloque 3 · El grupo "+siguiente;
-  document.getElementById("b3-sub").innerHTML=
-    "Cuánto gana o pierde el grupo "+siguiente+" según cuántos niños entren, al ticket que se cobra hoy ("+
-    dinero(d.ticketCobrado)+"). Abrir el grupo cuesta "+dineroCorto(d.costo)+" desde el primer día, "+
-    "con un niño o con diez.";
+  document.getElementById("b3-sub").innerHTML="";
 
   let filas="", yaCruzo=false;
   for(let n=1;n<=d.cap;n++){
@@ -891,8 +871,6 @@ function pintarB3(d){
   const eq=d.equilibrioGeneral;
   const conUnoMenos=(eq-1)*d.ticketCobrado-d.costo;
   document.getElementById("b3-nota").innerHTML=
-    "Con "+eq+" niños el grupo cubre. Con "+(eq-1)+" pierde "+dineroCorto(Math.abs(conUnoMenos))+" al mes: "+
-    "no es una fortuna, y eso convierte «esperemos a tener uno más» en otra conversación.<br>"+
     "Esta tabla usa el ticket real cobrado, no la tarifa de lista. Con la tarifa de lista el equilibrio "+
     "sería más bajo, y el grupo parecería rentable antes de serlo.";
 }
@@ -1002,17 +980,6 @@ function pintarCurva(d){
       '</div></div>';
   }).join("");
 
-  document.getElementById("curva-nota").innerHTML=
-    "Si el cliente ve ese bajón sin aviso, va a pensar que algo se rompió. Si el tablero se lo anticipó, "+
-    "es un peaje esperado. Esa diferencia es la que separa informar de sostener una decisión."+
-    (hayNueva
-      ? " <b>Las dos curvas no son dos escenarios a elegir: son el antes y el después de la misma "+
-        "decisión ya tomada.</b> El eje de este gráfico son niños, no meses, así que el "+
-        fmtFecha(d.fechaTarifa)+" no se puede marcar como un punto: ubicarlo exigiría saber a qué "+
-        "ritmo entran los niños, y ese dato no existe. Lo que sí es cierto a cualquier altura del eje "+
-        "es el escalón: con la tarifa de lista, los mismos niños y los mismos grupos dejan "+
-        dineroCorto(d.brecha*d.meta)+" más al mes con la meta llena."
-      : "");
 }
 
 function pintarB4(d){
@@ -1117,13 +1084,7 @@ function pintarB5(d){
           '<div class="r-baja" style="width:'+pb+'%">'+pb+'% · '+dineroCorto(prom(baja))+'</div>'+
           '<div class="r-alta" style="width:'+(100-pb)+'%">'+(100-pb)+'% · '+dineroCorto(prom(alta))+'</div>'+
         '</div>'+
-        '<div class="nota">Los montos se separan en dos grupos con '+dineroCorto(hueco)+
-          ' de hueco entre ellos: '+baja.length+' niños alrededor de '+dineroCorto(prom(baja))+' y '+
-          alta.length+' alrededor de '+dineroCorto(prom(alta))+'. Se parece a la mezcla de media jornada '+
-          'y jornada completa, y coincide con el '+Math.round(p("mezcla_45h")*100)+'/'+
-          Math.round((1-p("mezcla_45h"))*100)+' que declara el cliente. '+
-          '<b>Sirve para comprobar, no como fuente:</b> mientras el plan de cada niño no se guarde, esto es '+
-          'una coincidencia razonable y no un dato.</div>';
+        '';
     }
   }
   cont.innerHTML=h;
