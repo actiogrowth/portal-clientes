@@ -237,6 +237,14 @@ h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--negro)}
   border-radius:12px;padding:12px 16px}
 .caida-t{font-size:11.5px;font-weight:700;color:var(--negro)}
 .caida-d{font-size:11px;color:var(--gris2);margin-top:3px;line-height:1.5}
+.cierre{background:var(--pos-fondo);border:1.5px solid var(--pos-borde);
+  border-radius:10px;padding:11px 13px;margin-top:12px}
+.cierre-t{font-size:11.5px;font-weight:700;color:var(--negro)}
+.cierre-d{font-size:11px;color:var(--gris2);margin-top:3px;line-height:1.55}
+.cv-leyenda{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px}
+.cv-leyenda-i{display:flex;align-items:center;gap:6px;font-size:10.5px;
+  color:var(--gris2);font-weight:500}
+.cv-leyenda-m{width:20px;height:0;border-top-width:2.5px;border-top-style:solid;flex:none}
 
 /* ==========================================================================
    TICKETS
@@ -433,6 +441,8 @@ const DEMO_CONFIG = [
   ["precio_45h","587"],
   ["precio_8h","786"],
   ["meta_ninos","50"],
+  ["mezcla_45h","0.70"],
+  ["fecha_tarifa_nueva","01/01/2027"],
   ["modo_datos","demo"]
 ];
 
@@ -540,6 +550,11 @@ function mesesDe(nac,hoy){
   return m;
 }
 function edadTxt(m){ return Math.floor(m/12)+"a "+(m%12)+"m"; }
+/* Meses de calendario entre dos fechas, contando el mes en curso como
+   completo. De agosto de 2026 al 1 de enero de 2027 son 5. */
+function mesesEnteros(a,b){
+  return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+}
 /* Color del tramo. Los cortes son los de Veranito, sin tocar. */
 function colorLlenado(p){
   if(p<=0.30) return "var(--azul)";
@@ -645,8 +660,23 @@ function calcular(){
   const pagos=NINOS.map(n=>n.pago).filter(x=>x>0);
   const recaudo=pagos.reduce((a,b)=>a+b,0);
   const ticketCobrado=pagos.length?recaudo/pagos.length:null;
-  const ticketLista=(p("precio_45h")!=null&&p("precio_8h")!=null)
-    ? p("precio_45h")*0.70+p("precio_8h")*0.30 : null;
+  /* La mezcla 70/30 tambien sale de Config Kinder: desde enero de 2027 deja
+     de ser una comparacion y pasa a ser el ingreso real del modelo. */
+  const mezcla45=p("mezcla_45h");
+  const ticketLista=(p("precio_45h")!=null&&p("precio_8h")!=null&&mezcla45!=null)
+    ? p("precio_45h")*mezcla45+p("precio_8h")*(1-mezcla45) : null;
+
+  /* El 1 de enero de 2027 todos los niños pasan a la tarifa de lista, no
+     solo los nuevos. Hasta ese dia rige el ticket cobrado. La fecha es un
+     parametro: cuando pase, el tablero se corrige solo. */
+  const fechaTarifa=fecha(p("fecha_tarifa_nueva"));
+  const tarifaVigente=(fechaTarifa!=null)?(HOY>=fechaTarifa):null;
+  const ticketVigente=(tarifaVigente===true&&ticketLista!=null)?ticketLista:ticketCobrado;
+  const mesesParaTarifa=(fechaTarifa!=null)?Math.max(0,mesesEnteros(HOY,fechaTarifa)):null;
+  const brecha=(ticketLista!=null&&ticketCobrado!=null)
+    ? Math.round((ticketLista-ticketCobrado)*100)/100 : null;
+  const brechaMes=(brecha!=null)?brecha*NINOS.length:null;
+  const brechaAcum=(brechaMes!=null&&mesesParaTarifa!=null)?brechaMes*mesesParaTarifa:null;
 
   /* Un grupo por cada valor distinto de Grupo, en orden. Si el campo llega
      vacio el niño queda sin asignar y se cuenta aparte: no se le inventa
@@ -675,6 +705,7 @@ function calcular(){
 
   return {
     costo,cap,totales,abiertos,meta,activos,recaudo,ticketCobrado,ticketLista,
+    fechaTarifa,tarifaVigente,ticketVigente,mesesParaTarifa,brecha,brechaMes,brechaAcum,
     grupos,sinGrupo,
     cuposAbiertos: (abiertos!=null&&cap!=null)?abiertos*cap:null,
     cuposTotales:  (totales!=null&&cap!=null)?totales*cap:null,
@@ -727,10 +758,10 @@ function pintarB1(d){
     '</div>';
 
   document.getElementById("b1-nota").textContent=
-    "Sin línea de ritmo mensual todavía: falta saber si el Kínder sigue el calendario del MEDUCA, "+
-    "que arranca clases el 1 de marzo de 2027. Si las matrículas se concentran entre diciembre y febrero, "+
-    "una línea lineal diría «atrasado» seis meses seguidos y después se resolvería todo en uno. "+
-    "La línea se agrega después sin rehacer nada.";
+    "Sin línea de ritmo mensual todavía: el bloque de altas y bajas empieza a contar desde el primer "+
+    "niño que se guarde en el aplicativo, y hasta tener unos meses de histórico cualquier línea de ritmo "+
+    "sería una recta inventada. El Kínder recibe niños todo el año, así que cuando el histórico exista "+
+    "la línea se traza derecha, sin corregir por temporada. Se agrega después sin rehacer nada.";
 }
 
 function pintarB2(d){
@@ -852,30 +883,58 @@ function pintarCurva(d){
   }
   /* Un punto por cada niño entre el estado de hoy y la meta. El numero de
      grupos se deduce de la capacidad: cada grupo nuevo entra completo en el
-     costo desde el primer niño que lo obliga a abrir. */
+     costo desde el primer niño que lo obliga a abrir.
+
+     El eje de esta curva son NIÑOS, no meses. Una fecha no es un punto de
+     este eje, y ubicarla exigiria un ritmo de captacion que no existe en
+     ningun dato. Asi que el cambio de tarifa no se marca como una linea
+     vertical: se dibuja la segunda curva entera, y el escalon es la
+     distancia entre las dos a cualquier altura del eje. */
   const desde=Math.min(d.activos,d.meta), hasta=d.meta;
-  const pts=[];
-  for(let n=desde;n<=hasta;n++){
-    const g=Math.ceil(n/d.cap);
-    pts.push({n,g,margen:n*d.ticketCobrado-g*d.costo});
-  }
-  const caidas=[];
-  for(let i=1;i<pts.length;i++)
-    if(pts[i].margen<pts[i-1].margen)
-      caidas.push({n:pts[i].n, g:pts[i].g, delta:pts[i].margen-pts[i-1].margen, desde:pts[i-1].margen});
-  caidas.forEach(c=>{
-    const r=pts.find(x=>x.n>c.n&&x.margen>=c.desde);
-    c.recupera=r?r.n:null;
-  });
+  const serie=tk=>{
+    const a=[];
+    for(let n=desde;n<=hasta;n++){
+      const g=Math.ceil(n/d.cap);
+      a.push({n, g, margen:n*tk-g*d.costo});
+    }
+    return a;
+  };
+  const caidasDe=pts=>{
+    const c=[];
+    for(let i=1;i<pts.length;i++)
+      if(pts[i].margen<pts[i-1].margen)
+        c.push({n:pts[i].n, g:pts[i].g, delta:pts[i].margen-pts[i-1].margen, desde:pts[i-1].margen});
+    c.forEach(x=>{ const r=pts.find(t=>t.n>x.n&&t.margen>=x.desde); x.recupera=r?r.n:null; });
+    return c;
+  };
+  const pts=serie(d.ticketVigente!=null?d.ticketVigente:d.ticketCobrado);
+  const caidas=caidasDe(pts);
+
+  /* La segunda curva solo se dibuja si la tarifa nueva todavia no rige. */
+  const hayNueva=(d.ticketLista!=null&&d.tarifaVigente===false);
+  const ptsN=hayNueva?serie(d.ticketLista):null;
+  const caidasN=hayNueva?caidasDe(ptsN):null;
 
   const W=880,H=250,PL=64,PR=16,PT=18,PB=34;
-  const min=Math.min.apply(null,pts.map(x=>x.margen));
-  const max=Math.max.apply(null,pts.map(x=>x.margen));
+  const todos=pts.concat(ptsN||[]).map(x=>x.margen);
+  const min=Math.min.apply(null,todos);
+  const max=Math.max.apply(null,todos);
   const lo=Math.min(0,min), hi=max;
   const x=n=>PL+((n-desde)/Math.max(1,(hasta-desde)))*(W-PL-PR);
   const y=v=>PT+(1-(v-lo)/Math.max(1,(hi-lo)))*(H-PT-PB);
 
-  const linea=pts.map((pt,i)=>(i?"L":"M")+x(pt.n).toFixed(1)+" "+y(pt.margen).toFixed(1)).join(" ");
+  const trazo=a=>a.map((pt,i)=>(i?"L":"M")+x(pt.n).toFixed(1)+" "+y(pt.margen).toFixed(1)).join(" ");
+  const linea=trazo(pts);
+  const lineaN=hayNueva?trazo(ptsN):"";
+
+  /* El escalon es la banda entre las dos curvas: la curva nueva de ida y la
+     de hoy de vuelta, cerrada. Verde, y sin linea vertical: el cambio de
+     tarifa no ocurre en un punto del eje, levanta la curva entera. */
+  const banda=hayNueva
+    ? '<path d="'+trazo(ptsN)+" L"+x(pts[pts.length-1].n).toFixed(1)+" "+
+        y(pts[pts.length-1].margen).toFixed(1)+" "+
+        trazo(pts.slice().reverse()).replace(/^M/,"L")+' Z" fill="var(--verde)" opacity=".10"/>'
+    : "";
   const marcas=caidas.map(c=>
     '<line x1="'+x(c.n).toFixed(1)+'" y1="'+PT+'" x2="'+x(c.n).toFixed(1)+'" y2="'+(H-PB)+
       '" stroke="var(--rojo)" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>'+
@@ -891,20 +950,47 @@ function pintarCurva(d){
       'fill="var(--gris2)" font-family="Poppins" font-weight="500">'+n+' niños</text>').join("");
 
   cont.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" '+
-    'aria-label="Margen mensual entre '+desde+' y '+hasta+' niños, con las caídas al abrir cada grupo nuevo">'+
-    refs+marcas+
+    'aria-label="Margen mensual entre '+desde+' y '+hasta+' niños. Las líneas rojas verticales marcan '+
+      'las caídas al abrir cada grupo nuevo'+(hayNueva?'. La curva verde es el mismo camino con la '+
+      'tarifa de lista, que rige desde el '+fmtFecha(d.fechaTarifa):'')+'">'+
+    refs+banda+marcas+
+    (hayNueva?'<path d="'+lineaN+'" fill="none" stroke="var(--verde)" stroke-width="2.5" '+
+      'stroke-linejoin="round" stroke-linecap="round"/>':'')+
     '<path d="'+linea+'" fill="none" stroke="var(--azul)" stroke-width="2.5" '+
       'stroke-linejoin="round" stroke-linecap="round"/>'+
-    ejeX+'</svg>';
+    ejeX+'</svg>'+
+    (hayNueva
+      ? '<div class="cv-leyenda">'+
+          '<div class="cv-leyenda-i"><span class="cv-leyenda-m" style="border-top-color:var(--azul)"></span>'+
+            'Con el ticket de hoy, '+dinero(d.ticketCobrado)+'</div>'+
+          '<div class="cv-leyenda-i"><span class="cv-leyenda-m" style="border-top-color:var(--verde)"></span>'+
+            'Desde el '+fmtFecha(d.fechaTarifa)+', con la tarifa de lista, '+dinero(d.ticketLista)+'</div>'+
+          '<div class="cv-leyenda-i"><span class="cv-leyenda-m" style="border-top-color:var(--rojo);'+
+            'border-top-style:dashed"></span>Abre un grupo nuevo</div>'+
+        '</div>'
+      : "");
 
-  document.getElementById("caidas").innerHTML=caidas.map(c=>
-    '<div class="caida"><div class="caida-t">El niño '+c.n+' abre el grupo '+c.g+'</div>'+
+  document.getElementById("caidas").innerHTML=caidas.map(c=>{
+    const cn=caidasN?caidasN.find(x=>x.n===c.n):null;
+    return '<div class="caida"><div class="caida-t">El niño '+c.n+' abre el grupo '+c.g+'</div>'+
     '<div class="caida-d">El margen cae '+dineroCorto(Math.abs(c.delta))+' de un mes al otro'+
-      (c.recupera?', y no se recupera hasta el niño '+c.recupera:'')+'.</div></div>').join("");
+      (c.recupera?', y no se recupera hasta el niño '+c.recupera:'')+'.'+
+      (cn?' Con la tarifa de lista la caída es '+dineroCorto(Math.abs(cn.delta))+
+        (cn.recupera?' y se recupera en el niño '+cn.recupera:'')+'.':'')+
+      '</div></div>';
+  }).join("");
 
-  document.getElementById("curva-nota").textContent=
+  document.getElementById("curva-nota").innerHTML=
     "Si el cliente ve ese bajón sin aviso, va a pensar que algo se rompió. Si el tablero se lo anticipó, "+
-    "es un peaje esperado. Esa diferencia es la que separa informar de sostener una decisión.";
+    "es un peaje esperado. Esa diferencia es la que separa informar de sostener una decisión."+
+    (hayNueva
+      ? " <b>Las dos curvas no son dos escenarios a elegir: son el antes y el después de la misma "+
+        "decisión ya tomada.</b> El eje de este gráfico son niños, no meses, así que el "+
+        fmtFecha(d.fechaTarifa)+" no se puede marcar como un punto: ubicarlo exigiría saber a qué "+
+        "ritmo entran los niños, y ese dato no existe. Lo que sí es cierto a cualquier altura del eje "+
+        "es el escalón: con la tarifa de lista, los mismos niños y los mismos grupos dejan "+
+        dineroCorto(d.brecha*d.meta)+" más al mes con la meta llena."
+      : "");
 }
 
 function pintarB4(d){
@@ -947,7 +1033,7 @@ function pintarB5(d){
      con mas valor del entregable: cuanto se deja de cobrar contra la propia
      lista de precios. */
   if(cobrado!=null&&ticketLista!=null){
-    const brecha=ticketLista-cobrado;
+    const brecha=d.brecha;
     h+='<div class="tickets" style="margin-top:12px">'+
       '<div class="ticket a-azul"><div class="ticket-lbl">Ticket cobrado</div>'+
         '<div class="ticket-val num">'+dinero(cobrado)+'</div>'+
@@ -956,13 +1042,34 @@ function pintarB5(d){
       '<div class="ticket"><div class="ticket-lbl">Ticket de lista</div>'+
         '<div class="ticket-val num">'+dinero(ticketLista)+'</div>'+
         '<div class="ticket-desc">'+dineroCorto(p("precio_45h"))+' y '+dineroCorto(p("precio_8h"))+
-          ' de tarifa nueva, en la proporción 70/30 que declara el cliente.</div></div>'+
+          ' de tarifa nueva, en la proporción '+Math.round(p("mezcla_45h")*100)+'/'+
+          Math.round((1-p("mezcla_45h"))*100)+' que declara el cliente.</div></div>'+
       '<div class="ticket a-naranja"><div class="ticket-lbl">Diferencia</div>'+
         '<div class="ticket-val num">'+dinero(brecha)+'</div>'+
         '<div class="ticket-desc">Por niño y por mes. Con '+d.activos+' niños son '+
-          dineroCorto(brecha*d.activos)+' al mes y '+dineroCorto(brecha*d.activos*12)+' al año, '+
-          'sin captar a nadie nuevo.</div></div>'+
+          dineroCorto(d.brechaMes)+' al mes'+
+          (d.tarifaVigente===false?'':', y '+dineroCorto(d.brechaMes*12)+' al año')+
+          '.</div></div>'+
     '</div>';
+
+    /* La diferencia no es permanente: tiene fecha de cierre y un total que
+       se puede sumar. Los meses se cuentan contra la fecha del parametro,
+       no se teclean. */
+    if(d.fechaTarifa!=null){
+      h+= d.tarifaVigente===false
+        ? '<div class="cierre"><div class="cierre-t">Esta diferencia se cierra el '+
+            fmtFecha(d.fechaTarifa)+'</div>'+
+          '<div class="cierre-d">Ese día <b>todos</b> los niños pasan a la tarifa de lista, no solo los '+
+            'nuevos. Quedan <b>'+d.mesesParaTarifa+' meses</b> cobrando el ticket de hoy: '+
+            dineroCorto(d.brechaMes)+' al mes × '+d.mesesParaTarifa+' meses = <b>'+
+            dineroCorto(d.brechaAcum)+'</b> que no se facturan antes del cambio. '+
+            'Después de esa fecha el ticket del modelo pasa a ser '+dinero(d.ticketLista)+
+            ' y la diferencia deja de existir.</div></div>'
+        : '<div class="cierre"><div class="cierre-t">La tarifa nueva ya rige desde el '+
+            fmtFecha(d.fechaTarifa)+'</div>'+
+          '<div class="cierre-d">El modelo usa '+dinero(d.ticketLista)+' como ticket. Lo que siga '+
+            'apareciendo por debajo son cobros que no se actualizaron.</div></div>';
+    }
   }
 
   /* Reparto observado. Se muestra como comprobacion, con su etiqueta: los
@@ -986,7 +1093,8 @@ function pintarB5(d){
         '<div class="nota">Los montos se separan en dos grupos con '+dineroCorto(hueco)+
           ' de hueco entre ellos: '+baja.length+' niños alrededor de '+dineroCorto(prom(baja))+' y '+
           alta.length+' alrededor de '+dineroCorto(prom(alta))+'. Se parece a la mezcla de media jornada '+
-          'y jornada completa, y coincide con el 70/30 que declara el cliente. '+
+          'y jornada completa, y coincide con el '+Math.round(p("mezcla_45h")*100)+'/'+
+          Math.round((1-p("mezcla_45h"))*100)+' que declara el cliente. '+
           '<b>Sirve para comprobar, no como fuente:</b> mientras el plan de cada niño no se guarde, esto es '+
           'una coincidencia razonable y no un dato.</div>';
     }
