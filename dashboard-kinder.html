@@ -763,7 +763,7 @@ function pintarB1(d){
       '<div class="kpi-sub">'+lineaAbierta+'</div>'+
     '</div>'+
     '<div class="kpi">'+
-      '<div class="kpi-lbl">Capacidad potencial</div>'+
+      '<div class="kpi-lbl">Capacidad potencial ('+(d.totales||"—")+' grupos)</div>'+
       '<div class="kpi-val num">'+(potencial!=null?pct(potencial):"—")+'</div>'+
       '<div class="kpi-sub num">'+d.activos+' de '+(d.cuposTotales||"—")+'</div>'+
     '</div>';
@@ -852,7 +852,9 @@ function pintarB3(d){
      4; cuando se abra, pasa solo al 5. Sin cambios de codigo. */
   const siguiente=d.abiertos+1;
   document.getElementById("b3-titulo").textContent="Bloque 3 · El grupo "+siguiente;
-  document.getElementById("b3-sub").innerHTML="";
+  document.getElementById("b3-sub").innerHTML=
+    "Proyección del grupo "+siguiente+", que todavía no está abierto: "+
+    dineroCorto(d.costo)+" corren desde el primer niño.";
 
   let filas="", yaCruzo=false;
   for(let n=1;n<=d.cap;n++){
