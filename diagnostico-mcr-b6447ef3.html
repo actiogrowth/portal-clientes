@@ -359,8 +359,15 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
 
 /* ==========================================================================
    ENVIO
-   Tres botones que ABREN la aplicacion con el mensaje escrito. Ninguno
-   envia: el ultimo clic siempre es del cliente, en su propia app.
+   Dos botones. El de WhatsApp ABRE la aplicacion con el mensaje escrito,
+   no lo manda: el ultimo clic siempre es del cliente, en su propia app.
+
+   Hubo un tercero, de correo, y se quito. El resumen no cabe en una
+   direccion mailto: con un local a medio llenar ya pasaba el limite de
+   Windows y Outlook, y el mensaje llegaba cortado sin que nadie se diera
+   cuenta. Un boton que a veces falla en silencio es peor que no tenerlo,
+   y acortar el resumen para que cupiera habria empeorado lo que si
+   funciona. WhatsApp aguanta el peor caso de sobra.
    ========================================================================== */
 .resumen-caja{
   background:var(--marca-verde-profundo);
@@ -395,7 +402,6 @@ button{
   margin-top:14px;
   flex-basis:100%;
 }
-.nota-envio + .nota-envio{margin-top:7px}
 #salidaResumen{
   display:none;
   margin-top:20px;
@@ -570,19 +576,16 @@ button{
   <section class="resumen-caja">
     <h2>Generar resumen</h2>
     <p>Arma un texto plano con todo lo que escribió. Después puede mandarlo por
-    WhatsApp, por correo, o copiarlo y pegarlo donde prefiera.</p>
+    WhatsApp, o copiarlo y pegarlo donde prefiera.</p>
     <div class="botonera">
       <button type="button" class="btn-claro" id="btnGenerar">Generar resumen</button>
     </div>
     <div class="envios" id="envios">
       <button type="button" class="btn-claro" id="btnWhatsapp">Enviar por WhatsApp</button>
-      <button type="button" class="btn-borde" id="btnCorreo">Enviar por correo</button>
       <button type="button" class="btn-borde" id="btnCopiar">Copiar</button>
       <span class="aviso-copia" id="avisoCopia"></span>
-      <p class="nota-envio">Ninguno de los dos envía solo: abren la aplicación con
-      el mensaje ya escrito y usted le da enviar.</p>
-      <p class="nota-envio">Si el correo se abre con el mensaje cortado, mándelo
-      por WhatsApp o use el botón de copiar y péguelo usted mismo.</p>
+      <p class="nota-envio">Se abre WhatsApp con el mensaje ya escrito. Usted solo
+      tiene que presionar enviar.</p>
     </div>
     <textarea id="salidaResumen" readonly spellcheck="false"></textarea>
   </section>
@@ -604,8 +607,6 @@ button{
    ========================================================================== */
 
 var WHATSAPP = '573014208785';
-var CORREO   = 'marcoguerrero@actiogrowth.com';
-var ASUNTO   = 'Diagnóstico previo — Market Cerdo y Res';
 
 /* ==========================================================================
    2. FECHAS
@@ -1212,14 +1213,6 @@ document.getElementById('btnWhatsapp').addEventListener('click', function(){
   var url = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(salida.value);
   var w = window.open(url,'_blank','noopener');
   if(!w) window.location.href = url;   /* si el navegador bloquea la ventana */
-});
-
-/* Correo. Aqui no se usa window.open: dejaria una pestana en blanco detras
-   cuando el sistema entrega el mailto al programa de correo. */
-document.getElementById('btnCorreo').addEventListener('click', function(){
-  window.location.href = 'mailto:' + CORREO
-    + '?subject=' + encodeURIComponent(ASUNTO)
-    + '&body='    + encodeURIComponent(salida.value);
 });
 
 document.getElementById('btnCopiar').addEventListener('click', function(){
