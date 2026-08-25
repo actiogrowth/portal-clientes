@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Diagnóstico previo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   DIAGNOSTICO PREVIO A LA SESION
+
+   ESTA HERRAMIENTA NO HACE EL DIAGNOSTICO. Recoge la realidad actual del
+   negocio y ya. El diagnostico es lo que Actio vende: si sale de aqui, la
+   reunion se queda sin razon de ser.
+
+   De ahi la regla que gobierna todo el archivo: no se proyecta, no se
+   compara contra metas, no se senalan brechas. Solo se le devuelven tres
+   cosas, y las tres son aritmetica sobre lo que el mismo escribio:
+
+     1. El reparto en % de las cuatro unidades
+     2. El costo fijo total de cada local, que es la suma de sus rubros
+     3. El margen bruto que sale de sus dos precios por kilo
+
+   Sirven para que confirme que escribio bien. No concluyen nada. No hay un
+   "le falta", ni un "necesita", ni un "esta por debajo" en ninguna parte, y
+   por eso tampoco hay colores de estado: pintar un numero de rojo es emitir
+   un juicio sin escribirlo.
+
+   Los tokens de marca vienen de portal-v2.html sin cambios, para que esto
+   se lea como el mismo sistema.
+   ========================================================================== */
+:root{
+  /* ---------- Marca Actio ----------
+     Identidad. Nunca comunica estado. */
+  --marca-verde-profundo:#004225;
+  --marca-verde-medio:#355E3B;
+  --marca-verde-claro:#4C6B47;
+  --marca-gris-claro:#F5F5F0;
+
+  --texto-principal:#1A1A1A;
+  --texto-secundario:#6B6B6B;
+  --texto-sobre-oscuro:#FFFFFF;
+  --texto-sobre-oscuro-2:rgba(255,255,255,.55);
+  --texto-sobre-oscuro-3:rgba(255,255,255,.72);
+
+  --marca-tenue:#EDF2EE;
+  --marca-borde-suave:#C9D6CC;
+  --marca-realce:rgba(0,66,37,.06);
+  --marca-sombra:rgba(0,66,37,.10);
+
+  /* ---------- Superficies ---------- */
+  --fondo:#F5F5F0;
+  --superficie:#FFFFFF;
+  --borde:#E3E6E1;
+  --borde-campo:#CFD5CE;
+
+  /* ---------- Tipografia ----------
+     Inter viene de Google, igual que en la presentacion. Se pide el rango
+     variable 300..700 y no una lista de pesos sueltos porque los titulos
+     usan 650: contra una lista discreta ese peso saltaria a 600 o a 700.
+
+     La pila de respaldo no es decorativa. Si Google no responde -y esto
+     lo va a llenar gente desde el celular, en la carniceria- la pagina
+     cae a la tipografia del sistema y sigue funcionando entera. El
+     display=swap es la otra mitad de lo mismo: el texto se pinta de una,
+     con la fuente que haya, y cambia despues si Inter llega. */
+  --fuente:'Inter','Inter var',-apple-system,BlinkMacSystemFont,'Segoe UI',
+           Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  font-family:var(--fuente);
+  background:var(--fondo);
+  color:var(--texto-principal);
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ==========================================================================
+   CABECERA
+   Banda baja. El logo manda y el titulo lo acompana: al reves -logo chico
+   y titular enorme- la marca se pierde y la pagina parece de cualquiera.
+   ========================================================================== */
+.cabecera{
+  background:var(--marca-verde-profundo);
+  color:var(--texto-sobre-oscuro);
+  padding:20px 24px;
+}
+.cabecera-caja{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:22px}
+.cabecera img{height:52px;width:auto;display:block;flex:none}
+.cabecera .division{width:1px;align-self:stretch;background:rgba(255,255,255,.22);flex:none}
+.cabecera h1{
+  font-size:clamp(1.15rem,2.6vw,1.42rem);
+  font-weight:600;
+  letter-spacing:-.015em;
+  line-height:1.25;
+}
+.cabecera .antes{
+  display:block;
+  font-size:.7rem;
+  font-weight:600;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--texto-sobre-oscuro-2);
+  margin-bottom:3px;
+}
+
+/* ==========================================================================
+   ESTRUCTURA
+   ========================================================================== */
+main{max-width:1080px;margin:0 auto;padding:26px 24px 72px}
+
+.intro{
+  background:var(--superficie);
+  border:1px solid var(--borde);
+  border-radius:14px;
+  padding:22px 24px;
+  margin-bottom:30px;
+  box-shadow:0 2px 14px var(--marca-sombra);
+}
+.intro p{max-width:74ch}
+.intro p + p{margin-top:10px}
+.intro strong{font-weight:600}
+
+.bloque{
+  background:var(--superficie);
+  border:1px solid var(--borde);
+  border-radius:14px;
+  margin-bottom:26px;
+  overflow:hidden;
+}
+.bloque-cabeza{padding:22px 26px 20px;border-bottom:1px solid var(--borde)}
+.bloque-num{
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--marca-verde-claro);
+  display:block;
+  margin-bottom:5px;
+}
+.bloque-cabeza h2{font-size:1.28rem;font-weight:650;letter-spacing:-.015em}
+.bloque-cabeza .ayuda{
+  margin-top:7px;
+  font-size:.92rem;
+  color:var(--texto-secundario);
+  max-width:70ch;
+}
+.bloque-cuerpo{padding:24px 26px 26px}
+
+.sub{
+  font-size:.75rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--texto-secundario);
+  margin-bottom:13px;
+}
+.sub.espaciado{margin-top:26px}
+
+/* ==========================================================================
+   CAMPOS
+   ========================================================================== */
+.campos{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(216px,100%),1fr));
+  gap:16px 20px;
+}
+.campos.anchos{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.campo.completo{grid-column:1/-1}
+.campo label{
+  display:block;
+  font-size:.87rem;
+  font-weight:500;
+  margin-bottom:6px;
+  line-height:1.35;
+}
+.campo .pista{
+  display:block;
+  font-size:.77rem;
+  font-weight:400;
+  color:var(--texto-secundario);
+  margin-top:2px;
+}
+.envoltura{position:relative;display:flex;align-items:center}
+.envoltura .signo{position:absolute;color:var(--texto-secundario);font-size:.95rem;pointer-events:none}
+.envoltura .signo.izq{left:12px}
+.envoltura .signo.der{right:12px}
+input[type=text],input[type=month],textarea{
+  width:100%;
+  font-family:var(--fuente);
+  font-size:1rem;
+  color:var(--texto-principal);
+  background:var(--superficie);
+  border:1px solid var(--borde-campo);
+  border-radius:9px;
+  padding:11px 13px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.envoltura.con-izq input{padding-left:26px}
+.envoltura.con-der input{padding-right:34px}
+input[type=text]{font-variant-numeric:tabular-nums}
+input.libre{font-variant-numeric:normal}
+input:focus,textarea:focus{
+  outline:none;
+  border-color:var(--marca-verde-medio);
+  box-shadow:0 0 0 3px var(--marca-realce);
+}
+textarea{resize:vertical;min-height:88px;line-height:1.6}
+input::placeholder,textarea::placeholder{color:#AEB3AD}
+
+/* ==========================================================================
+   MARGEN BRUTO. Dos caminos: el que ya lo sabe y el que lo va a ver por
+   primera vez. El segundo se marca como alternativa, no como otro campo mas.
+   ========================================================================== */
+.margen-caja{
+  margin-top:26px;
+  border:1px solid var(--borde);
+  border-radius:11px;
+  padding:18px 19px;
+  background:var(--fondo);
+}
+.margen-caja .sub{margin-bottom:12px}
+.camino-b{margin-top:18px;padding-top:16px;border-top:1px dashed var(--marca-borde-suave)}
+.camino-b .encabezado{font-size:.87rem;font-weight:600;margin-bottom:4px}
+.camino-b .explica{
+  font-size:.82rem;
+  color:var(--texto-secundario);
+  margin-bottom:13px;
+  max-width:62ch;
+}
+/* Cerdo y res se separan con una etiqueta, no con una caja: son dos grupos
+   dentro de la misma pregunta, no dos secciones distintas del formulario. */
+.camino-b .especie{
+  font-size:.78rem;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--marca-verde-claro);
+  margin:16px 0 9px;
+}
+.camino-b .especie:first-of-type{margin-top:4px}
+.camino-b .resto{
+  font-size:.84rem;
+  color:var(--texto-secundario);
+  margin-top:8px;
+}
+.camino-b .resto:empty{display:none}
+.camino-b .resto strong{font-weight:600;color:var(--texto-principal)}
+
+/* La devolucion del camino B, pegada a los campos que la producen. */
+.margen-salida{
+  margin-top:16px;
+  padding:14px 16px;
+  background:var(--marca-tenue);
+  border:1px solid var(--marca-borde-suave);
+  border-radius:9px;
+  display:none;
+}
+.margen-salida.visible{display:block}
+.margen-salida .fila{font-size:.9rem}
+.margen-salida .fila.destacada .val{font-size:1.1rem}
+.margen-salida .apostilla{margin-top:8px}
+
+/* Aviso de que los dos caminos no coinciden. Sin color de estado: no es un
+   error, es una diferencia que se resuelve hablando. */
+.discrepancia{
+  margin-top:11px;
+  padding:11px 13px;
+  background:var(--superficie);
+  border:1px solid var(--marca-borde-suave);
+  border-left:3px solid var(--marca-verde-medio);
+  border-radius:8px;
+  font-size:.86rem;
+  line-height:1.5;
+}
+.discrepancia strong{font-weight:600}
+
+/* ==========================================================================
+   RESULTADOS
+   Tres cosas en toda la pagina, y las tres son aritmetica de lo que el
+   cliente escribio. El titulo lo dice: es una comprobacion, no una lectura.
+   ========================================================================== */
+.resultados{
+  margin-top:26px;
+  background:var(--marca-tenue);
+  border:1px solid var(--marca-borde-suave);
+  border-radius:12px;
+  padding:20px 22px;
+}
+.resultados-titulo{
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:var(--marca-verde-profundo);
+  margin-bottom:16px;
+}
+.res{padding:15px 0;border-top:1px solid var(--marca-borde-suave)}
+.res:first-of-type{padding-top:0;border-top:none}
+.res:last-child{padding-bottom:0}
+.res h3{font-size:.95rem;font-weight:600;margin-bottom:10px}
+.pendiente{font-size:.88rem;color:var(--texto-secundario)}
+.pendiente::before{content:"— "}
+
+.fila{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:14px;
+  padding:5px 0;
+  font-size:.94rem;
+}
+.fila .etq{color:var(--texto-secundario)}
+.fila .val{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.fila.destacada{margin-top:8px;padding-top:11px;border-top:1px solid var(--marca-borde-suave)}
+.fila.destacada .etq{color:var(--texto-principal);font-weight:500}
+.fila.destacada .val{font-size:1.16rem;font-weight:700}
+
+.frase{font-size:.94rem;margin-top:10px;line-height:1.5}
+.apostilla{font-size:.84rem;color:var(--texto-secundario);margin-top:9px;line-height:1.5}
+
+/* Barras de peso relativo. Todas del mismo verde, justamente para que el
+   color no diga nada sobre cual unidad es mejor. */
+.barra-fila{margin:11px 0}
+.barra-cabeza{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:12px;
+  font-size:.92rem;
+  margin-bottom:5px;
+}
+.barra-cabeza .val{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.barra-cabeza .val .pesos{color:var(--texto-secundario);font-weight:400;margin-left:7px}
+.barra-riel{height:7px;background:rgba(0,66,37,.10);border-radius:4px;overflow:hidden}
+.barra-relleno{height:100%;background:var(--marca-verde-medio);border-radius:4px;transition:width .25s ease}
+
+/* Los dos locales. */
+.locales{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:26px}
+.local{border:1px solid var(--borde);border-radius:12px;padding:20px 21px 22px;background:var(--superficie)}
+.local > h3{
+  font-size:1.05rem;
+  font-weight:650;
+  margin-bottom:16px;
+  padding-bottom:12px;
+  border-bottom:2px solid var(--marca-verde-profundo);
+  letter-spacing:-.01em;
+}
+.local .campos{grid-template-columns:repeat(auto-fit,minmax(min(148px,100%),1fr))}
+.local .resultados{margin-top:24px;padding:18px 19px}
+
+/* ==========================================================================
+   ENVIO
+   Dos botones. El de WhatsApp ABRE la aplicacion con el mensaje escrito,
+   no lo manda: el ultimo clic siempre es del cliente, en su propia app.
+
+   Hubo un tercero, de correo, y se quito. El resumen no cabe en una
+   direccion mailto: con un local a medio llenar ya pasaba el limite de
+   Windows y Outlook, y el mensaje llegaba cortado sin que nadie se diera
+   cuenta. Un boton que a veces falla en silencio es peor que no tenerlo,
+   y acortar el resumen para que cupiera habria empeorado lo que si
+   funciona. WhatsApp aguanta el peor caso de sobra.
+   ========================================================================== */
+.resumen-caja{
+  background:var(--marca-verde-profundo);
+  color:var(--texto-sobre-oscuro);
+  border-radius:14px;
+  padding:28px 26px;
+  margin-top:34px;
+}
+.resumen-caja h2{font-size:1.28rem;font-weight:650;letter-spacing:-.015em;margin-bottom:9px}
+.resumen-caja p{color:var(--texto-sobre-oscuro-3);font-size:.95rem;max-width:64ch;font-weight:300}
+.botonera{display:flex;flex-wrap:wrap;gap:11px;margin-top:20px;align-items:center}
+.envios{display:none;flex-wrap:wrap;gap:11px;margin-top:14px;align-items:center}
+.envios.visible{display:flex}
+button{
+  font-family:var(--fuente);
+  font-size:.95rem;
+  font-weight:600;
+  border-radius:9px;
+  padding:12px 22px;
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+.btn-claro{background:var(--texto-sobre-oscuro);color:var(--marca-verde-profundo)}
+.btn-claro:hover{background:#E9EFEA}
+.btn-borde{background:transparent;color:var(--texto-sobre-oscuro);border-color:rgba(255,255,255,.4)}
+.btn-borde:hover{border-color:rgba(255,255,255,.85)}
+.aviso-copia{font-size:.88rem;color:var(--texto-sobre-oscuro-3);min-height:1.2em;flex-basis:100%}
+.nota-envio{
+  font-size:.85rem;
+  color:var(--texto-sobre-oscuro-2);
+  margin-top:14px;
+  flex-basis:100%;
+}
+#salidaResumen{
+  display:none;
+  margin-top:20px;
+  width:100%;
+  min-height:320px;
+  font-family:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;
+  font-size:.85rem;
+  line-height:1.62;
+  background:rgba(0,0,0,.22);
+  color:var(--texto-sobre-oscuro);
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:10px;
+  padding:16px 17px;
+  white-space:pre-wrap;
+  overflow-wrap:break-word;
+}
+#salidaResumen:focus{border-color:rgba(255,255,255,.6);box-shadow:none}
+
+/* ==========================================================================
+   PIE
+   ========================================================================== */
+.pie{border-top:1px solid var(--borde);padding:26px 24px 44px;background:var(--superficie)}
+.pie-caja{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pie img{height:26px;width:auto;display:block}
+.pie .marca{font-size:.9rem;color:var(--texto-secundario)}
+.pie .privacidad{
+  flex-basis:100%;
+  font-size:.85rem;
+  color:var(--texto-secundario);
+  padding-top:14px;
+  border-top:1px solid var(--borde);
+}
+
+@media (max-width:620px){
+  .cabecera{padding:16px 18px}
+  .cabecera-caja{gap:15px}
+  .cabecera img{height:42px}
+  main{padding:20px 18px 56px}
+  .intro{padding:19px 18px}
+  .bloque-cabeza{padding:20px 20px 18px}
+  .bloque-cuerpo{padding:20px 20px 22px}
+  .resultados{padding:18px 17px}
+  .local{padding:18px 17px 20px}
+  .local .resultados{padding:16px 15px}
+  .margen-caja{padding:16px 15px}
+  .resumen-caja{padding:24px 20px}
+  .campos,.campos.anchos,.local .campos{grid-template-columns:1fr}
+  .botonera button,.envios button{flex:1 1 100%}
+  .pie{padding:24px 18px 36px}
+}
+</style>
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="cabecera-caja">
+    <img src="logo-actio-blanco.png" alt="Actio Growth">
+    <div class="division"></div>
+    <h1><span class="antes">Antes de la sesión</span>Diagnóstico previo</h1>
+  </div>
+</header>
+
+<main>
+
+  <section class="intro">
+    <p>Esto es para <strong>aprovechar mejor la sesión de diagnóstico</strong>: si
+    llegamos con los números sobre la mesa, la hora se va en entenderlos y no en
+    reunirlos.</p>
+    <p><strong>Las cifras aproximadas sirven igual</strong> y ningún campo es
+    obligatorio: un dato en blanco no rompe nada, y saber qué información está a
+    la mano también hace parte del diagnóstico.</p>
+  </section>
+
+  <!-- ====================================================================
+       BLOQUE 1
+       ==================================================================== -->
+  <section class="bloque">
+    <div class="bloque-cabeza">
+      <span class="bloque-num">Bloque 1</span>
+      <h2>El tamaño del negocio</h2>
+      <p class="ayuda">Para saber qué tan grandes son los locales dentro del
+      conjunto. Cuatro cifras del último año cerrado y nada más.</p>
+    </div>
+    <div class="bloque-cuerpo">
+
+      <p class="sub">Facturación de <span data-anio></span></p>
+      <div class="campos">
+        <div class="campo">
+          <label for="b1_canales">Unidad de canales
+            <span class="pista">Todo el año <span data-anio></span></span></label>
+          <div class="envoltura con-izq"><span class="signo izq">$</span>
+            <input type="text" id="b1_canales" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
+        </div>
+        <div class="campo">
+          <label for="b1_cortes">Unidad de cortes
+            <span class="pista">Todo el año <span data-anio></span></span></label>
+          <div class="envoltura con-izq"><span class="signo izq">$</span>
+            <input type="text" id="b1_cortes" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
+        </div>
+        <div class="campo">
+          <label for="b1_bello">Local Bello
+            <span class="pista">Todo el año <span data-anio></span></span></label>
+          <div class="envoltura con-izq"><span class="signo izq">$</span>
+            <input type="text" id="b1_bello" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
+        </div>
+        <div class="campo">
+          <label for="b1_envigado">Local Envigado
+            <span class="pista">Todo el año <span data-anio></span></span></label>
+          <div class="envoltura con-izq"><span class="signo izq">$</span>
+            <input type="text" id="b1_envigado" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
+        </div>
+      </div>
+
+      <div class="resultados">
+        <p class="resultados-titulo">Para que confirme</p>
+        <div class="res" id="r_peso"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       BLOQUE 2 · Se arma en JS: son los mismos campos dos veces y
+       escribirlos a mano es la via mas corta a que se desincronicen.
+       ==================================================================== -->
+  <section class="bloque">
+    <div class="bloque-cabeza">
+      <span class="bloque-num">Bloque 2</span>
+      <h2>Cada local</h2>
+      <p class="ayuda">Aquí está el trabajo. Los mismos datos para Bello y para
+      Envigado; si alguno no lo tiene a la mano, sáltelo y siga.</p>
+    </div>
+    <div class="bloque-cuerpo">
+      <div class="locales" id="contenedorLocales"></div>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       BLOQUE 3
+       ==================================================================== -->
+  <section class="bloque">
+    <div class="bloque-cabeza">
+      <span class="bloque-num">Bloque 3</span>
+      <h2>Producto</h2>
+      <p class="ayuda">Dos listas cortas. Aquí no hay nada que calcular.</p>
+    </div>
+    <div class="bloque-cuerpo">
+
+      <div class="campos anchos">
+        <div class="campo">
+          <label for="b3_vendidos">Los cinco productos más vendidos en el local</label>
+          <textarea id="b3_vendidos" autocomplete="off" placeholder="Uno por línea"></textarea>
+        </div>
+        <div class="campo">
+          <label for="b3_margen">Los cinco que más margen dejan</label>
+          <textarea id="b3_margen" autocomplete="off" placeholder="Uno por línea"></textarea>
+        </div>
+      </div>
+
+      <div class="resultados">
+        <p class="resultados-titulo">La nota</p>
+        <div class="res">
+          <p class="frase">Si las dos listas no coinciden, ahí hay margen sin
+          tocar nada más.</p>
+          <p class="apostilla">Lo miramos juntos en la sesión.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="resumen-caja">
+    <h2>Generar resumen</h2>
+    <p>Arma un texto plano con todo lo que escribió. Después puede mandarlo por
+    WhatsApp, o copiarlo y pegarlo donde prefiera.</p>
+    <div class="botonera">
+      <button type="button" class="btn-claro" id="btnGenerar">Generar resumen</button>
+    </div>
+    <div class="envios" id="envios">
+      <button type="button" class="btn-claro" id="btnWhatsapp">Enviar por WhatsApp</button>
+      <button type="button" class="btn-borde" id="btnCopiar">Copiar</button>
+      <span class="aviso-copia" id="avisoCopia"></span>
+      <p class="nota-envio">Se abre WhatsApp con el mensaje ya escrito. Usted solo
+      tiene que presionar enviar.</p>
+    </div>
+    <textarea id="salidaResumen" readonly spellcheck="false"></textarea>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="pie-caja">
+    <img src="logo-actio-verde.png" alt="Actio Growth">
+    <span class="marca">Actio Growth &middot; Estrategia que piensa. Sistemas que actúan.</span>
+    <p class="privacidad">Esta página no guarda nada: no hay servidor ni base de
+    datos, lo que escriba vive solo en esta pestaña mientras esté abierta.</p>
+  </div>
+</footer>
+
+<script>
+/* ==========================================================================
+   1. DESTINO DEL RESUMEN
+   ========================================================================== */
+
+var WHATSAPP = '573014208785';
+
+/* ==========================================================================
+   2. FECHAS
+
+   Las etiquetas dicen el periodo exacto en vez de "el ultimo ano" o "el mes
+   pasado". El cliente no tiene que adivinar que le estamos preguntando, y de
+   paso el archivo no envejece: en 2027 las etiquetas se corrigen solas.
+   ========================================================================== */
+
+var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+             'septiembre','octubre','noviembre','diciembre'];
+
+var HOY = new Date();
+var ANIO_CERRADO = HOY.getFullYear() - 1;
+
+var mp = new Date(HOY.getFullYear(), HOY.getMonth()-1, 1);
+var MES_PASADO = MESES[mp.getMonth()] + ' de ' + mp.getFullYear();
+
+/* ==========================================================================
+   3. FORMATO Y LECTURA DE CAMPOS
+   ========================================================================== */
+
+function miles(entero){
+  return String(entero).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
+
+function pesos(n){
+  if(n===null||!isFinite(n)) return '';
+  return (n<0?'-':'') + '$' + miles(Math.round(Math.abs(n)));
+}
+
+function pct(n,dec){
+  if(n===null||!isFinite(n)) return '';
+  if(dec===undefined) dec = 1;
+  return (n<0?'-':'') + Math.abs(n).toFixed(dec).replace('.',',') + '%';
+}
+
+function decimales(n,dec){
+  if(n===null||!isFinite(n)) return '';
+  if(dec===undefined) dec = 1;
+  var p = Math.abs(n).toFixed(dec).split('.');
+  return (n<0?'-':'') + miles(p[0]) + (p[1] ? ','+p[1] : '');
+}
+
+/* Vacio devuelve null, nunca 0: un campo en blanco es "no se" y un cero
+   escrito es "cero". No son lo mismo, y de esa distincion depende que la
+   pagina no se invente resultados. */
+function aNumero(txt,tipo){
+  if(txt===null||txt===undefined) return null;
+  var s = String(txt).replace(/\s/g,'');
+  if(!s) return null;
+  if(tipo==='decimal'){
+    s = s.replace(/\./g,'').replace(',','.').replace(/[^0-9.]/g,'');
+  }else{
+    s = s.replace(/[^0-9]/g,'');
+  }
+  if(!s||s==='.') return null;
+  var v = Number(s);
+  return isFinite(v) ? v : null;
+}
+
+function leer(id){
+  var el = document.getElementById(id);
+  if(!el) return null;
+  return aNumero(el.value, el.getAttribute('data-tipo')==='decimal' ? 'decimal' : 'entero');
+}
+
+function texto(id){
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function formatearCampo(el){
+  var tipo = el.getAttribute('data-tipo');
+  var v = aNumero(el.value, tipo==='decimal' ? 'decimal' : 'entero');
+  if(v===null){ el.value=''; return; }
+  if(tipo==='decimal'){
+    var crudo = String(el.value).replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+    var conDec = /\.\d+$/.test(crudo);
+    el.value = conDec ? decimales(v,(crudo.split('.')[1]||'').length) : miles(Math.round(v));
+  }else{
+    el.value = miles(Math.round(v));
+  }
+}
+
+/* ==========================================================================
+   4. PINTAR
+   ========================================================================== */
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function tituloRes(t){ return '<h3>'+esc(t)+'</h3>'; }
+function pendiente(t){ return '<p class="pendiente">'+esc(t)+'</p>'; }
+function fila(etq,val,dest){
+  return '<div class="fila'+(dest?' destacada':'')+'">'
+       + '<span class="etq">'+esc(etq)+'</span>'
+       + '<span class="val">'+esc(val)+'</span></div>';
+}
+function pintar(id,html){ var el=document.getElementById(id); if(el) el.innerHTML=html; }
+
+function listar(arr){
+  if(arr.length===0) return '';
+  if(arr.length===1) return arr[0];
+  return arr.slice(0,-1).join(', ') + ' y ' + arr[arr.length-1];
+}
+
+/* ==========================================================================
+   5. LOS DOS LOCALES SE GENERAN DEL MISMO MOLDE
+   ========================================================================== */
+
+var LOCALES = [
+  {clave:'bello',    nombre:'Bello'},
+  {clave:'envigado', nombre:'Envigado'}
+];
+
+/* Los cuatro rubros que suman el costo fijo, en el orden del formulario. */
+var RUBROS_FIJOS = [
+  {suf:'arriendo',  etq:'Arriendo'},
+  {suf:'nomina',    etq:'Nómina'},
+  {suf:'servicios', etq:'Servicios públicos'},
+  {suf:'otros',     etq:'Otros gastos fijos'}
+];
+
+var GRUPOS = [
+  {titulo:'La operación', campos:[
+    {suf:'apertura', etq:'Fecha de apertura', tipo:'mes'},
+    {suf:'dias',     etq:'Días que abre al mes', tipo:'entero',
+     pista:'Por ejemplo, 26 si cierra los domingos'},
+    {suf:'personas', etq:'Cuántas personas trabajan en el local', tipo:'entero'}
+  ]},
+  {titulo:'Costo fijo al mes', campos:[
+    {suf:'arriendo',  etq:'Arriendo mensual', tipo:'dinero'},
+    {suf:'nomina',    etq:'Nómina mensual con prestaciones', tipo:'dinero'},
+    {suf:'servicios', etq:'Servicios públicos', tipo:'dinero'},
+    {suf:'otros',     etq:'Otros gastos fijos', tipo:'dinero'}
+  ]},
+  {titulo:'El movimiento', campos:[
+    {suf:'ventas',   etq:'Ventas del mes pasado', tipo:'dinero', pista:MES_PASADO},
+    {suf:'clientes', etq:'Clientes atendidos al día', tipo:'entero'},
+    {suf:'ticket',   etq:'Ticket promedio por compra', tipo:'dinero'},
+    {suf:'pasan',    etq:'Cuánta gente pasa por la puerta al día', tipo:'entero',
+     pista:'Aproximado'},
+    {suf:'vuelve',   etq:'Cada cuánto vuelve un cliente', tipo:'entero',
+     pista:'En días, aproximado', signoDer:'días'}
+  ]},
+  {titulo:'Los clientes y la pauta', campos:[
+    {suf:'identifica', etq:'¿Tienen forma de saber quién ya compró antes?',
+     tipo:'texto', pista:'Sí o no. Si sí, cuál.', ancho:true},
+    {suf:'pauta', etq:'¿Han pautado para el local? ¿Cuánto y qué resultó?',
+     tipo:'area', ancho:true}
+  ]}
+];
+
+function campoHTML(id,C){
+  var h = '<div class="campo'+(C.ancho?' completo':'')+'"><label for="'+id+'">'+esc(C.etq)
+        + (C.pista ? '<span class="pista">'+esc(C.pista)+'</span>' : '')
+        + '</label>';
+  if(C.tipo==='mes'){
+    h += '<div class="envoltura"><input type="month" id="'+id+'" autocomplete="off"></div>';
+  }else if(C.tipo==='area'){
+    h += '<textarea id="'+id+'" autocomplete="off"></textarea>';
+  }else if(C.tipo==='texto'){
+    h += '<div class="envoltura"><input type="text" class="libre" id="'+id+'" autocomplete="off"></div>';
+  }else{
+    var izq = C.tipo==='dinero';
+    var der = C.tipo==='pct' ? '%' : (C.signoDer || '');
+    h += '<div class="envoltura'+(izq?' con-izq':'')+(der?' con-der':'')+'">'
+       + (izq?'<span class="signo izq">$</span>':'')
+       + (der?'<span class="signo der">'+esc(der)+'</span>':'')
+       + '<input type="text" id="'+id+'" inputmode="'+(C.tipo==='pct'?'decimal':'numeric')+'" '
+       + 'autocomplete="off" placeholder="0" data-tipo="'+(C.tipo==='pct'?'decimal':C.tipo)+'"></div>';
+  }
+  return h + '</div>';
+}
+
+function construirLocales(){
+  var html = '';
+  for(var i=0;i<LOCALES.length;i++){
+    var L = LOCALES[i], pre = 'b2_'+L.clave+'_';
+    html += '<div class="local"><h3>'+esc(L.nombre)+'</h3>';
+
+    for(var g=0;g<GRUPOS.length;g++){
+      html += '<p class="sub'+(g?' espaciado':'')+'">'+esc(GRUPOS[g].titulo)+'</p><div class="campos">';
+      for(var c=0;c<GRUPOS[g].campos.length;c++){
+        html += campoHTML(pre+GRUPOS[g].campos[c].suf, GRUPOS[g].campos[c]);
+      }
+      html += '</div>';
+    }
+
+    /* El margen bruto, con sus dos caminos. El negocio es Cerdo y Res, asi
+       que el camino B pregunta por las dos especies por separado y las une
+       con el reparto de ventas. Preguntar por "la carne" en singular obligaba
+       al cliente a promediar de cabeza dos negocios distintos. */
+    html += '<div class="margen-caja"><p class="sub">El margen bruto</p><div class="campos">'
+         + campoHTML(pre+'margenA', {etq:'Margen bruto del local', tipo:'pct',
+             pista:'De cada 100 pesos que vende, cuánto queda después de pagar la carne'})
+         + '</div>'
+         + '<div class="camino-b">'
+         + '<p class="encabezado">¿No lo tiene a la mano?</p>'
+         + '<p class="explica">Con los precios por kilo se calcula solo. Cerdo y res '
+         + 'van aparte, y el reparto de ventas los une.</p>'
+
+         + '<p class="especie">Cerdo</p><div class="campos">'
+         + campoHTML(pre+'cerdoEntra', {etq:'Precio de compra por kilo', tipo:'dinero'})
+         + campoHTML(pre+'cerdoVende', {etq:'Precio de venta por kilo', tipo:'dinero'})
+         + '</div>'
+
+         + '<p class="especie">Res</p><div class="campos">'
+         + campoHTML(pre+'resEntra', {etq:'Precio de compra por kilo', tipo:'dinero'})
+         + campoHTML(pre+'resVende', {etq:'Precio de venta por kilo', tipo:'dinero'})
+         + '</div>'
+
+         + '<p class="especie">El reparto</p><div class="campos">'
+         + campoHTML(pre+'pctCerdo', {etq:'Qué % de las ventas del local es cerdo',
+             tipo:'pct', pista:'El resto se toma como res'})
+         + '</div><p class="resto" id="resto_'+L.clave+'"></p>'
+
+         + '<div class="margen-salida" id="ms_'+L.clave+'"></div>'
+         + '</div></div>';
+
+    html += '<div class="resultados"><p class="resultados-titulo">Para que confirme</p>'
+         + '<div id="r2_'+L.clave+'"></div></div></div>';
+  }
+  document.getElementById('contenedorLocales').innerHTML = html;
+}
+
+/* ==========================================================================
+   6. LA LECTURA
+
+   No se llama "calcular" porque casi no calcula: recoge lo escrito y saca
+   dos sumas y una division. Todo lo que la version anterior derivaba de aqui
+   -punto de equilibrio, distancia contra el, clientes necesarios, comparacion
+   contra el ano pasado- salio del archivo a proposito. Ese es el diagnostico,
+   y el diagnostico se cuenta en la reunion.
+   ========================================================================== */
+
+function recoger(){
+  var d = {};
+
+  /* ---------- Bloque 1 ---------- */
+  d.unidades = [
+    {etq:'Unidad de canales', v:leer('b1_canales')},
+    {etq:'Unidad de cortes',  v:leer('b1_cortes')},
+    {etq:'Local Bello',       v:leer('b1_bello')},
+    {etq:'Local Envigado',    v:leer('b1_envigado')}
+  ];
+  d.conDato = d.unidades.filter(function(u){ return u.v!==null; });
+  d.sinDato = d.unidades.filter(function(u){ return u.v===null; });
+  d.suma    = d.conDato.reduce(function(a,u){ return a+u.v; },0);
+  d.todas   = d.sinDato.length===0;
+
+  /* ---------- Bloque 2 ---------- */
+  d.locales = [];
+  for(var k=0;k<LOCALES.length;k++){
+    var L = LOCALES[k], pre = 'b2_'+L.clave+'_';
+    var o = {
+      clave:L.clave, nombre:L.nombre,
+      apertura:   texto(pre+'apertura'),
+      dias:       leer(pre+'dias'),
+      personas:   leer(pre+'personas'),
+      arriendo:   leer(pre+'arriendo'),
+      nomina:     leer(pre+'nomina'),
+      servicios:  leer(pre+'servicios'),
+      otros:      leer(pre+'otros'),
+      ventas:     leer(pre+'ventas'),
+      clientes:   leer(pre+'clientes'),
+      ticket:     leer(pre+'ticket'),
+      pasan:      leer(pre+'pasan'),
+      vuelve:     leer(pre+'vuelve'),
+      identifica: texto(pre+'identifica'),
+      pauta:      texto(pre+'pauta'),
+      margenA:    leer(pre+'margenA'),
+      cerdoEntra: leer(pre+'cerdoEntra'),
+      cerdoVende: leer(pre+'cerdoVende'),
+      resEntra:   leer(pre+'resEntra'),
+      resVende:   leer(pre+'resVende'),
+      pctCerdo:   leer(pre+'pctCerdo')
+    };
+
+    /* Suma de los cuatro rubros fijos. */
+    var con = [], sin = [];
+    for(var r=0;r<RUBROS_FIJOS.length;r++){
+      var R = RUBROS_FIJOS[r];
+      if(o[R.suf]!==null) con.push({etq:R.etq, v:o[R.suf]}); else sin.push(R.etq);
+    }
+    o.rubros = con;
+    o.rubrosFaltan = sin;
+    o.costoFijo = con.length ? con.reduce(function(a,x){ return a+x.v; },0) : null;
+    o.costoFijoCompleto = sin.length===0;
+
+    /* Margen bruto del camino B, por especie: lo que queda del precio de
+       venta despues de pagar la carne, sobre ese mismo precio de venta.
+       Aritmetica de sus propios precios. El del camino A se guarda tal cual
+       y no se toca: no hay nada que calcularle. */
+    function margenDe(entra,vende){
+      if(entra===null||vende===null||vende<=0) return null;
+      return (vende - entra) / vende * 100;
+    }
+    o.margenCerdo = margenDe(o.cerdoEntra, o.cerdoVende);
+    o.margenRes   = margenDe(o.resEntra,   o.resVende);
+
+    /* El reparto de ventas. Se guarda el complemento para mostrarlo al lado:
+       el cliente escribe un solo numero y ve los dos. */
+    o.pctRes = (o.pctCerdo!==null && o.pctCerdo>=0 && o.pctCerdo<=100)
+               ? 100 - o.pctCerdo : null;
+
+    /* Margen del local: los dos anteriores ponderados por el reparto. Solo
+       se exige la especie que pesa: con el reparto en 100% cerdo basta el
+       margen de cerdo, y con 0% basta el de res. Si falta una especie que si
+       pesa, no hay numero -y no se sustituye por el de la otra, que seria
+       presentar media verdad como si fuera el margen del local. */
+    o.margenLocal = null;
+    if(o.pctRes!==null){
+      var w = o.pctCerdo/100;
+      var pesaCerdo = w > 0, pesaRes = w < 1;
+      if((!pesaCerdo || o.margenCerdo!==null) && (!pesaRes || o.margenRes!==null)){
+        o.margenLocal = (pesaCerdo ? w*o.margenCerdo : 0)
+                      + (pesaRes   ? (1-w)*o.margenRes : 0);
+      }
+    }
+
+    /* Los dos caminos se comparan sobre la cifra comparable: el margen del
+       local. Si no coinciden se avisa y ya; cual de los dos vale lo decide
+       el, no la pagina. */
+    o.discrepa = (o.margenA!==null && o.margenLocal!==null
+                  && Math.abs(o.margenA - o.margenLocal) > 0.1);
+
+    /* Fecha de apertura: dato, no cuenta atras. */
+    o.aperturaTexto = null;
+    if(/^\d{4}-\d{2}$/.test(o.apertura)){
+      var p = o.apertura.split('-');
+      o.aperturaTexto = MESES[Number(p[1])-1] + ' de ' + p[0];
+    }
+
+    d.locales.push(o);
+  }
+
+  /* ---------- Bloque 3 ---------- */
+  d.b3 = {vendidos:texto('b3_vendidos'), margen:texto('b3_margen')};
+
+  return d;
+}
+
+/* ==========================================================================
+   7. PINTADO EN PANTALLA
+   ========================================================================== */
+
+function render(){
+  var d = recoger();
+
+  /* ---------- Bloque 1: el reparto ---------- */
+  var h = tituloRes('El peso de cada unidad sobre el total');
+  if(d.conDato.length>=2 && d.suma>0){
+    for(var i=0;i<d.conDato.length;i++){
+      var u = d.conDato[i], p = u.v/d.suma*100;
+      h += '<div class="barra-fila"><div class="barra-cabeza"><span>'+esc(u.etq)+'</span>'
+         + '<span class="val">'+pct(p)+'<span class="pesos">'+pesos(u.v)+'</span></span></div>'
+         + '<div class="barra-riel"><div class="barra-relleno" style="width:'+p.toFixed(2)+'%"></div></div></div>';
+    }
+    h += fila(d.todas ? 'Total de '+ANIO_CERRADO : 'Suma de las unidades con dato',
+              pesos(d.suma), true);
+    if(!d.todas){
+      h += '<p class="apostilla">Los porcentajes se calculan sobre esa suma. Sin dato: '
+         + esc(listar(d.sinDato.map(function(x){return x.etq;}))) + '.</p>';
+    }
+  }else{
+    h += pendiente('Con la facturación de dos unidades o más, aquí aparece el reparto.');
+  }
+  pintar('r_peso',h);
+
+  /* ---------- Bloque 2 ---------- */
+  for(var n=0;n<d.locales.length;n++){
+    var o = d.locales[n];
+
+    /* El complemento del reparto, al lado del campo. */
+    var resto = document.getElementById('resto_'+o.clave);
+    if(resto){
+      resto.innerHTML = o.pctRes!==null
+        ? 'Entonces res es el <strong>'+esc(pct(o.pctRes))+'</strong> de las ventas.'
+        : '';
+    }
+
+    /* Los tres margenes, junto a los campos que los producen: puede ser la
+       primera vez que el cliente ve estos numeros. Se muestran los que se
+       puedan y no se rellena ninguno. */
+    var ms = document.getElementById('ms_'+o.clave);
+    if(ms){
+      var m = '';
+      if(o.margenCerdo!==null) m += fila('Margen bruto de cerdo', pct(o.margenCerdo));
+      if(o.margenRes!==null)   m += fila('Margen bruto de res',   pct(o.margenRes));
+      if(o.margenLocal!==null){
+        m += fila('Margen bruto del local', pct(o.margenLocal), true);
+        if(o.margenCerdo!==null && o.margenRes!==null && o.pctCerdo>0 && o.pctCerdo<100){
+          m += '<p class="apostilla">'+esc(pct(o.pctCerdo))+' de cerdo al '
+             + esc(pct(o.margenCerdo))+' y '+esc(pct(o.pctRes))+' de res al '
+             + esc(pct(o.margenRes))+'.</p>';
+        }
+      }else if(o.margenCerdo!==null && o.margenRes!==null){
+        m += '<p class="apostilla">Con el % de ventas que es cerdo, aquí aparece '
+           + 'el margen del local.</p>';
+      }
+      if(m && o.discrepa){
+        m += '<div class="discrepancia">Los dos caminos no dan lo mismo: usted escribió '
+           + '<strong>'+esc(pct(o.margenA))+'</strong> y de los precios por kilo sale '
+           + '<strong>'+esc(pct(o.margenLocal))+'</strong>. Lo revisamos en la sesión.</div>';
+      }
+      ms.className = m ? 'margen-salida visible' : 'margen-salida';
+      ms.innerHTML = m;
+    }
+
+    /* El panel de abajo se queda con la suma de los gastos fijos. */
+    var s = tituloRes('Costo fijo al mes');
+    if(o.costoFijo!==null){
+      for(var r=0;r<o.rubros.length;r++) s += fila(o.rubros[r].etq, pesos(o.rubros[r].v));
+      s += fila(o.costoFijoCompleto ? 'Costo fijo total' : 'Suma de los rubros con dato',
+                pesos(o.costoFijo), true);
+      if(!o.costoFijoCompleto){
+        s += '<p class="apostilla">Sin dato: '+esc(listar(o.rubrosFaltan))+'.</p>';
+      }
+    }else{
+      s += pendiente('Con los gastos fijos escritos, aquí aparece la suma.');
+    }
+    pintar('r2_'+o.clave, '<div class="res">'+s+'</div>');
+  }
+}
+
+/* ==========================================================================
+   8. RESUMEN EN TEXTO
+
+   Sin columnas alineadas, a proposito. La alineacion a base de espacios se
+   pierde en WhatsApp -que usa tipografia proporcional- y ademas cada espacio
+   pesa tres caracteres al ir dentro de una URL. El formato "etiqueta: valor"
+   se lee igual en los tres destinos y ocupa la mitad.
+
+   Lo que no se escribio se escribe como "sin dato" en vez de omitirse: que
+   un dato falte tambien es informacion que va a la reunion.
+   ========================================================================== */
+
+/* Cada linea se arma sola: si el valor viene vacio devuelve cadena vacia y
+   desaparece. Los envoltorios miran si les quedo cuerpo y, si no, tampoco
+   imprimen su encabezado, ni el nombre del local, ni el del bloque.
+
+   Un resumen lleno de "sin dato" es ruido: entierra lo que el cliente si
+   contesto debajo de una lista de lo que no. Solo va lo que escribio. */
+
+function li(etq,val){
+  if(val===null||val===undefined||val==='') return '';
+  return '- ' + etq + ': ' + val + '\n';
+}
+function seccion(titulo,cuerpo){ return cuerpo ? '\n' + titulo + '\n' + cuerpo : ''; }
+function bloque(titulo,cuerpo){ return cuerpo ? '\n' + titulo.toUpperCase() + '\n' + cuerpo : ''; }
+function lista(txt){ return txt ? txt.replace(/^/gm,'- ') + '\n' : ''; }
+
+function generarResumen(){
+  var d = recoger();
+  var t = '';
+
+  t += 'DIAGNÓSTICO PREVIO — MARKET CERDO Y RES\n';
+  t += 'Diligenciado el ' + HOY.getDate() + ' de ' + MESES[HOY.getMonth()]
+     + ' de ' + HOY.getFullYear() + '\n';
+
+  /* ---------- Bloque 1 ---------- */
+  var facturacion = '';
+  for(var i=0;i<d.unidades.length;i++){
+    facturacion += li(d.unidades[i].etq, pesos(d.unidades[i].v));
+  }
+  var reparto = '';
+  if(d.conDato.length>=2 && d.suma>0){
+    for(var j=0;j<d.conDato.length;j++){
+      reparto += li(d.conDato[j].etq, pct(d.conDato[j].v/d.suma*100));
+    }
+    reparto += li(d.todas ? 'Total de '+ANIO_CERRADO : 'Suma de las unidades con dato',
+                  pesos(d.suma));
+  }
+  t += bloque('1 · El tamaño del negocio',
+              seccion('Facturación de ' + ANIO_CERRADO, facturacion)
+            + seccion('Reparto', reparto));
+
+  /* ---------- Bloque 2 ---------- */
+  var todosLocales = '';
+  for(var n=0;n<d.locales.length;n++){
+    var o = d.locales[n];
+
+    var costoFijo = li('Arriendo', pesos(o.arriendo))
+                  + li('Nómina con prestaciones', pesos(o.nomina))
+                  + li('Servicios públicos', pesos(o.servicios))
+                  + li('Otros gastos fijos', pesos(o.otros));
+    if(o.costoFijo!==null){
+      costoFijo += li(o.costoFijoCompleto ? 'Costo fijo total' : 'Suma de los rubros con dato',
+                      pesos(o.costoFijo));
+    }
+
+    var cuerpo =
+        seccion('Operación',
+            li('Fecha de apertura', o.aperturaTexto || '')
+          + li('Días que abre al mes', decimales(o.dias,0))
+          + li('Personas que trabajan', decimales(o.personas,0)))
+      + seccion('Costo fijo al mes', costoFijo)
+      + seccion('Movimiento',
+            li('Ventas de '+MES_PASADO, pesos(o.ventas))
+          + li('Clientes atendidos al día', decimales(o.clientes,0))
+          + li('Ticket promedio', pesos(o.ticket))
+          + li('Gente que pasa por la puerta al día', decimales(o.pasan,0))
+          + li('Cada cuánto vuelve un cliente',
+               o.vuelve!==null ? decimales(o.vuelve,0)+' días' : ''))
+      + seccion('Margen bruto',
+            li('Margen bruto escrito', pct(o.margenA))
+          + li('Cerdo, compra por kilo', pesos(o.cerdoEntra))
+          + li('Cerdo, venta por kilo', pesos(o.cerdoVende))
+          + li('Margen bruto de cerdo', pct(o.margenCerdo))
+          + li('Res, compra por kilo', pesos(o.resEntra))
+          + li('Res, venta por kilo', pesos(o.resVende))
+          + li('Margen bruto de res', pct(o.margenRes))
+          + li('Ventas que son cerdo', pct(o.pctCerdo))
+          + li('Ventas que son res', pct(o.pctRes))
+          + li('Margen bruto del local', pct(o.margenLocal)))
+      + seccion('Clientes y pauta',
+            li('¿Saben quién ya compró antes?', o.identifica)
+          + li('¿Han pautado? ¿Cuánto y qué resultó?',
+               o.pauta ? o.pauta.replace(/\n+/g,' / ') : ''));
+
+    /* Un local sin un solo dato no aparece: ni su nombre. */
+    if(cuerpo) todosLocales += '\n' + o.nombre.toUpperCase() + '\n' + cuerpo;
+  }
+  t += bloque('2 · Cada local', todosLocales);
+
+  /* ---------- Bloque 3 ---------- */
+  t += bloque('3 · Producto',
+              seccion('Los cinco más vendidos', lista(d.b3.vendidos))
+            + seccion('Los cinco que más margen dejan', lista(d.b3.margen)));
+
+  t += '\nActio Growth · Estrategia que piensa. Sistemas que actúan.\n';
+  return t;
+}
+
+/* ==========================================================================
+   9. ARRANQUE
+   ========================================================================== */
+
+var marcas = document.querySelectorAll('[data-anio]');
+for(var q=0;q<marcas.length;q++) marcas[q].textContent = ANIO_CERRADO;
+
+construirLocales();
+
+/* Un solo escucha en el documento: los campos del bloque 2 nacen despues. */
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if(!el||!el.tagName) return;
+  var tag = el.tagName.toLowerCase();
+  if(tag!=='input' && tag!=='textarea') return;
+
+  /* Separador de miles solo si el cursor esta al final: en la mitad del
+     numero, reformatear le moveria el cursor debajo de los dedos. */
+  var tipo = el.getAttribute('data-tipo');
+  if((tipo==='dinero'||tipo==='entero') && el.type==='text'){
+    if(el.selectionStart===el.value.length){
+      var v = aNumero(el.value,'entero');
+      var nuevo = v===null ? '' : miles(Math.round(v));
+      if(nuevo!==el.value){
+        el.value = nuevo;
+        try{ el.setSelectionRange(nuevo.length,nuevo.length); }catch(err){}
+      }
+    }
+  }
+  render();
+});
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.type==='month') render();
+});
+
+document.addEventListener('blur', function(e){
+  var el = e.target;
+  if(el && el.tagName && el.tagName.toLowerCase()==='input' && el.getAttribute('data-tipo')){
+    formatearCampo(el);
+    render();
+  }
+}, true);
+
+/* ---------- Los tres botones ---------- */
+
+var salida    = document.getElementById('salidaResumen');
+var envios    = document.getElementById('envios');
+var aviso     = document.getElementById('avisoCopia');
+
+function decir(msg,ms){
+  aviso.textContent = msg;
+  if(ms) setTimeout(function(){ if(aviso.textContent===msg) aviso.textContent=''; }, ms);
+}
+
+document.getElementById('btnGenerar').addEventListener('click', function(){
+  salida.value = generarResumen();
+  salida.style.display = 'block';
+  envios.className = 'envios visible';
+  decir('');
+  salida.scrollIntoView({behavior:'smooth', block:'nearest'});
+});
+
+/* WhatsApp. wa.me funciona igual en celular -abre la app- y en computador
+   -abre WhatsApp Web o la aplicacion de escritorio-, asi que sirve un solo
+   enlace para los dos. */
+document.getElementById('btnWhatsapp').addEventListener('click', function(){
+  var url = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(salida.value);
+  var w = window.open(url,'_blank','noopener');
+  if(!w) window.location.href = url;   /* si el navegador bloquea la ventana */
+});
+
+document.getElementById('btnCopiar').addEventListener('click', function(){
+  function ok(){ decir('Copiado.',2600); }
+  function falla(){ decir('No se pudo copiar. Seleccione el texto y cópielo a mano.'); }
+  /* Sin https la API de portapapeles no existe. Se cae al metodo viejo. */
+  function respaldo(){
+    try{
+      salida.removeAttribute('readonly');
+      salida.focus();
+      salida.setSelectionRange(0, salida.value.length);
+      var hecho = document.execCommand('copy');
+      salida.setAttribute('readonly','readonly');
+      hecho ? ok() : falla();
+    }catch(err){ falla(); }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(salida.value).then(ok, respaldo);
+  }else{
+    respaldo();
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
