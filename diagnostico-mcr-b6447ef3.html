@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Diagnóstico previo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
 <style>
 /* ==========================================================================
    DIAGNÓSTICO PREVIO A LA SESIÓN
@@ -48,7 +51,16 @@
   --borde:#E3E6E1;
   --borde-campo:#CFD5CE;
 
-  /* ---------- Tipografia ---------- */
+  /* ---------- Tipografia ----------
+     Inter viene de Google, igual que en la presentacion. Se pide el rango
+     variable 300..700 y no una lista de pesos sueltos porque los titulos
+     usan 650: contra una lista discreta ese peso saltaria a 600 o a 700.
+
+     La pila de respaldo no es decorativa. Si Google no responde -y esto
+     lo va a llenar gente desde el celular, en la carniceria- la pagina
+     cae a la tipografia del sistema y sigue funcionando entera. El
+     display=swap es la otra mitad de lo mismo: el texto se pinta de una,
+     con la fuente que haya, y cambia despues si Inter llega. */
   --fuente:'Inter','Inter var',-apple-system,BlinkMacSystemFont,'Segoe UI',
            Roboto,'Helvetica Neue',Arial,sans-serif;
 }
