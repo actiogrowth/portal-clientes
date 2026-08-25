@@ -10,20 +10,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
 <style>
 /* ==========================================================================
-   DIAGNÓSTICO PREVIO A LA SESIÓN
+   DIAGNOSTICO PREVIO A LA SESION
 
-   Una página. Sin servidor, sin base de datos, sin localStorage.
-   Todo lo que se escribe vive en memoria mientras la pestaña esté abierta.
+   El trabajo es sobre los puntos de venta. El bloque 1 solo dimensiona el
+   negocio para saber que tan grandes son los locales dentro del conjunto;
+   el bloque 2 es el que importa y por eso se lleva casi todos los campos.
+
+   No se pide nada que el prospecto tenga que ir a buscar. El costo del
+   cerdo, el rendimiento en kilos y los precios por canal son preguntas de
+   conversacion, no de formulario.
 
    Regla de fondo del archivo: esto NO opina. Calcula lo que el cliente
-   escribió y lo muestra. No hay una sola linea que diga si un número es
+   escribio y lo muestra. No hay una sola linea que diga si un numero es
    bueno o malo, y por eso tampoco hay colores de estado en los resultados:
-   pintar de rojo un local por debajo del punto de equilibrio sería decir
+   pintar de rojo un local por debajo del punto de equilibrio seria decir
    "su local no es rentable" sin decirlo. Eso se cuenta en la reunion.
 
-   Los tokens de marca y estado vienen de portal-v2.html sin cambios, para
-   que esto se lea como el mismo sistema. Los de estado se declaran porque
-   son la marca; en esta página no se usan para calificar resultados.
+   Los tokens de marca vienen de portal-v2.html sin cambios, para que esto
+   se lea como el mismo sistema.
    ========================================================================== */
 :root{
   /* ---------- Marca Actio ----------
@@ -43,7 +47,6 @@
   --marca-borde-suave:#C9D6CC;
   --marca-realce:rgba(0,66,37,.06);
   --marca-sombra:rgba(0,66,37,.10);
-  --marca-sombra-fuerte:rgba(0,66,37,.16);
 
   /* ---------- Superficies ---------- */
   --fondo:#F5F5F0;
@@ -66,7 +69,6 @@
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
-
 html{-webkit-text-size-adjust:100%}
 
 body{
@@ -75,66 +77,65 @@ body{
   color:var(--texto-principal);
   font-size:16px;
   line-height:1.55;
-  font-weight:400;
   -webkit-font-smoothing:antialiased;
 }
 
 /* ==========================================================================
-   CABECERA. Fondo verde profundo, logo blanco.
+   CABECERA
+   Banda baja. El logo manda y el titulo lo acompana: al reves -logo chico
+   y titular enorme- la marca se pierde y la pagina parece de cualquiera.
    ========================================================================== */
 .cabecera{
   background:var(--marca-verde-profundo);
   color:var(--texto-sobre-oscuro);
-  padding:34px 24px 38px;
+  padding:20px 24px;
 }
-.cabecera-caja{max-width:1080px;margin:0 auto}
-.cabecera img{height:34px;width:auto;display:block;margin-bottom:26px}
+.cabecera-caja{
+  max-width:1080px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  gap:22px;
+}
+.cabecera img{height:52px;width:auto;display:block;flex:none}
+.cabecera .division{
+  width:1px;
+  align-self:stretch;
+  background:rgba(255,255,255,.22);
+  flex:none;
+}
 .cabecera h1{
-  font-size:clamp(1.55rem,4.2vw,2.15rem);
-  font-weight:700;
-  letter-spacing:-.02em;
-  line-height:1.2;
-}
-.cabecera .kicker{
-  font-size:.74rem;
+  font-size:clamp(1.15rem,2.6vw,1.42rem);
   font-weight:600;
-  letter-spacing:.14em;
+  letter-spacing:-.015em;
+  line-height:1.25;
+}
+.cabecera .antes{
+  display:block;
+  font-size:.7rem;
+  font-weight:600;
+  letter-spacing:.15em;
   text-transform:uppercase;
   color:var(--texto-sobre-oscuro-2);
-  margin-bottom:8px;
-}
-.cabecera p{
-  margin-top:12px;
-  max-width:52ch;
-  color:var(--texto-sobre-oscuro-3);
-  font-size:1rem;
-  font-weight:300;
+  margin-bottom:3px;
 }
 
 /* ==========================================================================
    ESTRUCTURA
    ========================================================================== */
-main{max-width:1080px;margin:0 auto;padding:0 24px 72px}
+main{max-width:1080px;margin:0 auto;padding:26px 24px 72px}
 
 .intro{
   background:var(--superficie);
   border:1px solid var(--borde);
   border-radius:14px;
-  padding:26px 26px 24px;
-  margin-top:-22px;
-  margin-bottom:36px;
+  padding:22px 24px;
+  margin-bottom:30px;
   box-shadow:0 2px 14px var(--marca-sombra);
 }
-.intro p{margin-bottom:12px;max-width:70ch}
-.intro p:last-child{margin-bottom:0}
+.intro p{max-width:74ch}
+.intro p + p{margin-top:10px}
 .intro strong{font-weight:600}
-.intro .nota-privacidad{
-  margin-top:18px;
-  padding-top:16px;
-  border-top:1px solid var(--borde);
-  font-size:.9rem;
-  color:var(--texto-secundario);
-}
 
 .bloque{
   background:var(--superficie);
@@ -143,10 +144,7 @@ main{max-width:1080px;margin:0 auto;padding:0 24px 72px}
   margin-bottom:26px;
   overflow:hidden;
 }
-.bloque-cabeza{
-  padding:22px 26px 20px;
-  border-bottom:1px solid var(--borde);
-}
+.bloque-cabeza{padding:22px 26px 20px;border-bottom:1px solid var(--borde)}
 .bloque-num{
   font-size:.72rem;
   font-weight:700;
@@ -156,35 +154,31 @@ main{max-width:1080px;margin:0 auto;padding:0 24px 72px}
   display:block;
   margin-bottom:5px;
 }
-.bloque-cabeza h2{
-  font-size:1.28rem;
-  font-weight:650;
-  letter-spacing:-.015em;
-}
+.bloque-cabeza h2{font-size:1.28rem;font-weight:650;letter-spacing:-.015em}
 .bloque-cabeza .ayuda{
   margin-top:7px;
   font-size:.92rem;
   color:var(--texto-secundario);
-  max-width:66ch;
+  max-width:70ch;
 }
 .bloque-cuerpo{padding:24px 26px 26px}
 
 .sub{
-  font-size:.76rem;
+  font-size:.75rem;
   font-weight:700;
   letter-spacing:.12em;
   text-transform:uppercase;
   color:var(--texto-secundario);
-  margin-bottom:14px;
+  margin-bottom:13px;
 }
-.sub.espaciado{margin-top:30px}
+.sub.espaciado{margin-top:26px}
 
 /* ==========================================================================
    CAMPOS
    ========================================================================== */
 .campos{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(232px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(min(216px,100%),1fr));
   gap:16px 20px;
 }
 .campo label{
@@ -196,18 +190,13 @@ main{max-width:1080px;margin:0 auto;padding:0 24px 72px}
 }
 .campo .pista{
   display:block;
-  font-size:.78rem;
+  font-size:.77rem;
   font-weight:400;
   color:var(--texto-secundario);
   margin-top:2px;
 }
 .envoltura{position:relative;display:flex;align-items:center}
-.envoltura .signo{
-  position:absolute;
-  color:var(--texto-secundario);
-  font-size:.95rem;
-  pointer-events:none;
-}
+.envoltura .signo{position:absolute;color:var(--texto-secundario);font-size:.95rem;pointer-events:none}
 .envoltura .signo.izq{left:12px}
 .envoltura .signo.der{right:12px}
 input[type=text],input[type=month],textarea{
@@ -233,7 +222,48 @@ textarea{resize:vertical;min-height:98px;line-height:1.6}
 input::placeholder,textarea::placeholder{color:#AEB3AD}
 
 /* ==========================================================================
-   RESULTADOS. Panel tenue: se distingue de lo que el cliente escribe.
+   MARGEN BRUTO. Dos caminos: el que ya lo sabe y el que lo va a ver por
+   primera vez. El segundo se marca como alternativa, no como otro campo mas.
+   ========================================================================== */
+.margen-caja{
+  margin-top:26px;
+  border:1px solid var(--borde);
+  border-radius:11px;
+  padding:18px 19px;
+  background:var(--fondo);
+}
+.margen-caja .sub{margin-bottom:12px}
+.camino-b{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px dashed var(--marca-borde-suave);
+}
+.camino-b .encabezado{
+  font-size:.87rem;
+  font-weight:600;
+  margin-bottom:4px;
+}
+.camino-b .explica{
+  font-size:.82rem;
+  color:var(--texto-secundario);
+  margin-bottom:13px;
+  max-width:62ch;
+}
+.margen-salida{
+  margin-top:13px;
+  padding:11px 14px;
+  background:var(--marca-tenue);
+  border:1px solid var(--marca-borde-suave);
+  border-radius:9px;
+  font-size:.92rem;
+  display:none;
+}
+.margen-salida.visible{display:block}
+.margen-salida .cifra{font-weight:700;font-variant-numeric:tabular-nums;font-size:1.1rem}
+.margen-salida .detalle{color:var(--texto-secundario);font-size:.84rem;margin-top:3px}
+
+/* ==========================================================================
+   RESULTADOS
    ========================================================================== */
 .resultados{
   margin-top:26px;
@@ -253,19 +283,10 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
 .res{padding:15px 0;border-top:1px solid var(--marca-borde-suave)}
 .res:first-of-type{padding-top:0;border-top:none}
 .res:last-child{padding-bottom:0}
-.res h3{
-  font-size:.95rem;
-  font-weight:600;
-  margin-bottom:10px;
-}
-.pendiente{
-  font-size:.88rem;
-  color:var(--texto-secundario);
-  font-style:normal;
-}
-.pendiente::before{content:"— ";}
+.res h3{font-size:.95rem;font-weight:600;margin-bottom:10px}
+.pendiente{font-size:.88rem;color:var(--texto-secundario)}
+.pendiente::before{content:"— "}
 
-/* Filas de cifra: etiqueta a la izquierda, número a la derecha. */
 .fila{
   display:flex;
   justify-content:space-between;
@@ -275,32 +296,31 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
   font-size:.94rem;
 }
 .fila .etq{color:var(--texto-secundario)}
-.fila .val{
-  font-weight:600;
-  font-variant-numeric:tabular-nums;
-  text-align:right;
-  white-space:nowrap;
-}
-.fila.destacada{
-  margin-top:8px;
-  padding-top:11px;
-  border-top:1px solid var(--marca-borde-suave);
-}
+.fila .val{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.fila.destacada{margin-top:8px;padding-top:11px;border-top:1px solid var(--marca-borde-suave)}
 .fila.destacada .etq{color:var(--texto-principal);font-weight:500}
 .fila.destacada .val{font-size:1.16rem;font-weight:700}
 
 .frase{font-size:.94rem;margin-top:10px;line-height:1.5}
 .frase .cifra{font-weight:700;font-variant-numeric:tabular-nums}
-.apostilla{
-  font-size:.84rem;
-  color:var(--texto-secundario);
-  margin-top:9px;
+.apostilla{font-size:.84rem;color:var(--texto-secundario);margin-top:9px;line-height:1.5}
+
+/* Aviso de que los dos caminos del margen no coinciden. Sin color de estado:
+   no es un error, es una diferencia que se resuelve hablando. */
+.discrepancia{
+  margin-top:11px;
+  padding:12px 14px;
+  background:var(--superficie);
+  border:1px solid var(--marca-borde-suave);
+  border-left:3px solid var(--marca-verde-medio);
+  border-radius:8px;
+  font-size:.87rem;
   line-height:1.5;
 }
+.discrepancia strong{font-weight:600}
 
-/* Barras de peso relativo. Verde de marca: aquí es identidad, no estado.
-   Todas las unidades usan el mismo verde, justamente para que el color no
-   diga nada sobre cual es mejor. */
+/* Barras de peso relativo. Todas del mismo verde, justamente para que el
+   color no diga nada sobre cual unidad es mejor. */
 .barra-fila{margin:11px 0}
 .barra-cabeza{
   display:flex;
@@ -312,67 +332,12 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
 }
 .barra-cabeza .val{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .barra-cabeza .val .pesos{color:var(--texto-secundario);font-weight:400;margin-left:7px}
-.barra-riel{
-  height:7px;
-  background:rgba(0,66,37,.10);
-  border-radius:4px;
-  overflow:hidden;
-}
-.barra-relleno{
-  height:100%;
-  background:var(--marca-verde-medio);
-  border-radius:4px;
-  transition:width .25s ease;
-}
+.barra-riel{height:7px;background:rgba(0,66,37,.10);border-radius:4px;overflow:hidden}
+.barra-relleno{height:100%;background:var(--marca-verde-medio);border-radius:4px;transition:width .25s ease}
 
-/* Tres canales lado a lado. */
-.canales{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
-  gap:14px;
-  margin-top:6px;
-}
-.canal{
-  background:var(--superficie);
-  border:1px solid var(--marca-borde-suave);
-  border-radius:10px;
-  padding:14px 15px;
-}
-.canal .nombre{
-  font-size:.78rem;
-  font-weight:600;
-  letter-spacing:.06em;
-  text-transform:uppercase;
-  color:var(--texto-secundario);
-  margin-bottom:8px;
-}
-.canal .cifra-grande{
-  font-size:1.34rem;
-  font-weight:700;
-  font-variant-numeric:tabular-nums;
-  letter-spacing:-.02em;
-  line-height:1.2;
-}
-.canal .cifra-sub{
-  font-size:.87rem;
-  color:var(--texto-secundario);
-  font-variant-numeric:tabular-nums;
-  margin-top:3px;
-}
-.canal .pendiente{font-size:.85rem}
-
-/* Dos locales lado a lado en pantalla ancha. */
-.locales{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
-  gap:26px;
-}
-.local{
-  border:1px solid var(--borde);
-  border-radius:12px;
-  padding:20px 21px 22px;
-  background:var(--superficie);
-}
+/* Los dos locales. */
+.locales{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:26px}
+.local{border:1px solid var(--borde);border-radius:12px;padding:20px 21px 22px;background:var(--superficie)}
 .local > h3{
   font-size:1.05rem;
   font-weight:650;
@@ -381,8 +346,8 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
   border-bottom:2px solid var(--marca-verde-profundo);
   letter-spacing:-.01em;
 }
-.local .campos{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.local .resultados{margin-top:22px;padding:18px 19px}
+.local .campos{grid-template-columns:repeat(auto-fit,minmax(min(148px,100%),1fr))}
+.local .resultados{margin-top:24px;padding:18px 19px}
 
 /* ==========================================================================
    RESUMEN
@@ -394,18 +359,8 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
   padding:28px 26px;
   margin-top:34px;
 }
-.resumen-caja h2{
-  font-size:1.28rem;
-  font-weight:650;
-  letter-spacing:-.015em;
-  margin-bottom:9px;
-}
-.resumen-caja p{
-  color:var(--texto-sobre-oscuro-3);
-  font-size:.95rem;
-  max-width:62ch;
-  font-weight:300;
-}
+.resumen-caja h2{font-size:1.28rem;font-weight:650;letter-spacing:-.015em;margin-bottom:9px}
+.resumen-caja p{color:var(--texto-sobre-oscuro-3);font-size:.95rem;max-width:64ch;font-weight:300}
 .botonera{display:flex;flex-wrap:wrap;gap:11px;margin-top:20px;align-items:center}
 button{
   font-family:var(--fuente);
@@ -415,21 +370,13 @@ button{
   padding:12px 22px;
   border:1px solid transparent;
   cursor:pointer;
-  transition:background .15s,border-color .15s,color .15s;
+  transition:background .15s,border-color .15s;
 }
 .btn-claro{background:var(--texto-sobre-oscuro);color:var(--marca-verde-profundo)}
 .btn-claro:hover{background:#E9EFEA}
-.btn-borde{
-  background:transparent;
-  color:var(--texto-sobre-oscuro);
-  border-color:rgba(255,255,255,.4);
-}
+.btn-borde{background:transparent;color:var(--texto-sobre-oscuro);border-color:rgba(255,255,255,.4)}
 .btn-borde:hover{border-color:rgba(255,255,255,.85)}
-.aviso-copia{
-  font-size:.88rem;
-  color:var(--texto-sobre-oscuro-3);
-  min-height:1.2em;
-}
+.aviso-copia{font-size:.88rem;color:var(--texto-sobre-oscuro-3);min-height:1.2em}
 #salidaResumen{
   display:none;
   margin-top:20px;
@@ -444,44 +391,42 @@ button{
   border-radius:10px;
   padding:16px 17px;
   white-space:pre;
-  overflow-wrap:normal;
   overflow-x:auto;
 }
 #salidaResumen:focus{border-color:rgba(255,255,255,.6);box-shadow:none}
 
 /* ==========================================================================
-   PIE. Fondo claro, logo verde.
+   PIE. Aqui vive la nota de que no se guarda nada: es una garantia, no una
+   introduccion, y arriba solo robaba atencion a lo que hay que llenar.
    ========================================================================== */
-.pie{
-  border-top:1px solid var(--borde);
-  padding:30px 24px 44px;
-  background:var(--superficie);
-}
-.pie-caja{
-  max-width:1080px;
-  margin:0 auto;
-  display:flex;
-  align-items:center;
-  gap:16px;
-  flex-wrap:wrap;
-}
+.pie{border-top:1px solid var(--borde);padding:26px 24px 44px;background:var(--superficie)}
+.pie-caja{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .pie img{height:26px;width:auto;display:block}
-.pie span{font-size:.9rem;color:var(--texto-secundario)}
+.pie .marca{font-size:.9rem;color:var(--texto-secundario)}
+.pie .privacidad{
+  flex-basis:100%;
+  font-size:.85rem;
+  color:var(--texto-secundario);
+  padding-top:14px;
+  border-top:1px solid var(--borde);
+}
 
 @media (max-width:620px){
-  .cabecera{padding:26px 18px 32px}
-  main{padding:0 18px 56px}
-  .intro{padding:22px 20px}
+  .cabecera{padding:16px 18px}
+  .cabecera-caja{gap:15px}
+  .cabecera img{height:42px}
+  main{padding:20px 18px 56px}
+  .intro{padding:19px 18px}
   .bloque-cabeza{padding:20px 20px 18px}
   .bloque-cuerpo{padding:20px 20px 22px}
   .resultados{padding:18px 17px}
   .local{padding:18px 17px 20px}
   .local .resultados{padding:16px 15px}
+  .margen-caja{padding:16px 15px}
   .resumen-caja{padding:24px 20px}
-  .campos{grid-template-columns:1fr}
-  .local .campos{grid-template-columns:1fr}
+  .campos,.local .campos{grid-template-columns:1fr}
   .botonera button{flex:1 1 100%}
-  .pie{padding:26px 18px 36px}
+  .pie{padding:24px 18px 36px}
 }
 </style>
 </head>
@@ -490,150 +435,83 @@ button{
 <header class="cabecera">
   <div class="cabecera-caja">
     <img src="logo-actio-blanco.png" alt="Actio Growth">
-    <span class="kicker">Antes de la sesión</span>
-    <h1>Diagnóstico previo</h1>
-    <p>Sus cifras, calculadas mientras las escribe. Nada se guarda y nada se envía.</p>
+    <div class="division"></div>
+    <h1><span class="antes">Antes de la sesión</span>Diagnóstico previo</h1>
   </div>
 </header>
 
 <main>
 
   <section class="intro">
-    <p>Esto existe para <strong>aprovechar mejor la sesión de diagnóstico</strong>.
-    Si llegamos con los números ya sobre la mesa, la hora se va en entenderlos y no
-    en reunirlos.</p>
-
-    <p><strong>Las cifras aproximadas sirven igual.</strong> No hace falta abrir la
-    contabilidad ni cuadrar al peso: lo que usted tiene en la cabeza es
-    suficiente para lo que vamos a mirar.</p>
-
-    <p><strong>Si un dato no lo tiene a la mano, déjelo en blanco.</strong> Ningún
-    campo es obligatorio y ninguno rompe el resto. Saber qué información está
-    disponible y cuál no también hace parte del diagnóstico.</p>
-
-    <p class="nota-privacidad">Esta página no guarda nada. No hay servidor, no hay
-    base de datos, no queda nada en el navegador. Lo que escriba vive solo en esta
-    pestaña mientras esté abierta; si la cierra, se pierde. Al final puede generar
-    un resumen en texto y usted decide a dónde va.</p>
+    <p>Esto es para <strong>aprovechar mejor la sesión de diagnóstico</strong>: si
+    llegamos con los números sobre la mesa, la hora se va en entenderlos y no en
+    reunirlos.</p>
+    <p><strong>Las cifras aproximadas sirven igual</strong> y ningún campo es
+    obligatorio: un dato en blanco no rompe nada, y saber qué información está a
+    la mano también hace parte del diagnóstico.</p>
   </section>
 
   <!-- ====================================================================
-       BLOQUE 1
+       BLOQUE 1 · Solo dimensiona. Cuatro campos y un porcentaje.
        ==================================================================== -->
   <section class="bloque">
     <div class="bloque-cabeza">
       <span class="bloque-num">Bloque 1</span>
-      <h2>El negocio completo</h2>
-      <p class="ayuda">Las cuatro unidades del último año y el total del año
-      anterior, para ver el tamaño de cada parte y el movimiento del conjunto.</p>
+      <h2>El tamaño del negocio</h2>
+      <p class="ayuda">Para saber qué tan grandes son los locales dentro del
+      conjunto. Cuatro cifras del último año cerrado y nada más.</p>
     </div>
     <div class="bloque-cuerpo">
 
-      <p class="sub">Facturación del último año</p>
+      <p class="sub">Facturación de <span data-anio></span></p>
       <div class="campos">
         <div class="campo">
-          <label for="b1_canales">Unidad de canales</label>
+          <label for="b1_canales">Unidad de canales
+            <span class="pista">Todo el año <span data-anio></span></span></label>
           <div class="envoltura con-izq"><span class="signo izq">$</span>
             <input type="text" id="b1_canales" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
         </div>
         <div class="campo">
-          <label for="b1_cortes">Unidad de cortes</label>
+          <label for="b1_cortes">Unidad de cortes
+            <span class="pista">Todo el año <span data-anio></span></span></label>
           <div class="envoltura con-izq"><span class="signo izq">$</span>
             <input type="text" id="b1_cortes" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
         </div>
         <div class="campo">
-          <label for="b1_bello">Local Bello</label>
+          <label for="b1_bello">Local Bello
+            <span class="pista">Todo el año <span data-anio></span></span></label>
           <div class="envoltura con-izq"><span class="signo izq">$</span>
             <input type="text" id="b1_bello" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
         </div>
         <div class="campo">
-          <label for="b1_envigado">Local Envigado</label>
+          <label for="b1_envigado">Local Envigado
+            <span class="pista">Todo el año <span data-anio></span></span></label>
           <div class="envoltura con-izq"><span class="signo izq">$</span>
             <input type="text" id="b1_envigado" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
-        </div>
-      </div>
-
-      <p class="sub espaciado">El año anterior y los clientes de cortes</p>
-      <div class="campos">
-        <div class="campo">
-          <label for="b1_anterior">Facturación total del año anterior</label>
-          <div class="envoltura con-izq"><span class="signo izq">$</span>
-            <input type="text" id="b1_anterior" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
-        </div>
-        <div class="campo">
-          <label for="b1_nclientes">Cuántos clientes tiene la unidad de cortes</label>
-          <div class="envoltura">
-            <input type="text" id="b1_nclientes" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="entero"></div>
-        </div>
-        <div class="campo">
-          <label for="b1_pctmayor">Qué % representa el cliente más grande
-            <span class="pista">Sobre la facturación de la unidad de cortes</span></label>
-          <div class="envoltura con-der"><span class="signo der">%</span>
-            <input type="text" id="b1_pctmayor" inputmode="decimal" autocomplete="off" placeholder="0" data-tipo="decimal"></div>
         </div>
       </div>
 
       <div class="resultados">
         <p class="resultados-titulo">Sus números</p>
         <div class="res" id="r_peso"></div>
-        <div class="res" id="r_crecimiento"></div>
-        <div class="res" id="r_concentracion"></div>
       </div>
 
     </div>
   </section>
 
   <!-- ====================================================================
-       BLOQUE 2
+       BLOQUE 2 · El corazon. Se arma en JS: son los mismos campos dos veces
+       y escribirlos a mano es la via mas corta a que se desincronicen.
        ==================================================================== -->
   <section class="bloque">
     <div class="bloque-cabeza">
       <span class="bloque-num">Bloque 2</span>
-      <h2>El cerdo</h2>
-      <p class="ayuda">Lo que cuesta un cerdo, lo que rinde, y a cómo se vende el
-      kilo por cada canal.</p>
+      <h2>Cada local</h2>
+      <p class="ayuda">Aquí está el trabajo. Los mismos datos para Bello y para
+      Envigado; si alguno no lo tiene a la mano, sáltelo y siga.</p>
     </div>
     <div class="bloque-cuerpo">
-
-      <p class="sub">Costo y rendimiento</p>
-      <div class="campos">
-        <div class="campo">
-          <label for="b2_costo">Costo promedio por cerdo</label>
-          <div class="envoltura con-izq"><span class="signo izq">$</span>
-            <input type="text" id="b2_costo" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
-        </div>
-        <div class="campo">
-          <label for="b2_kilos">Kilos aprovechables promedio por cerdo</label>
-          <div class="envoltura con-der"><span class="signo der">kg</span>
-            <input type="text" id="b2_kilos" inputmode="decimal" autocomplete="off" placeholder="0" data-tipo="decimal"></div>
-        </div>
-      </div>
-
-      <p class="sub espaciado">Precio de venta por kilo</p>
-      <div class="campos">
-        <div class="campo">
-          <label for="b2_pcanales">Canales</label>
-          <div class="envoltura con-izq"><span class="signo izq">$</span>
-            <input type="text" id="b2_pcanales" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
-        </div>
-        <div class="campo">
-          <label for="b2_pcortes">Cortes</label>
-          <div class="envoltura con-izq"><span class="signo izq">$</span>
-            <input type="text" id="b2_pcortes" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
-        </div>
-        <div class="campo">
-          <label for="b2_ppdv">Punto de venta</label>
-          <div class="envoltura con-izq"><span class="signo izq">$</span>
-            <input type="text" id="b2_ppdv" inputmode="numeric" autocomplete="off" placeholder="0" data-tipo="dinero"></div>
-        </div>
-      </div>
-
-      <div class="resultados">
-        <p class="resultados-titulo">Sus números</p>
-        <div class="res" id="r_costokilo"></div>
-        <div class="res" id="r_margenes"></div>
-      </div>
-
+      <div class="locales" id="contenedorLocales"></div>
     </div>
   </section>
 
@@ -643,36 +521,19 @@ button{
   <section class="bloque">
     <div class="bloque-cabeza">
       <span class="bloque-num">Bloque 3</span>
-      <h2>Cada local</h2>
-      <p class="ayuda">Los mismos ocho datos para Bello y para Envigado. El punto
-      de equilibrio sale del margen por kilo de punto de venta del bloque 2: si
-      ese bloque está vacío, aquí aparece el costo fijo y el aviso de que falta
-      el dato, no un número inventado.</p>
-    </div>
-    <div class="bloque-cuerpo">
-      <div class="locales" id="contenedorLocales"><!-- se arma en JS --></div>
-    </div>
-  </section>
-
-  <!-- ====================================================================
-       BLOQUE 4
-       ==================================================================== -->
-  <section class="bloque">
-    <div class="bloque-cabeza">
-      <span class="bloque-num">Bloque 4</span>
       <h2>Producto</h2>
       <p class="ayuda">Dos listas cortas. Aquí no hay nada que calcular.</p>
     </div>
     <div class="bloque-cuerpo">
 
-      <div class="campos" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="campos" style="grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))">
         <div class="campo">
-          <label for="b4_vendidos">Los cinco productos más vendidos en el local</label>
-          <textarea id="b4_vendidos" autocomplete="off" placeholder="Uno por línea"></textarea>
+          <label for="b3_vendidos">Los cinco productos más vendidos en el local</label>
+          <textarea id="b3_vendidos" autocomplete="off" placeholder="Uno por línea"></textarea>
         </div>
         <div class="campo">
-          <label for="b4_margen">Los cinco que más margen dejan</label>
-          <textarea id="b4_margen" autocomplete="off" placeholder="Uno por línea"></textarea>
+          <label for="b3_margen">Los cinco que más margen dejan</label>
+          <textarea id="b3_margen" autocomplete="off" placeholder="Uno por línea"></textarea>
         </div>
       </div>
 
@@ -688,9 +549,6 @@ button{
     </div>
   </section>
 
-  <!-- ====================================================================
-       RESUMEN
-       ==================================================================== -->
   <section class="resumen-caja">
     <h2>Generar resumen</h2>
     <p>Arma un texto plano con todo lo que escribió y todo lo calculado, listo
@@ -709,22 +567,35 @@ button{
 <footer class="pie">
   <div class="pie-caja">
     <img src="logo-actio-verde.png" alt="Actio Growth">
-    <span>Actio Growth &middot; Estrategia que piensa. Sistemas que actúan.</span>
+    <span class="marca">Actio Growth &middot; Estrategia que piensa. Sistemas que actúan.</span>
+    <p class="privacidad">Esta página no guarda nada: no hay servidor ni base de
+    datos, lo que escriba vive solo en esta pestaña mientras esté abierta.</p>
   </div>
 </footer>
 
 <script>
 /* ==========================================================================
-   1. FORMATO Y LECTURA DE CAMPOS
+   1. FECHAS
 
-   Los pesos colombianos se escriben con separador de miles o no se leen.
-   El separador se pinta mientras se escribe, pero solo cuando el cursor esta
-   al final: si esta en la mitad, reformatear le moveria el cursor debajo de
-   los dedos. En ese caso se deja como quedo y se arregla al salir del campo.
+   Las etiquetas dicen el periodo exacto en vez de "el ultimo ano" o "el mes
+   pasado". El cliente no tiene que adivinar que le estamos preguntando, y de
+   paso el archivo no envejece: en 2027 las etiquetas se corrigen solas.
    ========================================================================== */
 
 var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
              'septiembre','octubre','noviembre','diciembre'];
+
+var HOY = new Date();
+var ANIO_CERRADO = HOY.getFullYear() - 1;
+
+/* Mes pasado, y el mismo mes del ano anterior. */
+var mp = new Date(HOY.getFullYear(), HOY.getMonth()-1, 1);
+var MES_PASADO   = MESES[mp.getMonth()] + ' de ' + mp.getFullYear();
+var MES_ANTERIOR = MESES[mp.getMonth()] + ' de ' + (mp.getFullYear()-1);
+
+/* ==========================================================================
+   2. FORMATO Y LECTURA DE CAMPOS
+   ========================================================================== */
 
 function miles(entero){
   return String(entero).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
@@ -733,35 +604,31 @@ function miles(entero){
 function pesos(n){
   if(n===null||!isFinite(n)) return '';
   var neg = n<0;
-  var s = '$' + miles(Math.round(Math.abs(n)));
-  return neg ? '-'+s : s;
+  return (neg?'-':'') + '$' + miles(Math.round(Math.abs(n)));
 }
 
 function pct(n,dec){
   if(n===null||!isFinite(n)) return '';
   if(dec===undefined) dec = 1;
-  var s = Math.abs(n).toFixed(dec).replace('.',',');
-  return (n<0?'-':'') + s + '%';
+  return (n<0?'-':'') + Math.abs(n).toFixed(dec).replace('.',',') + '%';
 }
 
 function decimales(n,dec){
   if(n===null||!isFinite(n)) return '';
   if(dec===undefined) dec = 1;
-  var partes = Math.abs(n).toFixed(dec).split('.');
-  var s = miles(partes[0]) + (partes[1] ? ','+partes[1] : '');
-  return (n<0?'-':'') + s;
+  var p = Math.abs(n).toFixed(dec).split('.');
+  return (n<0?'-':'') + miles(p[0]) + (p[1] ? ','+p[1] : '');
 }
 
-/* Convierte lo que hay en un campo a número. Vacío devuelve null, nunca 0:
-   un campo en blanco es "no se" y un cero escrito es "cero". No son lo mismo
-   y el resto del archivo depende de esa distincion. */
-function aNumero(texto,tipo){
-  if(texto===null||texto===undefined) return null;
-  var s = String(texto).replace(/\s/g,'');
+/* Vacio devuelve null, nunca 0: un campo en blanco es "no se" y un cero
+   escrito es "cero". No son lo mismo y el resto del archivo depende de esa
+   distincion para no inventarse resultados. */
+function aNumero(txt,tipo){
+  if(txt===null||txt===undefined) return null;
+  var s = String(txt).replace(/\s/g,'');
   if(!s) return null;
   if(tipo==='decimal'){
-    s = s.replace(/\./g,'').replace(',','.');
-    s = s.replace(/[^0-9.]/g,'');
+    s = s.replace(/\./g,'').replace(',','.').replace(/[^0-9.]/g,'');
   }else{
     s = s.replace(/[^0-9]/g,'');
   }
@@ -785,40 +652,31 @@ function formatearCampo(el){
   var tipo = el.getAttribute('data-tipo');
   var v = aNumero(el.value, tipo==='decimal' ? 'decimal' : 'entero');
   if(v===null){ el.value=''; return; }
-  if(tipo==='dinero'||tipo==='entero'){
-    el.value = miles(Math.round(v));
-  }else{
-    /* Decimal: se respeta lo que escribió, solo se normaliza el separador. */
+  if(tipo==='decimal'){
     var crudo = String(el.value).replace(/\s/g,'').replace(/\./g,'').replace(',','.');
-    var conDecimales = /\.\d+$/.test(crudo);
-    el.value = conDecimales ? decimales(v, (crudo.split('.')[1]||'').length) : miles(Math.round(v));
+    var conDec = /\.\d+$/.test(crudo);
+    el.value = conDec ? decimales(v,(crudo.split('.')[1]||'').length) : miles(Math.round(v));
+  }else{
+    el.value = miles(Math.round(v));
   }
 }
 
 /* ==========================================================================
-   2. PINTAR RESULTADOS
+   3. PINTAR
    ========================================================================== */
 
 function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
 function tituloRes(t){ return '<h3>'+esc(t)+'</h3>'; }
-
 function pendiente(t){ return '<p class="pendiente">'+esc(t)+'</p>'; }
-
-function fila(etq,val,destacada){
-  return '<div class="fila'+(destacada?' destacada':'')+'">'
+function fila(etq,val,dest){
+  return '<div class="fila'+(dest?' destacada':'')+'">'
        + '<span class="etq">'+esc(etq)+'</span>'
        + '<span class="val">'+esc(val)+'</span></div>';
 }
+function pintar(id,html){ var el=document.getElementById(id); if(el) el.innerHTML=html; }
 
-function pintar(id,html){
-  var el = document.getElementById(id);
-  if(el) el.innerHTML = html;
-}
-
-/* Une nombres con comas y una "y" final: "Cortes, Bello y Envigado". */
 function listar(arr){
   if(arr.length===0) return '';
   if(arr.length===1) return arr[0];
@@ -826,9 +684,7 @@ function listar(arr){
 }
 
 /* ==========================================================================
-   3. BLOQUE 3: los dos locales se generan del mismo molde.
-      Ocho campos identicos por local; escribirlos dos veces a mano es la via
-      más corta a que se desincronicen.
+   4. LOS DOS LOCALES SE GENERAN DEL MISMO MOLDE
    ========================================================================== */
 
 var LOCALES = [
@@ -836,239 +692,228 @@ var LOCALES = [
   {clave:'envigado', nombre:'Envigado'}
 ];
 
-var CAMPOS_LOCAL = [
-  {suf:'arriendo', etq:'Arriendo mensual',                  tipo:'dinero',  signo:'$'},
-  {suf:'nomina',   etq:'Nómina mensual con prestaciones',   tipo:'dinero',  signo:'$'},
-  {suf:'servicios',etq:'Servicios públicos',                tipo:'dinero',  signo:'$'},
-  {suf:'otros',    etq:'Otros gastos fijos',                tipo:'dinero',  signo:'$'},
-  {suf:'ventas',   etq:'Ventas del mes pasado',             tipo:'dinero',  signo:'$'},
-  {suf:'clientes', etq:'Clientes atendidos al día',         tipo:'entero',  signo:''},
-  {suf:'ticket',   etq:'Ticket promedio por compra',        tipo:'dinero',  signo:'$'},
-  {suf:'apertura', etq:'Fecha de apertura',                 tipo:'mes',     signo:''}
-];
-
 /* Los cuatro rubros que suman el costo fijo, en el orden del formulario. */
 var RUBROS_FIJOS = [
-  {suf:'arriendo', etq:'Arriendo'},
-  {suf:'nomina',   etq:'Nómina'},
-  {suf:'servicios',etq:'Servicios públicos'},
-  {suf:'otros',    etq:'Otros gastos fijos'}
+  {suf:'arriendo',  etq:'Arriendo'},
+  {suf:'nomina',    etq:'Nómina'},
+  {suf:'servicios', etq:'Servicios públicos'},
+  {suf:'otros',     etq:'Otros gastos fijos'}
 ];
+
+var GRUPOS = [
+  {titulo:'La operación', campos:[
+    {suf:'apertura', etq:'Fecha de apertura', tipo:'mes'},
+    {suf:'dias',     etq:'Días que abre al mes', tipo:'entero',
+     pista:'Por ejemplo, 26 si cierra los domingos'}
+  ]},
+  {titulo:'Costo fijo al mes', campos:[
+    {suf:'arriendo',  etq:'Arriendo mensual', tipo:'dinero'},
+    {suf:'nomina',    etq:'Nómina mensual con prestaciones', tipo:'dinero'},
+    {suf:'servicios', etq:'Servicios públicos', tipo:'dinero'},
+    {suf:'otros',     etq:'Otros gastos fijos', tipo:'dinero'}
+  ]},
+  {titulo:'El movimiento', campos:[
+    {suf:'ventas',   etq:'Ventas del mes pasado', tipo:'dinero', pista:MES_PASADO},
+    {suf:'ventasAnt',etq:'Ventas del mismo mes del año pasado', tipo:'dinero',
+     pista:MES_ANTERIOR + ' · si ya estaba abierto'},
+    {suf:'clientes', etq:'Clientes atendidos al día', tipo:'entero'},
+    {suf:'ticket',   etq:'Ticket promedio por compra', tipo:'dinero'}
+  ]}
+];
+
+function campoHTML(id,C){
+  var h = '<div class="campo"><label for="'+id+'">'+esc(C.etq)
+        + (C.pista ? '<span class="pista">'+esc(C.pista)+'</span>' : '')
+        + '</label>';
+  if(C.tipo==='mes'){
+    h += '<div class="envoltura"><input type="month" id="'+id+'" autocomplete="off"></div>';
+  }else{
+    var izq = C.tipo==='dinero', der = C.tipo==='pct';
+    h += '<div class="envoltura'+(izq?' con-izq':'')+(der?' con-der':'')+'">'
+       + (izq?'<span class="signo izq">$</span>':'')
+       + (der?'<span class="signo der">%</span>':'')
+       + '<input type="text" id="'+id+'" inputmode="'+(C.tipo==='pct'?'decimal':'numeric')+'" '
+       + 'autocomplete="off" placeholder="0" data-tipo="'+(C.tipo==='pct'?'decimal':C.tipo)+'"></div>';
+  }
+  return h + '</div>';
+}
 
 function construirLocales(){
   var html = '';
   for(var i=0;i<LOCALES.length;i++){
-    var L = LOCALES[i];
-    html += '<div class="local"><h3>'+esc(L.nombre)+'</h3><div class="campos">';
-    for(var j=0;j<CAMPOS_LOCAL.length;j++){
-      var C = CAMPOS_LOCAL[j];
-      var id = 'b3_'+L.clave+'_'+C.suf;
-      html += '<div class="campo"><label for="'+id+'">'+esc(C.etq)+'</label>';
-      if(C.tipo==='mes'){
-        html += '<div class="envoltura"><input type="month" id="'+id+'" autocomplete="off"></div>';
-      }else{
-        var modo = C.tipo==='dinero' ? 'numeric' : 'numeric';
-        html += '<div class="envoltura'+(C.signo?' con-izq':'')+'">'
-             + (C.signo?'<span class="signo izq">'+C.signo+'</span>':'')
-             + '<input type="text" id="'+id+'" inputmode="'+modo+'" autocomplete="off" '
-             + 'placeholder="0" data-tipo="'+C.tipo+'"></div>';
+    var L = LOCALES[i], pre = 'b2_'+L.clave+'_';
+    html += '<div class="local"><h3>'+esc(L.nombre)+'</h3>';
+
+    for(var g=0;g<GRUPOS.length;g++){
+      html += '<p class="sub'+(g?' espaciado':'')+'">'+esc(GRUPOS[g].titulo)+'</p><div class="campos">';
+      for(var c=0;c<GRUPOS[g].campos.length;c++){
+        html += campoHTML(pre+GRUPOS[g].campos[c].suf, GRUPOS[g].campos[c]);
       }
       html += '</div>';
     }
-    html += '</div><div class="resultados"><p class="resultados-titulo">Sus números</p>'
-         + '<div id="r3_'+L.clave+'"></div></div></div>';
+
+    /* El margen bruto, con sus dos caminos. */
+    html += '<div class="margen-caja"><p class="sub">El margen bruto</p><div class="campos">'
+         + campoHTML(pre+'margenA', {etq:'Margen bruto del local', tipo:'pct',
+             pista:'De cada 100 pesos que vende, cuánto queda después de pagar la carne'})
+         + '</div>'
+         + '<div class="camino-b">'
+         + '<p class="encabezado">¿No lo tiene a la mano?</p>'
+         + '<p class="explica">Con estos dos precios se calcula solo. Es el mismo número, '
+         + 'visto desde el kilo.</p>'
+         + '<div class="campos">'
+         + campoHTML(pre+'kiloEntra', {etq:'A cuánto le entra el kilo al local', tipo:'dinero'})
+         + campoHTML(pre+'kiloVende', {etq:'A cuánto lo vende, en promedio', tipo:'dinero'})
+         + '</div>'
+         + '<div class="margen-salida" id="ms_'+L.clave+'"></div>'
+         + '</div></div>';
+
+    html += '<div class="resultados"><p class="resultados-titulo">Sus números</p>'
+         + '<div id="r2_'+L.clave+'"></div></div></div>';
   }
   document.getElementById('contenedorLocales').innerHTML = html;
 }
 
 /* ==========================================================================
-   4. EL CÁLCULO
+   5. EL CALCULO
 
-   calcular() devuelve un objeto con todo lo derivado. Lo usan tanto el pintado
-   en pantalla como el resumen en texto: una sola fuente, para que el resumen
-   no pueda decir algo distinto de lo que el cliente esta viendo.
+   calcular() devuelve todo lo derivado. Lo usan tanto la pantalla como el
+   resumen en texto: una sola fuente, para que el resumen no pueda decir algo
+   distinto de lo que el cliente esta viendo.
    ========================================================================== */
 
 function calcular(){
   var d = {};
 
-  /* ---------- Bloque 1 ---------- */
-  d.b1 = {
-    canales:  leer('b1_canales'),
-    cortes:   leer('b1_cortes'),
-    bello:    leer('b1_bello'),
-    envigado: leer('b1_envigado'),
-    anterior: leer('b1_anterior'),
-    nclientes:leer('b1_nclientes'),
-    pctmayor: leer('b1_pctmayor')
-  };
-
-  var unidades = [
-    {etq:'Unidad de canales', v:d.b1.canales},
-    {etq:'Unidad de cortes',  v:d.b1.cortes},
-    {etq:'Local Bello',       v:d.b1.bello},
-    {etq:'Local Envigado',    v:d.b1.envigado}
+  /* ---------- Bloque 1. Solo el reparto. ----------
+     No hay comparacion contra el ano anterior a nivel de negocio a proposito:
+     si un local abrio en el ano, el total anterior no es comparable y el
+     "crecimiento" seria falso. La comparacion valida es cada local consigo
+     mismo, y esa vive en el bloque 2. */
+  d.unidades = [
+    {etq:'Unidad de canales', v:leer('b1_canales')},
+    {etq:'Unidad de cortes',  v:leer('b1_cortes')},
+    {etq:'Local Bello',       v:leer('b1_bello')},
+    {etq:'Local Envigado',    v:leer('b1_envigado')}
   ];
-  d.unidades = unidades;
-  d.conDato   = unidades.filter(function(u){ return u.v!==null; });
-  d.sinDato   = unidades.filter(function(u){ return u.v===null; });
-  d.sumaUnidades = d.conDato.reduce(function(a,u){ return a+u.v; },0);
-  d.todasUnidades = d.sinDato.length===0;
-
-  /* Crecimiento: solo con las cuatro unidades y el año anterior. Con una
-     unidad en blanco la suma queda corta y el porcentaje mentiria. */
-  d.crecimiento = null;
-  if(d.todasUnidades && d.b1.anterior!==null && d.b1.anterior>0){
-    var dif = d.sumaUnidades - d.b1.anterior;
-    d.crecimiento = {
-      total:    d.sumaUnidades,
-      anterior: d.b1.anterior,
-      dif:      dif,
-      pct:      dif / d.b1.anterior * 100,
-      sentido:  dif>0 ? 'crecio' : (dif<0 ? 'cayo' : 'igual')
-    };
-  }
-
-  /* Concentración. El % del cliente mayor se pidio sobre la unidad de cortes,
-     y de ahí cuelga todo lo demas. */
-  d.concentracion = null;
-  if(d.b1.pctmayor!==null){
-    var c = {pctSobreCortes:d.b1.pctmayor, pesos:null, parejo:null, pctSobreTotal:null};
-    if(d.b1.cortes!==null){
-      c.pesos = d.b1.cortes * d.b1.pctmayor / 100;
-      if(d.todasUnidades && d.sumaUnidades>0){
-        c.pctSobreTotal = c.pesos / d.sumaUnidades * 100;
-      }
-    }
-    if(d.b1.nclientes!==null && d.b1.nclientes>0){
-      c.nclientes = d.b1.nclientes;
-      c.parejo = 100 / d.b1.nclientes;
-    }
-    d.concentracion = c;
-  }
+  d.conDato = d.unidades.filter(function(u){ return u.v!==null; });
+  d.sinDato = d.unidades.filter(function(u){ return u.v===null; });
+  d.suma    = d.conDato.reduce(function(a,u){ return a+u.v; },0);
+  d.todas   = d.sinDato.length===0;
 
   /* ---------- Bloque 2 ---------- */
-  d.b2 = {
-    costo:   leer('b2_costo'),
-    kilos:   leer('b2_kilos'),
-    pcanales:leer('b2_pcanales'),
-    pcortes: leer('b2_pcortes'),
-    ppdv:    leer('b2_ppdv')
-  };
-
-  d.costoKilo = null;
-  if(d.b2.costo!==null && d.b2.kilos!==null && d.b2.kilos>0){
-    d.costoKilo = d.b2.costo / d.b2.kilos;
-  }
-
-  d.canales = [
-    {etq:'Canales',        clave:'pcanales', precio:d.b2.pcanales, margen:null, pct:null},
-    {etq:'Cortes',         clave:'pcortes',  precio:d.b2.pcortes,  margen:null, pct:null},
-    {etq:'Punto de venta', clave:'ppdv',     precio:d.b2.ppdv,     margen:null, pct:null}
-  ];
-  if(d.costoKilo!==null){
-    for(var i=0;i<d.canales.length;i++){
-      var ch = d.canales[i];
-      if(ch.precio!==null && ch.precio>0){
-        ch.margen = ch.precio - d.costoKilo;
-        ch.pct    = ch.margen / ch.precio * 100;   /* margen sobre el precio de venta */
-      }
-    }
-  }
-  /* El punto de venta es el que alimenta el bloque 3. */
-  d.margenPdv = d.canales[2].margen;
-  d.razonPdv  = d.canales[2].pct!==null ? d.canales[2].pct/100 : null;
-
-  /* ---------- Bloque 3 ---------- */
-  var hoy = new Date();
   d.locales = [];
   for(var k=0;k<LOCALES.length;k++){
-    var L = LOCALES[k];
-    var pre = 'b3_'+L.clave+'_';
+    var L = LOCALES[k], pre = 'b2_'+L.clave+'_';
     var o = {
       clave:L.clave, nombre:L.nombre,
-      arriendo: leer(pre+'arriendo'),
-      nomina:   leer(pre+'nomina'),
-      servicios:leer(pre+'servicios'),
-      otros:    leer(pre+'otros'),
-      ventas:   leer(pre+'ventas'),
-      clientes: leer(pre+'clientes'),
-      ticket:   leer(pre+'ticket'),
-      apertura: texto(pre+'apertura')
+      apertura:  texto(pre+'apertura'),
+      dias:      leer(pre+'dias'),
+      arriendo:  leer(pre+'arriendo'),
+      nomina:    leer(pre+'nomina'),
+      servicios: leer(pre+'servicios'),
+      otros:     leer(pre+'otros'),
+      ventas:    leer(pre+'ventas'),
+      ventasAnt: leer(pre+'ventasAnt'),
+      clientes:  leer(pre+'clientes'),
+      ticket:    leer(pre+'ticket'),
+      margenA:   leer(pre+'margenA'),
+      kiloEntra: leer(pre+'kiloEntra'),
+      kiloVende: leer(pre+'kiloVende')
     };
 
-    var conRubro = [], sinRubro = [];
+    /* Costo fijo */
+    var con = [], sin = [];
     for(var r=0;r<RUBROS_FIJOS.length;r++){
       var R = RUBROS_FIJOS[r];
-      if(o[R.suf]!==null) conRubro.push({etq:R.etq, v:o[R.suf]});
-      else sinRubro.push(R.etq);
+      if(o[R.suf]!==null) con.push({etq:R.etq, v:o[R.suf]}); else sin.push(R.etq);
     }
-    o.rubros = conRubro;
-    o.rubrosFaltan = sinRubro;
-    o.costoFijo = conRubro.length ? conRubro.reduce(function(a,x){return a+x.v;},0) : null;
-    o.costoFijoCompleto = sinRubro.length===0;
+    o.rubros = con;
+    o.rubrosFaltan = sin;
+    o.costoFijo = con.length ? con.reduce(function(a,x){ return a+x.v; },0) : null;
+    o.costoFijoCompleto = sin.length===0;
 
-    /* Punto de equilibrio en ventas. Se necesita el costo fijo completo y la
-       razón de margen del punto de venta. Sin el bloque 2 no hay número, y no
-       se sustituye por nada. */
+    /* Margen bruto, camino B: lo que queda del precio de venta despues de
+       pagar la carne, expresado sobre ese mismo precio de venta. */
+    o.margenB = null;
+    if(o.kiloEntra!==null && o.kiloVende!==null && o.kiloVende>0){
+      o.margenB = (o.kiloVende - o.kiloEntra) / o.kiloVende * 100;
+    }
+
+    /* Cual se usa. El escrito manda sobre el calculado; el calculado es el
+       camino para quien no tenia el numero. */
+    o.margen = null; o.origen = null;
+    if(o.margenA!==null){ o.margen = o.margenA; o.origen = 'A'; }
+    else if(o.margenB!==null){ o.margen = o.margenB; o.origen = 'B'; }
+
+    /* Si llego por los dos lados y no coinciden, se avisa. No se elige por
+       el: se le dice cual esta alimentando el calculo y cuanto daria el otro. */
+    o.discrepa = (o.margenA!==null && o.margenB!==null
+                  && Math.abs(o.margenA-o.margenB) > 0.1);
+
+    /* Punto de equilibrio = costo fijo / margen bruto en decimal */
     o.pe = null;
-    if(o.costoFijoCompleto && d.razonPdv!==null && d.razonPdv>0){
-      o.pe = o.costoFijo / d.razonPdv;
+    if(o.costoFijoCompleto && o.margen!==null && o.margen>0){
+      o.pe = o.costoFijo / (o.margen/100);
+    }
+    o.peAlterno = null;
+    if(o.discrepa && o.costoFijoCompleto && o.margenB>0){
+      o.peAlterno = o.costoFijo / (o.margenB/100);
     }
 
+    /* Distancia contra el mes pasado */
     o.distancia = null;
     if(o.pe!==null && o.ventas!==null){
       var dv = o.ventas - o.pe;
-      o.distancia = {
-        dif:dv,
-        pct: dv / o.pe * 100,
-        sentido: dv>0 ? 'encima' : (dv<0 ? 'debajo' : 'igual')
-      };
+      o.distancia = {dif:dv, pct:dv/o.pe*100,
+                     sentido: dv>0 ? 'encima' : (dv<0 ? 'debajo' : 'igual')};
     }
 
-    /* Clientes al día necesarios = punto de equilibrio / ticket / 30 */
-    o.clientesNecesarios = null;
-    if(o.pe!==null && o.ticket!==null && o.ticket>0){
-      o.clientesNecesarios = o.pe / o.ticket / 30;
+    /* Clientes al dia necesarios = punto de equilibrio / ticket / dias que
+       abre al mes. Dividir entre 30 fijo daba de menos en un local que cierra
+       los domingos: reparte el equilibrio entre dias que no factura. */
+    o.necesarios = null;
+    if(o.pe!==null && o.ticket!==null && o.ticket>0 && o.dias!==null && o.dias>0){
+      o.necesarios = o.pe / o.ticket / o.dias;
     }
-    o.difClientes = null;
-    if(o.clientesNecesarios!==null && o.clientes!==null){
-      o.difClientes = o.clientes - o.clientesNecesarios;
+    o.difClientes = (o.necesarios!==null && o.clientes!==null)
+                    ? o.clientes - o.necesarios : null;
+
+    /* El local contra si mismo. Esta comparacion si es valida. */
+    o.crecimiento = null;
+    if(o.ventas!==null && o.ventasAnt!==null && o.ventasAnt>0){
+      var dc = o.ventas - o.ventasAnt;
+      o.crecimiento = {dif:dc, pct:dc/o.ventasAnt*100,
+                       sentido: dc>0 ? 'crecio' : (dc<0 ? 'cayo' : 'igual')};
     }
 
     /* Meses abierto */
     o.meses = null;
     if(/^\d{4}-\d{2}$/.test(o.apertura)){
-      var partes = o.apertura.split('-');
-      var anio = Number(partes[0]), mes = Number(partes[1])-1;
-      var m = (hoy.getFullYear()-anio)*12 + (hoy.getMonth()-mes);
-      if(m>=0){
-        o.meses = m;
-        o.aperturaTexto = MESES[mes] + ' de ' + anio;
-      }
+      var p = o.apertura.split('-'), anio = Number(p[0]), mes = Number(p[1])-1;
+      var m = (HOY.getFullYear()-anio)*12 + (HOY.getMonth()-mes);
+      if(m>=0){ o.meses = m; o.aperturaTexto = MESES[mes] + ' de ' + anio; }
     }
 
     d.locales.push(o);
   }
 
-  /* ---------- Bloque 4 ---------- */
-  d.b4 = { vendidos: texto('b4_vendidos'), margen: texto('b4_margen') };
+  /* ---------- Bloque 3 ---------- */
+  d.b3 = {vendidos:texto('b3_vendidos'), margen:texto('b3_margen')};
 
   return d;
 }
 
 /* ==========================================================================
-   5. PINTADO EN PANTALLA
+   6. PINTADO EN PANTALLA
    ========================================================================== */
 
 function mesesTexto(m){
   if(m===0) return 'Menos de un mes';
-  var t = m + (m===1 ? ' mes' : ' meses');
+  var t = m + (m===1?' mes':' meses');
   if(m>=12){
     var a = Math.floor(m/12), r = m%12;
-    t += ' (' + a + (a===1?' año':' años');
-    if(r) t += ' y ' + r + (r===1?' mes':' meses');
-    t += ')';
+    t += ' (' + a + (a===1?' año':' años') + (r ? ' y '+r+(r===1?' mes':' meses') : '') + ')';
   }
   return t;
 }
@@ -1076,125 +921,52 @@ function mesesTexto(m){
 function render(){
   var d = calcular();
 
-  /* ---------- 1.1 Peso de cada unidad ---------- */
+  /* ---------- Bloque 1 ---------- */
   var h = tituloRes('El peso de cada unidad sobre el total');
-  if(d.conDato.length>=2 && d.sumaUnidades>0){
+  if(d.conDato.length>=2 && d.suma>0){
     for(var i=0;i<d.conDato.length;i++){
-      var u = d.conDato[i];
-      var p = u.v / d.sumaUnidades * 100;
-      h += '<div class="barra-fila">'
-         + '<div class="barra-cabeza"><span>'+esc(u.etq)+'</span>'
+      var u = d.conDato[i], p = u.v/d.suma*100;
+      h += '<div class="barra-fila"><div class="barra-cabeza"><span>'+esc(u.etq)+'</span>'
          + '<span class="val">'+pct(p)+'<span class="pesos">'+pesos(u.v)+'</span></span></div>'
-         + '<div class="barra-riel"><div class="barra-relleno" style="width:'+p.toFixed(2)+'%"></div></div>'
-         + '</div>';
+         + '<div class="barra-riel"><div class="barra-relleno" style="width:'+p.toFixed(2)+'%"></div></div></div>';
     }
-    h += fila(d.todasUnidades ? 'Total del último año'
-                              : 'Suma de las unidades con dato',
-              pesos(d.sumaUnidades), true);
-    if(!d.todasUnidades){
+    h += fila(d.todas ? 'Total de '+ANIO_CERRADO : 'Suma de las unidades con dato',
+              pesos(d.suma), true);
+    if(!d.todas){
       h += '<p class="apostilla">Los porcentajes se calculan sobre esa suma. Sin dato: '
-         + esc(listar(d.sinDato.map(function(u){return u.etq;}))) + '.</p>';
+         + esc(listar(d.sinDato.map(function(x){return x.etq;}))) + '.</p>';
     }
   }else{
     h += pendiente('Falta la facturación de al menos dos unidades para repartir el total.');
   }
   pintar('r_peso',h);
 
-  /* ---------- 1.2 Crecimiento ---------- */
-  h = tituloRes('El movimiento contra el año anterior');
-  if(d.crecimiento){
-    var c = d.crecimiento;
-    h += fila('Último año', pesos(c.total));
-    h += fila('Año anterior', pesos(c.anterior));
-    if(c.sentido==='igual'){
-      h += '<p class="frase">La facturación quedo <span class="cifra">igual</span> que el año anterior.</p>';
-    }else{
-      h += fila(c.sentido==='crecio' ? 'Creció' : 'Cayó',
-                pesos(Math.abs(c.dif)) + '  ·  ' + pct(Math.abs(c.pct)), true);
-    }
-  }else{
-    var faltan = d.sinDato.map(function(u){return u.etq;});
-    if(d.b1.anterior===null||d.b1.anterior<=0) faltan.push('el total del año anterior');
-    h += pendiente('Falta ' + listar(faltan) + '. La comparación necesita las cuatro unidades completas.');
-  }
-  pintar('r_crecimiento',h);
-
-  /* ---------- 1.3 Concentración ---------- */
-  h = tituloRes('Concentración de clientes en la unidad de cortes');
-  if(d.concentracion){
-    var k = d.concentracion;
-    h += fila('El cliente más grande representa', pct(k.pctSobreCortes) + ' de cortes', true);
-    if(k.pesos!==null) h += fila('Equivale a', pesos(k.pesos) + ' al año');
-    if(k.parejo!==null){
-      h += fila('Clientes en la unidad', decimales(k.nclientes,0));
-      h += fila('Si estuviera repartido parejo, cada uno sería', pct(k.parejo));
-    }
-    if(k.pctSobreTotal!==null){
-      h += fila('Ese cliente sobre el negocio completo', pct(k.pctSobreTotal));
-    }
-    var pistas = [];
-    if(d.b1.cortes===null) pistas.push('la facturación de la unidad de cortes');
-    if(d.b1.nclientes===null||d.b1.nclientes<=0) pistas.push('cuántos clientes tiene la unidad');
-    if(pistas.length){
-      h += '<p class="apostilla">Con ' + esc(listar(pistas)) + ' se puede mostrar más.</p>';
-    }
-  }else{
-    h += pendiente('Falta el % que representa el cliente más grande.');
-  }
-  pintar('r_concentracion',h);
-
-  /* ---------- 2.1 Costo por kilo ---------- */
-  h = tituloRes('Costo por kilo');
-  if(d.costoKilo!==null){
-    h += fila('Costo por cerdo', pesos(d.b2.costo));
-    h += fila('Kilos aprovechables', decimales(d.b2.kilos,1) + ' kg');
-    h += fila('Costo por kilo aprovechable', pesos(d.costoKilo), true);
-  }else{
-    var f2 = [];
-    if(d.b2.costo===null) f2.push('el costo por cerdo');
-    if(d.b2.kilos===null||d.b2.kilos<=0) f2.push('los kilos aprovechables');
-    h += pendiente('Falta ' + listar(f2) + '.');
-  }
-  pintar('r_costokilo',h);
-
-  /* ---------- 2.2 Margen por kilo, los tres canales ---------- */
-  h = tituloRes('Margen por kilo, canal por canal');
-  h += '<div class="canales">';
-  for(var j=0;j<d.canales.length;j++){
-    var ch = d.canales[j];
-    h += '<div class="canal"><p class="nombre">'+esc(ch.etq)+'</p>';
-    if(ch.margen!==null){
-      h += '<p class="cifra-grande">'+esc(pesos(ch.margen))+'</p>'
-         + '<p class="cifra-sub">'+esc(pct(ch.pct))+' del precio de venta</p>'
-         + '<p class="cifra-sub">Precio: '+esc(pesos(ch.precio))+'/kg</p>';
-    }else if(d.costoKilo===null){
-      h += '<p class="pendiente">Falta el costo por kilo</p>';
-    }else{
-      h += '<p class="pendiente">Falta el precio de este canal</p>';
-    }
-    h += '</div>';
-  }
-  h += '</div>';
-  if(d.costoKilo!==null){
-    h += '<p class="apostilla">Margen por kilo = precio de venta menos el costo por kilo aprovechable ('
-       + esc(pesos(d.costoKilo)) + '). El porcentaje es sobre el precio de venta.</p>';
-  }
-  pintar('r_margenes',h);
-
-  /* ---------- 3. Cada local ----------
-     Las secciones se acumulan sueltas y se envuelven al final. Concatenar
-     '</div><div>' dentro de un innerHTML no funciona: el parser descarta el
-     cierre suelto y los bloques terminan anidados en vez de hermanos. */
+  /* ---------- Bloque 2 ---------- */
   for(var n=0;n<d.locales.length;n++){
     var o = d.locales[n];
+
+    /* El margen calculado se muestra junto a los dos campos que lo producen:
+       puede ser la primera vez que el cliente ve ese numero. */
+    var ms = document.getElementById('ms_'+o.clave);
+    if(ms){
+      if(o.margenB!==null){
+        ms.className = 'margen-salida visible';
+        ms.innerHTML = 'Margen bruto: <span class="cifra">'+esc(pct(o.margenB))+'</span>'
+                     + '<div class="detalle">De cada '+esc(pesos(o.kiloVende))
+                     + ' que vende el kilo, le quedan '+esc(pesos(o.kiloVende-o.kiloEntra))
+                     + ' después de pagar la carne.</div>';
+      }else{
+        ms.className = 'margen-salida';
+        ms.innerHTML = '';
+      }
+    }
+
     var partes = [], s;
 
     /* Costo fijo */
     s = tituloRes('Costo fijo al mes');
     if(o.costoFijo!==null){
-      for(var r=0;r<o.rubros.length;r++){
-        s += fila(o.rubros[r].etq, pesos(o.rubros[r].v));
-      }
+      for(var r=0;r<o.rubros.length;r++) s += fila(o.rubros[r].etq, pesos(o.rubros[r].v));
       s += fila(o.costoFijoCompleto ? 'Costo fijo total' : 'Suma de los rubros con dato',
                 pesos(o.costoFijo), true);
       if(!o.costoFijoCompleto){
@@ -1205,61 +977,78 @@ function render(){
     }
     partes.push(s);
 
+    /* Margen bruto */
+    s = tituloRes('Margen bruto');
+    if(o.margen!==null){
+      s += fila('Margen bruto del local', pct(o.margen), true);
+      s += '<p class="apostilla">'
+         + (o.origen==='A' ? 'El que usted escribió.'
+                           : 'Calculado con los dos precios por kilo.')
+         + '</p>';
+      if(o.discrepa){
+        s += '<div class="discrepancia">Los dos caminos no dan lo mismo: usted escribió '
+           + '<strong>'+esc(pct(o.margenA))+'</strong> y de los precios por kilo sale '
+           + '<strong>'+esc(pct(o.margenB))+'</strong>. '
+           + 'El punto de equilibrio de abajo usa el que usted escribió'
+           + (o.peAlterno!==null ? '; con el otro daría '+esc(pesos(o.peAlterno)) : '')
+           + '. Lo revisamos en la sesión.</div>';
+      }
+    }else{
+      s += pendiente('Falta el margen bruto: escríbalo directo, o ponga los dos precios por kilo y sale solo.');
+    }
+    partes.push(s);
+
     /* Punto de equilibrio */
-    s = tituloRes('Punto de equilibrio en ventas');
+    s = tituloRes('Punto de equilibrio');
     if(o.pe!==null){
       s += fila('Ventas al mes para cubrir el costo fijo', pesos(o.pe), true);
-      s += '<p class="apostilla">Calculado con el margen de punto de venta del bloque 2: '
-         + esc(pct(d.canales[2].pct)) + ' sobre el precio de venta.</p>';
+      s += '<p class="apostilla">Costo fijo dividido por el margen bruto ('
+         + esc(pct(o.margen)) + ').</p>';
       if(o.distancia){
-        s += fila('Ventas del mes pasado', pesos(o.ventas));
+        s += fila('Ventas de '+MES_PASADO, pesos(o.ventas));
         if(o.distancia.sentido==='igual'){
           s += '<p class="frase">Las ventas del mes pasado quedaron <span class="cifra">exactamente en</span> el punto de equilibrio.</p>';
         }else{
           s += fila(o.distancia.sentido==='encima' ? 'Por encima del punto de equilibrio'
                                                    : 'Por debajo del punto de equilibrio',
-                    pesos(Math.abs(o.distancia.dif)) + '  ·  ' + pct(Math.abs(o.distancia.pct)), true);
+                    pesos(Math.abs(o.distancia.dif))+'  ·  '+pct(Math.abs(o.distancia.pct)), true);
         }
       }else{
         s += pendiente('Falta las ventas del mes pasado para medir la distancia.');
       }
     }else{
-      /* Sin número se dice exactamente que falta. Nunca se sustituye por una
-         aproximación: un punto de equilibrio inventado se lee igual que uno
+      /* Sin numero se dice exactamente que falta. Nunca se sustituye por una
+         aproximacion: un punto de equilibrio inventado se lee igual que uno
          real y no hay forma de que el cliente note la diferencia. */
       if(o.costoFijo===null){
         s += pendiente('Falta el costo fijo del local.');
       }else if(!o.costoFijoCompleto){
-        s += pendiente('Falta ' + listar(o.rubrosFaltan.map(function(x){return x.toLowerCase();}))
-                     + ' para completar el costo fijo.');
+        s += pendiente('Falta '+listar(o.rubrosFaltan.map(function(x){return x.toLowerCase();}))
+                     +' para completar el costo fijo.');
       }
-      if(d.razonPdv===null){
-        var fb2 = [];
-        if(d.b2.costo===null) fb2.push('el costo por cerdo');
-        if(d.b2.kilos===null||d.b2.kilos<=0) fb2.push('los kilos aprovechables');
-        if(d.b2.ppdv===null||d.b2.ppdv<=0) fb2.push('el precio por kilo de punto de venta');
-        s += pendiente('Falta, en el bloque 2, ' + listar(fb2) + '.');
-        s += '<p class="apostilla">El punto de equilibrio se calcula con el margen '
-           + 'por kilo de punto de venta del bloque 2. Sin ese dato aquí no hay número'
-           + (o.costoFijo!==null ? ': el costo fijo de arriba sigue siendo válido.' : '.')
-           + '</p>';
+      if(o.margen===null){
+        s += pendiente('Falta el margen bruto.');
+      }else if(o.margen<=0){
+        s += pendiente('El punto de equilibrio necesita un margen bruto mayor que cero.');
       }
     }
     partes.push(s);
 
-    /* Clientes al día */
+    /* Clientes al dia */
     s = tituloRes('Clientes al día');
-    if(o.clientesNecesarios!==null){
+    if(o.necesarios!==null){
       s += fila('Ticket promedio', pesos(o.ticket));
-      s += fila('Clientes al día necesarios', decimales(o.clientesNecesarios,1), true);
-      s += '<p class="apostilla">Punto de equilibrio dividido por el ticket promedio y por 30 días.</p>';
+      s += fila('Días que abre al mes', decimales(o.dias,0));
+      s += fila('Clientes al día necesarios', decimales(o.necesarios,1), true);
+      s += '<p class="apostilla">Punto de equilibrio dividido por el ticket promedio y por los '
+         + esc(decimales(o.dias,0)) + ' días que abre.</p>';
       if(o.clientes!==null){
         s += fila('Clientes al día hoy', decimales(o.clientes,0));
         if(Math.abs(o.difClientes)<0.05){
           s += '<p class="frase">Los clientes de hoy y los necesarios son <span class="cifra">los mismos</span>.</p>';
         }else{
           s += fila(o.difClientes>0 ? 'Diferencia por encima' : 'Diferencia por debajo',
-                    decimales(Math.abs(o.difClientes),1) + ' clientes al día', true);
+                    decimales(Math.abs(o.difClientes),1)+' clientes al día', true);
         }
       }else{
         s += pendiente('Falta cuántos clientes atiende al día hoy.');
@@ -1267,11 +1056,31 @@ function render(){
     }else if(o.pe===null){
       s += pendiente('Necesita el punto de equilibrio.');
     }else{
-      s += pendiente('Falta el ticket promedio por compra.');
+      var f = [];
+      if(o.ticket===null||o.ticket<=0) f.push('el ticket promedio');
+      if(o.dias===null||o.dias<=0)     f.push('los días que abre al mes');
+      s += pendiente('Falta '+listar(f)+'.');
     }
     partes.push(s);
 
-    /* Meses abierto */
+    /* El local contra si mismo */
+    s = tituloRes('Este local contra el año pasado');
+    if(o.crecimiento){
+      s += fila('Ventas de '+MES_PASADO,   pesos(o.ventas));
+      s += fila('Ventas de '+MES_ANTERIOR, pesos(o.ventasAnt));
+      if(o.crecimiento.sentido==='igual'){
+        s += '<p class="frase">El mismo mes del año pasado vendió <span class="cifra">lo mismo</span>.</p>';
+      }else{
+        s += fila(o.crecimiento.sentido==='crecio' ? 'Creció' : 'Cayó',
+                  pesos(Math.abs(o.crecimiento.dif))+'  ·  '+pct(Math.abs(o.crecimiento.pct)), true);
+      }
+      s += '<p class="apostilla">Mismo local, mismo mes: la comparación es limpia.</p>';
+    }else{
+      s += pendiente('Falta las ventas de '+MES_ANTERIOR+'. Si el local no estaba abierto, déjelo en blanco.');
+    }
+    partes.push(s);
+
+    /* Tiempo abierto */
     s = tituloRes('Tiempo abierto');
     if(o.meses!==null){
       s += fila('Abrió en', o.aperturaTexto);
@@ -1281,18 +1090,19 @@ function render(){
     }
     partes.push(s);
 
-    pintar('r3_'+o.clave,
-      '<div class="res">' + partes.join('</div><div class="res">') + '</div>');
+    pintar('r2_'+o.clave, '<div class="res">'+partes.join('</div><div class="res">')+'</div>');
   }
 }
 
 /* ==========================================================================
-   6. RESUMEN EN TEXTO
+   7. RESUMEN EN TEXTO
 
    Sale del mismo calcular() que la pantalla. Lo que no se pudo calcular se
-   escribe como "sin dato", no se omite: que un dato falte también es parte
-   de lo que se lleva a la reunion.
+   escribe como "sin dato", no se omite: que un dato falte tambien es parte de
+   lo que se lleva a la reunion.
    ========================================================================== */
+
+var SIN = 'sin dato';
 
 function linea(etq,val,ancho){
   if(ancho===undefined) ancho = 44;
@@ -1300,45 +1110,36 @@ function linea(etq,val,ancho){
   while(e.length<ancho) e += ' ';
   return '  ' + e + val + '\n';
 }
-
 function bloqueTitulo(t){
   return '\n' + t.toUpperCase() + '\n' + new Array(t.length+1).join('=') + '\n';
 }
-
 function subTitulo(t){
   return '\n  ' + t + '\n  ' + new Array(t.length+1).join('-') + '\n';
 }
 
-var SIN = 'sin dato';
-
 function generarResumen(){
   var d = calcular();
-  var hoy = new Date();
   var t = '';
 
   t += 'DIAGNÓSTICO PREVIO\n';
   t += 'Actio Growth · Estrategia que piensa. Sistemas que actúan.\n';
-  t += 'Diligenciado el ' + hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear() + '\n';
+  t += 'Diligenciado el ' + HOY.getDate() + ' de ' + MESES[HOY.getMonth()]
+     + ' de ' + HOY.getFullYear() + '\n';
 
   /* ---------- Bloque 1 ---------- */
-  t += bloqueTitulo('Bloque 1 · El negocio completo');
-  t += subTitulo('Lo que escribió');
+  t += bloqueTitulo('Bloque 1 · El tamaño del negocio');
+  t += subTitulo('Facturación de ' + ANIO_CERRADO);
   for(var i=0;i<d.unidades.length;i++){
     t += linea(d.unidades[i].etq, d.unidades[i].v!==null ? pesos(d.unidades[i].v) : SIN);
   }
-  t += linea('Facturación total del año anterior', d.b1.anterior!==null ? pesos(d.b1.anterior) : SIN);
-  t += linea('Clientes de la unidad de cortes', d.b1.nclientes!==null ? decimales(d.b1.nclientes,0) : SIN);
-  t += linea('% del cliente más grande (sobre cortes)', d.b1.pctmayor!==null ? pct(d.b1.pctmayor) : SIN);
-
   t += subTitulo('Peso de cada unidad');
-  if(d.conDato.length>=2 && d.sumaUnidades>0){
+  if(d.conDato.length>=2 && d.suma>0){
     for(var j=0;j<d.conDato.length;j++){
       var u = d.conDato[j];
-      t += linea(u.etq, pct(u.v/d.sumaUnidades*100) + '   ' + pesos(u.v));
+      t += linea(u.etq, pct(u.v/d.suma*100) + '   ' + pesos(u.v));
     }
-    t += linea(d.todasUnidades ? 'Total del último año' : 'Suma de las unidades con dato',
-               pesos(d.sumaUnidades));
-    if(!d.todasUnidades){
+    t += linea(d.todas ? 'Total de '+ANIO_CERRADO : 'Suma de las unidades con dato', pesos(d.suma));
+    if(!d.todas){
       t += '  (porcentajes sobre esa suma; sin dato: '
          + listar(d.sinDato.map(function(x){return x.etq;})) + ')\n';
     }
@@ -1346,96 +1147,52 @@ function generarResumen(){
     t += '  No calculado: falta la facturación de al menos dos unidades.\n';
   }
 
-  t += subTitulo('Movimiento contra el año anterior');
-  if(d.crecimiento){
-    t += linea('Último año', pesos(d.crecimiento.total));
-    t += linea('Año anterior', pesos(d.crecimiento.anterior));
-    if(d.crecimiento.sentido==='igual'){
-      t += linea('Resultado', 'igual que el año anterior');
-    }else{
-      t += linea(d.crecimiento.sentido==='crecio' ? 'Creció' : 'Cayó',
-                 pesos(Math.abs(d.crecimiento.dif)) + '   ' + pct(Math.abs(d.crecimiento.pct)));
-    }
-  }else{
-    t += '  No calculado: requiere las cuatro unidades y el total del año anterior.\n';
-  }
-
-  t += subTitulo('Concentración en la unidad de cortes');
-  if(d.concentracion){
-    var k = d.concentracion;
-    t += linea('El cliente más grande representa', pct(k.pctSobreCortes) + ' de cortes');
-    if(k.pesos!==null)          t += linea('Equivale a', pesos(k.pesos) + ' al año');
-    if(k.parejo!==null){
-      t += linea('Clientes en la unidad', decimales(k.nclientes,0));
-      t += linea('Repartido parejo, cada uno sería', pct(k.parejo));
-    }
-    if(k.pctSobreTotal!==null)  t += linea('Sobre el negocio completo', pct(k.pctSobreTotal));
-  }else{
-    t += '  No calculado: falta el % del cliente más grande.\n';
-  }
-
   /* ---------- Bloque 2 ---------- */
-  t += bloqueTitulo('Bloque 2 · El cerdo');
-  t += subTitulo('Lo que escribió');
-  t += linea('Costo promedio por cerdo', d.b2.costo!==null ? pesos(d.b2.costo) : SIN);
-  t += linea('Kilos aprovechables por cerdo', d.b2.kilos!==null ? decimales(d.b2.kilos,1)+' kg' : SIN);
-  t += linea('Precio por kilo · canales', d.b2.pcanales!==null ? pesos(d.b2.pcanales) : SIN);
-  t += linea('Precio por kilo · cortes', d.b2.pcortes!==null ? pesos(d.b2.pcortes) : SIN);
-  t += linea('Precio por kilo · punto de venta', d.b2.ppdv!==null ? pesos(d.b2.ppdv) : SIN);
-
-  t += subTitulo('Costo por kilo');
-  if(d.costoKilo!==null){
-    t += linea('Costo por kilo aprovechable', pesos(d.costoKilo));
-    t += '  (costo por cerdo dividido por kilos aprovechables)\n';
-  }else{
-    t += '  No calculado: falta el costo por cerdo o los kilos aprovechables.\n';
-  }
-
-  t += subTitulo('Margen por kilo, canal por canal');
-  if(d.costoKilo!==null){
-    for(var m=0;m<d.canales.length;m++){
-      var ch = d.canales[m];
-      t += linea(ch.etq, ch.margen!==null
-            ? pesos(ch.margen) + '   ' + pct(ch.pct) + ' del precio'
-            : 'sin precio');
-    }
-    t += '  (porcentaje sobre el precio de venta)\n';
-  }else{
-    t += '  No calculado: falta el costo por kilo.\n';
-  }
-
-  /* ---------- Bloque 3 ---------- */
-  t += bloqueTitulo('Bloque 3 · Cada local');
+  t += bloqueTitulo('Bloque 2 · Cada local');
   for(var n=0;n<d.locales.length;n++){
     var o = d.locales[n];
     t += '\n  LOCAL ' + o.nombre.toUpperCase() + '\n';
     t += '  ' + new Array(o.nombre.length+7).join('=') + '\n';
 
     t += subTitulo('Lo que escribió');
+    t += linea('Fecha de apertura', o.meses!==null ? o.aperturaTexto : SIN);
+    t += linea('Días que abre al mes', o.dias!==null ? decimales(o.dias,0) : SIN);
     t += linea('Arriendo mensual', o.arriendo!==null ? pesos(o.arriendo) : SIN);
     t += linea('Nómina mensual con prestaciones', o.nomina!==null ? pesos(o.nomina) : SIN);
     t += linea('Servicios públicos', o.servicios!==null ? pesos(o.servicios) : SIN);
     t += linea('Otros gastos fijos', o.otros!==null ? pesos(o.otros) : SIN);
-    t += linea('Ventas del mes pasado', o.ventas!==null ? pesos(o.ventas) : SIN);
+    t += linea('Ventas de '+MES_PASADO, o.ventas!==null ? pesos(o.ventas) : SIN);
+    t += linea('Ventas de '+MES_ANTERIOR, o.ventasAnt!==null ? pesos(o.ventasAnt) : SIN);
     t += linea('Clientes atendidos al día', o.clientes!==null ? decimales(o.clientes,0) : SIN);
     t += linea('Ticket promedio por compra', o.ticket!==null ? pesos(o.ticket) : SIN);
-    t += linea('Fecha de apertura', o.meses!==null ? o.aperturaTexto : SIN);
+    t += linea('Margen bruto escrito', o.margenA!==null ? pct(o.margenA) : SIN);
+    t += linea('Le entra el kilo a', o.kiloEntra!==null ? pesos(o.kiloEntra) : SIN);
+    t += linea('Lo vende a', o.kiloVende!==null ? pesos(o.kiloVende) : SIN);
 
     t += subTitulo('Sus números');
     if(o.costoFijo!==null){
       t += linea(o.costoFijoCompleto ? 'Costo fijo total al mes' : 'Suma de los rubros con dato',
                  pesos(o.costoFijo));
-      if(!o.costoFijoCompleto){
-        t += '  (sin dato: ' + listar(o.rubrosFaltan) + ')\n';
-      }
+      if(!o.costoFijoCompleto) t += '  (sin dato: ' + listar(o.rubrosFaltan) + ')\n';
     }else{
       t += linea('Costo fijo total al mes', SIN);
     }
 
+    if(o.margen!==null){
+      t += linea('Margen bruto', pct(o.margen) + (o.origen==='A' ? '   (escrito)' : '   (calculado)'));
+      if(o.discrepa){
+        t += '  ATENCIÓN: los dos caminos no coinciden. Escrito ' + pct(o.margenA)
+           + ', calculado ' + pct(o.margenB) + '.\n'
+           + '  El punto de equilibrio usa el escrito'
+           + (o.peAlterno!==null ? '; con el otro daría ' + pesos(o.peAlterno) : '') + '.\n';
+      }
+    }else{
+      t += linea('Margen bruto', SIN);
+    }
+
     if(o.pe!==null){
-      t += linea('Punto de equilibrio en ventas', pesos(o.pe));
-      t += '  (con el margen de punto de venta del bloque 2: '
-         + pct(d.canales[2].pct) + ' sobre el precio)\n';
+      t += linea('Punto de equilibrio', pesos(o.pe));
+      t += '  (costo fijo dividido por el margen bruto)\n';
       if(o.distancia){
         if(o.distancia.sentido==='igual'){
           t += linea('Distancia contra el mes pasado', 'exactamente en el punto de equilibrio');
@@ -1447,24 +1204,19 @@ function generarResumen(){
       }else{
         t += linea('Distancia contra el mes pasado', 'sin las ventas del mes pasado');
       }
-    }else if(d.razonPdv===null){
-      t += '  Punto de equilibrio: no calculado. Se necesita el margen por kilo de\n'
-         + '  punto de venta del bloque 2 (costo por cerdo, kilos aprovechables y\n'
-         + '  precio por kilo de punto de venta).\n';
     }else{
-      t += '  Punto de equilibrio: no calculado. Falta el costo fijo completo.\n';
+      t += linea('Punto de equilibrio', 'no calculado');
     }
 
-    if(o.clientesNecesarios!==null){
-      t += linea('Clientes al día necesarios', decimales(o.clientesNecesarios,1));
+    if(o.necesarios!==null){
+      t += linea('Clientes al día necesarios', decimales(o.necesarios,1));
+      t += '  (punto de equilibrio / ticket / ' + decimales(o.dias,0) + ' días que abre)\n';
       if(o.clientes!==null){
         t += linea('Clientes al día hoy', decimales(o.clientes,0));
-        if(Math.abs(o.difClientes)<0.05){
-          t += linea('Diferencia', 'los mismos');
-        }else{
-          t += linea(o.difClientes>0 ? 'Diferencia por encima' : 'Diferencia por debajo',
-                     decimales(Math.abs(o.difClientes),1) + ' clientes al día');
-        }
+        t += linea(Math.abs(o.difClientes)<0.05 ? 'Diferencia'
+                   : (o.difClientes>0 ? 'Diferencia por encima' : 'Diferencia por debajo'),
+                   Math.abs(o.difClientes)<0.05 ? 'los mismos'
+                   : decimales(Math.abs(o.difClientes),1) + ' clientes al día');
       }else{
         t += linea('Clientes al día hoy', SIN);
       }
@@ -1472,42 +1224,56 @@ function generarResumen(){
       t += linea('Clientes al día necesarios', 'no calculado');
     }
 
+    if(o.crecimiento){
+      if(o.crecimiento.sentido==='igual'){
+        t += linea('Contra el año pasado', 'lo mismo');
+      }else{
+        t += linea(o.crecimiento.sentido==='crecio' ? 'Contra el año pasado, creció'
+                                                    : 'Contra el año pasado, cayó',
+                   pesos(Math.abs(o.crecimiento.dif)) + '   ' + pct(Math.abs(o.crecimiento.pct)));
+      }
+    }else{
+      t += linea('Contra el año pasado', 'sin las ventas de ' + MES_ANTERIOR);
+    }
+
     t += linea('Meses abierto', o.meses!==null ? mesesTexto(o.meses) : SIN);
   }
 
-  /* ---------- Bloque 4 ---------- */
-  t += bloqueTitulo('Bloque 4 · Producto');
+  /* ---------- Bloque 3 ---------- */
+  t += bloqueTitulo('Bloque 3 · Producto');
   t += subTitulo('Los cinco más vendidos');
-  t += (d.b4.vendidos ? '  ' + d.b4.vendidos.replace(/\n/g,'\n  ') : '  ' + SIN) + '\n';
+  t += (d.b3.vendidos ? '  ' + d.b3.vendidos.replace(/\n/g,'\n  ') : '  ' + SIN) + '\n';
   t += subTitulo('Los cinco que más margen dejan');
-  t += (d.b4.margen ? '  ' + d.b4.margen.replace(/\n/g,'\n  ') : '  ' + SIN) + '\n';
+  t += (d.b3.margen ? '  ' + d.b3.margen.replace(/\n/g,'\n  ') : '  ' + SIN) + '\n';
   t += '\n  Si las dos listas no coinciden, ahí hay margen sin tocar nada más.\n';
 
   t += '\n' + new Array(66).join('-') + '\n';
   t += 'Actio Growth · Estrategia que piensa. Sistemas que actúan.\n';
-
   return t;
 }
 
 /* ==========================================================================
-   7. ARRANQUE
+   8. ARRANQUE
    ========================================================================== */
+
+/* El ano cerrado entra en las etiquetas del bloque 1. */
+var marcas = document.querySelectorAll('[data-anio]');
+for(var q=0;q<marcas.length;q++) marcas[q].textContent = ANIO_CERRADO;
 
 construirLocales();
 
-/* Un solo escucha en el documento: los campos del bloque 3 nacen despues. */
+/* Un solo escucha en el documento: los campos del bloque 2 nacen despues. */
 document.addEventListener('input', function(e){
   var el = e.target;
-  if(!el || !el.tagName) return;
+  if(!el||!el.tagName) return;
   var tag = el.tagName.toLowerCase();
   if(tag!=='input' && tag!=='textarea') return;
 
-  /* Formateo de miles solo si el cursor esta al final. En la mitad del número
-     reformatear le moveria el cursor debajo de los dedos. */
+  /* Separador de miles solo si el cursor esta al final: en la mitad del
+     numero, reformatear le moveria el cursor debajo de los dedos. */
   var tipo = el.getAttribute('data-tipo');
   if((tipo==='dinero'||tipo==='entero') && el.type==='text'){
-    var alFinal = el.selectionStart===el.value.length;
-    if(alFinal){
+    if(el.selectionStart===el.value.length){
       var v = aNumero(el.value,'entero');
       var nuevo = v===null ? '' : miles(Math.round(v));
       if(nuevo!==el.value){
@@ -1544,15 +1310,8 @@ document.getElementById('btnGenerar').addEventListener('click', function(){
 });
 
 btnCopiar.addEventListener('click', function(){
-  var texto = salida.value;
-  function ok(){ aviso.textContent = 'Copiado.'; setTimeout(function(){ aviso.textContent=''; },2600); }
-  function falla(){ aviso.textContent = 'No se pudo copiar. Seleccione el texto y cópielo a mano.'; }
-
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(texto).then(ok, respaldo);
-  }else{
-    respaldo();
-  }
+  function ok(){ aviso.textContent='Copiado.'; setTimeout(function(){ aviso.textContent=''; },2600); }
+  function falla(){ aviso.textContent='No se pudo copiar. Seleccione el texto y cópielo a mano.'; }
   /* Sin https la API de portapapeles no existe. Se cae al metodo viejo. */
   function respaldo(){
     try{
@@ -1563,6 +1322,11 @@ btnCopiar.addEventListener('click', function(){
       salida.setAttribute('readonly','readonly');
       hecho ? ok() : falla();
     }catch(err){ falla(); }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(salida.value).then(ok, respaldo);
+  }else{
+    respaldo();
   }
 });
 
