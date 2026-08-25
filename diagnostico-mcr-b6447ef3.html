@@ -236,6 +236,52 @@ input::placeholder,textarea::placeholder{color:#AEB3AD}
   margin-bottom:13px;
   max-width:62ch;
 }
+/* Cerdo y res se separan con una etiqueta, no con una caja: son dos grupos
+   dentro de la misma pregunta, no dos secciones distintas del formulario. */
+.camino-b .especie{
+  font-size:.78rem;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--marca-verde-claro);
+  margin:16px 0 9px;
+}
+.camino-b .especie:first-of-type{margin-top:4px}
+.camino-b .resto{
+  font-size:.84rem;
+  color:var(--texto-secundario);
+  margin-top:8px;
+}
+.camino-b .resto:empty{display:none}
+.camino-b .resto strong{font-weight:600;color:var(--texto-principal)}
+
+/* La devolucion del camino B, pegada a los campos que la producen. */
+.margen-salida{
+  margin-top:16px;
+  padding:14px 16px;
+  background:var(--marca-tenue);
+  border:1px solid var(--marca-borde-suave);
+  border-radius:9px;
+  display:none;
+}
+.margen-salida.visible{display:block}
+.margen-salida .fila{font-size:.9rem}
+.margen-salida .fila.destacada .val{font-size:1.1rem}
+.margen-salida .apostilla{margin-top:8px}
+
+/* Aviso de que los dos caminos no coinciden. Sin color de estado: no es un
+   error, es una diferencia que se resuelve hablando. */
+.discrepancia{
+  margin-top:11px;
+  padding:11px 13px;
+  background:var(--superficie);
+  border:1px solid var(--marca-borde-suave);
+  border-left:3px solid var(--marca-verde-medio);
+  border-radius:8px;
+  font-size:.86rem;
+  line-height:1.5;
+}
+.discrepancia strong{font-weight:600}
 
 /* ==========================================================================
    RESULTADOS
@@ -750,19 +796,36 @@ function construirLocales(){
       html += '</div>';
     }
 
-    /* El margen bruto, con sus dos caminos. */
+    /* El margen bruto, con sus dos caminos. El negocio es Cerdo y Res, asi
+       que el camino B pregunta por las dos especies por separado y las une
+       con el reparto de ventas. Preguntar por "la carne" en singular obligaba
+       al cliente a promediar de cabeza dos negocios distintos. */
     html += '<div class="margen-caja"><p class="sub">El margen bruto</p><div class="campos">'
          + campoHTML(pre+'margenA', {etq:'Margen bruto del local', tipo:'pct',
              pista:'De cada 100 pesos que vende, cuánto queda después de pagar la carne'})
          + '</div>'
          + '<div class="camino-b">'
          + '<p class="encabezado">¿No lo tiene a la mano?</p>'
-         + '<p class="explica">Con estos dos precios se calcula solo. Es el mismo número, '
-         + 'visto desde el kilo.</p>'
-         + '<div class="campos">'
-         + campoHTML(pre+'kiloEntra', {etq:'A cuánto le entra el kilo al local', tipo:'dinero'})
-         + campoHTML(pre+'kiloVende', {etq:'A cuánto lo vende, en promedio', tipo:'dinero'})
-         + '</div></div></div>';
+         + '<p class="explica">Con los precios por kilo se calcula solo. Cerdo y res '
+         + 'van aparte, y el reparto de ventas los une.</p>'
+
+         + '<p class="especie">Cerdo</p><div class="campos">'
+         + campoHTML(pre+'cerdoEntra', {etq:'Precio de compra por kilo', tipo:'dinero'})
+         + campoHTML(pre+'cerdoVende', {etq:'Precio de venta por kilo', tipo:'dinero'})
+         + '</div>'
+
+         + '<p class="especie">Res</p><div class="campos">'
+         + campoHTML(pre+'resEntra', {etq:'Precio de compra por kilo', tipo:'dinero'})
+         + campoHTML(pre+'resVende', {etq:'Precio de venta por kilo', tipo:'dinero'})
+         + '</div>'
+
+         + '<p class="especie">El reparto</p><div class="campos">'
+         + campoHTML(pre+'pctCerdo', {etq:'Qué % de las ventas del local es cerdo',
+             tipo:'pct', pista:'El resto se toma como res'})
+         + '</div><p class="resto" id="resto_'+L.clave+'"></p>'
+
+         + '<div class="margen-salida" id="ms_'+L.clave+'"></div>'
+         + '</div></div>';
 
     html += '<div class="resultados"><p class="resultados-titulo">Para que confirme</p>'
          + '<div id="r2_'+L.clave+'"></div></div></div>';
@@ -816,8 +879,11 @@ function recoger(){
       identifica: texto(pre+'identifica'),
       pauta:      texto(pre+'pauta'),
       margenA:    leer(pre+'margenA'),
-      kiloEntra:  leer(pre+'kiloEntra'),
-      kiloVende:  leer(pre+'kiloVende')
+      cerdoEntra: leer(pre+'cerdoEntra'),
+      cerdoVende: leer(pre+'cerdoVende'),
+      resEntra:   leer(pre+'resEntra'),
+      resVende:   leer(pre+'resVende'),
+      pctCerdo:   leer(pre+'pctCerdo')
     };
 
     /* Suma de los cuatro rubros fijos. */
@@ -831,14 +897,42 @@ function recoger(){
     o.costoFijo = con.length ? con.reduce(function(a,x){ return a+x.v; },0) : null;
     o.costoFijoCompleto = sin.length===0;
 
-    /* Margen bruto del camino B: lo que queda del precio de venta despues de
-       pagar la carne, sobre ese mismo precio de venta. Aritmetica de sus dos
-       precios, nada mas. El del camino A se guarda tal cual y no se toca:
-       no hay nada que calcularle. */
-    o.margenB = null;
-    if(o.kiloEntra!==null && o.kiloVende!==null && o.kiloVende>0){
-      o.margenB = (o.kiloVende - o.kiloEntra) / o.kiloVende * 100;
+    /* Margen bruto del camino B, por especie: lo que queda del precio de
+       venta despues de pagar la carne, sobre ese mismo precio de venta.
+       Aritmetica de sus propios precios. El del camino A se guarda tal cual
+       y no se toca: no hay nada que calcularle. */
+    function margenDe(entra,vende){
+      if(entra===null||vende===null||vende<=0) return null;
+      return (vende - entra) / vende * 100;
     }
+    o.margenCerdo = margenDe(o.cerdoEntra, o.cerdoVende);
+    o.margenRes   = margenDe(o.resEntra,   o.resVende);
+
+    /* El reparto de ventas. Se guarda el complemento para mostrarlo al lado:
+       el cliente escribe un solo numero y ve los dos. */
+    o.pctRes = (o.pctCerdo!==null && o.pctCerdo>=0 && o.pctCerdo<=100)
+               ? 100 - o.pctCerdo : null;
+
+    /* Margen del local: los dos anteriores ponderados por el reparto. Solo
+       se exige la especie que pesa: con el reparto en 100% cerdo basta el
+       margen de cerdo, y con 0% basta el de res. Si falta una especie que si
+       pesa, no hay numero -y no se sustituye por el de la otra, que seria
+       presentar media verdad como si fuera el margen del local. */
+    o.margenLocal = null;
+    if(o.pctRes!==null){
+      var w = o.pctCerdo/100;
+      var pesaCerdo = w > 0, pesaRes = w < 1;
+      if((!pesaCerdo || o.margenCerdo!==null) && (!pesaRes || o.margenRes!==null)){
+        o.margenLocal = (pesaCerdo ? w*o.margenCerdo : 0)
+                      + (pesaRes   ? (1-w)*o.margenRes : 0);
+      }
+    }
+
+    /* Los dos caminos se comparan sobre la cifra comparable: el margen del
+       local. Si no coinciden se avisa y ya; cual de los dos vale lo decide
+       el, no la pagina. */
+    o.discrepa = (o.margenA!==null && o.margenLocal!==null
+                  && Math.abs(o.margenA - o.margenLocal) > 0.1);
 
     /* Fecha de apertura: dato, no cuenta atras. */
     o.aperturaTexto = null;
@@ -883,11 +977,48 @@ function render(){
   }
   pintar('r_peso',h);
 
-  /* ---------- Bloque 2: la suma y la division ---------- */
+  /* ---------- Bloque 2 ---------- */
   for(var n=0;n<d.locales.length;n++){
-    var o = d.locales[n], partes = [], s;
+    var o = d.locales[n];
 
-    s = tituloRes('Costo fijo al mes');
+    /* El complemento del reparto, al lado del campo. */
+    var resto = document.getElementById('resto_'+o.clave);
+    if(resto){
+      resto.innerHTML = o.pctRes!==null
+        ? 'Entonces res es el <strong>'+esc(pct(o.pctRes))+'</strong> de las ventas.'
+        : '';
+    }
+
+    /* Los tres margenes, junto a los campos que los producen: puede ser la
+       primera vez que el cliente ve estos numeros. Se muestran los que se
+       puedan y no se rellena ninguno. */
+    var ms = document.getElementById('ms_'+o.clave);
+    if(ms){
+      var m = '';
+      if(o.margenCerdo!==null) m += fila('Margen bruto de cerdo', pct(o.margenCerdo));
+      if(o.margenRes!==null)   m += fila('Margen bruto de res',   pct(o.margenRes));
+      if(o.margenLocal!==null){
+        m += fila('Margen bruto del local', pct(o.margenLocal), true);
+        if(o.margenCerdo!==null && o.margenRes!==null && o.pctCerdo>0 && o.pctCerdo<100){
+          m += '<p class="apostilla">'+esc(pct(o.pctCerdo))+' de cerdo al '
+             + esc(pct(o.margenCerdo))+' y '+esc(pct(o.pctRes))+' de res al '
+             + esc(pct(o.margenRes))+'.</p>';
+        }
+      }else if(o.margenCerdo!==null && o.margenRes!==null){
+        m += '<p class="apostilla">Con el % de ventas que es cerdo, aquí aparece '
+           + 'el margen del local.</p>';
+      }
+      if(m && o.discrepa){
+        m += '<div class="discrepancia">Los dos caminos no dan lo mismo: usted escribió '
+           + '<strong>'+esc(pct(o.margenA))+'</strong> y de los precios por kilo sale '
+           + '<strong>'+esc(pct(o.margenLocal))+'</strong>. Lo revisamos en la sesión.</div>';
+      }
+      ms.className = m ? 'margen-salida visible' : 'margen-salida';
+      ms.innerHTML = m;
+    }
+
+    /* El panel de abajo se queda con la suma de los gastos fijos. */
+    var s = tituloRes('Costo fijo al mes');
     if(o.costoFijo!==null){
       for(var r=0;r<o.rubros.length;r++) s += fila(o.rubros[r].etq, pesos(o.rubros[r].v));
       s += fila(o.costoFijoCompleto ? 'Costo fijo total' : 'Suma de los rubros con dato',
@@ -898,19 +1029,7 @@ function render(){
     }else{
       s += pendiente('Con los gastos fijos escritos, aquí aparece la suma.');
     }
-    partes.push(s);
-
-    s = tituloRes('Margen bruto');
-    if(o.margenB!==null){
-      s += fila('Sale de sus dos precios', pct(o.margenB), true);
-      s += '<p class="apostilla">De cada '+esc(pesos(o.kiloVende))+' que vende el kilo, '
-         + 'le quedan '+esc(pesos(o.kiloVende-o.kiloEntra))+' después de pagar la carne.</p>';
-    }else{
-      s += pendiente('Con el precio de entrada y el de venta del kilo, aquí aparece el margen bruto.');
-    }
-    partes.push(s);
-
-    pintar('r2_'+o.clave, '<div class="res">'+partes.join('</div><div class="res">')+'</div>');
+    pintar('r2_'+o.clave, '<div class="res">'+s+'</div>');
   }
 }
 
@@ -995,9 +1114,15 @@ function generarResumen(){
                o.vuelve!==null ? decimales(o.vuelve,0)+' días' : ''))
       + seccion('Margen bruto',
             li('Margen bruto escrito', pct(o.margenA))
-          + li('Le entra el kilo a', pesos(o.kiloEntra))
-          + li('Lo vende a', pesos(o.kiloVende))
-          + li('Margen bruto de esos dos precios', pct(o.margenB)))
+          + li('Cerdo, compra por kilo', pesos(o.cerdoEntra))
+          + li('Cerdo, venta por kilo', pesos(o.cerdoVende))
+          + li('Margen bruto de cerdo', pct(o.margenCerdo))
+          + li('Res, compra por kilo', pesos(o.resEntra))
+          + li('Res, venta por kilo', pesos(o.resVende))
+          + li('Margen bruto de res', pct(o.margenRes))
+          + li('Ventas que son cerdo', pct(o.pctCerdo))
+          + li('Ventas que son res', pct(o.pctRes))
+          + li('Margen bruto del local', pct(o.margenLocal)))
       + seccion('Clientes y pauta',
             li('¿Saben quién ya compró antes?', o.identifica)
           + li('¿Han pautado? ¿Cuánto y qué resultó?',
