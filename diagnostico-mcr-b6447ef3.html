@@ -349,6 +349,7 @@ button{
   margin-top:14px;
   flex-basis:100%;
 }
+.nota-envio + .nota-envio{margin-top:7px}
 #salidaResumen{
   display:none;
   margin-top:20px;
@@ -534,6 +535,8 @@ button{
       <span class="aviso-copia" id="avisoCopia"></span>
       <p class="nota-envio">Ninguno de los dos envía solo: abren la aplicación con
       el mensaje ya escrito y usted le da enviar.</p>
+      <p class="nota-envio">Si el correo se abre con el mensaje cortado, mándelo
+      por WhatsApp o use el botón de copiar y péguelo usted mismo.</p>
     </div>
     <textarea id="salidaResumen" readonly spellcheck="false"></textarea>
   </section>
@@ -923,11 +926,20 @@ function render(){
    un dato falte tambien es informacion que va a la reunion.
    ========================================================================== */
 
-var SIN = 'sin dato';
+/* Cada linea se arma sola: si el valor viene vacio devuelve cadena vacia y
+   desaparece. Los envoltorios miran si les quedo cuerpo y, si no, tampoco
+   imprimen su encabezado, ni el nombre del local, ni el del bloque.
 
-function li(etq,val){ return '- ' + etq + ': ' + val + '\n'; }
-function tit(t){ return '\n' + t.toUpperCase() + '\n'; }
-function sub(t){ return '\n' + t + '\n'; }
+   Un resumen lleno de "sin dato" es ruido: entierra lo que el cliente si
+   contesto debajo de una lista de lo que no. Solo va lo que escribio. */
+
+function li(etq,val){
+  if(val===null||val===undefined||val==='') return '';
+  return '- ' + etq + ': ' + val + '\n';
+}
+function seccion(titulo,cuerpo){ return cuerpo ? '\n' + titulo + '\n' + cuerpo : ''; }
+function bloque(titulo,cuerpo){ return cuerpo ? '\n' + titulo.toUpperCase() + '\n' + cuerpo : ''; }
+function lista(txt){ return txt ? txt.replace(/^/gm,'- ') + '\n' : ''; }
 
 function generarResumen(){
   var d = recoger();
@@ -938,66 +950,68 @@ function generarResumen(){
      + ' de ' + HOY.getFullYear() + '\n';
 
   /* ---------- Bloque 1 ---------- */
-  t += tit('1 · El tamaño del negocio');
-  t += sub('Facturación de ' + ANIO_CERRADO).slice(1);
+  var facturacion = '';
   for(var i=0;i<d.unidades.length;i++){
-    t += li(d.unidades[i].etq, d.unidades[i].v!==null ? pesos(d.unidades[i].v) : SIN);
+    facturacion += li(d.unidades[i].etq, pesos(d.unidades[i].v));
   }
+  var reparto = '';
   if(d.conDato.length>=2 && d.suma>0){
-    t += sub('Reparto');
     for(var j=0;j<d.conDato.length;j++){
-      t += li(d.conDato[j].etq, pct(d.conDato[j].v/d.suma*100));
+      reparto += li(d.conDato[j].etq, pct(d.conDato[j].v/d.suma*100));
     }
-    t += li(d.todas ? 'Total de '+ANIO_CERRADO : 'Suma de las unidades con dato', pesos(d.suma));
+    reparto += li(d.todas ? 'Total de '+ANIO_CERRADO : 'Suma de las unidades con dato',
+                  pesos(d.suma));
   }
+  t += bloque('1 · El tamaño del negocio',
+              seccion('Facturación de ' + ANIO_CERRADO, facturacion)
+            + seccion('Reparto', reparto));
 
   /* ---------- Bloque 2 ---------- */
-  t += tit('2 · Cada local');
+  var todosLocales = '';
   for(var n=0;n<d.locales.length;n++){
     var o = d.locales[n];
-    t += '\n' + o.nombre.toUpperCase() + '\n';
 
-    t += sub('Operación').slice(1);
-    t += li('Fecha de apertura', o.aperturaTexto || SIN);
-    t += li('Días que abre al mes', o.dias!==null ? decimales(o.dias,0) : SIN);
-    t += li('Personas que trabajan', o.personas!==null ? decimales(o.personas,0) : SIN);
-
-    t += sub('Costo fijo al mes');
-    t += li('Arriendo', o.arriendo!==null ? pesos(o.arriendo) : SIN);
-    t += li('Nómina con prestaciones', o.nomina!==null ? pesos(o.nomina) : SIN);
-    t += li('Servicios públicos', o.servicios!==null ? pesos(o.servicios) : SIN);
-    t += li('Otros gastos fijos', o.otros!==null ? pesos(o.otros) : SIN);
+    var costoFijo = li('Arriendo', pesos(o.arriendo))
+                  + li('Nómina con prestaciones', pesos(o.nomina))
+                  + li('Servicios públicos', pesos(o.servicios))
+                  + li('Otros gastos fijos', pesos(o.otros));
     if(o.costoFijo!==null){
-      t += li(o.costoFijoCompleto ? 'Costo fijo total' : 'Suma de los rubros con dato',
-              pesos(o.costoFijo));
+      costoFijo += li(o.costoFijoCompleto ? 'Costo fijo total' : 'Suma de los rubros con dato',
+                      pesos(o.costoFijo));
     }
 
-    t += sub('Movimiento');
-    t += li('Ventas de '+MES_PASADO, o.ventas!==null ? pesos(o.ventas) : SIN);
-    t += li('Clientes atendidos al día', o.clientes!==null ? decimales(o.clientes,0) : SIN);
-    t += li('Ticket promedio', o.ticket!==null ? pesos(o.ticket) : SIN);
-    t += li('Gente que pasa por la puerta al día', o.pasan!==null ? decimales(o.pasan,0) : SIN);
-    t += li('Cada cuánto vuelve un cliente',
-            o.vuelve!==null ? decimales(o.vuelve,0)+' días' : SIN);
+    var cuerpo =
+        seccion('Operación',
+            li('Fecha de apertura', o.aperturaTexto || '')
+          + li('Días que abre al mes', decimales(o.dias,0))
+          + li('Personas que trabajan', decimales(o.personas,0)))
+      + seccion('Costo fijo al mes', costoFijo)
+      + seccion('Movimiento',
+            li('Ventas de '+MES_PASADO, pesos(o.ventas))
+          + li('Clientes atendidos al día', decimales(o.clientes,0))
+          + li('Ticket promedio', pesos(o.ticket))
+          + li('Gente que pasa por la puerta al día', decimales(o.pasan,0))
+          + li('Cada cuánto vuelve un cliente',
+               o.vuelve!==null ? decimales(o.vuelve,0)+' días' : ''))
+      + seccion('Margen bruto',
+            li('Margen bruto escrito', pct(o.margenA))
+          + li('Le entra el kilo a', pesos(o.kiloEntra))
+          + li('Lo vende a', pesos(o.kiloVende))
+          + li('Margen bruto de esos dos precios', pct(o.margenB)))
+      + seccion('Clientes y pauta',
+            li('¿Saben quién ya compró antes?', o.identifica)
+          + li('¿Han pautado? ¿Cuánto y qué resultó?',
+               o.pauta ? o.pauta.replace(/\n+/g,' / ') : ''));
 
-    t += sub('Margen bruto');
-    t += li('Margen bruto escrito', o.margenA!==null ? pct(o.margenA) : SIN);
-    t += li('Le entra el kilo a', o.kiloEntra!==null ? pesos(o.kiloEntra) : SIN);
-    t += li('Lo vende a', o.kiloVende!==null ? pesos(o.kiloVende) : SIN);
-    if(o.margenB!==null) t += li('Margen bruto de esos dos precios', pct(o.margenB));
-
-    t += sub('Clientes y pauta');
-    t += li('¿Saben quién ya compró antes?', o.identifica || SIN);
-    t += li('¿Han pautado? ¿Cuánto y qué resultó?',
-            o.pauta ? o.pauta.replace(/\n+/g,' / ') : SIN);
+    /* Un local sin un solo dato no aparece: ni su nombre. */
+    if(cuerpo) todosLocales += '\n' + o.nombre.toUpperCase() + '\n' + cuerpo;
   }
+  t += bloque('2 · Cada local', todosLocales);
 
   /* ---------- Bloque 3 ---------- */
-  t += tit('3 · Producto');
-  t += sub('Los cinco más vendidos').slice(1);
-  t += (d.b3.vendidos ? d.b3.vendidos.replace(/^/gm,'- ') : '- ' + SIN) + '\n';
-  t += sub('Los cinco que más margen dejan');
-  t += (d.b3.margen ? d.b3.margen.replace(/^/gm,'- ') : '- ' + SIN) + '\n';
+  t += bloque('3 · Producto',
+              seccion('Los cinco más vendidos', lista(d.b3.vendidos))
+            + seccion('Los cinco que más margen dejan', lista(d.b3.margen)));
 
   t += '\nActio Growth · Estrategia que piensa. Sistemas que actúan.\n';
   return t;
