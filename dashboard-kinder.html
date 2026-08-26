@@ -119,38 +119,6 @@ section{margin-bottom:20px}
 h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--negro)}
 .s-sub{font-size:12px;color:var(--gris2);margin-top:4px;line-height:1.5;max-width:660px}
 
-/* ---------- Tarjeta de bloque ---------- */
-.bloque{background:var(--blanco);border:1.5px solid var(--gris3);
-  border-radius:14px;padding:18px 16px;margin-bottom:20px}
-.bloque-tit{font-size:9px;font-weight:700;color:var(--gris2);
-  text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-
-/* ---------- Tarjeta KPI ----------
-   El acento es una barra VERTICAL pegada a la izquierda, no una franja
-   arriba. El numero va en negro: el color vive en la barra. Eso resuelve
-   solo el problema del naranja, que con 1,96 de contraste no puede pintar
-   texto en ningun tamaño. */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.kpi{background:var(--blanco);border:1.5px solid var(--gris3);border-radius:14px;
-  padding:16px;position:relative;overflow:hidden}
-.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-  border-radius:14px 0 0 14px;background:var(--gris3)}
-.kpi.a-azul::before{background:var(--azul)}
-.kpi.a-rojo::before{background:var(--rojo)}
-.kpi.a-verde::before{background:var(--verde)}
-.kpi.a-naranja::before{background:var(--naranja)}
-.kpi-lbl{font-size:9px;font-weight:700;color:var(--gris2);
-  text-transform:uppercase;letter-spacing:.08em}
-.kpi-val{font-size:26px;font-weight:800;color:var(--negro);
-  line-height:1;letter-spacing:-.02em;margin-top:6px}
-.kpi-val small{font-size:14px;font-weight:600;color:var(--gris2);letter-spacing:0}
-.kpi-sub{font-size:10px;color:var(--gris2);font-weight:500;margin-top:6px;line-height:1.5}
-/* La meta es "el numero grande" del Bloque 1: se queda grande. Es la unica
-   medida que se sale del sistema, y es una decision de contenido. */
-.kpi.destacado .kpi-val{font-size:42px;color:var(--azul)}
-
-.b1{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px}
-
 /* ==========================================================================
    BLOQUE 2 · TARJETAS DE GRUPO
    ========================================================================== */
@@ -161,55 +129,92 @@ h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--negro)}
 .lg .punto{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .lg-nota{margin-left:auto;font-size:10px;color:var(--gris2);text-align:right;line-height:1.5}
 
-.grupos{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
-.tarjeta{background:var(--blanco);border:1.5px solid var(--gris3);
-  border-radius:14px;padding:18px 16px;position:relative;overflow:hidden;
-  transition:.18s}
-.tarjeta::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-  border-radius:14px 0 0 14px;background:var(--azul)}
-.tarjeta:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.09);
-  border-color:var(--azul)}
-.t-top{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
-.t-nombre{font-size:15px;font-weight:700;color:var(--negro);letter-spacing:-.01em}
-.t-edad{font-size:11px;color:var(--gris2);margin-top:2px}
-.t-pastillas{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
-.pastilla{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;
-  white-space:nowrap;color:var(--gris1)}
-.p-ninos{background:var(--vea-celeste)}
-.p-libres{background:var(--vea-gris)}
-.p-equilibrio{background:var(--vea-arena)}
+/* ==========================================================================
+   SISTEMA DE COLOR
+   Kinder mide dinero, no ocupacion. Por eso abandona la escala de Veranito,
+   donde rojo es 71-100% lleno y lleno es bueno: en la misma pantalla el rojo
+   no puede significar dos cosas.
 
-/* Barra: riel gris3, 10px, radius 8. La marca vertical del equilibrio es lo
-   unico que este patron agrega a la barra de Veranito. */
-.barra{position:relative;height:10px;background:var(--gris3);
-  border-radius:8px;margin-top:14px}
-.barra-relleno{height:100%;border-radius:8px;width:0;transition:width 1s ease}
-.marca{position:absolute;top:-4px;bottom:-4px;width:2px;
+       verde  cubre su costo
+       rojo   no lo cubre
+       azul   progreso hacia la meta
+       gris   sin datos
+
+   Ningun borde de color decora. Si hay color, significa.
+   ========================================================================== */
+
+/* ---------- Franja principal ---------- */
+.franja-meta{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:14px;padding:20px 22px}
+.fm-top{display:flex;align-items:stretch;gap:26px;flex-wrap:wrap}
+.fm-meta{flex:1 1 300px;min-width:0}
+.fm-sep{width:1px;background:var(--gris3);flex:none;align-self:stretch}
+.fm-ritmo{flex:0 1 190px;min-width:0}
+.fm-lbl{font-size:9px;font-weight:700;color:var(--gris2);
+  text-transform:uppercase;letter-spacing:.08em}
+.fm-num{font-size:52px;font-weight:800;color:var(--azul);line-height:1;
+  letter-spacing:-.03em;margin-top:8px;display:flex;align-items:baseline;
+  gap:12px;flex-wrap:wrap}
+.fm-de{font-size:15px;font-weight:600;color:var(--gris2);letter-spacing:0}
+.fm-barra{height:8px;background:var(--gris3);border-radius:6px;margin-top:16px;overflow:hidden}
+.fm-relleno{height:100%;background:var(--azul);border-radius:6px;width:0;
+  transition:width 1s ease}
+.fm-num2{font-size:30px;font-weight:800;color:var(--negro);line-height:1;
+  letter-spacing:-.02em;margin-top:8px}
+.fm-num2 small{font-size:11.5px;font-weight:600;color:var(--gris2);
+  letter-spacing:0;margin-left:5px}
+.fm-pie{font-size:10.5px;color:var(--gris2);margin-top:9px;line-height:1.5}
+.fm-estado{display:flex;align-items:flex-start;gap:9px;margin-top:18px;
+  padding-top:15px;border-top:1px solid var(--gris3);
+  font-size:12.5px;color:var(--gris1);line-height:1.5;font-weight:500}
+
+/* ---------- Veredicto de bloque ---------- */
+.veredicto{display:flex;align-items:flex-start;gap:8px;font-size:13px;
+  font-weight:600;color:var(--negro);margin-bottom:12px;line-height:1.45}
+.ico{width:16px;height:16px;flex:none;margin-top:1px}
+.ico-ok{color:var(--verde)}
+.ico-mal{color:var(--rojo)}
+.ico-info{color:var(--azul)}
+
+/* ---------- Filas de grupo ---------- */
+.grupos{display:grid;grid-template-columns:1fr;gap:8px}
+.g-fila{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:12px;padding:10px 14px}
+.g-cab{display:flex;align-items:baseline;gap:10px;line-height:1.15}
+.g-nombre{font-size:13px;font-weight:700;color:var(--negro)}
+.g-res{margin-left:auto;font-size:16px;font-weight:800;letter-spacing:-.02em}
+.g-res.pos{color:var(--verde)}
+.g-res.neg{color:var(--rojo)}
+.g-res.neutro{color:var(--gris2)}
+.g-barra{position:relative;height:6px;background:var(--gris3);
+  border-radius:4px;margin-top:8px}
+.g-relleno,.barra-relleno{height:100%;border-radius:4px;width:0;transition:width 1s ease}
+.g-relleno.pos{background:var(--verde)}
+.g-relleno.neg{background:var(--rojo)}
+.g-relleno.neutro{background:var(--gris2)}
+.g-marca{position:absolute;top:-3px;bottom:-3px;width:2px;
   background:var(--negro);border-radius:1px}
-.marca::after{content:attr(data-lbl);position:absolute;top:-15px;left:50%;
-  transform:translateX(-50%);font-size:8.5px;font-weight:700;letter-spacing:.04em;
-  color:var(--gris2);white-space:nowrap}
-.t-pct{font-size:10px;color:var(--gris2);margin-top:8px;font-weight:500}
+.g-datos{font-size:10px;color:var(--gris2);margin-top:6px;line-height:1.3}
 
-.separador{border:0;border-top:1px dashed var(--gris3);margin:14px 0}
-
-.t-cols{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
-.t-col-lbl{font-size:9px;font-weight:700;color:var(--gris2);
-  text-transform:uppercase;letter-spacing:.08em}
-.t-col-val{font-size:20px;font-weight:800;color:var(--negro);
-  letter-spacing:-.02em;margin-top:3px}
-
-/* ---------- Caja de resultado ---------- */
-.resultado{border-radius:12px;padding:12px 16px;text-align:center}
-.resultado.pos{background:var(--pos-fondo);border:1.5px solid var(--pos-borde)}
-.resultado.neg{background:var(--neg-fondo);border:1.5px solid var(--neg-borde)}
-.resultado.neutro{background:var(--fondo);border:1.5px solid var(--gris3)}
-.res-lbl{font-size:9px;font-weight:700;color:var(--gris2);
-  text-transform:uppercase;letter-spacing:.08em}
-.res-val{font-size:22px;font-weight:800;line-height:1;letter-spacing:-.02em;margin-top:5px}
-.resultado.pos .res-val{color:var(--verde)}
-.resultado.neg .res-val{color:var(--rojo)}
-.resultado.neutro .res-val{color:var(--gris1)}
+/* ---------- Bloque 3 · una barra por niño ---------- */
+.b3-caja{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:14px;padding:18px 16px 14px}
+.b3-graf{position:relative;display:flex;align-items:stretch;gap:6px;height:150px}
+.b3-col{flex:1;position:relative}
+.b3-bar{position:absolute;left:0;right:0;border-radius:3px;min-height:2px}
+.b3-bar.neg{background:var(--rojo)}
+.b3-bar.pos{background:var(--verde)}
+.b3-cero{position:absolute;left:0;right:0;height:1px;background:var(--gris2);
+  opacity:.45;pointer-events:none}
+.b3-eje{display:flex;gap:6px;margin-top:9px}
+.b3-eje span{flex:1;text-align:center;font-size:10.5px;color:var(--gris2);font-weight:600}
+.b3-eje span.cubre{color:var(--verde);font-weight:800}
+.b3-ver{margin-top:14px;background:none;border:1.5px solid var(--gris3);
+  border-radius:20px;font-family:inherit;font-size:10px;font-weight:600;
+  color:var(--gris1);padding:5px 13px;cursor:pointer;transition:.18s}
+.b3-ver:hover{border-color:var(--azul);color:var(--azul)}
+.b3-detalle{margin-top:12px}
+.b3-detalle[hidden]{display:none}
 
 /* ==========================================================================
    TABLA
@@ -254,11 +259,7 @@ h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--negro)}
    ========================================================================== */
 .tickets{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .ticket{background:var(--blanco);border:1.5px solid var(--gris3);border-radius:14px;
-  padding:16px;position:relative;overflow:hidden}
-.ticket::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-  border-radius:14px 0 0 14px;background:var(--gris3)}
-.ticket.a-azul::before{background:var(--azul)}
-.ticket.a-naranja::before{background:var(--naranja)}
+  padding:16px}
 .ticket-lbl{font-size:9px;font-weight:700;color:var(--gris2);
   text-transform:uppercase;letter-spacing:.08em}
 .ticket-val{font-size:26px;font-weight:800;color:var(--negro);
@@ -287,11 +288,14 @@ footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
   font-size:10px;color:var(--gris2);line-height:1.7}
 
 @media (max-width:860px){
-  .b1{grid-template-columns:1fr}
+  .fm-sep{display:none}
+  .fm-ritmo{flex:1 1 100%}
   .lg-nota{margin-left:0;text-align:left;width:100%}
 }
-@media (max-width:680px){ .kpis{grid-template-columns:repeat(2,1fr)} }
-@media (max-width:360px){ .kpis{grid-template-columns:1fr} }
+@media (max-width:520px){
+  .fm-num{font-size:40px}
+  .b3-eje span{font-size:9px}
+}
 </style>
 </head>
 <body>
@@ -332,26 +336,26 @@ footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
 
 <section id="s-b2">
   <div class="s-eyebrow">Bloque 2 · Cada grupo</div>
-  <div class="kpis" id="kpis"></div>
-  <div class="leyenda">
-    <span class="lg"><span class="punto" style="background:var(--azul)"></span>0-30% libre</span>
-    <span class="lg"><span class="punto" style="background:var(--naranja)"></span>31-70% medio</span>
-    <span class="lg"><span class="punto" style="background:var(--rojo)"></span>71-100% lleno</span>
-    <span class="lg-nota">La línea punteada separa el llenado del resultado en dólares.<br>La marca vertical sobre la barra es el punto de equilibrio del grupo.</span>
-  </div>
+  <div id="b2-veredicto"></div>
   <div class="grupos" id="grupos"></div>
+  <div class="leyenda">
+    <span class="lg"><span class="punto" style="background:var(--verde)"></span>Cubre su costo</span>
+    <span class="lg"><span class="punto" style="background:var(--rojo)"></span>No lo cubre</span>
+    <span class="lg-nota">La marca vertical sobre la barra es el punto de equilibrio del grupo.</span>
+  </div>
   <div class="nota" id="b2-nota"></div>
 </section>
 
 <section id="s-b3">
   <div class="s-eyebrow" id="b3-titulo">Bloque 3 · El grupo siguiente</div>
   <div class="s-sub" id="b3-sub" style="margin:-6px 0 12px"></div>
-  <div class="env-tabla"><table class="tabla" id="b3-tabla"></table></div>
+  <div id="b3-grafico"></div>
   <div class="nota" id="b3-nota"></div>
 </section>
 
 <section id="s-curva">
-  <div class="s-eyebrow">El camino · De 30 a 50 niños</div>
+  <div class="s-eyebrow" id="curva-titulo">El camino</div>
+  <div id="curva-veredicto"></div>
   <div class="curva" id="curva"></div>
   <div class="caidas" id="caidas"></div>
 </section>
@@ -363,6 +367,7 @@ footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
 
 <section id="s-b5">
   <div class="s-eyebrow">Bloque 5 · Mezcla de planes</div>
+  <div id="b5-veredicto"></div>
   <div id="b5"></div>
 </section>
 
@@ -434,6 +439,7 @@ const CSV_CONFIG   = "";   /* pestaña «Config Kinder», pares parametro/valor 
    ========================================================================== */
 const DEMO_CONFIG = [
   ["costo_por_grupo","2700"],
+  ["costo_real_por_grupo","1671"],
   ["capacidad_por_grupo","10"],
   ["grupos_totales","8"],
   ["grupos_abiertos","3"],
@@ -560,13 +566,26 @@ function edadTxt(m){ return Math.floor(m/12)+"a "+(m%12)+"m"; }
 function mesesEnteros(a,b){
   return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
 }
-/* Color del tramo. Los cortes son los de Veranito, sin tocar. */
-function colorLlenado(p){
-  if(p<=0.30) return "var(--azul)";
-  if(p<=0.70) return "var(--naranja)";
-  return "var(--rojo)";
-}
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+/* Iconos del sistema. El color lo pone la clase, el trazo es currentColor:
+   asi el icono no puede desincronizarse del significado. */
+function ico(tipo){
+  const c='<circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.5"/>';
+  if(tipo==="ok") return '<svg class="ico ico-ok" viewBox="0 0 16 16" aria-hidden="true">'+c+
+    '<path d="M5.2 8.3l2 2 3.6-4.2" fill="none" stroke="currentColor" stroke-width="1.8" '+
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  if(tipo==="mal") return '<svg class="ico ico-mal" viewBox="0 0 16 16" aria-hidden="true">'+c+
+    '<path d="M8 4.6v4.2M8 11.4h.01" fill="none" stroke="currentColor" stroke-width="1.8" '+
+    'stroke-linecap="round"/></svg>';
+  return '<svg class="ico ico-info" viewBox="0 0 16 16" aria-hidden="true">'+c+
+    '<path d="M8 7.4v4M8 4.6h.01" fill="none" stroke="currentColor" stroke-width="1.8" '+
+    'stroke-linecap="round"/></svg>';
+}
+/* Cada bloque abre con una frase que se calcula. Si el dato cambia, la
+   frase cambia sola: no hay ningun veredicto escrito a mano. */
+function veredicto(tipo,texto){
+  return '<div class="veredicto">'+ico(tipo)+'<span>'+texto+'</span></div>';
+}
 function avisoSinDato(que,porque){
   return '<div class="sin-dato"><b>Sin información disponible.</b> No hay de dónde leer '+que+
          '. No se muestra en cero para no dar una lectura falsa.'+
@@ -735,62 +754,65 @@ function pintarB1(d){
     return;
   }
   const avance=d.activos/d.meta;
-  const abierta=d.activos/d.cuposAbiertos;
-  const potencial=d.cuposTotales?d.activos/d.cuposTotales:null;
-  const libresAbiertos=d.cuposAbiertos-d.activos;
+  const libres=Math.max(0,d.cuposAbiertos-d.activos);
 
-  /* La linea que explica la capacidad abierta se escribe a partir de los
-     cupos que quedan, no se teclea. Con el tablero al 100% dice que no cabe
-     un niño mas; con cupos libres dice cuantos quedan. Nunca las dos. */
-  const lineaAbierta = libresAbiertos<=0
-    ? "No cabe un niño más sin abrir un grupo."
-    : "Quedan "+libresAbiertos+(libresAbiertos===1?" cupo libre":" cupos libres")+
-      " en los "+d.abiertos+" grupos abiertos.";
+  /* La frase de estado se calcula entera. El icono depende de una sola
+     pregunta que si se puede contestar con datos: si los cupos que quedan
+     abiertos aguantan el ritmo que hace falta. No hay ritmo historico con
+     que comparar, asi que el tablero no finge tenerlo. */
+  let estado, tipoEstado;
+  if(d.ritmoRequerido==null){
+    tipoEstado="info";
+    estado="Faltan "+(d.meta-d.activos)+" niños para la meta. Sin fecha en Config Kínder "+
+      "no se puede decir a qué ritmo.";
+  }else if(libres<=0){
+    tipoEstado="mal";
+    estado="Faltan "+d.faltanMeta+" niños en "+d.mesesParaMeta+" meses, "+
+      numero(d.ritmoRequerido,1)+" por mes. No queda un solo cupo en los "+d.abiertos+
+      " grupos abiertos: el próximo niño obliga a abrir el grupo "+(d.abiertos+1)+".";
+  }else if(libres<d.ritmoRequerido){
+    tipoEstado="mal";
+    estado="Faltan "+d.faltanMeta+" niños en "+d.mesesParaMeta+" meses, "+
+      numero(d.ritmoRequerido,1)+" por mes. Solo quedan "+libres+
+      (libres===1?" cupo":" cupos")+" en los "+d.abiertos+
+      " grupos abiertos: no alcanzan para un mes a ese ritmo.";
+  }else{
+    tipoEstado="ok";
+    estado="Faltan "+d.faltanMeta+" niños en "+d.mesesParaMeta+" meses, "+
+      numero(d.ritmoRequerido,1)+" por mes. Los "+libres+" cupos que quedan abiertos "+
+      "aguantan "+numero(libres/d.ritmoRequerido,1)+" meses a ese ritmo.";
+  }
 
   cont.innerHTML=
-    '<div class="kpi destacado a-azul">'+
-      '<div class="kpi-lbl">Avance de la meta</div>'+
-      '<div class="kpi-val num">'+pct(avance)+'</div>'+
-      '<div class="kpi-sub num">'+d.activos+' de '+d.meta+' niños</div>'+
-    '</div>'+
-    (d.ritmoRequerido!=null
-      ? '<div class="kpi a-naranja">'+
-          '<div class="kpi-lbl">Ritmo requerido</div>'+
-          '<div class="kpi-val num">'+numero(d.ritmoRequerido,1)+'</div>'+
-          '<div class="kpi-sub num">niños por mes</div>'+
-          '<div class="kpi-sub">'+d.faltanMeta+' niños en '+d.mesesParaMeta+' meses, hasta '+
-            mesAno(d.fechaMeta)+'. Es el ritmo que hace falta, no el que se lleva.</div>'+
-        '</div>'
-      : "")+
-    '<div class="kpi a-rojo">'+
-      '<div class="kpi-lbl">Capacidad abierta</div>'+
-      '<div class="kpi-val num">'+pct(abierta)+'</div>'+
-      '<div class="kpi-sub num">'+d.activos+' de '+d.cuposAbiertos+'</div>'+
-      '<div class="kpi-sub">'+lineaAbierta+'</div>'+
-    '</div>'+
-    '<div class="kpi">'+
-      '<div class="kpi-lbl">Capacidad potencial ('+(d.totales||"—")+' grupos)</div>'+
-      '<div class="kpi-val num">'+(potencial!=null?pct(potencial):"—")+'</div>'+
-      '<div class="kpi-sub num">'+d.activos+' de '+(d.cuposTotales||"—")+'</div>'+
+    '<div class="franja-meta">'+
+      '<div class="fm-top">'+
+        '<div class="fm-meta">'+
+          '<div class="fm-lbl">Avance de la meta</div>'+
+          '<div class="fm-num num">'+pct(avance)+
+            '<span class="fm-de num">'+d.activos+' de '+d.meta+' niños</span></div>'+
+          '<div class="fm-barra"><div class="fm-relleno barra-relleno" data-ancho="'+
+            Math.min(100,avance*100).toFixed(1)+'"></div></div>'+
+        '</div>'+
+        (d.ritmoRequerido!=null
+          ? '<div class="fm-sep"></div>'+
+            '<div class="fm-ritmo">'+
+              '<div class="fm-lbl">Ritmo requerido</div>'+
+              '<div class="fm-num2 num">'+numero(d.ritmoRequerido,1)+
+                ' <small>niños por mes</small></div>'+
+              '<div class="fm-pie">'+d.faltanMeta+' en '+d.mesesParaMeta+' meses, hasta '+
+                mesAno(d.fechaMeta)+'</div>'+
+            '</div>'
+          : "")+
+      '</div>'+
+      '<div class="fm-estado">'+ico(tipoEstado)+'<span>'+estado+'</span></div>'+
     '</div>';
-
 }
 
 function pintarB2(d){
-  const kpis=document.getElementById("kpis");
-  const libres=d.cuposAbiertos!=null?Math.max(0,d.cuposAbiertos-d.activos):null;
-  kpis.innerHTML=
-    '<div class="kpi a-azul"><div class="kpi-lbl">Cupos abiertos</div>'+
-      '<div class="kpi-val num">'+(d.cuposAbiertos!=null?d.cuposAbiertos:"—")+'</div></div>'+
-    '<div class="kpi a-rojo"><div class="kpi-lbl">Niños</div>'+
-      '<div class="kpi-val num">'+d.activos+'</div></div>'+
-    '<div class="kpi a-verde"><div class="kpi-lbl">Cupos libres</div>'+
-      '<div class="kpi-val num">'+(libres!=null?libres:"—")+'</div></div>'+
-    '<div class="kpi a-naranja"><div class="kpi-lbl">Ocupación</div>'+
-      '<div class="kpi-val num">'+(d.cuposAbiertos?pct(d.activos/d.cuposAbiertos):"—")+'</div></div>';
-
   const cont=document.getElementById("grupos");
+  const vere=document.getElementById("b2-veredicto");
   if(!d.grupos.length){
+    vere.innerHTML="";
     cont.innerHTML=avisoSinDato("los grupos",
       "El campo Grupo todavía no llega desde el aplicativo. En cuanto la coordinadora "+
       "asigne cada niño a su grupo y guarde, estas tarjetas se llenan solas.");
@@ -798,44 +820,46 @@ function pintarB2(d){
     return;
   }
 
+  /* El veredicto sale de contar, no de escribir. Si un grupo cae por debajo
+     de su equilibrio la frase cambia sola y el icono con ella. */
+  const bajo=d.grupos.filter(g=>g.resultado!=null&&g.resultado<0);
+  const sinDato=d.grupos.filter(g=>g.resultado==null).length;
+  vere.innerHTML = sinDato===d.grupos.length
+    ? veredicto("info","Falta el costo por grupo para saber si cubren.")
+    : bajo.length===0
+      ? veredicto("ok","Los "+d.grupos.length+" grupos están sobre su punto de equilibrio.")
+      : veredicto("mal", bajo.length===1
+          ? "El "+bajo[0].nombre+" está bajo su punto de equilibrio: "+
+            dineroCorto(bajo[0].resultado)+" al mes."
+          : bajo.length+" de "+d.grupos.length+" grupos están bajo su punto de equilibrio: "+
+            bajo.map(g=>g.nombre).join(", ")+".");
+
+  /* Una fila por grupo. El color de la barra dice si el grupo cubre; el
+     largo dice cuan lleno esta. Son dos dimensiones distintas y no se
+     pisan: antes el color decia llenado y chocaba con el rojo del dinero. */
   cont.innerHTML=d.grupos.map(g=>{
     const ocup=g.ocupacion!=null?g.ocupacion:0;
     const ancho=Math.min(100,Math.max(0,ocup*100));
-    /* La marca del equilibrio se coloca sobre la barra en la proporcion que
-       le corresponde de la capacidad. Si el equilibrio supera la capacidad,
-       se ancla al borde. */
-    const marcaPct = (g.equilibrio!=null&&d.cap)
+    const marcaPct=(g.equilibrio!=null&&d.cap)
       ? Math.min(100,(g.equilibrio/d.cap)*100) : null;
-    const edad = (g.edadMin!=null)
+    const edad=(g.edadMin!=null)
       ? edadTxt(g.edadMin)+" – "+edadTxt(g.edadMax)+
         (g.sinEdad?' · '+g.sinEdad+' sin fecha':'')
-      : "Sin fechas de nacimiento";
+      : "sin fechas de nacimiento";
     const res=g.resultado;
-    const clase = res==null?"neutro":(res>=0?"pos":"neg");
-    return '<div class="tarjeta">'+
-      '<div class="t-top">'+
-        '<div><div class="t-nombre">'+esc(g.nombre)+'</div>'+
-          '<div class="t-edad num">'+edad+'</div></div>'+
-        '<div class="t-pastillas">'+
-          '<span class="pastilla p-ninos num">'+g.ninos+' niños</span>'+
-          '<span class="pastilla p-libres num">'+(g.libres!=null?g.libres:"—")+' libres</span>'+
-          '<span class="pastilla p-equilibrio num">equilibrio '+(g.equilibrio!=null?g.equilibrio:"—")+'</span>'+
-        '</div>'+
+    const clase=res==null?"neutro":(res>=0?"pos":"neg");
+    return '<div class="g-fila">'+
+      '<div class="g-cab">'+
+        '<span class="g-nombre">'+esc(g.nombre)+'</span>'+
+        '<span class="g-res '+clase+' num">'+(res!=null?dineroCorto(res):"—")+'</span>'+
       '</div>'+
-      '<div class="barra">'+
-        '<div class="barra-relleno" data-ancho="'+ancho+'" style="background:'+colorLlenado(ocup)+'"></div>'+
-        (marcaPct!=null?'<div class="marca" style="left:'+marcaPct+'%" data-lbl="equilibrio '+g.equilibrio+'"></div>':'')+
+      '<div class="g-barra">'+
+        '<div class="g-relleno '+clase+' barra-relleno" data-ancho="'+ancho+'"></div>'+
+        (marcaPct!=null?'<div class="g-marca" style="left:'+marcaPct+'%"></div>':'')+
       '</div>'+
-      '<div class="t-pct num">'+(g.ocupacion!=null?pct(g.ocupacion):"—")+' ocupado</div>'+
-      '<hr class="separador">'+
-      '<div class="t-cols">'+
-        '<div><div class="t-col-lbl">Niños</div><div class="t-col-val num">'+g.ninos+'</div></div>'+
-        '<div><div class="t-col-lbl">Cupos libres</div><div class="t-col-val num">'+(g.libres!=null?g.libres:"—")+'</div></div>'+
-      '</div>'+
-      '<div class="resultado '+clase+'">'+
-        '<div class="res-lbl">Resultado del grupo</div>'+
-        '<div class="res-val num">'+(res!=null?dineroCorto(res):"—")+'</div>'+
-      '</div>'+
+      '<div class="g-datos num">'+g.ninos+' niños · '+
+        (g.libres!=null?g.libres:"—")+' libres · equilibrio '+
+        (g.equilibrio!=null?g.equilibrio:"—")+' · '+edad+'</div>'+
     '</div>';
   }).join("");
 
@@ -847,9 +871,9 @@ function pintarB2(d){
 }
 
 function pintarB3(d){
-  const tabla=document.getElementById("b3-tabla");
+  const graf=document.getElementById("b3-grafico");
   if(d.costo==null||d.ticketCobrado==null||d.cap==null||d.abiertos==null){
-    tabla.innerHTML="";
+    graf.innerHTML="";
     document.getElementById("b3-sub").innerHTML=
       avisoSinDato("la proyección del grupo siguiente","Faltan el costo por grupo o los pagos del último mes.");
     return;
@@ -862,22 +886,52 @@ function pintarB3(d){
     "Proyección del grupo "+siguiente+", que todavía no está abierto: "+
     dineroCorto(d.costo)+" corren desde el primer niño.";
 
-  let filas="", yaCruzo=false;
-  for(let n=1;n<=d.cap;n++){
-    const ingreso=n*d.ticketCobrado, res=ingreso-d.costo;
-    const cruce=(!yaCruzo&&res>=0); if(cruce) yaCruzo=true;
-    filas+='<tr'+(cruce?' class="cruce"':'')+'>'+
-      '<td class="num">'+n+(n===1?" niño":" niños")+'</td>'+
-      '<td class="num">'+dinero(ingreso)+'</td>'+
-      '<td class="num" style="color:'+(res>=0?"var(--verde)":"var(--rojo)")+';font-weight:700">'+
-        dinero(res)+'</td>'+
-    '</tr>';
-  }
-  tabla.innerHTML='<thead><tr><th>Niños</th><th>Ingreso del grupo</th><th>Resultado</th></tr></thead>'+
-    '<tbody>'+filas+'</tbody>';
+  const pts=[];
+  for(let n=1;n<=d.cap;n++) pts.push({n, res:n*d.ticketCobrado-d.costo});
+  const cubre=(pts.find(x=>x.res>=0)||{}).n||null;
 
-  const eq=d.equilibrioGeneral;
-  const conUnoMenos=(eq-1)*d.ticketCobrado-d.costo;
+  /* Una barra por niño, con la linea de cero donde corresponde. Rojo
+     mientras pierde, verde desde que cubre: no hace falta leer una tabla
+     para ver donde cambia el signo. */
+  const lo=Math.min(0,Math.min.apply(null,pts.map(x=>x.res)));
+  const hi=Math.max(0,Math.max.apply(null,pts.map(x=>x.res)));
+  const rango=(hi-lo)||1;
+  const yCero=((hi-0)/rango)*100;
+  const barras=pts.map(x=>{
+    const yVal=((hi-x.res)/rango)*100;
+    const top=Math.min(yCero,yVal), alto=Math.abs(yVal-yCero);
+    return '<div class="b3-col" title="'+x.n+(x.n===1?" niño: ":" niños: ")+dinero(x.res)+'">'+
+      '<div class="b3-bar '+(x.res>=0?"pos":"neg")+'" style="top:'+top.toFixed(2)+
+      '%;height:'+alto.toFixed(2)+'%"></div></div>';
+  }).join("");
+  const eje=pts.map(x=>'<span'+(x.n===cubre?' class="cubre"':'')+'>'+x.n+'</span>').join("");
+
+  graf.innerHTML=
+    '<div class="b3-caja">'+
+      '<div class="b3-graf">'+barras+
+        '<div class="b3-cero" style="top:'+yCero.toFixed(2)+'%"></div></div>'+
+      '<div class="b3-eje">'+eje+'</div>'+
+      '<button class="b3-ver" id="b3-ver" aria-expanded="false">Ver detalle</button>'+
+      '<div class="b3-detalle" id="b3-detalle" hidden>'+
+        '<div class="env-tabla"><table class="tabla">'+
+        '<thead><tr><th>Niños</th><th>Ingreso del grupo</th><th>Resultado</th></tr></thead><tbody>'+
+        pts.map(x=>'<tr'+(x.n===cubre?' class="cruce"':'')+'>'+
+          '<td class="num">'+x.n+(x.n===1?" niño":" niños")+'</td>'+
+          '<td class="num">'+dinero(x.n*d.ticketCobrado)+'</td>'+
+          '<td class="num" style="color:'+(x.res>=0?"var(--verde)":"var(--rojo)")+
+            ';font-weight:700">'+dinero(x.res)+'</td></tr>').join("")+
+        '</tbody></table></div>'+
+      '</div>'+
+    '</div>';
+
+  const btn=document.getElementById("b3-ver"), det=document.getElementById("b3-detalle");
+  btn.addEventListener("click",()=>{
+    const abierto=!det.hasAttribute("hidden");
+    if(abierto){ det.setAttribute("hidden",""); btn.textContent="Ver detalle"; }
+    else { det.removeAttribute("hidden"); btn.textContent="Ocultar detalle"; }
+    btn.setAttribute("aria-expanded",String(!abierto));
+  });
+
   document.getElementById("b3-nota").innerHTML=
     "Esta tabla usa el ticket real cobrado, no la tarifa de lista. Con la tarifa de lista el equilibrio "+
     "sería más bajo, y el grupo parecería rentable antes de serlo.";
@@ -899,6 +953,12 @@ function pintarCurva(d){
      vertical: se dibuja la segunda curva entera, y el escalon es la
      distancia entre las dos a cualquier altura del eje. */
   const desde=Math.min(d.activos,d.meta), hasta=d.meta;
+
+  /* El titulo decia "de 30 a 50" con el eje arrancando en 28. Ahora sale
+     del mismo numero que dibuja la curva y no se puede desincronizar. */
+  document.getElementById("curva-titulo").textContent=
+    "El camino · De "+desde+" a "+hasta+" niños";
+
   const serie=tk=>{
     const a=[];
     for(let n=desde;n<=hasta;n++){
@@ -978,6 +1038,14 @@ function pintarCurva(d){
         '</div>'
       : "");
 
+  document.getElementById("curva-veredicto").innerHTML = caidas.length===0
+    ? veredicto("ok","El camino de "+desde+" a "+hasta+" niños no tiene caídas de margen.")
+    : veredicto("mal", caidas.length===1
+        ? "Una caída de margen en el camino: el niño "+caidas[0].n+", al abrir el grupo "+caidas[0].g+"."
+        : caidas.length+" caídas de margen en el camino: los niños "+
+          caidas.map(c=>c.n).join(" y ")+", al abrir los grupos "+
+          caidas.map(c=>c.g).join(" y ")+".");
+
   document.getElementById("caidas").innerHTML=caidas.map(c=>{
     const cn=caidasN?caidasN.find(x=>x.n===c.n):null;
     return '<div class="caida"><div class="caida-t">El niño '+c.n+' abre el grupo '+c.g+'</div>'+
@@ -1003,7 +1071,7 @@ function pintarB4(d){
         "Este bloque empieza a contar desde el primer niño que se guarde en el aplicativo.")+
       (d.ticketCobrado!=null?
         '<div class="tickets" style="margin-top:12px;grid-template-columns:minmax(190px,340px)">'+
-          '<div class="ticket a-azul"><div class="ticket-lbl">Lo que cuesta una baja</div>'+
+          '<div class="ticket"><div class="ticket-lbl">Lo que cuesta una baja</div>'+
           '<div class="ticket-val num">'+dinero(d.ticketCobrado)+
             '<span style="font-size:13px;font-weight:600;color:var(--gris2)"> al mes</span></div>'+
           '<div class="ticket-desc">Es el ticket cobrado: lo que deja de entrar el mes que el niño se va, '+
@@ -1019,6 +1087,14 @@ function pintarB5(d){
   const cont=document.getElementById("b5");
   const ticketLista=d.ticketLista, cobrado=d.ticketCobrado;
 
+  const vere=document.getElementById("b5-veredicto");
+  vere.innerHTML = (d.brecha==null)
+    ? ""
+    : d.tarifaVigente===false
+      ? veredicto("mal","El ticket cobrado está por debajo de la tarifa de lista. "+
+          "La diferencia se cierra el "+fmtFecha(d.fechaTarifa)+".")
+      : veredicto("ok","La tarifa de lista ya rige para todos los niños.");
+
   let h="";
   if(!PLANES.length){
     h+=avisoSinDato("la mezcla de planes",
@@ -1032,7 +1108,7 @@ function pintarB5(d){
   if(cobrado!=null&&ticketLista!=null){
     const brecha=d.brecha;
     h+='<div class="tickets" style="margin-top:12px">'+
-      '<div class="ticket a-azul"><div class="ticket-lbl">Ticket cobrado</div>'+
+      '<div class="ticket"><div class="ticket-lbl">Ticket cobrado</div>'+
         '<div class="ticket-val num">'+dinero(cobrado)+'</div>'+
         '<div class="ticket-desc">Promedio real de lo que pagaron los '+d.pagadores+
           ' niños en el último mes con datos'+
@@ -1042,7 +1118,7 @@ function pintarB5(d){
         '<div class="ticket-desc">'+dineroCorto(p("precio_45h"))+' y '+dineroCorto(p("precio_8h"))+
           ' de tarifa nueva, en la proporción '+Math.round(p("mezcla_45h")*100)+'/'+
           Math.round((1-p("mezcla_45h"))*100)+' que declara el cliente.</div></div>'+
-      '<div class="ticket a-naranja"><div class="ticket-lbl">Diferencia</div>'+
+      '<div class="ticket"><div class="ticket-lbl">Diferencia</div>'+
         '<div class="ticket-val num">'+dinero(brecha)+'</div>'+
         '<div class="ticket-desc">Por niño y por mes. Con los '+d.pagadores+
           ' niños que pagaron son '+dineroCorto(d.brechaMes)+' al mes'+
@@ -1065,8 +1141,7 @@ function pintarB5(d){
             'nuevos. Quedan <b>'+d.mesesParaTarifa+' meses</b> cobrando el ticket de hoy: '+
             dineroCorto(d.brechaMes)+' al mes × '+d.mesesParaTarifa+' meses = <b>'+
             dineroCorto(d.brechaAcum)+'</b> que no se facturan antes del cambio. '+
-            'Después de esa fecha el ticket del modelo pasa a ser '+dinero(d.ticketLista)+
-            ' y la diferencia deja de existir.</div></div>'
+            'Después de esa fecha la diferencia deja de existir.</div></div>'
         : '<div class="cierre"><div class="cierre-t">La tarifa nueva ya rige desde el '+
             fmtFecha(d.fechaTarifa)+'</div>'+
           '<div class="cierre-d">El modelo usa '+dinero(d.ticketLista)+' como ticket. Lo que siga '+
@@ -1101,12 +1176,21 @@ function pintarB5(d){
 function pintarPie(d){
   const partes=[];
   partes.push("Fuente: pestañas «Datos para análisis», «Kínder» y «Config Kínder» del Sheet de Vida en Arte. "+
-    "Este tablero solo lee; nunca escribe.");
-  if(d.ticketCobrado!=null)
-    partes.push("Ticket cobrado "+dinero(d.ticketCobrado)+" sobre "+NINOS.filter(n=>n.pago>0).length+
-      " pagos · costo por grupo "+dineroCorto(d.costo)+" · equilibrio general "+d.equilibrioGeneral+" niños. "+
-      "Todas las cifras de esta pantalla se calculan; ninguna está escrita en el código.");
-  partes.push("El costo por grupo de "+dineroCorto(d.costo)+" es proyectado. El real está pendiente de confirmar con el cliente.");
+    "Este tablero solo lee; nunca escribe. Todas las cifras se calculan; ninguna está escrita en el código.");
+  /* La capacidad potencial baja aca: es contexto de crecimiento a los ocho
+     grupos, no una cifra de la reunion del lunes. */
+  if(d.cuposTotales)
+    partes.push("Capacidad potencial con los "+d.totales+" grupos abiertos a la vez: "+
+      pct(d.activos/d.cuposTotales)+" — "+d.activos+" de "+d.cuposTotales+" cupos teóricos.");
+  /* Los 2.700 son una decision, no una medicion: el tablero calcula con el
+     objetivo a proposito. El real tambien sale de Config Kinder; si falta,
+     la frase se queda con la mitad que si es cierta. */
+  const costoReal=p("costo_real_por_grupo");
+  partes.push("Los "+dineroCorto(d.costo)+" por grupo son el costo objetivo de nómina: están "+
+    "contratando para llegar ahí."+
+    (costoReal!=null
+      ? " El real de enero a julio de 2026 fue de unos "+dineroCorto(costoReal)+" por grupo."
+      : ""));
   document.getElementById("pie").innerHTML=partes.join("<br>");
 }
 
