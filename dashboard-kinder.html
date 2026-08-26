@@ -79,7 +79,11 @@ body.bloqueado{overflow:hidden}
    ENCABEZADO
    Transparente, contenido alineado a la derecha en columna.
    ========================================================================== */
-.cabecera{display:flex;align-items:flex-start;justify-content:space-between;
+/* Todo se cuelga de la linea de base del titulo: el logo, la pastilla, el
+   boton y la fecha. Antes el logo flotaba centrado contra un bloque de dos
+   lineas y la derecha era una tercera columna apilada que no se alineaba
+   con nada. */
+.cabecera{display:flex;align-items:baseline;justify-content:space-between;
   gap:20px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:20px;
   border-bottom:1.5px solid var(--gris3)}
 h1{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--negro)}
@@ -87,11 +91,10 @@ h1{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:va
    misma estructura, acento distinto. */
 h1 .unidad{color:var(--azul)}
 .cabecera p{font-size:12px;color:var(--gris2);margin-top:4px}
-/* El logo va al lado del titulo, no arriba: asi entra dentro de la altura
-   que ya tenia la cabecera y no empuja los bloques hacia abajo. */
-.cab-izq{display:flex;align-items:center;gap:14px;min-width:0}
-.cab-logo{height:28px;width:auto;flex:none;display:block}
-.cab-der{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+/* El logo se apoya en la linea de base del titulo, no en su centro. */
+.cab-izq{display:flex;align-items:baseline;gap:14px;min-width:0}
+.cab-logo{height:26px;width:auto;flex:none;display:block}
+.cab-der{margin-left:auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .pastilla-estado{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;
   text-transform:uppercase;letter-spacing:.08em;color:var(--blanco);
   background:var(--azul);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
