@@ -640,11 +640,44 @@ let CFG={}, NINOS=[], MOVIMIENTOS=[], PLANES=[], HOY=new Date();
 
 /* Ningun numero vive en el codigo: todos salen de Config Kinder. Si un
    parametro falta, el bloque que lo necesita avisa en vez de inventarlo. */
+/* Un numero que puede venir escrito a la española o a la inglesa.
+   ESTE CRITERIO ES EL MISMO QUE numeroDe() DEL APPS SCRIPT. Si se cambia
+   uno hay que cambiar el otro: hasta el 28-ago interpretaban la coma al
+   reves —el script borraba todas las comas y aqui se cambiaba por punto—,
+   asi que "460,50" daba 46050 de un lado y 460,50 del otro.
+
+     · si aparecen coma Y punto, manda el ULTIMO: ese es el decimal
+     · si aparece uno solo mas de una vez, es separador de miles
+     · si aparece uno solo una sola vez, es decimal, salvo que lo sigan
+       exactamente tres digitos, y entonces es de miles
+
+   Lo que no parece un numero devuelve null, para que quien llame decida.
+   Asi una fecha como 01/03/2027 no se convierte en una cifra. */
+function aNumero(v){
+  if(v===null||v===undefined||v==="") return null;
+  if(typeof v==="number") return isNaN(v)?null:v;
+  let s=String(v).trim().replace(/[$\s\u00a0]/g,"");
+  if(!/^[-+]?[\d.,]*\d[\d.,]*$/.test(s)) return null;
+  const ic=s.lastIndexOf(","), ip=s.lastIndexOf(".");
+  let dec=-1;
+  if(ic>=0&&ip>=0){ dec=Math.max(ic,ip); }
+  else if(ic>=0||ip>=0){
+    const pos=Math.max(ic,ip), sep=s.charAt(pos);
+    const veces=s.split(sep).length-1, detras=s.length-pos-1;
+    if(veces===1&&detras!==3) dec=pos;
+  }
+  s = dec>=0
+    ? s.slice(0,dec).replace(/[.,]/g,"")+"."+s.slice(dec+1).replace(/[.,]/g,"")
+    : s.replace(/[.,]/g,"");
+  const n=Number(s);
+  return isNaN(n)?null:n;
+}
+
 function p(nombre){
   const v=CFG[nombre];
   if(v===undefined||v===null||String(v).trim()==="") return null;
-  const n=Number(String(v).replace(",","."));
-  return isNaN(n)?String(v).trim():n;
+  const n=aNumero(v);
+  return n===null?String(v).trim():n;
 }
 
 function cargar(){
@@ -678,7 +711,7 @@ function cargar(){
       t.rows.forEach(r=>{
         if(cUni>=0 && !/k[íi]nder/i.test(r[cUni]||"")) return;
         const id=(r[cId]||"").trim(); if(!id) return;
-        const pago=Number(String(r[cPago]||"").replace(/[$,\s]/g,""))||0;
+        const pago=aNumero(r[cPago])||0;   /* mismo criterio que aNumero */
         const mes=Number(r[cMes])||0;
         if(!porId[id]||(pago>0&&mes>=porId[id].mes))
           porId[id]={id,mes,pago,nac:fecha(r[cNac]),
