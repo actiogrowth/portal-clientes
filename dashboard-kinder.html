@@ -519,9 +519,14 @@ const DEMO_NINOS = [
   ["DEMO-28","Grupo 3","20/06/2021",640]
 ];
 
-/* Altas y bajas: vacio a proposito. Las fechas de ingreso del Sheet estan
-   tecleadas —28 de 29 caen en domingo y 24 comparten dos dias—, asi que no
-   describen eventos. El historico no se recupera. */
+/* Altas y bajas: vacio a proposito. El Sheet guarda el estado de cada niño
+   —una fecha de ingreso, una de salida— pero no cuando se dio de alta o de
+   baja a nadie. Sin eventos no hay historico que reconstruir.
+
+   Hasta el 28-ago aqui decia que las fechas de ingreso estaban tecleadas,
+   "28 de 29 en domingo y 24 comparten dos dias". Contadas en produccion son
+   21 fechas distintas entre 29, la mas repetida tres veces, y no caen todas
+   en el mismo dia de la semana. Era falso, y estuvo en pantalla. */
 const DEMO_MOVIMIENTOS = [];
 
 /* Mezcla de planes: vacio a proposito. No existen las columnas Plan ni
@@ -1147,8 +1152,8 @@ function pintarB4(d){
        permanencia estimada. */
     cont.innerHTML=
       avisoSinDato("las altas y bajas del mes",
-        "Las fechas de ingreso que hay en el Sheet están tecleadas: 28 de 29 caen en domingo y 24 "+
-        "comparten dos días. No describen eventos, así que el histórico no se puede reconstruir. "+
+        "El Sheet guarda el estado de cada niño, no sus movimientos: hay una fecha de ingreso "+
+        "y una de salida, pero no queda registro de cuándo se dio de alta o de baja a nadie. "+
         "Este bloque empieza a contar desde el primer niño que se guarde en el aplicativo.")+
       (d.ticketCobrado!=null?
         '<div class="tickets" style="margin-top:12px;grid-template-columns:minmax(190px,340px)">'+
