@@ -642,6 +642,10 @@ function animarBarras(){
    ESTADO
    ========================================================================== */
 let CFG={}, NINOS=[], MOVIMIENTOS=[], PLANES=[], HOY=new Date();
+/* Cuando se genero «Datos para analisis», tal como lo sello el script.
+   Vacio significa que no hay sello: o son datos de demostracion, o el
+   Apps Script que los genero es anterior al sello. */
+let SELLO="";
 
 /* Ningun numero vive en el codigo: todos salen de Config Kinder. Si un
    parametro falta, el bloque que lo necesita avisa en vez de inventarlo. */
@@ -711,7 +715,14 @@ function cargar(){
     traer(CSV_ANALISIS,t=>{
       const cId=col(t.head,"ID niño"), cUni=col(t.head,"Unidad"),
             cMes=col(t.head,"Mes #"), cPago=col(t.head,"Pago del mes ($)"),
-            cNac=col(t.head,"Fecha de nacimiento"), cGru=col(t.head,"Grupo");
+            cNac=col(t.head,"Fecha de nacimiento"), cGru=col(t.head,"Grupo"),
+            cSello=col(t.head,"generado_en");
+      /* El sello lo escribe el script en UNA sola celda, la primera fila de
+         datos, asi que se toma el primer valor que aparezca. */
+      SELLO="";
+      if(cSello>=0){
+        for(const r of t.rows){ const v=(r[cSello]||"").trim(); if(v){ SELLO=v; break; } }
+      }
       const porId={};
       t.rows.forEach(r=>{
         if(cUni>=0 && !/k[íi]nder/i.test(r[cUni]||"")) return;
@@ -1291,8 +1302,48 @@ function pintarTodo(){
   const est=document.getElementById("estado");
   est.className="pastilla-estado"+(NINOS.length?"":" error");
   est.innerHTML='<span class="punto"></span>'+(NINOS.length?"En línea":"Sin datos");
-  document.getElementById("fecha").textContent="Actualizado "+fmtFecha(HOY);
+  pintarSello();
   animarBarras();
+}
+
+/* DE CUANDO SON LOS DATOS.
+   Hasta el 3-sep esta linea decia "Actualizado" + la fecha de HOY, que es la
+   fecha en que alguien abre la pagina y no tiene ninguna relacion con cuando
+   se genero el analisis. Decia "Actualizado 3 sep" todos los dias aunque los
+   datos fueran de hace un mes: no es que no avisara de que estaban viejos, es
+   que afirmaba lo contrario.
+
+   Ahora se muestra el sello que escribe el script al regenerar. Sin sello no
+   se inventa una fecha: se dice que no la hay. */
+/* Se pinta en rojo cuando el sello tiene mas de dos dias: el ojo tiene que
+   engancharse ahi antes de leer un solo numero de la pantalla. */
+(function(){
+  const st=document.createElement("style");
+  st.textContent="#fecha.viejo{color:#a3170c;font-weight:600}";
+  document.head.appendChild(st);
+})();
+
+function pintarSello(){
+  const el=document.getElementById("fecha");
+  if(!SELLO){
+    const demo=String(CFG.modo_datos||"demo").trim().toLowerCase()!=="real";
+    el.textContent = demo ? "Datos de demostración" : "Sin fecha de generación";
+    el.classList.toggle("viejo", !demo);
+    el.title = demo ? "" :
+      "«Datos para análisis» no trae la columna generado_en. Falta el título " +
+      "en la fila 5, o el Apps Script es anterior al sello.";
+    return;
+  }
+  /* El sello viene como "aaaa-mm-dd HH:mm" */
+  const m=/^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(SELLO);
+  const d=m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3])):null;
+  const dias=d?Math.floor((HOY-d)/86400000):null;
+  el.textContent="Datos del "+(d?fmtFecha(d):SELLO);
+  const viejo = dias!==null && dias>2;
+  el.classList.toggle("viejo", viejo);
+  el.title = viejo
+    ? "Hace "+dias+" días que no se regeneran. La regeneración diaria puede estar caída."
+    : "Generado el "+SELLO;
 }
 
 document.getElementById("btn-actualizar").addEventListener("click",function(){
