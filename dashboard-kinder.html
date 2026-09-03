@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Kínder · Vida en Arte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   TOKENS — sistema de diseño del dashboard de ventas de Veranito.
+   Unico lugar del archivo donde se declara un color.
+
+   El azul va en #1974A8 y no en #1974AB: es el valor del brand book de
+   Vida en Arte (Pantone 285 U), verificado. La fuente de Veranito trae AB,
+   que difiere en un caracter y no cuadra con la marca.
+   ========================================================================== */
+:root{
+  --rojo:#D71C0E; --azul:#1974A8; --naranja:#FFA615;
+  --verde:#25d366; --morado:#9B59B6; --negro:#111111;
+  --gris1:#222222; --gris2:#888888; --gris3:#E0E0E0;
+  --blanco:#ffffff; --fondo:#F5F7FA;
+
+  /* Secundarios de Vida en Arte: fondos y rellenos, nunca texto.
+     Los cuatro estan por debajo de 1,6 de contraste sobre blanco. */
+  --vea-rosa:#FCCDCE; --vea-arena:#F1C873;
+  --vea-celeste:#AED7EB; --vea-gris:#E5E5E5;
+
+  /* Cajas de resultado */
+  --verde-texto:#16794a; --rojo-texto:#a3170c;
+  --pos-fondo:#f0faf4; --pos-borde:#b7e4c7;
+  --neg-fondo:#fff0f0; --neg-borde:#ffb3b3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins',sans-serif;background:var(--fondo);
+  color:var(--gris1);min-height:100vh;font-weight:400;line-height:1.6;
+  font-size:13px;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+.wrap{max-width:1160px;margin:0 auto;padding:24px 16px 60px}
+
+/* ==========================================================================
+   FRANJA DE DEMOSTRACION
+   Fija, ancho completo, sin boton de cerrar. Desaparece sola cuando
+   Config Kinder pasa modo_datos a "real".
+   ========================================================================== */
+#franja{position:fixed;top:0;left:0;right:0;z-index:60;
+  background:var(--vea-arena);color:var(--negro);
+  font-size:11px;font-weight:600;letter-spacing:.02em;
+  padding:9px 16px;text-align:center}
+body.demo{padding-top:36px}
+body:not(.demo) #franja{display:none}
+
+/* ==========================================================================
+   PANTALLA DE CLAVE
+   ========================================================================== */
+#puerta{position:fixed;inset:0;z-index:200;display:none;
+  align-items:center;justify-content:center;padding:20px;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body.bloqueado #puerta{display:flex}
+body.bloqueado{overflow:hidden}
+.puerta-caja{background:var(--blanco);border-radius:20px;padding:34px 30px;
+  width:100%;max-width:340px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.puerta-logo{display:block;width:180px;max-width:78%;height:auto;margin:0 auto}
+.puerta-tit{font-size:12px;color:var(--gris2);margin:6px 0 20px}
+.puerta-caja input{width:100%;font-family:inherit;font-size:13px;
+  padding:11px 14px;border:1.5px solid var(--gris3);border-radius:20px;
+  outline:none;text-align:center;color:var(--gris1)}
+.puerta-caja input:focus{border-color:var(--azul)}
+.puerta-caja button{width:100%;margin-top:10px;font-family:inherit;
+  font-size:12px;font-weight:600;cursor:pointer;color:var(--blanco);
+  background:var(--azul);border:1.5px solid var(--azul);
+  border-radius:20px;padding:11px 14px;transition:.18s}
+.puerta-caja button:hover{background:#155f8a;border-color:#155f8a}
+.puerta-error{font-size:11px;color:var(--rojo);font-weight:600;
+  margin-top:10px;min-height:16px}
+
+/* ==========================================================================
+   ENCABEZADO
+   Transparente, contenido alineado a la derecha en columna.
+   ========================================================================== */
+/* Todo se cuelga de la linea de base del titulo: el logo, la pastilla, el
+   boton y la fecha. Antes el logo flotaba centrado contra un bloque de dos
+   lineas y la derecha era una tercera columna apilada que no se alineaba
+   con nada. */
+.cabecera{display:flex;align-items:baseline;justify-content:space-between;
+  gap:20px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:20px;
+  border-bottom:1.5px solid var(--gris3)}
+h1{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.2;color:var(--negro)}
+/* Veranito pone el nombre de la unidad en naranja. Kinder usa el azul:
+   misma estructura, acento distinto. */
+h1 .unidad{color:var(--azul)}
+.cabecera p{font-size:12px;color:var(--gris2);margin-top:4px}
+/* El logo se apoya en la linea de base del titulo, no en su centro. */
+.cab-izq{display:flex;align-items:baseline;gap:14px;min-width:0}
+.cab-logo{height:26px;width:auto;flex:none;display:block}
+.cab-der{margin-left:auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.pastilla-estado{font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--blanco);
+  background:var(--azul);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pastilla-estado .punto{width:7px;height:7px;border-radius:50%;
+  background:var(--blanco);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+.pastilla-estado.error{background:var(--rojo)}
+.pastilla-estado.cargando{background:var(--gris3);color:transparent;
+  animation:shimmer 1.2s infinite}
+.pastilla-estado.cargando .punto{background:transparent;animation:none}
+@keyframes shimmer{0%,100%{opacity:1}50%{opacity:.45}}
+#btn-actualizar{font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;
+  background:none;border:1.5px solid var(--gris3);border-radius:20px;
+  padding:5px 13px;color:var(--gris1);transition:.18s}
+#btn-actualizar:hover{border-color:var(--azul);color:var(--azul)}
+#btn-actualizar:disabled{opacity:.45;cursor:default}
+.cab-fecha{font-size:10px;color:var(--gris2)}
+
+/* ==========================================================================
+   SECCIONES
+   ========================================================================== */
+section{margin-bottom:20px}
+.s-eyebrow{font-size:10px;font-weight:700;color:var(--gris2);
+  text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+h2{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--negro)}
+.s-sub{font-size:12px;color:var(--gris2);margin-top:4px;line-height:1.5;max-width:660px}
+
+/* ==========================================================================
+   BLOQUE 2 · TARJETAS DE GRUPO
+   ========================================================================== */
+.leyenda{display:flex;gap:18px;flex-wrap:wrap;align-items:center;
+  background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:14px;padding:12px 16px;margin:12px 0 14px}
+.lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--gris2)}
+.lg .punto{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.lg-nota{margin-left:auto;font-size:10px;color:var(--gris2);text-align:right;line-height:1.5}
+
+/* ==========================================================================
+   SISTEMA DE COLOR
+   Kinder mide dinero, no ocupacion. Por eso abandona la escala de Veranito,
+   donde rojo es 71-100% lleno y lleno es bueno: en la misma pantalla el rojo
+   no puede significar dos cosas.
+
+       verde  cubre su costo
+       rojo   no lo cubre
+       azul   progreso hacia la meta
+       gris   sin datos
+
+   Ningun borde de color decora. Si hay color, significa.
+   ========================================================================== */
+
+/* ---------- Franja principal ---------- */
+.franja-meta{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:14px;padding:20px 22px}
+.fm-top{display:flex;align-items:stretch;gap:26px;flex-wrap:wrap}
+.fm-meta{flex:1 1 300px;min-width:0}
+.fm-sep{width:1px;background:var(--gris3);flex:none;align-self:stretch}
+.fm-ritmo{flex:0 1 190px;min-width:0}
+.fm-lbl{font-size:9px;font-weight:700;color:var(--gris2);
+  text-transform:uppercase;letter-spacing:.08em}
+.fm-num{font-size:52px;font-weight:800;color:var(--azul);line-height:1;
+  letter-spacing:-.03em;margin-top:8px;display:flex;align-items:baseline;
+  gap:12px;flex-wrap:wrap}
+.fm-de{font-size:15px;font-weight:600;color:var(--gris2);letter-spacing:0}
+.fm-barra{height:8px;background:var(--gris3);border-radius:6px;margin-top:16px;overflow:hidden}
+.fm-relleno{height:100%;background:var(--azul);border-radius:6px;width:0;
+  transition:width 1s ease}
+.fm-num2{font-size:30px;font-weight:800;color:var(--negro);line-height:1;
+  letter-spacing:-.02em;margin-top:8px}
+.fm-num2 small{font-size:11.5px;font-weight:600;color:var(--gris2);
+  letter-spacing:0;margin-left:5px}
+.fm-pie{font-size:10.5px;color:var(--gris2);margin-top:9px;line-height:1.5}
+.fm-estado{display:flex;align-items:flex-start;gap:9px;margin-top:18px;
+  padding-top:15px;border-top:1px solid var(--gris3);
+  font-size:12.5px;color:var(--gris1);line-height:1.5;font-weight:500}
+
+/* ---------- Veredicto de bloque ---------- */
+.veredicto{display:flex;align-items:flex-start;gap:8px;font-size:13px;
+  font-weight:600;color:var(--negro);margin-bottom:12px;line-height:1.45}
+.ico{width:16px;height:16px;flex:none;margin-top:1px}
+.ico-ok{color:var(--verde)}
+.ico-mal{color:var(--rojo)}
+.ico-info{color:var(--azul)}
+
+/* ---------- Filas de grupo ----------
+   Una casilla por cupo, y el margen dicho en palabras. La barra anterior no
+   comunicaba: dos grupos llenos con equilibrios distintos se veian iguales,
+   y la marca vertical no decia que era.
+
+   La reticula usa areas con nombre para que en pantalla angosta la fila se
+   apile a proposito —nombre y plata arriba, casillas debajo, lectura al
+   final— en vez de partirse donde caiga. */
+.grupos{display:grid;grid-template-columns:1fr;gap:8px}
+.g-fila{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:12px;padding:15px 14px 11px;
+  display:grid;gap:7px 13px;align-items:center;
+  grid-template-columns:auto auto 1fr auto;
+  grid-template-areas:"nombre cupos lectura resultado"}
+.g-nombre{grid-area:nombre;font-size:13px;font-weight:700;color:var(--negro)}
+
+.g-cupos{grid-area:cupos;display:flex;align-items:center;gap:3px}
+.g-c{width:14px;height:18px;border-radius:3px;flex:none}
+.g-c.costo{background:#b9c2cd}
+.g-c.margen{background:var(--verde)}
+.g-c.deficit{background:var(--rojo)}
+.g-c.libre{background:transparent;border:1.5px solid var(--gris3)}
+.g-c.falta{background:transparent;border:1.5px dashed var(--rojo)}
+.g-corte{width:2px;height:24px;background:var(--negro);border-radius:1px;
+  margin:0 4px;flex:none;position:relative}
+.g-corte::after{content:"equilibrio";position:absolute;top:-11px;left:50%;
+  transform:translateX(-50%);font-size:7px;font-weight:700;letter-spacing:.05em;
+  color:var(--gris2);text-transform:uppercase}
+
+.g-lectura{grid-area:lectura;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.g-frac{font-size:11.5px;color:var(--gris2);font-weight:500;white-space:nowrap}
+.g-frac b{font-size:14px;font-weight:800;color:var(--negro)}
+.g-chip{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap}
+.g-chip.ok{background:var(--pos-fondo);border:1px solid var(--pos-borde);color:var(--verde-texto)}
+.g-chip.filo{background:#f2f4f7;border:1px solid var(--gris3);color:var(--gris1)}
+.g-chip.mal{background:var(--neg-fondo);border:1px solid var(--neg-borde);color:var(--rojo-texto)}
+
+.g-res{grid-area:resultado;font-size:16px;font-weight:800;letter-spacing:-.02em;text-align:right}
+.g-res.pos{color:var(--verde)}
+.g-res.neg{color:var(--rojo)}
+.g-res.neutro{color:var(--gris2)}
+
+.barra-relleno{height:100%;border-radius:6px;width:0;transition:width 1s ease}
+
+/* ---------- Bloque 3 · una barra por niño ---------- */
+.b3-caja{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:14px;padding:18px 16px 14px}
+.b3-graf{position:relative;display:flex;align-items:stretch;gap:6px;height:150px}
+.b3-col{flex:1;position:relative}
+.b3-bar{position:absolute;left:0;right:0;border-radius:3px;min-height:2px}
+.b3-bar.neg{background:var(--rojo)}
+.b3-bar.pos{background:var(--verde)}
+.b3-cero{position:absolute;left:0;right:0;height:1px;background:var(--gris2);
+  opacity:.45;pointer-events:none}
+.b3-eje{display:flex;gap:6px;margin-top:9px}
+.b3-eje span{flex:1;text-align:center;font-size:10.5px;color:var(--gris2);font-weight:600}
+.b3-eje span.cubre{color:var(--verde);font-weight:800}
+.b3-ver{margin-top:14px;background:none;border:1.5px solid var(--gris3);
+  border-radius:20px;font-family:inherit;font-size:10px;font-weight:600;
+  color:var(--gris1);padding:5px 13px;cursor:pointer;transition:.18s}
+.b3-ver:hover{border-color:var(--azul);color:var(--azul)}
+.b3-detalle{margin-top:12px}
+.b3-detalle[hidden]{display:none}
+
+/* ==========================================================================
+   TABLA
+   ========================================================================== */
+.env-tabla{overflow-x:auto;border:1.5px solid var(--gris3);border-radius:14px;background:var(--blanco)}
+.tabla{width:100%;border-collapse:collapse}
+.tabla th{font-size:9px;font-weight:700;color:var(--gris2);text-transform:uppercase;
+  letter-spacing:.08em;text-align:right;padding:11px 16px;
+  border-bottom:1.5px solid var(--gris3)}
+.tabla th:first-child{text-align:left}
+.tabla td{font-size:12.5px;padding:9px 16px;text-align:right;
+  border-bottom:1px dashed var(--gris3)}
+.tabla td:first-child{text-align:left;font-weight:600;color:var(--negro)}
+.tabla tr:last-child td{border-bottom:0}
+.tabla tr.cruce td{background:var(--pos-fondo);font-weight:700}
+.tabla tr.cruce td:first-child::after{content:" · cubre desde aquí";
+  font-weight:500;font-size:10px;color:var(--gris2)}
+
+/* ==========================================================================
+   CURVA
+   ========================================================================== */
+.curva{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-radius:14px;padding:18px 16px}
+.curva svg{width:100%;height:auto;display:block;overflow:visible}
+.caidas{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:12px;margin-top:12px}
+.caida{background:var(--neg-fondo);border:1.5px solid var(--neg-borde);
+  border-radius:12px;padding:12px 16px}
+.caida-t{font-size:11.5px;font-weight:700;color:var(--negro)}
+.caida-d{font-size:11px;color:var(--gris2);margin-top:3px;line-height:1.5}
+.cierre{background:var(--pos-fondo);border:1.5px solid var(--pos-borde);
+  border-radius:10px;padding:11px 13px;margin-top:12px}
+.cierre-t{font-size:11.5px;font-weight:700;color:var(--negro)}
+.cierre-d{font-size:11px;color:var(--gris2);margin-top:3px;line-height:1.55}
+.cv-leyenda{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px}
+.cv-leyenda-i{display:flex;align-items:center;gap:6px;font-size:10.5px;
+  color:var(--gris2);font-weight:500}
+.cv-leyenda-m{width:20px;height:0;border-top-width:2.5px;border-top-style:solid;flex:none}
+
+/* ==========================================================================
+   TICKETS
+   ========================================================================== */
+.tickets{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.ticket{background:var(--blanco);border:1.5px solid var(--gris3);border-radius:14px;
+  padding:16px}
+.ticket-lbl{font-size:9px;font-weight:700;color:var(--gris2);
+  text-transform:uppercase;letter-spacing:.08em}
+.ticket-val{font-size:26px;font-weight:800;color:var(--negro);
+  line-height:1;letter-spacing:-.02em;margin-top:6px}
+.ticket-desc{font-size:10px;color:var(--gris2);font-weight:500;margin-top:6px;line-height:1.5}
+
+.reparto{display:flex;height:32px;border-radius:8px;overflow:hidden;margin-top:12px}
+.reparto div{display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:var(--gris1)}
+.r-baja{background:var(--vea-celeste)}
+.r-alta{background:var(--vea-arena)}
+
+/* ==========================================================================
+   AVISO DE DATO AUSENTE
+   Lo que falta no se muestra como cero. Cero dice "medimos y dio cero"
+   cuando lo cierto es "no hay de donde leer".
+   ========================================================================== */
+.sin-dato{background:var(--blanco);border:1.5px solid var(--gris3);
+  border-left:4px solid var(--vea-arena);border-radius:12px;
+  padding:16px;font-size:12px;color:var(--gris2);line-height:1.55}
+.sin-dato b{color:var(--negro);font-weight:700}
+.sin-dato .porque{display:block;margin-top:6px;font-size:11px}
+
+.nota{font-size:11px;color:var(--gris2);margin-top:12px;line-height:1.55}
+footer{margin-top:32px;padding-top:16px;border-top:1.5px solid var(--gris3);
+  font-size:10px;color:var(--gris2);line-height:1.7}
+
+@media (max-width:860px){
+  .fm-sep{display:none}
+  .fm-ritmo{flex:1 1 100%}
+  .lg-nota{margin-left:0;text-align:left;width:100%}
+}
+/* Nombre y plata arriba, casillas debajo, lectura al final. Tres bandas
+   enteras, nunca media fila colgando. */
+@media (max-width:660px){
+  .g-fila{grid-template-columns:1fr auto;
+    grid-template-areas:"nombre resultado" "cupos cupos" "lectura lectura"}
+}
+@media (max-width:400px){
+  .g-c{width:12px;height:16px}
+  .g-corte{height:22px;margin:0 3px}
+}
+@media (max-width:520px){
+  .fm-num{font-size:40px}
+  .b3-eje span{font-size:9px}
+}
+</style>
+</head>
+<body>
+
+<div id="franja">DATOS DE DEMOSTRACIÓN — la estructura está lista, faltan los datos reales de Vida en Arte</div>
+
+<div id="puerta">
+  <div class="puerta-caja">
+    <img class="puerta-logo" src="logo-cliente.png" alt="Vida en Arte">
+    <div class="puerta-tit">Dashboard de Kínder</div>
+    <input type="password" id="clave" placeholder="Clave de acceso" autocomplete="current-password">
+    <button id="btn-entrar">Entrar</button>
+    <div class="puerta-error" id="clave-error"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div class="cabecera">
+  <div class="cab-izq">
+    <img class="cab-logo" src="logo-cliente.png" alt="Vida en Arte">
+    <div>
+      <h1>Dashboard <span class="unidad">Kínder</span> 2026</h1>
+      <p>Panamá</p>
+    </div>
+  </div>
+  <div class="cab-der">
+    <span class="pastilla-estado cargando" id="estado"><span class="punto"></span>Cargando</span>
+    <button id="btn-actualizar">Actualizar</button>
+    <span class="cab-fecha" id="fecha">—</span>
+  </div>
+</div>
+
+<section id="s-b1">
+  <div class="s-eyebrow">Bloque 1 · Dónde está la unidad</div>
+  <div class="b1" id="b1"></div>
+</section>
+
+<section id="s-b2">
+  <div class="s-eyebrow">Bloque 2 · Cada grupo</div>
+  <div id="b2-veredicto"></div>
+  <div class="grupos" id="grupos"></div>
+  <div class="nota" id="b2-nota"></div>
+</section>
+
+<section id="s-b3">
+  <div class="s-eyebrow" id="b3-titulo">Bloque 3 · El grupo siguiente</div>
+  <div class="s-sub" id="b3-sub" style="margin:-6px 0 12px"></div>
+  <div id="b3-grafico"></div>
+  <div class="nota" id="b3-nota"></div>
+</section>
+
+<section id="s-curva">
+  <div class="s-eyebrow" id="curva-titulo">El camino</div>
+  <div id="curva-veredicto"></div>
+  <div class="curva" id="curva"></div>
+  <div class="caidas" id="caidas"></div>
+</section>
+
+<section id="s-b4">
+  <div class="s-eyebrow">Bloque 4 · Altas y bajas del mes</div>
+  <div id="b4"></div>
+</section>
+
+<section id="s-b5">
+  <div class="s-eyebrow">Bloque 5 · Mezcla de planes</div>
+  <div id="b5-veredicto"></div>
+  <div id="b5"></div>
+</section>
+
+<footer id="pie"></footer>
+
+</div>
+
+<script>
+/* ==========================================================================
+   PANTALLA DE CLAVE
+   Misma que Veranito. Pegar el valor aqui: mientras este vacio la pantalla
+   no aparece, para no dejar el tablero inaccesible por un campo sin llenar.
+
+   Lo que esta puerta hace y lo que no: frena a quien llegue de casualidad a
+   la direccion. No protege el contenido, porque el HTML se sirve entero al
+   navegador y la clave se lee en el codigo fuente. Para que el dato quede
+   de verdad cerrado hace falta que el repositorio deje de ser publico.
+   ========================================================================== */
+const CLAVE_ACCESO = "";   /* ← pegar aqui la misma clave que usa Veranito */
+const LLAVE_SESION = "kinder_acceso";
+
+function puertaAbierta(){
+  if(!CLAVE_ACCESO) return true;
+  try{ return localStorage.getItem(LLAVE_SESION)===CLAVE_ACCESO; }catch(e){ return false; }
+}
+function montarPuerta(){
+  if(puertaAbierta()){ document.body.classList.remove("bloqueado"); return true; }
+  document.body.classList.add("bloqueado");
+  const inp=document.getElementById("clave"), err=document.getElementById("clave-error");
+  const probar=()=>{
+    if(inp.value===CLAVE_ACCESO){
+      try{ localStorage.setItem(LLAVE_SESION,CLAVE_ACCESO); }catch(e){}
+      document.body.classList.remove("bloqueado");
+      arrancar();
+    }else{
+      err.textContent="Clave incorrecta"; inp.value=""; inp.focus();
+    }
+  };
+  document.getElementById("btn-entrar").onclick=probar;
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") probar(); });
+  setTimeout(()=>inp.focus(),50);
+  return false;
+}
+
+/* ==========================================================================
+   FUENTES DE DATOS
+   El tablero NUNCA escribe. Solo lee CSV publicados del Sheet, sin
+   credenciales. La cadena completa es:
+
+       aplicativo  ->  Sheet  ->  este tablero
+        (escribe)      (espejo)     (solo lee)
+
+   Para pasar a datos reales se rellenan estas tres cadenas y se cambia
+   modo_datos a "real" en Config Kinder. No se toca nada mas del archivo.
+   ========================================================================== */
+const CSV_ANALISIS = "";   /* pestaña «Datos para analisis», filtrada a Unidad = Kinder */
+const CSV_KINDER   = "";   /* pestaña «Kinder», de la que solo se leen ID y Grupo */
+const CSV_CONFIG   = "";   /* pestaña «Config Kinder», pares parametro/valor */
+
+/* ==========================================================================
+   DATOS DE DEMOSTRACION
+   Los importes reproducen exactamente el reparto observado en el Sheet en
+   julio, porque ese reparto es un hallazgo verificado y no un invento:
+   396 x1, 440 x14, 460 x5, 576 x5, 587 x1, 590 x1, 640 x1. De ahi salen
+   los 484,04 de ticket cobrado.
+
+   Los identificadores y las fechas de nacimiento SI son inventados. Ningun
+   dato de un niño real entra en un archivo publicado.
+   ========================================================================== */
+const DEMO_CONFIG = [
+  ["costo_por_grupo","2700"],
+  ["costo_real_por_grupo","1671"],
+  ["capacidad_por_grupo","10"],
+  ["grupos_totales","8"],
+  ["grupos_abiertos","3"],
+  ["precio_45h","587"],
+  ["precio_8h","786"],
+  ["meta_ninos","50"],
+  ["fecha_meta","01/03/2027"],
+  ["mezcla_45h","0.70"],
+  ["fecha_tarifa_nueva","01/01/2027"],
+  ["modo_datos","demo"]
+];
+
+/* [ID, Grupo, Fecha de nacimiento, Pago del ultimo mes con datos] */
+const DEMO_NINOS = [
+  ["DEMO-01","Grupo 1","05/06/2024",396],
+  ["DEMO-02","Grupo 1","27/05/2024",440],
+  ["DEMO-03","Grupo 1","30/12/2023",440],
+  ["DEMO-04","Grupo 1","12/11/2023",440],
+  ["DEMO-05","Grupo 1","25/09/2023",440],
+  ["DEMO-06","Grupo 1","14/09/2023",440],
+  ["DEMO-07","Grupo 1","18/08/2023",440],
+  ["DEMO-08","Grupo 1","23/07/2023",440],
+  ["DEMO-09","Grupo 1","10/06/2023",460],
+  ["DEMO-10","Grupo 1","02/05/2023",460],
+
+  ["DEMO-11","Grupo 2","27/03/2023",440],
+  ["DEMO-12","Grupo 2","13/03/2023",440],
+  ["DEMO-13","Grupo 2","05/01/2023",440],
+  ["DEMO-14","Grupo 2","20/11/2022",440],
+  ["DEMO-15","Grupo 2","30/09/2022",440],
+  ["DEMO-16","Grupo 2","05/09/2022",460],
+  ["DEMO-17","Grupo 2","14/07/2022",460],
+  ["DEMO-18","Grupo 2","13/07/2022",460],
+  ["DEMO-19","Grupo 2","08/06/2022",576],
+  ["DEMO-20","Grupo 2","22/05/2022",576],
+
+  ["DEMO-21","Grupo 3","18/03/2022",440],
+  ["DEMO-22","Grupo 3","18/01/2022",440],
+  ["DEMO-23","Grupo 3","12/12/2021",576],
+  ["DEMO-24","Grupo 3","05/11/2021",576],
+  ["DEMO-25","Grupo 3","02/10/2021",576],
+  ["DEMO-26","Grupo 3","25/08/2021",587],
+  ["DEMO-27","Grupo 3","14/07/2021",590],
+  ["DEMO-28","Grupo 3","20/06/2021",640]
+];
+
+/* Altas y bajas: vacio a proposito. El Sheet guarda el estado de cada niño
+   —una fecha de ingreso, una de salida— pero no cuando se dio de alta o de
+   baja a nadie. Sin eventos no hay historico que reconstruir.
+
+   Hasta el 28-ago aqui decia que las fechas de ingreso estaban tecleadas,
+   "28 de 29 en domingo y 24 comparten dos dias". Contadas en produccion son
+   21 fechas distintas entre 29, la mas repetida tres veces, y no caen todas
+   en el mismo dia de la semana. Era falso, y estuvo en pantalla. */
+const DEMO_MOVIMIENTOS = [];
+
+/* Mezcla de planes: vacio a proposito. No existen las columnas Plan ni
+   Tarifa en ninguna pestaña, y el monto pagado no permite deducirlas. */
+const DEMO_PLANES = [];
+
+/* ==========================================================================
+   LECTURA
+   ========================================================================== */
+function parseCSV(t){
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===","){ row.push(cur);cur=""; }
+    else if(c==="\n"){ row.push(cur);rows.push(row);row=[];cur=""; }
+    else if(c!=="\r") cur+=c;
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+function tabla(txt){
+  const rows=parseCSV(txt).filter(r=>r.length>1&&r.join("").trim()!=="");
+  if(!rows.length) return {head:[],rows:[]};
+  const head=rows.shift().map(h=>h.trim());
+  return {head,rows};
+}
+/* Se lee por NOMBRE de columna, nunca por posicion. Si el aplicativo o el
+   cliente insertan una columna, el tablero sigue leyendo bien. */
+function col(head,nombre){
+  return head.findIndex(h=>h.toLowerCase().trim()===nombre.toLowerCase().trim());
+}
+/* Cada fuente falla por su cuenta: si cae una, las demas siguen. */
+function traer(url,parsear){
+  return fetch(url)
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(txt=>parsear(tabla(txt)))
+    .catch(()=>null);
+}
+
+/* ==========================================================================
+   AYUDAS
+   ========================================================================== */
+const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fecha(s){
+  if(!s) return null;
+  const m=String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m?new Date(+m[3],+m[2]-1,+m[1]):null;
+}
+function fmtFecha(d){ return d? d.getDate()+" "+MES[d.getMonth()]+" "+d.getFullYear() : "—"; }
+const MES_LARGO=["enero","febrero","marzo","abril","mayo","junio","julio","agosto",
+  "septiembre","octubre","noviembre","diciembre"];
+function mesAno(d){ return d? MES_LARGO[d.getMonth()]+" de "+d.getFullYear() : "—"; }
+function numero(n,dec){ return n==null?"—":n.toLocaleString("es-PA",
+  {minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function dinero(n){
+  const s=Math.abs(n).toLocaleString("es-PA",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n<0?"−$":"$")+s;
+}
+function dineroCorto(n){
+  const s=Math.abs(Math.round(n)).toLocaleString("es-PA");
+  return (n<0?"−$":"$")+s;
+}
+function pct(n){ return (Math.round(n*1000)/10).toLocaleString("es-PA")+"%"; }
+/* Meses cumplidos entre dos fechas. La edad se lee de la fecha de
+   nacimiento, no se guarda: guardarla la deja vieja al mes siguiente. */
+function mesesDe(nac,hoy){
+  let m=(hoy.getFullYear()-nac.getFullYear())*12+(hoy.getMonth()-nac.getMonth());
+  if(hoy.getDate()<nac.getDate()) m--;
+  return m;
+}
+function edadTxt(m){ return Math.floor(m/12)+"a "+(m%12)+"m"; }
+/* Meses de calendario entre dos fechas, contando el mes en curso como
+   completo. De agosto de 2026 al 1 de enero de 2027 son 5. */
+function mesesEnteros(a,b){
+  return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+/* Iconos del sistema. El color lo pone la clase, el trazo es currentColor:
+   asi el icono no puede desincronizarse del significado. */
+function ico(tipo){
+  const c='<circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.5"/>';
+  if(tipo==="ok") return '<svg class="ico ico-ok" viewBox="0 0 16 16" aria-hidden="true">'+c+
+    '<path d="M5.2 8.3l2 2 3.6-4.2" fill="none" stroke="currentColor" stroke-width="1.8" '+
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  if(tipo==="mal") return '<svg class="ico ico-mal" viewBox="0 0 16 16" aria-hidden="true">'+c+
+    '<path d="M8 4.6v4.2M8 11.4h.01" fill="none" stroke="currentColor" stroke-width="1.8" '+
+    'stroke-linecap="round"/></svg>';
+  return '<svg class="ico ico-info" viewBox="0 0 16 16" aria-hidden="true">'+c+
+    '<path d="M8 7.4v4M8 4.6h.01" fill="none" stroke="currentColor" stroke-width="1.8" '+
+    'stroke-linecap="round"/></svg>';
+}
+/* Cada bloque abre con una frase que se calcula. Si el dato cambia, la
+   frase cambia sola: no hay ningun veredicto escrito a mano. */
+function veredicto(tipo,texto){
+  return '<div class="veredicto">'+ico(tipo)+'<span>'+texto+'</span></div>';
+}
+function avisoSinDato(que,porque){
+  return '<div class="sin-dato"><b>Sin información disponible.</b> No hay de dónde leer '+que+
+         '. No se muestra en cero para no dar una lectura falsa.'+
+         '<span class="porque">'+porque+'</span></div>';
+}
+/* Las barras arrancan en 0 y animan a los 400ms, como en Veranito. */
+function animarBarras(){
+  setTimeout(()=>{
+    document.querySelectorAll(".barra-relleno[data-ancho]").forEach(b=>{
+      b.style.width=b.getAttribute("data-ancho")+"%";
+    });
+  },400);
+}
+
+/* ==========================================================================
+   ESTADO
+   ========================================================================== */
+let CFG={}, NINOS=[], MOVIMIENTOS=[], PLANES=[], HOY=new Date();
+/* Cuando se genero «Datos para analisis», tal como lo sello el script.
+   Vacio significa que no hay sello: o son datos de demostracion, o el
+   Apps Script que los genero es anterior al sello. */
+let SELLO="";
+
+/* Ningun numero vive en el codigo: todos salen de Config Kinder. Si un
+   parametro falta, el bloque que lo necesita avisa en vez de inventarlo. */
+/* Un numero que puede venir escrito a la española o a la inglesa.
+   ESTE CRITERIO ES EL MISMO QUE numeroDe() DEL APPS SCRIPT. Si se cambia
+   uno hay que cambiar el otro: hasta el 28-ago interpretaban la coma al
+   reves —el script borraba todas las comas y aqui se cambiaba por punto—,
+   asi que "460,50" daba 46050 de un lado y 460,50 del otro.
+
+     · si aparecen coma Y punto, manda el ULTIMO: ese es el decimal
+     · si aparece uno solo mas de una vez, es separador de miles
+     · si aparece uno solo una sola vez, es decimal, salvo que lo sigan
+       exactamente tres digitos, y entonces es de miles
+
+   Lo que no parece un numero devuelve null, para que quien llame decida.
+   Asi una fecha como 01/03/2027 no se convierte en una cifra. */
+function aNumero(v){
+  if(v===null||v===undefined||v==="") return null;
+  if(typeof v==="number") return isNaN(v)?null:v;
+  let s=String(v).trim().replace(/[$\s\u00a0]/g,"");
+  if(!/^[-+]?[\d.,]*\d[\d.,]*$/.test(s)) return null;
+  const ic=s.lastIndexOf(","), ip=s.lastIndexOf(".");
+  let dec=-1;
+  if(ic>=0&&ip>=0){ dec=Math.max(ic,ip); }
+  else if(ic>=0||ip>=0){
+    const pos=Math.max(ic,ip), sep=s.charAt(pos);
+    const veces=s.split(sep).length-1, detras=s.length-pos-1;
+    if(veces===1&&detras!==3) dec=pos;
+  }
+  s = dec>=0
+    ? s.slice(0,dec).replace(/[.,]/g,"")+"."+s.slice(dec+1).replace(/[.,]/g,"")
+    : s.replace(/[.,]/g,"");
+  const n=Number(s);
+  return isNaN(n)?null:n;
+}
+
+function p(nombre){
+  const v=CFG[nombre];
+  if(v===undefined||v===null||String(v).trim()==="") return null;
+  const n=aNumero(v);
+  return n===null?String(v).trim():n;
+}
+
+function cargar(){
+  const est=document.getElementById("estado");
+  est.className="pastilla-estado cargando";
+  est.innerHTML='<span class="punto"></span>Cargando';
+
+  const hayFuentes = CSV_ANALISIS && CSV_KINDER && CSV_CONFIG;
+  if(!hayFuentes){
+    CFG={}; DEMO_CONFIG.forEach(([k,v])=>CFG[k]=v);
+    NINOS=DEMO_NINOS.map(([id,grupo,nac,pago])=>({id,grupo,nac:fecha(nac),pago}));
+    MOVIMIENTOS=DEMO_MOVIMIENTOS.slice();
+    PLANES=DEMO_PLANES.slice();
+    return Promise.resolve();
+  }
+
+  return Promise.all([
+    traer(CSV_CONFIG,t=>{
+      const o={},cP=col(t.head,"parametro")>=0?col(t.head,"parametro"):0,
+              cV=col(t.head,"valor")>=0?col(t.head,"valor"):1;
+      t.rows.forEach(r=>{ const k=(r[cP]||"").trim(); if(k) o[k]=(r[cV]||"").trim(); });
+      return o;
+    }),
+    /* De «Datos para analisis» se toma una fila por niño: la del ultimo mes
+       que tenga pago. No se lee ninguna columna de nombre. */
+    traer(CSV_ANALISIS,t=>{
+      const cId=col(t.head,"ID niño"), cUni=col(t.head,"Unidad"),
+            cMes=col(t.head,"Mes #"), cPago=col(t.head,"Pago del mes ($)"),
+            cNac=col(t.head,"Fecha de nacimiento"), cGru=col(t.head,"Grupo"),
+            cSello=col(t.head,"generado_en");
+      /* El sello lo escribe el script en UNA sola celda, la primera fila de
+         datos, asi que se toma el primer valor que aparezca. */
+      SELLO="";
+      if(cSello>=0){
+        for(const r of t.rows){ const v=(r[cSello]||"").trim(); if(v){ SELLO=v; break; } }
+      }
+      const porId={};
+      t.rows.forEach(r=>{
+        if(cUni>=0 && !/k[íi]nder/i.test(r[cUni]||"")) return;
+        const id=(r[cId]||"").trim(); if(!id) return;
+        const pago=aNumero(r[cPago])||0;   /* mismo criterio que aNumero */
+        const mes=Number(r[cMes])||0;
+        if(!porId[id]||(pago>0&&mes>=porId[id].mes))
+          porId[id]={id,mes,pago,nac:fecha(r[cNac]),
+                     grupo:cGru>=0?(r[cGru]||"").trim():""};
+      });
+      return Object.values(porId);
+    }),
+    /* De «Kinder» solo se leen dos columnas: ID y Grupo. Nada mas.
+       Es el respaldo mientras Grupo no viaje en «Datos para analisis». */
+    traer(CSV_KINDER,t=>{
+      const cId=col(t.head,"ID"), cG=col(t.head,"Grupo");
+      const o={};
+      t.rows.forEach(r=>{ const id=(r[cId]||"").trim();
+        if(id) o[id]=cG>=0?(r[cG]||"").trim():""; });
+      return o;
+    })
+  ]).then(([cfg,ninos,grupos])=>{
+    CFG=cfg||{};
+    NINOS=(ninos||[]).map(n=>Object.assign({},n,{
+      grupo: n.grupo || (grupos&&grupos[n.id]) || ""
+    }));
+  });
+}
+
+/* ==========================================================================
+   CALCULO
+   Todo se deriva. Ninguna cifra de pantalla esta tecleada, para que el pie
+   no pueda contradecir la tabla que tiene encima.
+   ========================================================================== */
+function calcular(){
+  const costo=p("costo_por_grupo"), cap=p("capacidad_por_grupo"),
+        totales=p("grupos_totales"), abiertos=p("grupos_abiertos"),
+        meta=p("meta_ninos");
+
+  const activos=NINOS.length;
+  const pagos=NINOS.map(n=>n.pago).filter(x=>x>0);
+  const recaudo=pagos.reduce((a,b)=>a+b,0);
+  const ticketCobrado=pagos.length?recaudo/pagos.length:null;
+  /* La mezcla 70/30 tambien sale de Config Kinder: desde enero de 2027 deja
+     de ser una comparacion y pasa a ser el ingreso real del modelo. */
+  const mezcla45=p("mezcla_45h");
+  const ticketLista=(p("precio_45h")!=null&&p("precio_8h")!=null&&mezcla45!=null)
+    ? p("precio_45h")*mezcla45+p("precio_8h")*(1-mezcla45) : null;
+
+  /* El 1 de enero de 2027 todos los niños pasan a la tarifa de lista, no
+     solo los nuevos. Hasta ese dia rige el ticket cobrado. La fecha es un
+     parametro: cuando pase, el tablero se corrige solo. */
+  const fechaTarifa=fecha(p("fecha_tarifa_nueva"));
+  const tarifaVigente=(fechaTarifa!=null)?(HOY>=fechaTarifa):null;
+  const ticketVigente=(tarifaVigente===true&&ticketLista!=null)?ticketLista:ticketCobrado;
+  const mesesParaTarifa=(fechaTarifa!=null)?Math.max(0,mesesEnteros(HOY,fechaTarifa)):null;
+  const brecha=(ticketLista!=null&&ticketCobrado!=null)
+    ? Math.round((ticketLista-ticketCobrado)*100)/100 : null;
+  const brechaMes=(brecha!=null)?brecha*pagos.length:null;
+  const brechaAcum=(brechaMes!=null&&mesesParaTarifa!=null)?brechaMes*mesesParaTarifa:null;
+
+  const fechaMeta=fecha(p("fecha_meta"));
+  const mesesParaMeta=(fechaMeta!=null)?Math.max(0,mesesEnteros(HOY,fechaMeta)):null;
+  const faltanMeta=(meta!=null)?Math.max(0,meta-NINOS.length):null;
+  const ritmoRequerido=(faltanMeta!=null&&mesesParaMeta)?faltanMeta/mesesParaMeta:null;
+
+  /* Un grupo por cada valor distinto de Grupo, en orden. Si el campo llega
+     vacio el niño queda sin asignar y se cuenta aparte: no se le inventa
+     un grupo. */
+  const mapa={};
+  NINOS.forEach(n=>{ const g=(n.grupo||"").trim(); if(!g) return;
+    (mapa[g]=mapa[g]||[]).push(n); });
+  const grupos=Object.keys(mapa).sort().map(nombre=>{
+    const lista=mapa[nombre];
+    const ingreso=lista.reduce((a,n)=>a+(n.pago||0),0);
+    const tk=lista.length?ingreso/lista.length:0;
+    const edades=lista.map(n=>n.nac?mesesDe(n.nac,HOY):null).filter(x=>x!=null);
+    return {
+      nombre, ninos:lista.length,
+      libres: cap!=null ? Math.max(0,cap-lista.length) : null,
+      ocupacion: cap? lista.length/cap : null,
+      ingreso, ticket:tk,
+      equilibrio: (costo&&tk>0)?Math.ceil(costo/tk):null,
+      resultado: costo!=null ? ingreso-costo : null,
+      edadMin: edades.length?Math.min.apply(null,edades):null,
+      edadMax: edades.length?Math.max.apply(null,edades):null,
+      sinEdad: lista.length-edades.length
+    };
+  });
+  const sinGrupo=NINOS.filter(n=>!(n.grupo||"").trim()).length;
+
+  return {
+    costo,cap,totales,abiertos,meta,activos,recaudo,ticketCobrado,ticketLista,
+    fechaTarifa,tarifaVigente,ticketVigente,mesesParaTarifa,brecha,brechaMes,brechaAcum,
+    pagadores:pagos.length,
+    fechaMeta,mesesParaMeta,faltanMeta,ritmoRequerido,
+    grupos,sinGrupo,
+    cuposAbiertos: (abiertos!=null&&cap!=null)?abiertos*cap:null,
+    cuposTotales:  (totales!=null&&cap!=null)?totales*cap:null,
+    equilibrioGeneral: (costo&&ticketCobrado)?Math.ceil(costo/ticketCobrado):null
+  };
+}
+
+/* ==========================================================================
+   PINTADO
+   ========================================================================== */
+function pintarB1(d){
+  const cont=document.getElementById("b1");
+  if(d.meta==null||d.cuposAbiertos==null){
+    cont.innerHTML=avisoSinDato("el avance de la meta","Faltan parámetros en Config Kínder.");
+    return;
+  }
+  const avance=d.activos/d.meta;
+  const libres=Math.max(0,d.cuposAbiertos-d.activos);
+
+  /* La frase de estado se calcula entera. El icono depende de una sola
+     pregunta que si se puede contestar con datos: si los cupos que quedan
+     abiertos aguantan el ritmo que hace falta. No hay ritmo historico con
+     que comparar, asi que el tablero no finge tenerlo. */
+  let estado, tipoEstado;
+  if(d.ritmoRequerido==null){
+    tipoEstado="info";
+    estado="Faltan "+(d.meta-d.activos)+" niños para la meta. Sin fecha en Config Kínder "+
+      "no se puede decir a qué ritmo.";
+  }else if(libres<=0){
+    tipoEstado="mal";
+    estado="Faltan "+d.faltanMeta+" niños en "+d.mesesParaMeta+" meses, "+
+      numero(d.ritmoRequerido,1)+" por mes. No queda un solo cupo en los "+d.abiertos+
+      " grupos abiertos: el próximo niño obliga a abrir el grupo "+(d.abiertos+1)+".";
+  }else if(libres<d.ritmoRequerido){
+    tipoEstado="mal";
+    estado="Faltan "+d.faltanMeta+" niños en "+d.mesesParaMeta+" meses, "+
+      numero(d.ritmoRequerido,1)+" por mes. Solo quedan "+libres+
+      (libres===1?" cupo":" cupos")+" en los "+d.abiertos+
+      " grupos abiertos: no alcanzan para un mes a ese ritmo.";
+  }else{
+    tipoEstado="ok";
+    estado="Faltan "+d.faltanMeta+" niños en "+d.mesesParaMeta+" meses, "+
+      numero(d.ritmoRequerido,1)+" por mes. Los "+libres+" cupos que quedan abiertos "+
+      "aguantan "+numero(libres/d.ritmoRequerido,1)+" meses a ese ritmo.";
+  }
+
+  cont.innerHTML=
+    '<div class="franja-meta">'+
+      '<div class="fm-top">'+
+        '<div class="fm-meta">'+
+          '<div class="fm-lbl">Avance de la meta</div>'+
+          '<div class="fm-num num">'+pct(avance)+
+            '<span class="fm-de num">'+d.activos+' de '+d.meta+' niños</span></div>'+
+          '<div class="fm-barra"><div class="fm-relleno barra-relleno" data-ancho="'+
+            Math.min(100,avance*100).toFixed(1)+'"></div></div>'+
+        '</div>'+
+        (d.ritmoRequerido!=null
+          ? '<div class="fm-sep"></div>'+
+            '<div class="fm-ritmo">'+
+              '<div class="fm-lbl">Ritmo requerido</div>'+
+              '<div class="fm-num2 num">'+numero(d.ritmoRequerido,1)+
+                ' <small>niños por mes</small></div>'+
+              '<div class="fm-pie">'+d.faltanMeta+' en '+d.mesesParaMeta+' meses, hasta '+
+                mesAno(d.fechaMeta)+'</div>'+
+            '</div>'
+          : "")+
+      '</div>'+
+      '<div class="fm-estado">'+ico(tipoEstado)+'<span>'+estado+'</span></div>'+
+    '</div>';
+}
+
+function pintarB2(d){
+  const cont=document.getElementById("grupos");
+  const vere=document.getElementById("b2-veredicto");
+  if(!d.grupos.length){
+    vere.innerHTML="";
+    cont.innerHTML=avisoSinDato("los grupos",
+      "El campo Grupo todavía no llega desde el aplicativo. En cuanto la coordinadora "+
+      "asigne cada niño a su grupo y guarde, estas tarjetas se llenan solas.");
+    document.getElementById("b2-nota").textContent="";
+    return;
+  }
+
+  /* El veredicto sale de contar, no de escribir. Si un grupo cae por debajo
+     de su equilibrio la frase cambia sola y el icono con ella. */
+  const bajo=d.grupos.filter(g=>g.resultado!=null&&g.resultado<0);
+  const sinDato=d.grupos.filter(g=>g.resultado==null).length;
+  vere.innerHTML = sinDato===d.grupos.length
+    ? veredicto("info","Falta el costo por grupo para saber si cubren.")
+    : bajo.length===0
+      ? veredicto("ok","Los "+d.grupos.length+" grupos están sobre su punto de equilibrio.")
+      : veredicto("mal", bajo.length===1
+          ? "El "+bajo[0].nombre+" está bajo su punto de equilibrio: "+
+            dineroCorto(bajo[0].resultado)+" al mes."
+          : bajo.length+" de "+d.grupos.length+" grupos están bajo su punto de equilibrio: "+
+            bajo.map(g=>g.nombre).join(", ")+".");
+
+  /* Una casilla por cupo: llena si tiene niño, hueca si esta libre, y el
+     corte donde esta el equilibrio. Las llenas antes del corte son las que
+     solo alcanzan a pagar el costo; las de despues son el margen.
+
+     Asi se separan dos cosas que la barra confundia: cuan lleno esta el
+     grupo y cuanto le sobra sobre su equilibrio. Dos grupos llenos con
+     equilibrios distintos ya no se ven iguales. */
+  cont.innerHTML=d.grupos.map(g=>{
+    const res=g.resultado;
+    const clase=res==null?"neutro":(res>=0?"pos":"neg");
+    const eq=g.equilibrio, cap=d.cap;
+    const margen=(eq!=null)?g.ninos-eq:null;
+
+    let cupos="";
+    if(cap){
+      for(let i=1;i<=cap;i++){
+        if(eq!=null&&i===eq+1) cupos+='<div class="g-corte"></div>';
+        let c;
+        if(i<=g.ninos) c=(margen!=null&&margen<0)?"deficit":((eq==null||i<=eq)?"costo":"margen");
+        else c=(eq!=null&&i<=eq)?"falta":"libre";
+        cupos+='<div class="g-c '+c+'"></div>';
+      }
+      if(eq!=null&&eq>=cap) cupos+='<div class="g-corte"></div>';
+    }
+
+    const chip = margen==null
+      ? ""
+      : margen>0
+        ? '<span class="g-chip ok num">+'+margen+' sobre el equilibrio de '+eq+'</span>'
+        : margen===0
+          ? '<span class="g-chip filo num">justo en el equilibrio de '+eq+'</span>'
+          : '<span class="g-chip mal num">'+Math.abs(margen)+
+            (Math.abs(margen)===1?' niño':' niños')+' bajo el equilibrio de '+eq+'</span>';
+
+    return '<div class="g-fila">'+
+      '<span class="g-nombre">'+esc(g.nombre)+'</span>'+
+      '<div class="g-cupos">'+cupos+'</div>'+
+      '<div class="g-lectura">'+
+        '<span class="g-frac num"><b>'+g.ninos+'</b> de '+(cap||"—")+' niños</span>'+chip+
+      '</div>'+
+      '<span class="g-res '+clase+' num">'+(res!=null?dineroCorto(res):"—")+'</span>'+
+    '</div>';
+  }).join("");
+
+  const notas=[];
+  if(d.sinGrupo) notas.push(d.sinGrupo+" niño"+(d.sinGrupo===1?"":"s")+" sin grupo asignado. No aparecen en ninguna tarjeta: el tablero no les inventa un grupo.");
+  notas.push("El resultado de cada grupo es la suma de lo que pagan sus niños menos "+
+    (d.costo!=null?dineroCorto(d.costo):"el costo del grupo")+" de costo.");
+  document.getElementById("b2-nota").innerHTML=notas.join("<br>");
+}
+
+function pintarB3(d){
+  const graf=document.getElementById("b3-grafico");
+  if(d.costo==null||d.ticketCobrado==null||d.cap==null||d.abiertos==null){
+    graf.innerHTML="";
+    document.getElementById("b3-sub").innerHTML=
+      avisoSinDato("la proyección del grupo siguiente","Faltan el costo por grupo o los pagos del último mes.");
+    return;
+  }
+  /* El bloque lee grupos_abiertos y habla siempre del que sigue. Hoy es el
+     4; cuando se abra, pasa solo al 5. Sin cambios de codigo. */
+  const siguiente=d.abiertos+1;
+  document.getElementById("b3-titulo").textContent="Bloque 3 · El grupo "+siguiente;
+  document.getElementById("b3-sub").innerHTML=
+    "Proyección del grupo "+siguiente+", que todavía no está abierto: "+
+    dineroCorto(d.costo)+" corren desde el primer niño.";
+
+  const pts=[];
+  for(let n=1;n<=d.cap;n++) pts.push({n, res:n*d.ticketCobrado-d.costo});
+  const cubre=(pts.find(x=>x.res>=0)||{}).n||null;
+
+  /* Una barra por niño, con la linea de cero donde corresponde. Rojo
+     mientras pierde, verde desde que cubre: no hace falta leer una tabla
+     para ver donde cambia el signo. */
+  const lo=Math.min(0,Math.min.apply(null,pts.map(x=>x.res)));
+  const hi=Math.max(0,Math.max.apply(null,pts.map(x=>x.res)));
+  const rango=(hi-lo)||1;
+  const yCero=((hi-0)/rango)*100;
+  const barras=pts.map(x=>{
+    const yVal=((hi-x.res)/rango)*100;
+    const top=Math.min(yCero,yVal), alto=Math.abs(yVal-yCero);
+    return '<div class="b3-col" title="'+x.n+(x.n===1?" niño: ":" niños: ")+dinero(x.res)+'">'+
+      '<div class="b3-bar '+(x.res>=0?"pos":"neg")+'" style="top:'+top.toFixed(2)+
+      '%;height:'+alto.toFixed(2)+'%"></div></div>';
+  }).join("");
+  const eje=pts.map(x=>'<span'+(x.n===cubre?' class="cubre"':'')+'>'+x.n+'</span>').join("");
+
+  graf.innerHTML=
+    '<div class="b3-caja">'+
+      '<div class="b3-graf">'+barras+
+        '<div class="b3-cero" style="top:'+yCero.toFixed(2)+'%"></div></div>'+
+      '<div class="b3-eje">'+eje+'</div>'+
+      '<button class="b3-ver" id="b3-ver" aria-expanded="false">Ver detalle</button>'+
+      '<div class="b3-detalle" id="b3-detalle" hidden>'+
+        '<div class="env-tabla"><table class="tabla">'+
+        '<thead><tr><th>Niños</th><th>Ingreso del grupo</th><th>Resultado</th></tr></thead><tbody>'+
+        pts.map(x=>'<tr'+(x.n===cubre?' class="cruce"':'')+'>'+
+          '<td class="num">'+x.n+(x.n===1?" niño":" niños")+'</td>'+
+          '<td class="num">'+dinero(x.n*d.ticketCobrado)+'</td>'+
+          '<td class="num" style="color:'+(x.res>=0?"var(--verde)":"var(--rojo)")+
+            ';font-weight:700">'+dinero(x.res)+'</td></tr>').join("")+
+        '</tbody></table></div>'+
+      '</div>'+
+    '</div>';
+
+  const btn=document.getElementById("b3-ver"), det=document.getElementById("b3-detalle");
+  btn.addEventListener("click",()=>{
+    const abierto=!det.hasAttribute("hidden");
+    if(abierto){ det.setAttribute("hidden",""); btn.textContent="Ver detalle"; }
+    else { det.removeAttribute("hidden"); btn.textContent="Ocultar detalle"; }
+    btn.setAttribute("aria-expanded",String(!abierto));
+  });
+
+  document.getElementById("b3-nota").innerHTML=
+    "Esta tabla usa el ticket real cobrado, no la tarifa de lista. Con la tarifa de lista el equilibrio "+
+    "sería más bajo, y el grupo parecería rentable antes de serlo.";
+}
+
+function pintarCurva(d){
+  const cont=document.getElementById("curva");
+  if(d.costo==null||d.ticketCobrado==null||d.cap==null||d.meta==null){
+    cont.innerHTML=avisoSinDato("la curva del camino","Faltan parámetros en Config Kínder.");
+    return;
+  }
+  /* Un punto por cada niño entre el estado de hoy y la meta. El numero de
+     grupos se deduce de la capacidad: cada grupo nuevo entra completo en el
+     costo desde el primer niño que lo obliga a abrir.
+
+     El eje de esta curva son NIÑOS, no meses. Una fecha no es un punto de
+     este eje, y ubicarla exigiria un ritmo de captacion que no existe en
+     ningun dato. Asi que el cambio de tarifa no se marca como una linea
+     vertical: se dibuja la segunda curva entera, y el escalon es la
+     distancia entre las dos a cualquier altura del eje. */
+  const desde=Math.min(d.activos,d.meta), hasta=d.meta;
+
+  /* El titulo decia "de 30 a 50" con el eje arrancando en 28. Ahora sale
+     del mismo numero que dibuja la curva y no se puede desincronizar. */
+  document.getElementById("curva-titulo").textContent=
+    "El camino · De "+desde+" a "+hasta+" niños";
+
+  const serie=tk=>{
+    const a=[];
+    for(let n=desde;n<=hasta;n++){
+      const g=Math.ceil(n/d.cap);
+      a.push({n, g, margen:n*tk-g*d.costo});
+    }
+    return a;
+  };
+  const caidasDe=pts=>{
+    const c=[];
+    for(let i=1;i<pts.length;i++)
+      if(pts[i].margen<pts[i-1].margen)
+        c.push({n:pts[i].n, g:pts[i].g, delta:pts[i].margen-pts[i-1].margen, desde:pts[i-1].margen});
+    c.forEach(x=>{ const r=pts.find(t=>t.n>x.n&&t.margen>=x.desde); x.recupera=r?r.n:null; });
+    return c;
+  };
+  const pts=serie(d.ticketVigente!=null?d.ticketVigente:d.ticketCobrado);
+  const caidas=caidasDe(pts);
+
+  /* La segunda curva solo se dibuja si la tarifa nueva todavia no rige. */
+  const hayNueva=(d.ticketLista!=null&&d.tarifaVigente===false);
+  const ptsN=hayNueva?serie(d.ticketLista):null;
+  const caidasN=hayNueva?caidasDe(ptsN):null;
+
+  const W=880,H=250,PL=64,PR=16,PT=18,PB=34;
+  const todos=pts.concat(ptsN||[]).map(x=>x.margen);
+  const min=Math.min.apply(null,todos);
+  const max=Math.max.apply(null,todos);
+  const lo=Math.min(0,min), hi=max;
+  const x=n=>PL+((n-desde)/Math.max(1,(hasta-desde)))*(W-PL-PR);
+  const y=v=>PT+(1-(v-lo)/Math.max(1,(hi-lo)))*(H-PT-PB);
+
+  const trazo=a=>a.map((pt,i)=>(i?"L":"M")+x(pt.n).toFixed(1)+" "+y(pt.margen).toFixed(1)).join(" ");
+  const linea=trazo(pts);
+  const lineaN=hayNueva?trazo(ptsN):"";
+
+  /* El escalon es la banda entre las dos curvas: la curva nueva de ida y la
+     de hoy de vuelta, cerrada. Verde, y sin linea vertical: el cambio de
+     tarifa no ocurre en un punto del eje, levanta la curva entera. */
+  const banda=hayNueva
+    ? '<path d="'+trazo(ptsN)+" L"+x(pts[pts.length-1].n).toFixed(1)+" "+
+        y(pts[pts.length-1].margen).toFixed(1)+" "+
+        trazo(pts.slice().reverse()).replace(/^M/,"L")+' Z" fill="var(--verde)" opacity=".10"/>'
+    : "";
+  const marcas=caidas.map(c=>
+    '<line x1="'+x(c.n).toFixed(1)+'" y1="'+PT+'" x2="'+x(c.n).toFixed(1)+'" y2="'+(H-PB)+
+      '" stroke="var(--rojo)" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>'+
+    '<circle cx="'+x(c.n).toFixed(1)+'" cy="'+y(pts.find(t=>t.n===c.n).margen).toFixed(1)+
+      '" r="4" fill="var(--rojo)"/>').join("");
+  const refs=[lo,hi].concat(lo<0&&hi>0?[0]:[]).map(v=>
+    '<line x1="'+PL+'" y1="'+y(v).toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y(v).toFixed(1)+
+      '" stroke="var(--gris3)" stroke-width="1"/>'+
+    '<text x="'+(PL-8)+'" y="'+(y(v)+4).toFixed(1)+'" text-anchor="end" font-size="10" '+
+      'fill="var(--gris2)" font-family="Poppins" font-weight="500">'+dineroCorto(v)+'</text>').join("");
+  const ejeX=[desde,Math.round((desde+hasta)/2),hasta].map(n=>
+    '<text x="'+x(n).toFixed(1)+'" y="'+(H-PB+18)+'" text-anchor="middle" font-size="10" '+
+      'fill="var(--gris2)" font-family="Poppins" font-weight="500">'+n+' niños</text>').join("");
+
+  cont.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" '+
+    'aria-label="Margen mensual entre '+desde+' y '+hasta+' niños. Las líneas rojas verticales marcan '+
+      'las caídas al abrir cada grupo nuevo'+(hayNueva?'. La curva verde es el mismo camino con la '+
+      'tarifa de lista, que rige desde el '+fmtFecha(d.fechaTarifa):'')+'">'+
+    refs+banda+marcas+
+    (hayNueva?'<path d="'+lineaN+'" fill="none" stroke="var(--verde)" stroke-width="2.5" '+
+      'stroke-linejoin="round" stroke-linecap="round"/>':'')+
+    '<path d="'+linea+'" fill="none" stroke="var(--azul)" stroke-width="2.5" '+
+      'stroke-linejoin="round" stroke-linecap="round"/>'+
+    ejeX+'</svg>'+
+    (hayNueva
+      ? '<div class="cv-leyenda">'+
+          '<div class="cv-leyenda-i"><span class="cv-leyenda-m" style="border-top-color:var(--azul)"></span>'+
+            'Con el ticket de hoy, '+dinero(d.ticketCobrado)+'</div>'+
+          '<div class="cv-leyenda-i"><span class="cv-leyenda-m" style="border-top-color:var(--verde)"></span>'+
+            'Desde el '+fmtFecha(d.fechaTarifa)+', con la tarifa de lista, '+dinero(d.ticketLista)+'</div>'+
+          '<div class="cv-leyenda-i"><span class="cv-leyenda-m" style="border-top-color:var(--rojo);'+
+            'border-top-style:dashed"></span>Abre un grupo nuevo</div>'+
+        '</div>'
+      : "");
+
+  document.getElementById("curva-veredicto").innerHTML = caidas.length===0
+    ? veredicto("ok","El camino de "+desde+" a "+hasta+" niños no tiene caídas de margen.")
+    : veredicto("mal", caidas.length===1
+        ? "Una caída de margen en el camino: el niño "+caidas[0].n+", al abrir el grupo "+caidas[0].g+"."
+        : caidas.length+" caídas de margen en el camino: los niños "+
+          caidas.map(c=>c.n).join(" y ")+", al abrir los grupos "+
+          caidas.map(c=>c.g).join(" y ")+".");
+
+  document.getElementById("caidas").innerHTML=caidas.map(c=>{
+    const cn=caidasN?caidasN.find(x=>x.n===c.n):null;
+    return '<div class="caida"><div class="caida-t">El niño '+c.n+' abre el grupo '+c.g+'</div>'+
+    '<div class="caida-d">El margen cae '+dineroCorto(Math.abs(c.delta))+' de un mes al otro'+
+      (c.recupera?', y no se recupera hasta el niño '+c.recupera:'')+'.'+
+      (cn?' Con la tarifa de lista la caída es '+dineroCorto(Math.abs(cn.delta))+
+        (cn.recupera?' y se recupera en el niño '+cn.recupera:'')+'.':'')+
+      '</div></div>';
+  }).join("");
+
+}
+
+function pintarB4(d){
+  const cont=document.getElementById("b4");
+  if(!MOVIMIENTOS.length){
+    /* Estructura completa y vacia, nunca en cero. Lo que cuesta una baja si
+       se puede mostrar, porque sale del ticket cobrado y no de una
+       permanencia estimada. */
+    cont.innerHTML=
+      avisoSinDato("las altas y bajas del mes",
+        "El Sheet guarda el estado de cada niño, no sus movimientos: hay una fecha de ingreso "+
+        "y una de salida, pero no queda registro de cuándo se dio de alta o de baja a nadie. "+
+        "Este bloque empieza a contar desde el primer niño que se guarde en el aplicativo.")+
+      (d.ticketCobrado!=null?
+        '<div class="tickets" style="margin-top:12px;grid-template-columns:minmax(190px,340px)">'+
+          '<div class="ticket"><div class="ticket-lbl">Lo que cuesta una baja</div>'+
+          '<div class="ticket-val num">'+dinero(d.ticketCobrado)+
+            '<span style="font-size:13px;font-weight:600;color:var(--gris2)"> al mes</span></div>'+
+          '<div class="ticket-desc">Es el ticket cobrado: lo que deja de entrar el mes que el niño se va, '+
+            'y todos los meses siguientes. No se multiplica por una permanencia: los meses que se '+
+            'habría quedado no están en ningún dato verificado.</div></div>'+
+        '</div>' : "");
+    return;
+  }
+  cont.innerHTML="";
+}
+
+function pintarB5(d){
+  const cont=document.getElementById("b5");
+  const ticketLista=d.ticketLista, cobrado=d.ticketCobrado;
+
+  const vere=document.getElementById("b5-veredicto");
+  vere.innerHTML = (d.brecha==null)
+    ? ""
+    : d.tarifaVigente===false
+      ? veredicto("mal","El ticket cobrado está por debajo de la tarifa de lista. "+
+          "La diferencia se cierra el "+fmtFecha(d.fechaTarifa)+".")
+      : veredicto("ok","La tarifa de lista ya rige para todos los niños.");
+
+  let h="";
+  if(!PLANES.length){
+    h+=avisoSinDato("la mezcla de planes",
+      "No existen las columnas Plan ni Tarifa en ninguna pestaña del Sheet, y el monto pagado no permite "+
+      "deducirlas. Este bloque se llena cuando el aplicativo guarde el plan de cada niño.");
+  }
+
+  /* Los dos tickets si se pueden calcular, y su diferencia es el hallazgo
+     con mas valor del entregable: cuanto se deja de cobrar contra la propia
+     lista de precios. */
+  if(cobrado!=null&&ticketLista!=null){
+    const brecha=d.brecha;
+    h+='<div class="tickets" style="margin-top:12px">'+
+      '<div class="ticket"><div class="ticket-lbl">Ticket cobrado</div>'+
+        '<div class="ticket-val num">'+dinero(cobrado)+'</div>'+
+        '<div class="ticket-desc">Promedio real de lo que pagaron los '+d.pagadores+
+          ' niños en el último mes con datos'+
+          (d.activos>d.pagadores?', de '+d.activos+' cargados':'')+'.</div></div>'+
+      '<div class="ticket"><div class="ticket-lbl">Ticket de lista</div>'+
+        '<div class="ticket-val num">'+dinero(ticketLista)+'</div>'+
+        '<div class="ticket-desc">'+dineroCorto(p("precio_45h"))+' y '+dineroCorto(p("precio_8h"))+
+          ' de tarifa nueva, en la proporción '+Math.round(p("mezcla_45h")*100)+'/'+
+          Math.round((1-p("mezcla_45h"))*100)+' que declara el cliente.</div></div>'+
+      '<div class="ticket"><div class="ticket-lbl">Diferencia</div>'+
+        '<div class="ticket-val num">'+dinero(brecha)+'</div>'+
+        '<div class="ticket-desc">Por niño y por mes. Con los '+d.pagadores+
+          ' niños que pagaron son '+dineroCorto(d.brechaMes)+' al mes'+
+          (d.tarifaVigente===false?'':', y '+dineroCorto(d.brechaMes*12)+' al año')+
+          '.'+(d.activos>d.pagadores
+            ? ' Hay '+(d.activos-d.pagadores)+(d.activos-d.pagadores===1?' cargado':' cargados')+
+              ' sin pago: no '+(d.activos-d.pagadores===1?'entra':'entran')+', porque el ticket '+
+              'cobrado es el promedio de los que sí pagaron.'
+            : '')+'</div></div>'+
+    '</div>';
+
+    /* La diferencia no es permanente: tiene fecha de cierre y un total que
+       se puede sumar. Los meses se cuentan contra la fecha del parametro,
+       no se teclean. */
+    if(d.fechaTarifa!=null){
+      h+= d.tarifaVigente===false
+        ? '<div class="cierre"><div class="cierre-t">Esta diferencia se cierra el '+
+            fmtFecha(d.fechaTarifa)+'</div>'+
+          '<div class="cierre-d">Ese día <b>todos</b> los niños pasan a la tarifa de lista, no solo los '+
+            'nuevos. Quedan <b>'+d.mesesParaTarifa+' meses</b> cobrando el ticket de hoy: '+
+            dineroCorto(d.brechaMes)+' al mes × '+d.mesesParaTarifa+' meses = <b>'+
+            dineroCorto(d.brechaAcum)+'</b> que no se facturan antes del cambio. '+
+            'Después de esa fecha la diferencia deja de existir.</div></div>'
+        : '<div class="cierre"><div class="cierre-t">La tarifa nueva ya rige desde el '+
+            fmtFecha(d.fechaTarifa)+'</div>'+
+          '<div class="cierre-d">El modelo usa '+dinero(d.ticketLista)+' como ticket. Lo que siga '+
+            'apareciendo por debajo son cobros que no se actualizaron.</div></div>';
+    }
+  }
+
+  /* Reparto observado. Se muestra como comprobacion, con su etiqueta: los
+     montos separan en dos grupos limpios y la proporcion coincide con la
+     que declara el cliente, pero eso valida, no es fuente. */
+  const conPago=NINOS.filter(n=>n.pago>0).map(n=>n.pago).sort((a,b)=>a-b);
+  if(conPago.length>3){
+    let corte=0,hueco=0;
+    for(let i=1;i<conPago.length;i++){
+      const dif=conPago[i]-conPago[i-1];
+      if(dif>hueco){hueco=dif;corte=i;}
+    }
+    const baja=conPago.slice(0,corte), alta=conPago.slice(corte);
+    const prom=a=>a.reduce((x,y)=>x+y,0)/a.length;
+    if(baja.length&&alta.length){
+      const pb=Math.round(baja.length/conPago.length*100);
+      h+='<div class="reparto">'+
+          '<div class="r-baja" style="width:'+pb+'%">'+pb+'% · '+dineroCorto(prom(baja))+'</div>'+
+          '<div class="r-alta" style="width:'+(100-pb)+'%">'+(100-pb)+'% · '+dineroCorto(prom(alta))+'</div>'+
+        '</div>'+
+        '';
+    }
+  }
+  cont.innerHTML=h;
+}
+
+function pintarPie(d){
+  const partes=[];
+  partes.push("Fuente: pestañas «Datos para análisis», «Kínder» y «Config Kínder» del Sheet de Vida en Arte. "+
+    "Este tablero solo lee; nunca escribe. Todas las cifras se calculan; ninguna está escrita en el código.");
+  /* La capacidad potencial baja aca: es contexto de crecimiento a los ocho
+     grupos, no una cifra de la reunion del lunes. */
+  if(d.cuposTotales)
+    partes.push("Capacidad potencial con los "+d.totales+" grupos abiertos a la vez: "+
+      pct(d.activos/d.cuposTotales)+" — "+d.activos+" de "+d.cuposTotales+" cupos teóricos.");
+  /* Los 2.700 son una decision, no una medicion: el tablero calcula con el
+     objetivo a proposito. El real tambien sale de Config Kinder; si falta,
+     la frase se queda con la mitad que si es cierta. */
+  const costoReal=p("costo_real_por_grupo");
+  partes.push("Los "+dineroCorto(d.costo)+" por grupo son el costo objetivo de nómina: están "+
+    "contratando para llegar ahí."+
+    (costoReal!=null
+      ? " El real de enero a julio de 2026 fue de unos "+dineroCorto(costoReal)+" por grupo."
+      : ""));
+  document.getElementById("pie").innerHTML=partes.join("<br>");
+}
+
+/* ==========================================================================
+   ARRANQUE
+   ========================================================================== */
+function pintarTodo(){
+  HOY=new Date();
+  document.body.classList.toggle("demo", String(CFG.modo_datos||"demo").trim().toLowerCase()!=="real");
+  const d=calcular();
+  pintarB1(d); pintarB2(d); pintarB3(d); pintarCurva(d); pintarB4(d); pintarB5(d); pintarPie(d);
+  const est=document.getElementById("estado");
+  est.className="pastilla-estado"+(NINOS.length?"":" error");
+  est.innerHTML='<span class="punto"></span>'+(NINOS.length?"En línea":"Sin datos");
+  pintarSello();
+  animarBarras();
+}
+
+/* DE CUANDO SON LOS DATOS.
+   Hasta el 3-sep esta linea decia "Actualizado" + la fecha de HOY, que es la
+   fecha en que alguien abre la pagina y no tiene ninguna relacion con cuando
+   se genero el analisis. Decia "Actualizado 3 sep" todos los dias aunque los
+   datos fueran de hace un mes: no es que no avisara de que estaban viejos, es
+   que afirmaba lo contrario.
+
+   Ahora se muestra el sello que escribe el script al regenerar. Sin sello no
+   se inventa una fecha: se dice que no la hay. */
+/* Se pinta en rojo cuando el sello tiene mas de dos dias: el ojo tiene que
+   engancharse ahi antes de leer un solo numero de la pantalla. */
+(function(){
+  const st=document.createElement("style");
+  st.textContent="#fecha.viejo{color:#a3170c;font-weight:600}";
+  document.head.appendChild(st);
+})();
+
+function pintarSello(){
+  const el=document.getElementById("fecha");
+  if(!SELLO){
+    const demo=String(CFG.modo_datos||"demo").trim().toLowerCase()!=="real";
+    el.textContent = demo ? "Datos de demostración" : "Sin fecha de generación";
+    el.classList.toggle("viejo", !demo);
+    el.title = demo ? "" :
+      "«Datos para análisis» no trae la columna generado_en. Falta el título " +
+      "en la fila 5, o el Apps Script es anterior al sello.";
+    return;
+  }
+  /* El sello viene como "aaaa-mm-dd HH:mm" */
+  const m=/^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(SELLO);
+  const d=m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3])):null;
+  const dias=d?Math.floor((HOY-d)/86400000):null;
+  el.textContent="Datos del "+(d?fmtFecha(d):SELLO);
+  const viejo = dias!==null && dias>2;
+  el.classList.toggle("viejo", viejo);
+  el.title = viejo
+    ? "Hace "+dias+" días que no se regeneran. La regeneración diaria puede estar caída."
+    : "Generado el "+SELLO;
+}
+
+document.getElementById("btn-actualizar").addEventListener("click",function(){
+  this.disabled=true;
+  cargar().then(pintarTodo).finally(()=>{this.disabled=false;});
+});
+
+function arrancar(){ cargar().then(pintarTodo); }
+if(montarPuerta()) arrancar();
+</script>
+</body>
+</html>
