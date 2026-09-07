@@ -280,11 +280,12 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .lista{display:flex;flex-direction:column;gap:6px}
 /* Un documento con varias versiones: la cabecera se ve como una fila mas y
    al abrirla salen las versiones, sangradas para que se lean como suyas. */
-.doc-grupo>summary{list-style:none;cursor:pointer}
-.doc-grupo>summary::-webkit-details-marker{display:none}
-.fd-grupo .fd-accion::after{content:" b8";display:inline-block;transition:transform .15s}
-.doc-grupo[open]>summary .fd-accion::after{transform:rotate(90deg)}
-.doc-grupo[open]>summary{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
+.fd-summary{list-style:none;cursor:pointer;display:block}
+.fd-summary::-webkit-details-marker{display:none}
+.fd-summary::marker{content:""}
+.fd-grupo .fd-accion::after{content:" ▸";display:inline-block;transition:transform .15s}
+.doc-grupo[open] .fd-accion::after{transform:rotate(90deg)}
+.doc-grupo[open] .fd-grupo{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
 .doc-versiones{display:flex;flex-direction:column;gap:5px;margin:5px 0 2px 18px;
   padding-left:12px;border-left:2px solid var(--borde)}
 .fd-version{padding:8px 12px}
@@ -937,7 +938,7 @@ function detalle(u){
          versiones. Uno sin documentos no dibuja seccion vacia. */
       const suyos=docsDeEntregable(it.id);
       if(suyos.length) h+='<div class="item-docs"><div class="lista">'+
-        suyos.map(filaGrupoDoc).join("")+'</div></div>';
+        suyos.map(gr=>filaGrupoDoc(gr,it.nombre)).join("")+'</div></div>';
     });
     h+='</div>';
   });
@@ -1033,19 +1034,46 @@ function agruparVersiones(docs){
   return orden;
 }
 
+/* Dos nombres son el mismo si solo difieren en mayusculas o en espacios de
+   mas. Sirve para no repetir el titulo del entregable en la fila de su
+   documento, que es lo mas comun: el documento se llama igual. */
+function mismoNombre(a,b){
+  const n=s=>(s||"").trim().toLowerCase().split(/\s+/).join(" ");
+  return n(a)!=="" && n(a)===n(b);
+}
+
 /* Un documento con una sola version abre directo, sin un clic de mas. El
-   despliegue solo aparece cuando de verdad hay algo que elegir. */
-function filaGrupoDoc(g){
-  if(g.versiones.length===1) return filaDocumento(g.versiones[0]);
-  const n=g.versiones.length;
-  return '<details class="doc-grupo"><summary class="fila-doc fd-grupo">'+
-    '<span class="fd-nombre" title="'+esc(g.base)+'">'+esc(g.base)+'</span>'+
-    '<span class="fd-etiquetas">'+
-      (g.segmento?'<span class="pill seg">'+esc(g.segmento)+'</span>':'')+
-      (g.tipo?'<span class="pill">'+esc(g.tipo)+'</span>':'')+
-    '</span>'+
-    '<span class="fd-fecha">'+fmt(g.fecha)+'</span>'+
-    '<span class="fd-accion">'+n+' versiones</span></summary>'+
+   despliegue solo aparece cuando de verdad hay algo que elegir.
+
+   `titulo` es el nombre del entregable cuando la fila vive dentro de uno: si
+   coincide con el del documento, el nombre no se repite y la fila muestra
+   solo lo suyo. */
+function filaGrupoDoc(g,titulo){
+  const repetido=mismoNombre(g.base,titulo);
+  if(g.versiones.length===1){
+    const d=g.versiones[0];
+    return '<a class="fila-doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener" data-titulo="'+esc(d.nombre)+'">'+
+      '<span class="fd-nombre"'+(repetido?'':' title="'+esc(d.nombre)+'"')+'>'+(repetido?'':esc(d.nombre))+'</span>'+
+      '<span class="fd-etiquetas">'+
+        (d.segmento?'<span class="pill seg">'+esc(d.segmento)+'</span>':'')+
+        (d.tipo?'<span class="pill">'+esc(d.tipo)+'</span>':'')+
+      '</span>'+
+      '<span class="fd-fecha">'+fmt(d.fecha)+'</span>'+
+      '<span class="fd-accion">Abrir →</span></a>';
+  }
+  /* El <summary> conserva su display propio y la maquetacion vive en un div
+     de dentro: poner display:flex sobre el <summary> deja de plegar en
+     Safari, y ahi el cliente se queda con "3 versiones" y sin nada al tocar. */
+  return '<details class="doc-grupo"><summary class="fd-summary">'+
+    '<span class="fila-doc fd-grupo">'+
+      '<span class="fd-nombre"'+(repetido?'':' title="'+esc(g.base)+'"')+'>'+(repetido?'':esc(g.base))+'</span>'+
+      '<span class="fd-etiquetas">'+
+        (g.segmento?'<span class="pill seg">'+esc(g.segmento)+'</span>':'')+
+        (g.tipo?'<span class="pill">'+esc(g.tipo)+'</span>':'')+
+      '</span>'+
+      '<span class="fd-fecha">'+fmt(g.fecha)+'</span>'+
+      '<span class="fd-accion">'+g.versiones.length+' versiones</span>'+
+    '</span></summary>'+
     '<div class="doc-versiones">'+g.versiones.map(v=>{
       const et=etiquetaVersion(v.nombre)||"Versión";
       return '<a class="fila-doc fd-version" href="'+esc(v.enlace)+'" target="_blank" rel="noopener"'+
@@ -1131,13 +1159,13 @@ function renderDocs(){
       const delSeg=deUnidad.filter(d=>d.segmento===seg).sort(porFecha);
       if(!delSeg.length) return;
       if(conSubtitulo) h+='<div class="seg-h">'+esc(seg)+'</div>';
-      h+='<div class="lista">'+agruparVersiones(delSeg).map(filaGrupoDoc).join("")+'</div>';
+      h+='<div class="lista">'+agruparVersiones(delSeg).map(gr=>filaGrupoDoc(gr)).join("")+'</div>';
       delSeg.forEach(d=>colocados.push(d));
     });
     /* Cualquier documento sin segmento reconocible se dibuja al final en
        vez de desaparecer sin dejar rastro. */
     const sueltos=deUnidad.filter(d=>colocados.indexOf(d)<0).sort(porFecha);
-    if(sueltos.length) h+='<div class="lista">'+agruparVersiones(sueltos).map(filaGrupoDoc).join("")+'</div>';
+    if(sueltos.length) h+='<div class="lista">'+agruparVersiones(sueltos).map(gr=>filaGrupoDoc(gr)).join("")+'</div>';
     h+='</div>';
   });
 
