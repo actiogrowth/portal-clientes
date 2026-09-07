@@ -278,6 +278,19 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 /* Lista de filas de ancho completo. Se lee de arriba abajo en una sola
    linea de lectura, en vez de en zigzag por una cuadricula. */
 .lista{display:flex;flex-direction:column;gap:6px}
+/* Un documento con varias versiones: la cabecera se ve como una fila mas y
+   al abrirla salen las versiones, sangradas para que se lean como suyas. */
+.doc-grupo>summary{list-style:none;cursor:pointer}
+.doc-grupo>summary::-webkit-details-marker{display:none}
+.fd-grupo .fd-accion::after{content:" b8";display:inline-block;transition:transform .15s}
+.doc-grupo[open]>summary .fd-accion::after{transform:rotate(90deg)}
+.doc-grupo[open]>summary{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
+.doc-versiones{display:flex;flex-direction:column;gap:5px;margin:5px 0 2px 18px;
+  padding-left:12px;border-left:2px solid var(--borde)}
+.fd-version{padding:8px 12px}
+.fd-version .fd-nombre{font-weight:500}
+/* Los documentos que cuelgan de un entregable. */
+.item-docs{padding:2px 0 10px 19px}
 .fila-doc{display:flex;align-items:center;gap:14px;padding:10px 14px;
   background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
   text-decoration:none;color:inherit;transition:.15s}
@@ -676,11 +689,14 @@ fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text
 .then(txt=>{
   const t=tabla(txt),h=t.head;
   const cU=col(h,"Unidad de negocio"),cE=col(h,"Entregable"),cS=col(h,"Segmento"),
-        cSt=col(h,"Estado"),cP=col(h,"% Avance"),cFc=col(h,"Fecha compromiso"),cFr=col(h,"Fecha real");
+        cSt=col(h,"Estado"),cP=col(h,"% Avance"),cFc=col(h,"Fecha compromiso"),cFr=col(h,"Fecha real"),
+        cId=col(h,"ID");
   DATA=t.rows.map(r=>({
     unidad:(r[cU]||"").trim(), nombre:(r[cE]||"").trim(), segmento:(r[cS]||"").trim(),
     estado:(r[cSt]||"").trim(), pct:parseFloat(r[cP])||0,
-    compromiso:fecha(r[cFc]), real:fecha(r[cFr])
+    compromiso:fecha(r[cFc]), real:fecha(r[cFr]),
+    /* La llave con la que los documentos se cuelgan de su entregable. */
+    id:(r[cId]||"").trim()
   })).filter(d=>d.nombre&&activa(d,"avance"));
 
   const ds=[];DATA.forEach(d=>{if(d.real)ds.push(d.real);if(d.compromiso)ds.push(d.compromiso);});
@@ -699,15 +715,18 @@ fetch(CSV_DOCUMENTOS).then(r=>{if(!r.ok)throw new Error(r.status);return r.text(
 .then(txt=>{
   const t=tabla(txt),h=t.head;
   const cN=col(h,"Nombre"),cU=col(h,"Unidad de negocio"),cS=col(h,"Segmento"),
-        cT=col(h,"Tipo"),cF=col(h,"Fecha"),cL=col(h,"Enlace");
-  DOCS=t.rows.map(r=>({
+        cT=col(h,"Tipo"),cF=col(h,"Fecha"),cL=col(h,"Enlace"),cE=col(h,"ID Entregable");
+  DOCS=t.rows.map((r,i)=>({
     /* Una celda de unidad vacia cae en "Sin unidad", no en un nombre
        inventado. Descartar la fila escondería un documento real sin
        dejar rastro; asi el hueco se ve y se puede corregir en el Sheet. */
     nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"Sin unidad", segmento:(r[cS]||"").trim(),
-    tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim()
+    tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim(),
+    /* El entregable al que pertenece, y la posicion en la hoja: el orden de
+       las filas es intencional y es el que llevan las versiones. */
+    entregable:(r[cE]||"").trim(), orden:i
   })).filter(d=>d.nombre&&activa(d,"documentos"));
-  document.getElementById("cd").textContent="("+DOCS.length+")";
+  document.getElementById("cd").textContent="("+agruparVersiones(DOCS).length+")";
   renderDocs();
 })
 .catch(e=>{ document.getElementById("p-docs").innerHTML=
@@ -914,6 +933,11 @@ function detalle(u){
         : '<div class="i-prog"></div>';
       h+='<div class="i-date">'+fmt(st==="done"?it.real:it.compromiso)+'</div>'+
          '<div class="badge '+bc+'">'+bt+'</div></div>';
+      /* Los documentos del entregable, con el mismo agrupamiento por
+         versiones. Uno sin documentos no dibuja seccion vacia. */
+      const suyos=docsDeEntregable(it.id);
+      if(suyos.length) h+='<div class="item-docs"><div class="lista">'+
+        suyos.map(filaGrupoDoc).join("")+'</div></div>';
     });
     h+='</div>';
   });
@@ -934,6 +958,7 @@ function activable(el,accion){
 }
 
 function bindAvance(){
+  enlazarVisor("#p-avance a.fila-doc");
   document.querySelectorAll("#p-avance .card").forEach(el=>{
     el.setAttribute("aria-expanded",String(openUnit===el.dataset.u));
     activable(el,()=>{openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
@@ -973,6 +998,68 @@ function filaDocumento(d){
     '</span>'+
     '<span class="fd-fecha">'+fmt(d.fecha)+'</span>'+
     '<span class="fd-accion">Abrir →</span></a>';
+}
+
+/* ============ VERSIONES DE UN DOCUMENTO ============
+
+   Un mismo documento llega en varias filas, una por version, con la etiqueta
+   entre parentesis al final del nombre: "Modelo de Negocio (Presentacion)".
+
+   Se agrupa por nombre base —lo que va antes del ultimo parentesis— y nunca
+   por ID Entregable: hay documentos con varias versiones y sin entregable,
+   como la hoja de ruta de Kinder, que se perderian al agrupar por una llave
+   que no tienen. */
+const RE_VERSION=/^(.*?)\s*\(([^()]*)\)\s*$/;
+function nombreBase(n){ const m=n.match(RE_VERSION); return m?m[1].trim():n; }
+function etiquetaVersion(n){ const m=n.match(RE_VERSION); return m?m[2].trim():null; }
+
+/* Devuelve un grupo por documento, en el orden en que las filas entran. Las
+   versiones de dentro van en el orden de la hoja y no por fecha ni alfabetico:
+   el orden de las filas es una decision del equipo. */
+function agruparVersiones(docs){
+  const orden=[],mapa={};
+  docs.forEach(d=>{
+    const base=nombreBase(d.nombre);
+    if(!mapa[base]){ mapa[base]={base:base,versiones:[]}; orden.push(mapa[base]); }
+    mapa[base].versiones.push(d);
+  });
+  orden.forEach(g=>{
+    g.versiones.sort((a,b)=>a.orden-b.orden);
+    /* La ficha del grupo se toma de su primera version: comparten unidad,
+       area, tipo y fecha, que es lo que se muestra en la cabecera. */
+    const p=g.versiones[0];
+    g.unidad=p.unidad; g.segmento=p.segmento; g.tipo=p.tipo; g.fecha=p.fecha;
+  });
+  return orden;
+}
+
+/* Un documento con una sola version abre directo, sin un clic de mas. El
+   despliegue solo aparece cuando de verdad hay algo que elegir. */
+function filaGrupoDoc(g){
+  if(g.versiones.length===1) return filaDocumento(g.versiones[0]);
+  const n=g.versiones.length;
+  return '<details class="doc-grupo"><summary class="fila-doc fd-grupo">'+
+    '<span class="fd-nombre" title="'+esc(g.base)+'">'+esc(g.base)+'</span>'+
+    '<span class="fd-etiquetas">'+
+      (g.segmento?'<span class="pill seg">'+esc(g.segmento)+'</span>':'')+
+      (g.tipo?'<span class="pill">'+esc(g.tipo)+'</span>':'')+
+    '</span>'+
+    '<span class="fd-fecha">'+fmt(g.fecha)+'</span>'+
+    '<span class="fd-accion">'+n+' versiones</span></summary>'+
+    '<div class="doc-versiones">'+g.versiones.map(v=>{
+      const et=etiquetaVersion(v.nombre)||"Versión";
+      return '<a class="fila-doc fd-version" href="'+esc(v.enlace)+'" target="_blank" rel="noopener"'+
+        ' data-titulo="'+esc(v.nombre)+'">'+
+        '<span class="fd-nombre" title="'+esc(v.nombre)+'">'+esc(et)+'</span>'+
+        '<span class="fd-accion">Abrir →</span></a>';
+    }).join("")+'</div></details>';
+}
+
+/* Los documentos de un entregable: los que llevan su mismo ID. Sin ID no
+   aparecen aqui, solo en la pestaña de documentos. */
+function docsDeEntregable(id){
+  if(!id) return [];
+  return agruparVersiones(DOCS.filter(d=>d.entregable===id).slice().sort((a,b)=>a.orden-b.orden));
 }
 
 function renderDocs(){
@@ -1034,7 +1121,8 @@ function renderDocs(){
   /* Los grupos siguen el mismo orden que los pills, no el de insercion. */
   ordenar("unidad",valoresUnicos(lista,"unidad"),false,"documentos").forEach(g=>{
     const deUnidad=grupos[g];
-    h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+deUnidad.length+' documento'+(deUnidad.length!==1?'s':'')+'</span></div>';
+    const nDocs=agruparVersiones(deUnidad).length;
+    h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+nDocs+' documento'+(nDocs!==1?'s':'')+'</span></div>';
     const colocados=[];
     /* Dentro de cada unidad, los segmentos van en el orden del catalogo.
        Uno sin documentos aqui no dibuja subtitulo porque ni siquiera
@@ -1043,13 +1131,13 @@ function renderDocs(){
       const delSeg=deUnidad.filter(d=>d.segmento===seg).sort(porFecha);
       if(!delSeg.length) return;
       if(conSubtitulo) h+='<div class="seg-h">'+esc(seg)+'</div>';
-      h+='<div class="lista">'+delSeg.map(filaDocumento).join("")+'</div>';
+      h+='<div class="lista">'+agruparVersiones(delSeg).map(filaGrupoDoc).join("")+'</div>';
       delSeg.forEach(d=>colocados.push(d));
     });
     /* Cualquier documento sin segmento reconocible se dibuja al final en
        vez de desaparecer sin dejar rastro. */
     const sueltos=deUnidad.filter(d=>colocados.indexOf(d)<0).sort(porFecha);
-    if(sueltos.length) h+='<div class="lista">'+sueltos.map(filaDocumento).join("")+'</div>';
+    if(sueltos.length) h+='<div class="lista">'+agruparVersiones(sueltos).map(filaGrupoDoc).join("")+'</div>';
     h+='</div>';
   });
 
@@ -1073,7 +1161,7 @@ function bindDocs(){
     if(el.disabled) return;
     el.onclick=()=>{filtroArea=el.dataset.a;renderDocs();};
   });
-  enlazarVisor("#p-docs .fila-doc");
+  enlazarVisor("#p-docs a.fila-doc");
 }
 
 /* ============ REUNIONES ============ */
