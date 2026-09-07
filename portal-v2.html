@@ -1570,8 +1570,24 @@ document.getElementById("visor").addEventListener("click",e=>{
 
 /* Se intercepta el clic pero se conservan href y target: el clic con
    Ctrl, el del boton central y el movil siguen abriendo pestaña. */
+/* El visor solo para lo que sabemos convertir a /preview, que hoy es Drive
+   y Docs. Todo lo demas abre en pestaña nueva sin interceptar el clic.
+
+   Gamma manda Content-Security-Policy: frame-ancestors 'self', asi que el
+   iframe quedaba en blanco y el cliente veia un error durante cuatro segundos
+   hasta que aparecia el aviso para abrirlo aparte. Eran las seis versiones
+   Interactiva, en once sitios del portal.
+
+   Se comprueba contra urlIncrustable y no contra una lista propia: si algun
+   dia sabe convertir un dominio mas, el visor lo acepta solo. Y al reves de
+   una lista de dominios prohibidos, lo desconocido se comporta bien por
+   defecto en vez de fallar hasta que alguien lo note. */
+function seSabeIncrustar(u){ return !!u && urlIncrustable(u)!==u; }
+
 function enlazarVisor(sel){
   document.querySelectorAll(sel).forEach(a=>{
+    /* Sin onclick el enlace hace lo suyo: target="_blank". */
+    if(!seSabeIncrustar(a.href)) return;
     a.onclick=e=>{
       if(pantallaAngosta()||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
       e.preventDefault();
