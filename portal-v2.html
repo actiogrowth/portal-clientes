@@ -278,6 +278,40 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 /* Lista de filas de ancho completo. Se lee de arriba abajo en una sola
    linea de lectura, en vez de en zigzag por una cuadricula. */
 .lista{display:flex;flex-direction:column;gap:6px}
+/* Un documento con varias versiones: la cabecera se ve como una fila mas y
+   al abrirla salen las versiones, sangradas para que se lean como suyas. */
+.fd-summary{list-style:none;cursor:pointer;display:block}
+.fd-summary::-webkit-details-marker{display:none}
+.fd-summary::marker{content:""}
+.fd-grupo .fd-accion::after{content:" ▸";display:inline-block;transition:transform .15s}
+.doc-grupo[open] .fd-accion::after{transform:rotate(90deg)}
+.doc-grupo[open] .fd-grupo{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
+.doc-versiones{display:flex;flex-direction:column;gap:5px;margin:5px 0 2px 18px;
+  padding-left:12px;border-left:2px solid var(--borde)}
+.fd-version{padding:8px 12px}
+.fd-version .fd-nombre{font-weight:500}
+/* Un entregable con documentos se pulsa: el nombre lleva una marca —una
+   punta si despliega, una flecha si abre— y se realza al pasar por encima.
+   Uno sin documentos no cambia en nada. */
+.item-sum{list-style:none;cursor:pointer;display:block}
+.item-sum::-webkit-details-marker{display:none}
+.item-sum::marker{content:""}
+.item-link{display:block;text-decoration:none;color:inherit}
+.item-pulsable{cursor:pointer}
+.item-sum:hover .i-name,.item-link:hover .i-name{color:var(--marca-verde-profundo)}
+.i-despliega::after{content:" ▸";display:inline-block;color:var(--texto-secundario);transition:transform .15s}
+.item-det[open] .i-despliega::after{transform:rotate(90deg)}
+.i-abre::after{content:" ↗";color:var(--texto-secundario)}
+/* Las opciones del entregable: sangradas bajo su fila. */
+.item-ops{display:flex;flex-direction:column;gap:5px;margin:7px 0 11px 19px;
+  padding-left:12px;border-left:2px solid var(--borde)}
+.op{display:flex;align-items:center;gap:12px;padding:8px 12px;text-decoration:none;
+  border:1px solid var(--borde);border-radius:8px;background:var(--superficie)}
+.op:hover{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
+.op-etq{flex:1;font-size:13px;font-weight:500;color:var(--texto-principal);min-width:0}
+.op-abrir{font-size:12px;font-weight:600;color:var(--marca-verde-profundo);white-space:nowrap}
+.op-dentro{margin-left:14px}
+.op-titulo{font-size:12px;font-weight:600;color:var(--texto-secundario);margin:4px 0 1px}
 .fila-doc{display:flex;align-items:center;gap:14px;padding:10px 14px;
   background:var(--superficie);border:1px solid var(--borde);border-radius:10px;
   text-decoration:none;color:inherit;transition:.15s}
@@ -676,11 +710,14 @@ fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text
 .then(txt=>{
   const t=tabla(txt),h=t.head;
   const cU=col(h,"Unidad de negocio"),cE=col(h,"Entregable"),cS=col(h,"Segmento"),
-        cSt=col(h,"Estado"),cP=col(h,"% Avance"),cFc=col(h,"Fecha compromiso"),cFr=col(h,"Fecha real");
+        cSt=col(h,"Estado"),cP=col(h,"% Avance"),cFc=col(h,"Fecha compromiso"),cFr=col(h,"Fecha real"),
+        cId=col(h,"ID");
   DATA=t.rows.map(r=>({
     unidad:(r[cU]||"").trim(), nombre:(r[cE]||"").trim(), segmento:(r[cS]||"").trim(),
     estado:(r[cSt]||"").trim(), pct:parseFloat(r[cP])||0,
-    compromiso:fecha(r[cFc]), real:fecha(r[cFr])
+    compromiso:fecha(r[cFc]), real:fecha(r[cFr]),
+    /* La llave con la que los documentos se cuelgan de su entregable. */
+    id:(r[cId]||"").trim()
   })).filter(d=>d.nombre&&activa(d,"avance"));
 
   const ds=[];DATA.forEach(d=>{if(d.real)ds.push(d.real);if(d.compromiso)ds.push(d.compromiso);});
@@ -699,16 +736,23 @@ fetch(CSV_DOCUMENTOS).then(r=>{if(!r.ok)throw new Error(r.status);return r.text(
 .then(txt=>{
   const t=tabla(txt),h=t.head;
   const cN=col(h,"Nombre"),cU=col(h,"Unidad de negocio"),cS=col(h,"Segmento"),
-        cT=col(h,"Tipo"),cF=col(h,"Fecha"),cL=col(h,"Enlace");
-  DOCS=t.rows.map(r=>({
+        cT=col(h,"Tipo"),cF=col(h,"Fecha"),cL=col(h,"Enlace"),cE=col(h,"ID Entregable");
+  DOCS=t.rows.map((r,i)=>({
     /* Una celda de unidad vacia cae en "Sin unidad", no en un nombre
        inventado. Descartar la fila escondería un documento real sin
        dejar rastro; asi el hueco se ve y se puede corregir en el Sheet. */
     nombre:(r[cN]||"").trim(), unidad:(r[cU]||"").trim()||"Sin unidad", segmento:(r[cS]||"").trim(),
-    tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim()
+    tipo:(r[cT]||"").trim(), fecha:fecha(r[cF]), enlace:(r[cL]||"").trim(),
+    /* El entregable al que pertenece, y la posicion en la hoja: el orden de
+       las filas es intencional y es el que llevan las versiones. */
+    entregable:(r[cE]||"").trim(), orden:i
   })).filter(d=>d.nombre&&activa(d,"documentos"));
-  document.getElementById("cd").textContent="("+DOCS.length+")";
+  document.getElementById("cd").textContent="("+agruparVersiones(DOCS).length+")";
   renderDocs();
+  /* Los dos CSV llegan por su cuenta y el de entregables suele ganar, asi que
+     la primera pintura del avance se hace sin documentos. Si ya estaba
+     dibujado, se repinta para que cada entregable muestre los suyos. */
+  if(DATA.length) renderAvance();
 })
 .catch(e=>{ document.getElementById("p-docs").innerHTML=
   '<div class="err"><b>No se pudieron cargar los documentos.</b><br>Detalle: '+e.message+'</div>'; });
@@ -907,13 +951,37 @@ function detalle(u){
       const col2={done:"var(--estado-en-meta)",prog:"var(--estado-atencion)",late:"var(--estado-riesgo)",pend:"var(--estado-neutro)"}[st];
       const bc={done:"b-done",prog:"b-prog",late:"b-late",pend:"b-pend"}[st];
       const bt={done:"Entregado",prog:"En progreso",late:"Fecha vencida",pend:"Por entregar"}[st];
-      h+='<div class="item"><div class="i-dot" style="background:'+col2+'"></div>'+
-         '<div class="i-name">'+esc(it.nombre)+'</div>';
-      h+= (st==="prog"||st==="late")&&it.pct>0
-        ? '<div class="i-prog"><div class="b"><div class="f" style="width:'+it.pct+'%"></div></div><div class="t">'+it.pct+'%</div></div>'
-        : '<div class="i-prog"></div>';
-      h+='<div class="i-date">'+fmt(st==="done"?it.real:it.compromiso)+'</div>'+
-         '<div class="badge '+bc+'">'+bt+'</div></div>';
+      /* La fila del entregable, identica en los tres casos salvo la marca de
+         que se puede pulsar: el estado, el porcentaje y la fecha no cambian. */
+      const fila=marca=>'<div class="item'+(marca?' item-pulsable':'')+'">'+
+        '<div class="i-dot" style="background:'+col2+'"></div>'+
+        '<div class="i-name'+(marca?' i-'+marca:'')+'">'+esc(it.nombre)+'</div>'+
+        ((st==="prog"||st==="late")&&it.pct>0
+          ? '<div class="i-prog"><div class="b"><div class="f" style="width:'+it.pct+'%"></div></div><div class="t">'+it.pct+'%</div></div>'
+          : '<div class="i-prog"></div>')+
+        '<div class="i-date">'+fmt(st==="done"?it.real:it.compromiso)+'</div>'+
+        '<div class="badge '+bc+'">'+bt+'</div></div>';
+
+      const suyos=docsDeEntregable(it.id);
+
+      /* Sin documentos no se pulsa y se ve como siempre. */
+      if(!suyos.length){ h+=fila(null); return; }
+
+      /* Un solo documento y una sola version: el nombre del entregable abre
+         el documento. Desplegar para ofrecer una unica opcion es un clic que
+         no lleva a ninguna parte. */
+      if(suyos.length===1&&suyos[0].versiones.length===1){
+        const d=suyos[0].versiones[0];
+        h+='<a class="item-link" href="'+esc(d.enlace)+'" target="_blank" rel="noopener"'+
+           ' data-titulo="'+esc(d.nombre)+'">'+fila("abre")+'</a>';
+        return;
+      }
+
+      /* Varias opciones: el nombre despliega. El <summary> conserva su
+         display y la maquetacion vive dentro, que es lo que mantiene el
+         plegado funcionando en Safari. */
+      h+='<details class="item-det"><summary class="item-sum">'+fila("despliega")+'</summary>'+
+         '<div class="item-ops">'+opcionesDoc(suyos,it.nombre)+'</div></details>';
     });
     h+='</div>';
   });
@@ -934,6 +1002,7 @@ function activable(el,accion){
 }
 
 function bindAvance(){
+  enlazarVisor("#p-avance a.op, #p-avance a.item-link");
   document.querySelectorAll("#p-avance .card").forEach(el=>{
     el.setAttribute("aria-expanded",String(openUnit===el.dataset.u));
     activable(el,()=>{openUnit=openUnit===el.dataset.u?null:el.dataset.u;renderAvance();});
@@ -975,9 +1044,127 @@ function filaDocumento(d){
     '<span class="fd-accion">Abrir →</span></a>';
 }
 
+/* ============ VERSIONES DE UN DOCUMENTO ============
+
+   Un mismo documento llega en varias filas, una por version, con la etiqueta
+   entre parentesis al final del nombre: "Modelo de Negocio (Presentacion)".
+
+   Se agrupa por nombre base —lo que va antes del ultimo parentesis— y nunca
+   por ID Entregable: hay documentos con varias versiones y sin entregable,
+   como la hoja de ruta de Kinder, que se perderian al agrupar por una llave
+   que no tienen. */
+const RE_VERSION=/^(.*?)\s*\(([^()]*)\)\s*$/;
+function nombreBase(n){ const m=n.match(RE_VERSION); return m?m[1].trim():n; }
+function etiquetaVersion(n){ const m=n.match(RE_VERSION); return m?m[2].trim():null; }
+
+/* Devuelve un grupo por documento, en el orden en que las filas entran. Las
+   versiones de dentro van en el orden de la hoja y no por fecha ni alfabetico:
+   el orden de las filas es una decision del equipo. */
+function agruparVersiones(docs){
+  const orden=[],mapa={};
+  docs.forEach(d=>{
+    const base=nombreBase(d.nombre);
+    if(!mapa[base]){ mapa[base]={base:base,versiones:[]}; orden.push(mapa[base]); }
+    mapa[base].versiones.push(d);
+  });
+  orden.forEach(g=>{
+    g.versiones.sort((a,b)=>a.orden-b.orden);
+    /* La ficha del grupo se toma de su primera version: comparten unidad,
+       area, tipo y fecha, que es lo que se muestra en la cabecera. */
+    const p=g.versiones[0];
+    g.unidad=p.unidad; g.segmento=p.segmento; g.tipo=p.tipo; g.fecha=p.fecha;
+  });
+  return orden;
+}
+
+/* Dos nombres son el mismo si solo difieren en mayusculas o en espacios de
+   mas. Sirve para no repetir el titulo del entregable en la fila de su
+   documento, que es lo mas comun: el documento se llama igual. */
+function mismoNombre(a,b){
+  const n=s=>(s||"").trim().toLowerCase().split(/\s+/).join(" ");
+  return n(a)!=="" && n(a)===n(b);
+}
+
+/* Un documento con una sola version abre directo, sin un clic de mas. El
+   despliegue solo aparece cuando de verdad hay algo que elegir.
+
+   `titulo` es el nombre del entregable cuando la fila vive dentro de uno: si
+   coincide con el del documento, el nombre no se repite y la fila muestra
+   solo lo suyo. */
+function filaGrupoDoc(g,titulo){
+  const repetido=mismoNombre(g.base,titulo);
+  if(g.versiones.length===1){
+    const d=g.versiones[0];
+    return '<a class="fila-doc" href="'+esc(d.enlace)+'" target="_blank" rel="noopener" data-titulo="'+esc(d.nombre)+'">'+
+      '<span class="fd-nombre"'+(repetido?'':' title="'+esc(d.nombre)+'"')+'>'+(repetido?'':esc(d.nombre))+'</span>'+
+      '<span class="fd-etiquetas">'+
+        (d.segmento?'<span class="pill seg">'+esc(d.segmento)+'</span>':'')+
+        (d.tipo?'<span class="pill">'+esc(d.tipo)+'</span>':'')+
+      '</span>'+
+      '<span class="fd-fecha">'+fmt(d.fecha)+'</span>'+
+      '<span class="fd-accion">Abrir →</span></a>';
+  }
+  /* El <summary> conserva su display propio y la maquetacion vive en un div
+     de dentro: poner display:flex sobre el <summary> deja de plegar en
+     Safari, y ahi el cliente se queda con "3 versiones" y sin nada al tocar. */
+  return '<details class="doc-grupo"><summary class="fd-summary">'+
+    '<span class="fila-doc fd-grupo">'+
+      '<span class="fd-nombre"'+(repetido?'':' title="'+esc(g.base)+'"')+'>'+(repetido?'':esc(g.base))+'</span>'+
+      '<span class="fd-etiquetas">'+
+        (g.segmento?'<span class="pill seg">'+esc(g.segmento)+'</span>':'')+
+        (g.tipo?'<span class="pill">'+esc(g.tipo)+'</span>':'')+
+      '</span>'+
+      '<span class="fd-fecha">'+fmt(g.fecha)+'</span>'+
+      '<span class="fd-accion">'+g.versiones.length+' versiones</span>'+
+    '</span></summary>'+
+    '<div class="doc-versiones">'+g.versiones.map(v=>{
+      const et=etiquetaVersion(v.nombre)||"Versión";
+      return '<a class="fila-doc fd-version" href="'+esc(v.enlace)+'" target="_blank" rel="noopener"'+
+        ' data-titulo="'+esc(v.nombre)+'">'+
+        '<span class="fd-nombre" title="'+esc(v.nombre)+'">'+esc(et)+'</span>'+
+        '<span class="fd-accion">Abrir →</span></a>';
+    }).join("")+'</div></details>';
+}
+
+/* Lo que se despliega bajo un entregable. Cada opcion es un enlace con su
+   etiqueta a la izquierda y el Abrir a la derecha.
+
+   Un entregable puede tener varios documentos distintos, no solo varias
+   versiones del mismo: "Aplicacion VEA Kids - Book" tiene dos, y uno de
+   ellos se llama igual que el entregable. Ese no repite el nombre y entrega
+   sus versiones directamente. */
+function opcionDoc(v,etiqueta,dentro){
+  return '<a class="op'+(dentro?' op-dentro':'')+'" href="'+esc(v.enlace)+'" target="_blank"'+
+    ' rel="noopener" data-titulo="'+esc(v.nombre)+'">'+
+    '<span class="op-etq">'+esc(etiqueta)+'</span>'+
+    '<span class="op-abrir">Abrir →</span></a>';
+}
+function opcionesDoc(grupos,nombreEntregable){
+  return grupos.map(g=>{
+    const propio=mismoNombre(g.base,nombreEntregable);
+    /* El documento que se llama como su entregable: sus versiones y ya. Con
+       una sola version no queda etiqueta que poner, asi que se nombra por lo
+       que es. */
+    if(propio) return g.versiones.map(v=>
+      opcionDoc(v,etiquetaVersion(v.nombre)||"Ver documento")).join("");
+    if(g.versiones.length===1) return opcionDoc(g.versiones[0],g.base);
+    /* Un documento distinto con varias versiones: su nombre encabeza y sus
+       versiones van sangradas debajo. */
+    return '<div class="op-titulo">'+esc(g.base)+'</div>'+
+      g.versiones.map(v=>opcionDoc(v,etiquetaVersion(v.nombre)||"Versión",true)).join("");
+  }).join("");
+}
+
+/* Los documentos de un entregable: los que llevan su mismo ID. Sin ID no
+   aparecen aqui, solo en la pestaña de documentos. */
+function docsDeEntregable(id){
+  if(!id) return [];
+  return agruparVersiones(DOCS.filter(d=>d.entregable===id).slice().sort((a,b)=>a.orden-b.orden));
+}
+
 function renderDocs(){
   let h='<div class="sec-label">Biblioteca</div><h2>Documentos del proyecto</h2>';
-  h+='<div class="sub">Todos los entregables y documentos de su proyecto. Haz clic para abrir o descargar.</div>';
+  h+='<div class="sub">Todos los entregables y documentos de su proyecto. Haz clic para abrir.</div>';
 
   if(!DOCS.length){
     h+='<div class="empty">Aun no hay documentos publicados en esta seccion.</div>';
@@ -1034,7 +1221,8 @@ function renderDocs(){
   /* Los grupos siguen el mismo orden que los pills, no el de insercion. */
   ordenar("unidad",valoresUnicos(lista,"unidad"),false,"documentos").forEach(g=>{
     const deUnidad=grupos[g];
-    h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+deUnidad.length+' documento'+(deUnidad.length!==1?'s':'')+'</span></div>';
+    const nDocs=agruparVersiones(deUnidad).length;
+    h+='<div class="grupo"><div class="grupo-h">'+esc(g)+'<span class="n">'+nDocs+' documento'+(nDocs!==1?'s':'')+'</span></div>';
     const colocados=[];
     /* Dentro de cada unidad, los segmentos van en el orden del catalogo.
        Uno sin documentos aqui no dibuja subtitulo porque ni siquiera
@@ -1043,13 +1231,13 @@ function renderDocs(){
       const delSeg=deUnidad.filter(d=>d.segmento===seg).sort(porFecha);
       if(!delSeg.length) return;
       if(conSubtitulo) h+='<div class="seg-h">'+esc(seg)+'</div>';
-      h+='<div class="lista">'+delSeg.map(filaDocumento).join("")+'</div>';
+      h+='<div class="lista">'+agruparVersiones(delSeg).map(gr=>filaGrupoDoc(gr)).join("")+'</div>';
       delSeg.forEach(d=>colocados.push(d));
     });
     /* Cualquier documento sin segmento reconocible se dibuja al final en
        vez de desaparecer sin dejar rastro. */
     const sueltos=deUnidad.filter(d=>colocados.indexOf(d)<0).sort(porFecha);
-    if(sueltos.length) h+='<div class="lista">'+sueltos.map(filaDocumento).join("")+'</div>';
+    if(sueltos.length) h+='<div class="lista">'+agruparVersiones(sueltos).map(gr=>filaGrupoDoc(gr)).join("")+'</div>';
     h+='</div>';
   });
 
@@ -1073,7 +1261,7 @@ function bindDocs(){
     if(el.disabled) return;
     el.onclick=()=>{filtroArea=el.dataset.a;renderDocs();};
   });
-  enlazarVisor("#p-docs .fila-doc");
+  enlazarVisor("#p-docs a.fila-doc");
 }
 
 /* ============ REUNIONES ============ */
@@ -1382,8 +1570,24 @@ document.getElementById("visor").addEventListener("click",e=>{
 
 /* Se intercepta el clic pero se conservan href y target: el clic con
    Ctrl, el del boton central y el movil siguen abriendo pestaña. */
+/* El visor solo para lo que sabemos convertir a /preview, que hoy es Drive
+   y Docs. Todo lo demas abre en pestaña nueva sin interceptar el clic.
+
+   Gamma manda Content-Security-Policy: frame-ancestors 'self', asi que el
+   iframe quedaba en blanco y el cliente veia un error durante cuatro segundos
+   hasta que aparecia el aviso para abrirlo aparte. Eran las seis versiones
+   Interactiva, en once sitios del portal.
+
+   Se comprueba contra urlIncrustable y no contra una lista propia: si algun
+   dia sabe convertir un dominio mas, el visor lo acepta solo. Y al reves de
+   una lista de dominios prohibidos, lo desconocido se comporta bien por
+   defecto en vez de fallar hasta que alguien lo note. */
+function seSabeIncrustar(u){ return !!u && urlIncrustable(u)!==u; }
+
 function enlazarVisor(sel){
   document.querySelectorAll(sel).forEach(a=>{
+    /* Sin onclick el enlace hace lo suyo: target="_blank". */
+    if(!seSabeIncrustar(a.href)) return;
     a.onclick=e=>{
       if(pantallaAngosta()||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
       e.preventDefault();
