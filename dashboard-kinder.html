@@ -885,6 +885,40 @@ function calcular(){
      dice cuantos niños la tienen. Por niño, no por fila. */
   d.fechasMalas = Object.values(porNino).filter(n=>n.mala).length;
 
+  /* NIÑOS QUE HOY SE CAEN DEL TABLERO SIN DEJAR RASTRO.
+     Tienen filas en la hoja —y a veces salon y pagos— pero figuran inactivos
+     los DOCE meses, asi que no entran en ninguna cifra. No se cuentan como
+     matriculados ni se suman a nada: solo se nombran, para que se vean.
+
+     El tablero NO interpreta por que estan asi. Dice lo que consta. */
+  d.nuncaActivos = Object.values(porNino).filter(n=>{
+    const ms=Object.values(n.meses);
+    return ms.length && ms.every(c=>!c.activo);
+  }).map(n=>{
+    const cs=Object.values(n.meses);
+    const pagos=cs.filter(c=>c.pago>0);
+    return {
+      id:n.id,
+      grupo:(cs.find(c=>c.grupo)||{}).grupo||"",
+      pagos:pagos.length,
+      dinero:pagos.reduce((a,c)=>a+c.pago,0),
+      sinIngreso:!n.ing
+    };
+  });
+
+  /* Pagos cargados en un mes en que el niño figura inactivo, de niños que SI
+     estan activos en otros meses. Ese dinero no entra al ingreso de ningun
+     mes. Se cuenta y se dice; no se suma por cuenta propia. */
+  const nuncaIds=new Set(d.nuncaActivos.map(x=>x.id));
+  d.pagosEnMesInactivo=[];
+  Object.values(porNino).forEach(n=>{
+    if(nuncaIds.has(n.id)) return;
+    Object.keys(n.meses).forEach(m=>{
+      const c=n.meses[m];
+      if(c.pago>0 && !c.activo) d.pagosEnMesInactivo.push({id:n.id,mes:+m,pago:c.pago});
+    });
+  });
+
   /* --- Serie mensual, cortada en el mes del sello --- */
   const hasta = d.mesCorte===null ? 12 : d.mesCorte;
   d.serie=[];
@@ -1207,9 +1241,14 @@ function pintarSalones(d){
   }).join("");
 
   const avisos=[];
-  if(d.sinGrupo) avisos.push('<b>'+d.sinGrupo+'</b> '+(d.sinGrupo===1?"niño matriculado no tiene":
-    "niños matriculados no tienen")+' salón asignado en el mes del sello, así que no aparecen '+
-    'en ningún cuadro de arriba.');
+  if(d.sinGrupo){
+    /* Se nombran por ID: contarlos no alcanza para ir a buscarlos al Sheet. */
+    const ids=d.matriculados.filter(n=>!n.grupo).map(n=>n.id);
+    avisos.push('<b>'+d.sinGrupo+'</b> '+(d.sinGrupo===1?"niño matriculado no tiene":
+      "niños matriculados no tienen")+' salón asignado en el mes del sello, así que no aparecen '+
+      'en ningún cuadro de arriba: <b>'+ids.map(esc).join('</b>, <b>')+'</b>. '+
+      (d.sinGrupo===1?'Cuenta':'Cuentan')+' igual en el total y en la ocupación.');
+  }
   /* Se avisa tambien de los cerrados: conviene saber que a ese salon le
      falta color ANTES de abrirlo, no el dia que se abra. */
   const raros=d.salones.filter(s=>!s.conocido).map(s=>s.nombre);
@@ -1225,6 +1264,40 @@ function pintarSalones(d){
   if(d.sinCapacidad && d.sinCapacidad.length)
     avisos.push('Sin capacidad en «Config Kínder»: <b>'+
       d.sinCapacidad.map(esc).join("</b>, <b>")+'</b>. No entran en el conteo de cupos.');
+
+  /* LOS QUE NO ESTAN EN NINGUNA CIFRA.
+     Se nombran uno por uno con lo que consta de cada uno. El tablero no dice
+     por que estan asi: dice que estan, y que no los cuenta. */
+  if(d.nuncaActivos && d.nuncaActivos.length){
+    const k=d.nuncaActivos.length;
+    const plata=d.nuncaActivos.reduce((a,x)=>a+x.dinero,0);
+    const lineas=d.nuncaActivos.map(x=>{
+      const partes=[];
+      partes.push(x.grupo? 'salón '+esc(x.grupo) : 'sin salón');
+      partes.push(x.pagos
+        ? x.pagos+(x.pagos===1?' pago':' pagos')+' por '+dinero(x.dinero)
+        : 'sin pagos');
+      if(x.sinIngreso) partes.push('sin fecha de ingreso');
+      return '<b>'+esc(x.id)+'</b> — '+partes.join(' · ');
+    }).join('<br>');
+    avisos.push('<b>'+k+(k===1?' niño está':' niños están')+'</b> en la hoja pero figura'+
+      (k===1?'':'n')+' como <b>Activo ese mes = 0 los doce meses</b>, así que no '+
+      (k===1?'entra':'entran')+' en ninguna cifra de este tablero: ni en los matriculados, '+
+      'ni en la ocupación, ni en la meta, ni en el cobrado.<br>'+lineas+
+      (plata? '<br>Eso deja <b>'+dinero(plata)+'</b> fuera del cobrado de su mes.' : ''));
+  }
+
+  /* Dinero cargado en un mes en que el niño figura inactivo. No se suma a
+     nada: se dice que esta ahi. */
+  if(d.pagosEnMesInactivo && d.pagosEnMesInactivo.length){
+    const ps=d.pagosEnMesInactivo, tot=ps.reduce((a,p)=>a+p.pago,0);
+    avisos.push('<b>'+ps.length+(ps.length===1?' pago':' pagos')+' por '+dinero(tot)+
+      '</b> '+(ps.length===1?'está':'están')+' cargado'+(ps.length===1?'':'s')+
+      ' en un mes en que el niño figura inactivo, así que no '+
+      (ps.length===1?'entra':'entran')+' en el cobrado de ese mes: '+
+      ps.map(p=>esc(p.id)+' en '+MES_LARGO[p.mes-1]+', '+dinero(p.pago)).join(' · ')+'.');
+  }
+
   $("salones-aviso").innerHTML = avisos.length ? nota(avisos.join("<br>")) : "";
 }
 
