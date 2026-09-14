@@ -353,6 +353,12 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 
 </div>
 
+<!-- Direcciones reales de los CSV, fuera de git (ver .gitignore). Si el
+     archivo no existe —como en lo que se commitea— falla en silencio: el
+     navegador solo reporta un 404 y el tablero sigue con las cadenas
+     vacias de mas abajo. Tiene que cargar ANTES del script principal. -->
+<script src="config-local.js"></script>
+
 <script>
 /* ==========================================================================
    TABLERO DE KINDER — VEA Kids
@@ -371,10 +377,15 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
    Sheet, sin credenciales, leidos por NOMBRE de columna.
 
    Para conectar se rellenan estas cadenas. No se toca nada mas.
+
+   Las direcciones reales NO van aqui: este archivo es publico. Van en
+   config-local.js, fuera de git, que las deja en window.*_LOCAL. Si ese
+   archivo no esta, window.*_LOCAL sale undefined y aqui queda "" — el
+   comportamiento de hoy, sin romperse.
    ========================================================================== */
-const CSV_ANALISIS = "";   /* pestaña «📊 Datos para análisis», formato largo */
-const CSV_KINDER   = "";   /* pestaña «Kínder». Opcional: solo respalda Grupo */
-const CSV_CONFIG   = "";   /* pestaña «Config Kínder», pares parametro/valor */
+const CSV_ANALISIS = window.CSV_ANALISIS_LOCAL || "";   /* pestaña «📊 Datos para análisis», formato largo. Direccion real en config-local.js */
+const CSV_KINDER   = "";   /* pestaña «Kínder». Opcional: solo respalda Grupo. No se recomienda publicarla: trae Nombre del niño y Responsable */
+const CSV_CONFIG   = window.CSV_CONFIG_LOCAL || "";   /* pestaña «Config Kínder», pares parametro/valor. Direccion real en config-local.js */
 
 /* ==========================================================================
    LECTURA — sin cambios respecto del archivo anterior

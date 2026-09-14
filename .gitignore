@@ -18,3 +18,7 @@ Logo-Actio-Green2*.png
 # GitHub Pages sirve todo lo commiteado.
 _pruebas/
 dashboard-kinder-diseno.html
+
+# Direcciones reales de los CSV del Sheet de VEA Kids. dashboard-kinder.html
+# es publico; las direcciones van aqui, no ahi.
+config-local.js
