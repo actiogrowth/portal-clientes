@@ -250,6 +250,26 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 .gcorte.gcorte-obj{background:transparent;opacity:1;width:0;
   border-left:2px dashed var(--tinta3)}
 .gcorte.gcorte-obj .gcorte-etq{top:auto;bottom:-15px;color:var(--tinta3);font-weight:500}
+
+/* Cupo ocupado por un niño sin pago cargado en el mes del sello.
+   El cuadro conserva el color ENTERO de su salón y lleva un rayado blanco
+   encima. Nada de opacidad: el lima y el amarillo son tan claros que un
+   cuadro traslúcido se lee como cupo libre, que es justo lo contrario de lo
+   que hay que decir. El rayado va en un ::after para no pisar el
+   background en línea, que es el que trae el color del salón. */
+.cupo.ocupado.sin-pago{position:relative;overflow:hidden}
+.cupo.ocupado.sin-pago::after{
+  content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,
+    #FFFFFF 0 2px, rgba(255,255,255,0) 2px 5px)}
+
+/* «Cada salón por dentro»: encabezado de la columna de cifras y fila de
+   total. Misma rejilla que .gfila para que las tres columnas se alineen. */
+.gfila.gcab{border-bottom:1px solid var(--linea);padding-bottom:6px}
+.gfila.gcab .gcab-etq{font-size:11px;color:var(--tinta2);text-align:right}
+.gfila.gtot{border-bottom:none;border-top:1px solid var(--linea);
+  padding-top:14px;margin-top:2px}
+.gfila.gtot .gnom{color:var(--tinta2)}
 .s-nom i{font-size:10.5px;font-weight:600;color:var(--tinta3);font-style:normal;
   border:1px solid var(--linea);border-radius:20px;padding:1px 6px;margin-left:4px}
 </style>
@@ -1021,10 +1041,16 @@ function calcular(){
     const conPago=ns.filter(n=>n.pago!=null);
     const ing=conPago.reduce((a,n)=>a+n.pago,0);
     const tk=conPago.length? ing/conPago.length : null;
+    /* Dentro del salón: primero los que pagaron, después los que no. Los
+       cupos libres los pone el pintado detrás de todos. El ticket y el
+       equilibrio NO dependen de este orden: se calculan aparte, sobre los
+       que pagaron. */
+    const ordenados=ns.slice().sort((a,b)=>
+      (a.pago!=null?0:1)-(b.pago!=null?0:1));
     return {
       nombre, capacidad, abierto:activo,
       color:varColor(nombre), conocido:colorConocido(nombre),
-      ninos:ns.map(n=>({id:n.id, nombre:n.nombre, edad:anios(n.nac,finDeMesHoy), pago:n.pago})),
+      ninos:ordenados.map(n=>({id:n.id, nombre:n.nombre, edad:anios(n.nac,finDeMesHoy), pago:n.pago})),
       edades:rangoEdades(ns.map(n=>anios(n.nac,finDeMesHoy))),
       ingreso:ing, conPago:conPago.length, ticket:tk,
       /* El equilibrio principal va con el costo REAL. El objetivo es la
@@ -1054,6 +1080,30 @@ function calcular(){
     d.salonesFueraDeConfig.push(g.nombre);
     d.salones.push(Object.assign(arma(g.nombre,null,true,g.ninos),
                                  {activoDeclarado:null, enConfig:false}));
+  });
+
+  /* ORDEN DE LOS SALONES, el mismo para todas las secciones.
+     Antes salían en el orden de la hoja y los abiertos quedaban partidos
+     entre dos filas de la rejilla. Ahora: primero los abiertos de mayor a
+     menor ocupación, después los cerrados, y dentro de cada grupo el orden
+     de la hoja para deshacer empates.
+
+     Se ordena el array UNA vez, aquí, para que «Los ocho salones», «Cada
+     salón por dentro», el riel de la meta y el reparto por salón del bloque
+     de planes lean todos en el mismo orden. Dos secciones que muestren los
+     mismos salones en distinto orden se leen como si fueran otra cosa. */
+  d.salones.forEach((s,i)=>{ s.orden=i; });
+  d.salones.sort((a,b)=>{
+    if(a.abierto!==b.abierto) return a.abierto?-1:1;
+    if(a.abierto){
+      /* Ocupación es niños entre cupos. Un salón sin capacidad declarada no
+         tiene ocupación que calcular: va detrás de los que sí, sin inventarle
+         una. */
+      const oa = a.capacidad ? a.ninos.length/a.capacidad : -1;
+      const ob = b.capacidad ? b.ninos.length/b.capacidad : -1;
+      if(oa!==ob) return ob-oa;
+    }
+    return a.orden-b.orden;
   });
 
   /* Contradicciones entre la hoja y los datos, para decirlas en pantalla. */
@@ -1190,10 +1240,14 @@ function pintarSalones(d){
   /* El titulo y el subtitulo salen del dato: un titulo que diga ocho sobre
      una fila de seis salones contradice lo que tiene debajo. */
   $("hero-tit").textContent = "Los "+enPalabras(d.salones.length)+" salones";
-  $("hero-sub").textContent = d.capacidadUnica!=null
+  let sub = d.capacidadUnica!=null
     ? "Cada cuadro es un cupo. "+capitalizar(enPalabras(d.capacidadUnica))+
       " por salón, "+enPalabras(d.cuposTotales)+" en total."
     : "Cada cuadro es un cupo. "+d.cuposTotales+" en total.";
+  /* La leyenda del rayado solo aparece si hay algo rayado que explicar. */
+  if(d.sinPago) sub += " Los rayados son niños matriculados sin pago cargado en "+
+    MES_LARGO[d.mesPagos-1]+".";
+  $("hero-sub").textContent = sub;
 
   cont.innerHTML = d.salones.map(s=>{
     const n=s.ninos.length;
@@ -1225,10 +1279,16 @@ function pintarSalones(d){
            sin etiqueta no se puede identificar en el Sheet. */
         const quien = k.nombre || k.id;
         const info=[k.edad!=null?k.edad+" años":"edad sin fecha de nacimiento",
-                    k.pago!=null?dinero(k.pago)+" al mes":"sin pago cargado"].join(" · ");
-        cuadros+='<button class="cupo ocupado" style="background:var('+s.color+')" '+
+                    k.pago!=null?dinero(k.pago)+" al mes":"sin pago cargado en "+
+                      MES_LARGO[d.mesPagos-1]].join(" · ");
+        /* Sin pago va con el color entero del salón y un rayado encima. Nada
+           de transparencia: el lima y el amarillo son claros y un cuadro
+           traslúcido se confunde con un cupo libre. */
+        const sinPago = k.pago==null;
+        cuadros+='<button class="cupo ocupado'+(sinPago?' sin-pago':'')+'" '+
+          'style="background:var('+s.color+')" '+
           'data-nom="'+esc(quien)+'" data-info="'+esc(info)+'" '+
-          'aria-label="'+esc(quien)+'"></button>';
+          'aria-label="'+esc(quien)+(sinPago?', sin pago cargado':'')+'"></button>';
       } else {
         cuadros+='<div class="cupo libre" aria-label="cupo libre"></div>';
       }
@@ -1346,7 +1406,9 @@ function pintarLecturas(d){
   /* El margen es sobre lo COBRADO, no sobre el mes cerrado: el costo del mes
      ya corrio entero, pero el ingreso todavia no esta completo. Decirlo
      evita leer un margen bajo como un mal mes. */
-  $("k-mar-lbl").textContent = mesCobro ? "Margen sobre lo cobrado" : "Margen";
+  /* «Bruto» también aquí: es la misma cifra que la del total de «Cada salón
+     por dentro», y las dos tienen que llamarse igual. */
+  $("k-mar-lbl").textContent = mesCobro ? "Margen bruto sobre lo cobrado" : "Margen bruto";
 
   if(d.margen==null){
     let porque;
@@ -1683,13 +1745,53 @@ function pintarGrupos(d){
       barra+der+
     '</div>';
   }).join("");
+
+  /* ENCABEZADO DE LA COLUMNA DE CIFRAS Y FILA DE TOTAL.
+     El total es la SUMA DE LAS FILAS QUE SE VEN, no un cálculo paralelo: si
+     se calculara aparte podría cuadrar consigo mismo y contradecir la tabla
+     que tiene encima, que es exactamente lo que la regla 11 prohíbe. */
+  const conMargen = abiertos.filter(s=>s.ticket!=null);
+  const total = conMargen.reduce((a,s)=>a+(s.ingreso-d.costoReal),0);
+
+  cont.insertAdjacentHTML("afterbegin",
+    '<div class="gfila gcab"><div></div><div></div>'+
+    '<div class="gres gcab-etq">Margen bruto</div></div>');
+
+  /* El margen de las lecturas de arriba sale del cobrado del mes entero; este
+     total sale de sumar salones. Cuadran mientras todo el que paga tenga
+     salón. Si algún día no cuadran, se dice: un total que contradice la
+     cifra de arriba sin explicar por qué destruye la confianza en las dos. */
+  const descuadre = (d.margen!=null && Math.round(total)!==Math.round(d.margen))
+    ? Math.round(d.margen)-Math.round(total) : 0;
+
+  cont.insertAdjacentHTML("beforeend",
+    '<div class="gfila gtot">'+
+      '<div class="gnom">Total · '+conMargen.length+
+        (conMargen.length===1?' salón':' salones')+'</div>'+
+      '<div></div>'+
+      '<div class="gres"><div class="gres-num" style="color:var(--'+
+        (total>=0?"lima-texto":"rojo-texto")+')">'+dinero(total)+'</div>'+
+      '<div class="gres-pie">margen bruto del mes</div></div>'+
+    '</div>'+
+    (descuadre
+      ? nota('El total de los salones da '+dinero(total)+' y el margen de arriba '+
+          dinero(d.margen)+', una diferencia de <b>'+dinero(Math.abs(descuadre))+
+          '</b>. Es dinero de niños que pagaron pero no tienen salón asignado en '+
+          'el mes del sello, así que entran en el cobrado y no en ninguna fila de '+
+          'esta tabla.')
+      : ''));
 }
 
 /* ---- Pie ---- */
 function pintarPie(d){
   const el=$("pie-costo");
   if(!el) return;
-  let txt="El equilibrio de cada salón se calcula con el ticket que ese salón cobra hoy, no con la "+
+  /* Va primero, antes que la nota del equilibrio: es la que evita leer una
+     cifra de margen bruto como si fuera utilidad. */
+  let txt="<b>Margen bruto</b> es lo cobrado menos la nómina de los salones abiertos. "+
+    "<b>No incluye alquiler, administración ni servicios</b>, así que no es la utilidad "+
+    "del kínder: es lo que queda antes de todos los demás gastos.<br>"+
+    "El equilibrio de cada salón se calcula con el ticket que ese salón cobra hoy, no con la "+
     "tarifa de lista. Con la tarifa de lista el equilibrio sería más bajo y el salón parecería "+
     "rentable antes de serlo.";
   if(d.ok && d.costoReal!=null){
