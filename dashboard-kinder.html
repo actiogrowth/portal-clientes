@@ -756,7 +756,11 @@ function cargar(){
           cAct=col(head,"Activo ese mes"),
           cIng=col(head,"Fecha ingreso"),  cSal=col(head,"Fecha salida"),
           cNac=col(head,"Fecha de nacimiento"), cGru=col(head,"Grupo"),
-          cSello=col(head,"generado_en");
+          cSello=col(head,"generado_en"),
+          /* Se agregó el 14-sep para poder mostrar el nombre en el globo en
+             vez del ID. Si la columna no está, cNom queda en -1 y todo sigue
+             funcionando con el ID. */
+          cNom=col(head,"Nombre del niño");
     /* El sello lo escribe el script en UNA sola celda, asi que se toma el
        primer valor que aparezca. */
     SELLO="";
@@ -783,7 +787,8 @@ function cargar(){
         /* El grupo es de LA FILA, no del niño: un niño puede aparecer sin
            grupo en unos meses y con grupo en otros. Cual vale se decide mas
            abajo, con la fila del mes del sello. */
-        grupo: cGru>=0?(r[cGru]||"").trim():""
+        grupo: cGru>=0?(r[cGru]||"").trim():"",
+        nombre: cNom>=0?(r[cNom]||"").trim():""
       });
     });
     return out;
@@ -872,8 +877,10 @@ function calcular(){
   const porNino={};
   FILAS.forEach(f=>{
     let n=porNino[f.id];
-    if(!n){ n=porNino[f.id]={id:f.id,ing:null,sal:null,nac:null,grupo:"",mala:false,meses:{}}; }
+    if(!n){ n=porNino[f.id]={id:f.id,nombre:"",ing:null,sal:null,nac:null,grupo:"",mala:false,meses:{}}; }
     if(f.mala) n.mala=true;
+    /* El nombre se repite en las doce filas; basta el primero que venga. */
+    if(f.nombre && !n.nombre) n.nombre=f.nombre;
     if(f.ing && !n.ing) n.ing=f.ing;
     if(f.sal && !n.sal) n.sal=f.sal;
     if(f.nac && !n.nac) n.nac=f.nac;
@@ -1017,7 +1024,7 @@ function calcular(){
     return {
       nombre, capacidad, abierto:activo,
       color:varColor(nombre), conocido:colorConocido(nombre),
-      ninos:ns.map(n=>({id:n.id, edad:anios(n.nac,finDeMesHoy), pago:n.pago})),
+      ninos:ns.map(n=>({id:n.id, nombre:n.nombre, edad:anios(n.nac,finDeMesHoy), pago:n.pago})),
       edades:rangoEdades(ns.map(n=>anios(n.nac,finDeMesHoy))),
       ingreso:ing, conPago:conPago.length, ticket:tk,
       /* El equilibrio principal va con el costo REAL. El objetivo es la
@@ -1213,14 +1220,15 @@ function pintarSalones(d){
     for(let i=1;i<=tope;i++){
       if(i<=n){
         const k=s.ninos[i-1];
-        /* «Datos para análisis» no tiene columna de nombre, a proposito:
-           ningun nombre de niño entra en un archivo publicado. El globo
-           muestra el ID, que es como se identifica al niño en el Sheet. */
+        /* Desde el 14-sep «Datos para análisis» trae el nombre, y el globo lo
+           muestra. Sin nombre cargado cae al ID, nunca a un hueco: un cupo
+           sin etiqueta no se puede identificar en el Sheet. */
+        const quien = k.nombre || k.id;
         const info=[k.edad!=null?k.edad+" años":"edad sin fecha de nacimiento",
                     k.pago!=null?dinero(k.pago)+" al mes":"sin pago cargado"].join(" · ");
         cuadros+='<button class="cupo ocupado" style="background:var('+s.color+')" '+
-          'data-nom="'+esc(k.id)+'" data-info="'+esc(info)+'" '+
-          'aria-label="'+esc(k.id)+'"></button>';
+          'data-nom="'+esc(quien)+'" data-info="'+esc(info)+'" '+
+          'aria-label="'+esc(quien)+'"></button>';
       } else {
         cuadros+='<div class="cupo libre" aria-label="cupo libre"></div>';
       }
