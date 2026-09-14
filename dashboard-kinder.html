@@ -289,12 +289,12 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
         <div class="lect-pie" id="k-ocu-pie"></div>
       </div>
       <div class="lect">
-        <div class="lect-lbl">Ingreso del mes</div>
+        <div class="lect-lbl" id="k-ing-lbl">Cobrado</div>
         <div class="lect-num num" id="k-ing">—</div>
         <div class="lect-pie" id="k-ing-pie"></div>
       </div>
       <div class="lect">
-        <div class="lect-lbl">Margen del mes</div>
+        <div class="lect-lbl" id="k-mar-lbl">Margen</div>
         <div class="lect-num num" id="k-mar">—</div>
         <div class="lect-pie" id="k-mar-pie"></div>
       </div>
@@ -653,24 +653,15 @@ function p(...etiquetas){
   return null;
 }
 
-/* Los dos costos por salon los va a cargar el cliente y no se sabe con que
-   palabras exactas. Se buscan por sentido —una etiqueta que hable de costo
-   o de nomina y diga «real» u «objetivo»— en vez de exigir un texto literal
-   que se rompe con la primera variacion de redaccion.
+/* Los dos costos por salon llevan redaccion FIJA. «Config Kínder» la escribe
+   una persona a mano, asi que la etiqueta exacta es el contrato: buscar por
+   sentido obligaria a adivinar, y cuando fallara nadie sabria que celda
+   crear. Con el nombre fijo, el bloque que falta puede pedirlo por su nombre.
 
-   «Meta de niños» no puede colarse como costo objetivo: no dice costo ni
-   nomina, asi que el primer filtro la descarta. */
-function costoDe(cual){
-  if(!CFG || !CFG.param) return null;
-  for(const k of Object.keys(CFG.param)){
-    if(!/costo|nomina/.test(k)) continue;
-    if(cual==="real"     && !/real|actual|hoy/.test(k)) continue;
-    if(cual==="objetivo" && !/objetivo|meta/.test(k))   continue;
-    const n=aNumero(CFG.param[k].valor);
-    if(n!==null) return n;
-  }
-  return null;
-}
+   La comparacion sigue siendo normalizada, como la de los demas parametros:
+   mayusculas, acentos y espacios sobrantes no rompen nada. */
+const ETQ_COSTO_REAL     = "Costo real por salón";
+const ETQ_COSTO_OBJETIVO = "Costo objetivo por salón";
 
 /* EL UMBRAL ENTRE LOS DOS PLANES NO PUEDE SER FIJO.
    Un corte en 500 funciona con las tarifas de hoy y se rompe solo el
@@ -854,8 +845,8 @@ function calcular(){
   /* Los dos costos por salon. El REAL manda en toda cifra del mes —margen,
      resultado de cada salon, equilibrio principal—. El OBJETIVO es solo una
      marca secundaria: si falta, el tablero funciona completo sin ella. */
-  d.costoReal     = costoDe("real");
-  d.costoObjetivo = costoDe("objetivo");
+  d.costoReal     = p(ETQ_COSTO_REAL);
+  d.costoObjetivo = p(ETQ_COSTO_OBJETIVO);
 
   if(!FILAS || !FILAS.length){
     d.motivo = !CSV_ANALISIS
@@ -1253,27 +1244,42 @@ function pintarLecturas(d){
         " de los "+d.cuposTotales+" del edificio"
       : "Ningún salón abierto");
 
+  /* LA ETIQUETA DICE «COBRADO», NO «INGRESO DEL MES».
+     La cifra es lo que han pagado los niños que ya pagaron, y el mes puede
+     estar a medias: en septiembre son 21 de 26. Con la etiqueta vieja el
+     numero grande se leia como que el ingreso cayo, cuando lo que pasa es
+     que el mes no ha cerrado. El mes no va escrito: sale del dato. */
+  const mesCobro = d.mesPagos ? MES_LARGO[d.mesPagos-1] : null;
+  $("k-ing-lbl").textContent = mesCobro ? "Cobrado en "+mesCobro : "Cobrado";
+
   if(d.ingreso==null){
     set("k-ing","—","Ningún mes tiene pagos cargados");
   } else {
-    const mes=MES_LARGO[d.mesPagos-1];
-    let pie="Ticket promedio de "+dinero(d.ticket)+" por niño · cifras de "+mes;
-    if(d.sinPago) pie+=" · "+d.sinPago+(d.sinPago===1?" niño sin pago cargado":" niños sin pago cargado");
+    let pie="Ticket promedio de "+dinero(d.ticket)+" por niño";
+    pie += d.sinPago
+      ? " · de "+d.conPago.length+" de "+d.ninos+" niños: faltan "+d.sinPago+" por pagar o por cargar"
+      : " · los "+d.ninos+" matriculados tienen pago cargado";
     set("k-ing", dinero(d.ingreso), pie);
   }
 
+  /* El margen es sobre lo COBRADO, no sobre el mes cerrado: el costo del mes
+     ya corrio entero, pero el ingreso todavia no esta completo. Decirlo
+     evita leer un margen bajo como un mal mes. */
+  $("k-mar-lbl").textContent = mesCobro ? "Margen sobre lo cobrado" : "Margen";
+
   if(d.margen==null){
     let porque;
-    if(d.costoReal==null)    porque="Falta el costo real por salón en Config Kínder";
+    if(d.costoReal==null)    porque="Falta «"+ETQ_COSTO_REAL+"» en Config Kínder";
     else if(!d.abiertos)     porque="Ningún salón está abierto: sin salones abiertos "+
                                     "no se puede contar el costo, y no es cero";
     else                     porque="Ningún mes tiene pagos cargados";
     set("k-mar","—",porque);
   } else {
+    let pie="Lo cobrado en "+mesCobro+" menos "+dinero(d.costo)+" de costo de "+
+            d.abiertos+(d.abiertos===1?" salón":" salones");
+    if(d.sinPago) pie+=". El costo del mes ya corrió entero; el cobro todavía no";
     set("k-mar",'<span style="color:var(--'+(d.margen>=0?"lima-texto":"rojo-texto")+')">'+
-      dinero(d.margen)+'</span>',
-      "Después de "+dinero(d.costo)+" de costo de "+d.abiertos+
-      (d.abiertos===1?" salón":" salones"));
+      dinero(d.margen)+'</span>', pie);
   }
 }
 
@@ -1285,7 +1291,7 @@ function pintarMeta(d){
     riel.innerHTML=""; etq.innerHTML="";
     ritmo.innerHTML="";
     $("meta-aviso").innerHTML = sinDato("la meta",
-      "Falta <b>meta_ninos</b> en «Config Kínder». Sin la meta no hay camino que dibujar.");
+      "Falta <b>«Meta de niños»</b> en «Config Kínder». Sin la meta no hay camino que dibujar.");
     return;
   }
   $("meta-aviso").innerHTML="";
@@ -1426,18 +1432,36 @@ function pintarPlanes(d){
     porSalon.innerHTML=""; nota2.innerHTML=""; $("plan-aviso").innerHTML="";
     return;
   }
-  const todos=d.conPago, g8=d.g8, g45=d.g45;
+  /* EL BLOQUE TIENE QUE CUADRAR CONTRA LOS MATRICULADOS.
+     Antes repartia 16 + 5 = 21 con 26 matriculados: los cinco sin pago
+     cargado no tienen plan deducible y desaparecian sin que nadie lo notara.
+     Ahora se cuentan aparte, se nombran, y las tres cifras suman el total. */
+  const clasificables=d.conPago, g8=d.g8, g45=d.g45;
+  const sinClasificar = d.ninos - clasificables.length;
   const ing = a => a.reduce((x,n)=>x+n.pago,0);
+
   const bloque = (lbl,color,arr)=>{
     const prom = arr.length? ing(arr)/arr.length : 0;
     return '<div class="plan-col">'+
       '<div class="plan-lbl"><span class="s-punto" style="background:'+color+
         '"></span>'+lbl+'</div>'+
       '<div class="plan-num num">'+arr.length+
-        ' <small>'+pct(arr.length/todos.length)+' de los niños</small></div>'+
+        ' <small>'+pct(arr.length/clasificables.length)+' de los clasificados</small></div>'+
       '<div class="plan-pie">'+dinero(ing(arr))+' al mes · '+
         (arr.length?dinero(prom)+' por niño':'—')+'</div></div>';
   };
+
+  /* Los no clasificables ocupan su propia columna, con la misma forma que
+     los otros dos: es la unica manera de que se vean al mirar el bloque. */
+  const colSin = sinClasificar
+    ? '<div class="plan-col">'+
+        '<div class="plan-lbl"><span class="s-punto" style="background:var(--vacio)"></span>'+
+          'Sin clasificar</div>'+
+        '<div class="plan-num num" style="color:var(--tinta3)">'+sinClasificar+
+          ' <small>de '+d.ninos+' matriculados</small></div>'+
+        '<div class="plan-pie">Sin pago cargado en '+MES_LARGO[d.mesPagos-1]+
+          ', así que no se les puede deducir el plan desde el monto.</div></div>'
+    : '';
 
   const salto = (g8.length&&g45.length)
     ? '<div class="plan-col">'+
@@ -1452,16 +1476,28 @@ function pintarPlanes(d){
         '<div class="plan-pie">Hace falta al menos un niño en cada plan para compararlos.</div>'+
       '</div>';
 
+  /* El riel y los porcentajes van sobre los clasificables, pero debajo se
+     dice sobre cuantos de cuantos, para que el riel no se lea como si
+     fueran todos los niños. */
+  const base = sinClasificar
+    ? 'El reparto es sobre <b>'+clasificables.length+'</b> de los <b>'+d.ninos+
+      '</b> matriculados: '+g45.length+' + '+g8.length+' + '+sinClasificar+
+      ' sin clasificar = '+d.ninos+'.'
+    : 'El reparto cubre a los <b>'+d.ninos+'</b> matriculados: '+g45.length+' + '+
+      g8.length+' = '+d.ninos+'.';
+
   planes.innerHTML =
     '<div class="plan-riel">'+
-      (g45.length?'<div class="plan-seg" style="width:'+(g45.length/todos.length*100)+
+      (g45.length?'<div class="plan-seg" style="width:'+(g45.length/clasificables.length*100)+
         '%;background:var(--azul)">'+g45.length+' de 4.5 horas</div>':"")+
-      (g8.length?'<div class="plan-seg" style="width:'+(g8.length/todos.length*100)+
+      (g8.length?'<div class="plan-seg" style="width:'+(g8.length/clasificables.length*100)+
         '%;background:var(--morado)">'+g8.length+' de 8 horas</div>':"")+
     '</div>'+
+    '<div class="plan-pie">'+base+'</div>'+
     '<div class="plan-lect">'+
       bloque("4.5 horas","var(--azul)",g45)+
       bloque("8 horas","var(--morado)",g8)+
+      colSin+
       salto+
     '</div>';
 
@@ -1472,9 +1508,14 @@ function pintarPlanes(d){
         '<div class="ps-nom"><span class="s-punto" style="background:var('+s.color+
           ')"></span>'+esc(s.nombre)+'</div>'+
         '<div class="ps-riel"><div style="width:100%;background:var(--vacio)"></div></div>'+
-        '<div class="ps-pie">sin pagos cargados</div></div>';
+        '<div class="ps-pie">'+(s.ninos.length
+          ? s.ninos.length+' sin clasificar: ninguno tiene pago cargado'
+          : 'abierto y vacío')+'</div></div>';
     }
     const o=cp.filter(k=>k.pago>=d.umbral).length, n=cp.length;
+    /* Tambien aqui se dice cuantos quedaron fuera: si el salon tiene 10
+       niños y solo 6 con pago, «2 de 6» sin mas se lee como si fueran 6. */
+    const fuera = s.ninos.length - n;
     return '<div class="ps">'+
       '<div class="ps-nom"><span class="s-punto" style="background:var('+s.color+
         ')"></span>'+esc(s.nombre)+'</div>'+
@@ -1482,7 +1523,8 @@ function pintarPlanes(d){
         '<div style="width:'+((n-o)/n*100)+'%;background:var(--azul)"></div>'+
         '<div style="width:'+(o/n*100)+'%;background:var(--morado)"></div>'+
       '</div>'+
-      '<div class="ps-pie"><b>'+o+'</b> de '+n+' en 8 horas</div></div>';
+      '<div class="ps-pie"><b>'+o+'</b> de '+n+' en 8 horas'+
+        (fuera? ' · '+fuera+' sin clasificar' : '')+'</div></div>';
   }).join("");
 
   /* El corte se dice en pantalla, con el mes de donde salio: es un dato
@@ -1516,12 +1558,14 @@ function pintarGrupos(d){
      objetivo es solo la marca secundaria y su ausencia no bloquea nada. */
   if(d.costoReal==null){
     cont.innerHTML = sinDato("el punto de equilibrio de cada salón",
-      "Falta el <b>costo real por salón</b> en «Config Kínder». Sin el costo no hay "+
-      "equilibrio que marcar."+
+      "Falta el parámetro <b>«"+esc(ETQ_COSTO_REAL)+"»</b> en «Config Kínder». "+
+      "Hay que crear esa fila, con ese nombre, en la tabla de PARÁMETRO / VALOR. "+
+      "Sin el costo no hay equilibrio que marcar."+
       (d.costoObjetivo!=null
         ? " El costo objetivo sí está, pero solo sirve como marca secundaria: no "+
           "reemplaza al real, porque el resultado del mes se mide contra lo que se paga hoy."
-        : ""));
+        : " El otro que falta es <b>«"+esc(ETQ_COSTO_OBJETIVO)+"»</b>, pero ese es "+
+          "opcional: sin él el bloque funciona, solo se queda sin la marca tenue."));
     return;
   }
   cont.innerHTML = abiertos.map(s=>{
@@ -1572,7 +1616,8 @@ function pintarPie(d){
     txt+= d.costoObjetivo!=null
       ? " La marca tenue usa el costo objetivo de "+dinero(d.costoObjetivo)+": es a dónde "+
         "llega el equilibrio cuando la nómina esté completa."
-      : " El costo objetivo todavía no está en «Config Kínder», así que no hay marca secundaria.";
+      : " Falta «"+esc(ETQ_COSTO_OBJETIVO)+"» en «Config Kínder», así que no hay marca "+
+        "secundaria.";
   }
   el.innerHTML = txt;
 }
