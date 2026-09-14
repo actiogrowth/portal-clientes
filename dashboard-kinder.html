@@ -242,6 +242,14 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 .nota-aviso b{color:#4A3B00}
 
 .ritmo-falta{color:var(--tinta2);font-weight:500}
+
+/* Marca secundaria de equilibrio: la del costo objetivo. Mismo trazo que la
+   principal, punteado y mas tenue, para que se lea como «todavia no» y no
+   compita con la de hoy. La etiqueta va debajo de la barra para que las dos
+   no se pisen. */
+.gcorte.gcorte-obj{background:transparent;opacity:1;width:0;
+  border-left:2px dashed var(--tinta3)}
+.gcorte.gcorte-obj .gcorte-etq{top:auto;bottom:-15px;color:var(--tinta3);font-weight:500}
 .s-nom i{font-size:10.5px;font-weight:600;color:var(--tinta3);font-style:normal;
   border:1px solid var(--linea);border-radius:20px;padding:1px 6px;margin-left:4px}
 </style>
@@ -402,23 +410,70 @@ function parseCSV(t){
   if(cur!==""||row.length){row.push(cur);rows.push(row);}
   return rows;
 }
-function tabla(txt){
-  const rows=parseCSV(txt).filter(r=>r.length>1&&r.join("").trim()!=="");
-  if(!rows.length) return {head:[],rows:[]};
-  const head=rows.shift().map(h=>h.trim());
-  return {head,rows};
+/* Minusculas, sin acentos, sin espacios sobrantes. Con esto «Meta de niños»,
+   «META DE NIÑOS» y « meta de ninos » llegan todas al mismo sitio. El codigo
+   se adapta a como escribe el Sheet, no al reves. */
+function normalizar(s){
+  return String(s==null?"":s)
+    .normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .toLowerCase().replace(/\s+/g," ").trim();
 }
-/* Se lee por NOMBRE de columna, nunca por posicion. Si el aplicativo o el
-   cliente insertan una columna, el tablero sigue leyendo bien. */
+/* Se lee por NOMBRE de columna, nunca por posicion, y normalizando: si el
+   cliente cambia mayusculas o acentos, el tablero sigue leyendo bien. */
 function col(head,nombre){
-  return head.findIndex(h=>h.toLowerCase().trim()===nombre.toLowerCase().trim());
+  const q=normalizar(nombre);
+  return head.findIndex(h=>normalizar(h)===q);
 }
-/* Cada fuente falla por su cuenta: si cae una, las demas siguen. */
-function traer(url,parsear){
+/* La fila de encabezado NO es la primera fila con texto. El Sheet trae
+   titulos y notas arriba —«DATOS PARA ANÁLISIS · formato largo», «Esta hoja
+   se arma sola»— que no estan en blanco y por lo tanto sobreviven cualquier
+   filtro de vacios. Tomar la primera como encabezado hace que despues no se
+   encuentre ninguna columna y se descarten todas las filas EN SILENCIO.
+
+   Por eso se busca: la fila de encabezado es la que contiene el marcador. */
+function buscarCabecera(rows,marcador,desde){
+  const q=normalizar(marcador);
+  for(let i=desde||0;i<rows.length;i++){
+    if(rows[i].some(c=>normalizar(c)===q)) return i;
+  }
+  return -1;
+}
+/* Filas de datos debajo de un encabezado. `pararEnVacia` distingue los dos
+   casos: en «Config Kínder» hay DOS tablas apiladas separadas por filas
+   vacias, asi que la primera vacia termina la tabla; en «Datos para
+   análisis» hay una sola y las vacias sueltas solo se saltan. */
+function cuerpoDe(rows,iCab,pararEnVacia){
+  const out=[];
+  for(let i=iCab+1;i<rows.length;i++){
+    const r=rows[i];
+    const vacia = r.join("").trim()==="";
+    if(vacia){ if(pararEnVacia) break; continue; }
+    if(r.length>1) out.push(r);
+  }
+  return out;
+}
+/* Una tabla localizada por el marcador de su encabezado. */
+function tabla(txt,marcador){
+  const rows=parseCSV(txt);
+  const i=buscarCabecera(rows,marcador,0);
+  if(i<0) return {head:[],rows:[],hallado:false,crudas:rows};
+  return {head:rows[i].map(h=>h.trim()), rows:cuerpoDe(rows,i,false),
+          hallado:true, crudas:rows, iCab:i};
+}
+/* Cada fuente falla por su cuenta: si cae una, las demas siguen. Se
+   distingue no poder leer el CSV de leerlo y no encontrar el encabezado:
+   son dos problemas distintos y se arreglan en sitios distintos. */
+function traer(url,marcador,parsear){
   return fetch(url)
-    .then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
-    .then(txt=>parsear(tabla(txt)))
-    .catch(()=>null);
+    .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+    .then(txt=>{
+      const rows=parseCSV(txt);
+      if(buscarCabecera(rows,marcador,0)<0)
+        return {ok:false, motivo:"se leyó el CSV pero ninguna fila contiene «"+
+                marcador+"»: no se encontró el encabezado"};
+      return {ok:true, valor:parsear(rows,txt)};
+    })
+    .catch(e=>({ok:false, motivo:"no se pudo leer el CSV ("+e.message+")"}));
 }
 
 /* ==========================================================================
@@ -462,6 +517,15 @@ function mesAno(d){
 function esUno(v){
   const t=String(v==null?"":v).trim().toLowerCase();
   return t==="1"||t==="true"||t==="verdadero"||t==="si"||t==="sí"||t==="x";
+}
+/* La columna ACTIVO de la tabla de salones viene como Sí / No. Se devuelve
+   null cuando no dice ninguna de las dos: no es lo mismo «dice que no» que
+   «no dice nada», y el segundo caso hay que avisarlo, no asumirlo. */
+function esSi(v){
+  const t=normalizar(v);
+  if(t==="si"||t==="s"||t==="1"||t==="true"||t==="verdadero"||t==="x"||t==="yes") return true;
+  if(t==="no"||t==="n"||t==="0"||t==="false"||t==="falso") return false;
+  return null;
 }
 /* Un numero que puede venir escrito a la española o a la inglesa.
    ESTE CRITERIO ES EL MISMO QUE numeroDe() DEL APPS SCRIPT. Si se cambia
@@ -540,40 +604,101 @@ let GRUPOS_KINDER=null;  /* respaldo de Grupo desde la pestaña Kinder */
 let SELLO="";            /* generado_en, «aaaa-mm-dd HH:mm» */
 let FALLOS=[];           /* fuentes que no se pudieron leer */
 
-/* El color del salon sale de su nombre contra la paleta de VEA Kids. Un
-   nombre que no este en el mapa se pinta en gris y sigue: no se falla ni se
-   esconde, para que el nombre nuevo se vea y alguien decida su color. */
+/* El color del salon sale de su nombre contra la paleta de VEA Kids. El
+   Sheet los llama «Green Room», «Purple Room»: para mapear color se
+   normaliza y se quita «room», de modo que «Green Room», «green» y
+   «GREEN ROOM» caen todos en el mismo color.
+
+   Lo que se MUESTRA en pantalla es siempre el nombre tal como viene del
+   Sheet. Esta normalizacion solo elige el color, no renombra nada.
+
+   Un nombre que no mapee se pinta en gris y se avisa: no se falla ni se
+   esconde, para que alguien decida su color. */
 const COLOR_SALON = {
   green:"--green", purple:"--purple", yellow:"--yellow",
   blue:"--blue",   orange:"--orange"
 };
+function claveColor(nombre){
+  return normalizar(nombre).replace(/\broom\b/g,"").replace(/\s+/g," ").trim();
+}
 function varColor(nombre){
-  const k=String(nombre||"").trim().toLowerCase();
-  return COLOR_SALON[k] || "--gris";
+  return COLOR_SALON[claveColor(nombre)] || "--gris";
 }
 function colorConocido(nombre){
-  return !!COLOR_SALON[String(nombre||"").trim().toLowerCase()];
+  return !!COLOR_SALON[claveColor(nombre)];
 }
 
-/* El encargo fija ocho salones de diez cupos. Si Config Kinder trae otros
-   valores, mandan los de la hoja: la hoja es la fuente. */
-const CAPACIDAD_POR_DEFECTO = 10;
-const SALONES_POR_DEFECTO   = 8;
+/* Nada de capacidades ni de numero de salones por defecto: los dos salen de
+   la tabla de salones de «Config Kínder», cada salon con su propia fila. Un
+   valor inventado aqui se convertiria en una ocupacion falsa en pantalla. */
 
-/* El Sheet no guarda el plan de cada niño. Se deduce del monto con este
-   umbral, que es un parametro y no un numero suelto: el dia que el
-   aplicativo guarde el plan, se lee de ahi y esto se borra. */
-const UMBRAL_PLAN = 500;
-/* Zona donde los dos planes se solapan en los pagos reales. Un monto que
-   caiga aqui no se resuelve en silencio: se cuenta y se avisa. */
+/* Zona donde los dos planes se solapan. Los bordes NO son ambiguos: 460 es
+   el techo de un grupo y 576 el piso del otro, y los dos se clasifican
+   solos. Ambiguo es lo que cae estrictamente en medio, que es tierra de
+   nadie y no se puede resolver desde el monto. */
 const AMBIGUO_DESDE = 460, AMBIGUO_HASTA = 576;
 
-function p(nombre){
-  if(!CFG) return null;
-  const v=CFG[nombre];
-  if(v===undefined||v===null||String(v).trim()==="") return null;
-  const n=aNumero(v);
-  return n===null?String(v).trim():n;
+/* Un parametro de «Config Kínder», buscado por etiqueta normalizada. Se
+   aceptan varias formas de escribirlo porque la hoja la escribe una persona.
+   Devuelve numero si el valor lo es, y si no el texto tal cual. */
+function p(...etiquetas){
+  if(!CFG || !CFG.param) return null;
+  for(const e of etiquetas){
+    const c=CFG.param[normalizar(e)];
+    if(c && String(c.valor).trim()!==""){
+      const n=aNumero(c.valor);
+      return n===null?String(c.valor).trim():n;
+    }
+  }
+  return null;
+}
+
+/* Los dos costos por salon los va a cargar el cliente y no se sabe con que
+   palabras exactas. Se buscan por sentido —una etiqueta que hable de costo
+   o de nomina y diga «real» u «objetivo»— en vez de exigir un texto literal
+   que se rompe con la primera variacion de redaccion.
+
+   «Meta de niños» no puede colarse como costo objetivo: no dice costo ni
+   nomina, asi que el primer filtro la descarta. */
+function costoDe(cual){
+  if(!CFG || !CFG.param) return null;
+  for(const k of Object.keys(CFG.param)){
+    if(!/costo|nomina/.test(k)) continue;
+    if(cual==="real"     && !/real|actual|hoy/.test(k)) continue;
+    if(cual==="objetivo" && !/objetivo|meta/.test(k))   continue;
+    const n=aNumero(CFG.param[k].valor);
+    if(n!==null) return n;
+  }
+  return null;
+}
+
+/* EL UMBRAL ENTRE LOS DOS PLANES NO PUEDE SER FIJO.
+   Un corte en 500 funciona con las tarifas de hoy y se rompe solo el
+   1-ene-2027, cuando suban a 587 y 786: con 500 los dos planes quedarian
+   del mismo lado y el bloque diria que todos los niños son de 8 horas.
+
+   Asi que el corte se deduce de los pagos del mes que se esta mostrando:
+   se ordenan los montos distintos y se parte por el hueco mas grande. Para
+   que el hueco cuente como separacion real entre dos tarifas tiene que ser
+   al menos el doble que el segundo hueco; si no, los montos estan repartidos
+   sin un corte claro y el bloque lo dice en vez de repartir mal. */
+function umbralDe(pagos){
+  const v=[...new Set(pagos)].sort((a,b)=>a-b);
+  if(v.length<2)
+    return {umbral:null, motivo:"todos los pagos del mes son del mismo monto: "+
+            "no hay dos grupos que separar"};
+  let mejor=0, segundo=0, corte=null;
+  for(let i=1;i<v.length;i++){
+    const h=v[i]-v[i-1];
+    if(h>mejor){ segundo=mejor; mejor=h; corte=(v[i]+v[i-1])/2; }
+    else if(h>segundo) segundo=h;
+  }
+  if(mejor < 2*segundo)
+    return {umbral:null, mejor, segundo,
+            motivo:"los montos del mes no se separan en dos grupos claros. El "+
+            "hueco mayor es de "+dinero(mejor)+" y el siguiente de "+dinero(segundo)+
+            ", demasiado parecidos para poner un corte"};
+  return {umbral:corte, mejor, segundo};
 }
 
 /* ==========================================================================
@@ -584,31 +709,71 @@ function cargar(){
 
   const pide = [];
 
-  pide.push(CSV_CONFIG ? traer(CSV_CONFIG,t=>{
-    const o={},cP=col(t.head,"parametro")>=0?col(t.head,"parametro"):0,
-            cV=col(t.head,"valor")>=0?col(t.head,"valor"):1;
-    t.rows.forEach(r=>{ const k=(r[cP]||"").trim(); if(k) o[k]=(r[cV]||"").trim(); });
-    return o;
+  /* «Config Kínder» son DOS tablas apiladas en la misma pestaña, separadas
+     por filas vacias:
+
+         PARÁMETRO | VALOR          <- parametros sueltos
+         (vacia)
+         GRUPO | CAPACIDAD | ACTIVO <- un salon por fila
+
+     Se leen por separado, y la segunda se localiza por su encabezado GRUPO,
+     nunca por una posicion fija: si el cliente agrega un parametro arriba,
+     la tabla de salones se corre y hay que seguirla. */
+  pide.push(CSV_CONFIG ? traer(CSV_CONFIG,"PARÁMETRO",rows=>{
+    const cfg={param:{}, salones:[], salonesHallados:false};
+
+    const iP=buscarCabecera(rows,"PARÁMETRO",0);
+    const headP=rows[iP].map(h=>h.trim());
+    const cP=col(headP,"parametro")>=0?col(headP,"parametro"):0;
+    const cV=col(headP,"valor")>=0?col(headP,"valor"):1;
+    cuerpoDe(rows,iP,true).forEach(r=>{
+      const k=(r[cP]||"").trim(); if(!k) return;
+      /* Se guarda la etiqueta tal cual para poder mostrarla, y se indexa
+         normalizada para poder encontrarla. */
+      cfg.param[normalizar(k)]={etiqueta:k, valor:(r[cV]||"").trim()};
+    });
+
+    const iG=buscarCabecera(rows,"GRUPO",iP+1);
+    if(iG>=0){
+      cfg.salonesHallados=true;
+      const headG=rows[iG].map(h=>h.trim());
+      const cG=col(headG,"grupo"), cC=col(headG,"capacidad"), cA=col(headG,"activo");
+      cuerpoDe(rows,iG,true).forEach(r=>{
+        const nom=(r[cG>=0?cG:0]||"").trim(); if(!nom) return;
+        cfg.salones.push({
+          nombre: nom,
+          capacidad: cC>=0 ? aNumero(r[cC]) : null,
+          /* ACTIVO decide si el salon esta abierto. Hasta hoy no se leia y
+             se deducia «abierto = tiene niños», que es otra cosa: un salon
+             recien abierto y todavia vacio estaba marcado como cerrado. */
+          activo: cA>=0 ? esSi(r[cA]) : null
+        });
+      });
+    }
+    return cfg;
   }) : Promise.resolve(null));
 
   /* De «Datos para análisis» se toman TODAS las filas de Kinder: el formato
      es largo —una por niño y mes— y la serie mensual se arma con eso. */
-  pide.push(CSV_ANALISIS ? traer(CSV_ANALISIS,t=>{
-    const cId=col(t.head,"ID niño"),  cUni=col(t.head,"Unidad"),
-          cMes=col(t.head,"Mes #"),   cAnio=col(t.head,"Año"),
-          cPago=col(t.head,"Pago del mes ($)"),
-          cAct=col(t.head,"Activo ese mes"),
-          cIng=col(t.head,"Fecha ingreso"),  cSal=col(t.head,"Fecha salida"),
-          cNac=col(t.head,"Fecha de nacimiento"), cGru=col(t.head,"Grupo"),
-          cSello=col(t.head,"generado_en");
+  pide.push(CSV_ANALISIS ? traer(CSV_ANALISIS,"ID niño",rows=>{
+    const iCab=buscarCabecera(rows,"ID niño",0);
+    const head=rows[iCab].map(h=>h.trim());
+    const cuerpo=cuerpoDe(rows,iCab,false);
+    const cId=col(head,"ID niño"),  cUni=col(head,"Unidad"),
+          cMes=col(head,"Mes #"),   cAnio=col(head,"Año"),
+          cPago=col(head,"Pago del mes ($)"),
+          cAct=col(head,"Activo ese mes"),
+          cIng=col(head,"Fecha ingreso"),  cSal=col(head,"Fecha salida"),
+          cNac=col(head,"Fecha de nacimiento"), cGru=col(head,"Grupo"),
+          cSello=col(head,"generado_en");
     /* El sello lo escribe el script en UNA sola celda, asi que se toma el
        primer valor que aparezca. */
     SELLO="";
     if(cSello>=0){
-      for(const r of t.rows){ const v=(r[cSello]||"").trim(); if(v){ SELLO=v; break; } }
+      for(const r of cuerpo){ const v=(r[cSello]||"").trim(); if(v){ SELLO=v; break; } }
     }
     const out=[];
-    t.rows.forEach(r=>{
+    cuerpo.forEach(r=>{
       if(cUni>=0 && !/k[íi]nder/i.test(r[cUni]||"")) return;
       const id=(r[cId]||"").trim(); if(!id) return;
       out.push({
@@ -624,28 +789,43 @@ function cargar(){
            sola vez por niño y no doce. */
         mala:  (cIng>=0&&fechaMala(r[cIng])) || (cSal>=0&&fechaMala(r[cSal])) ||
                (cNac>=0&&fechaMala(r[cNac])),
+        /* El grupo es de LA FILA, no del niño: un niño puede aparecer sin
+           grupo en unos meses y con grupo en otros. Cual vale se decide mas
+           abajo, con la fila del mes del sello. */
         grupo: cGru>=0?(r[cGru]||"").trim():""
       });
     });
     return out;
   }) : Promise.resolve(null));
 
-  /* De «Kínder» solo se leen dos columnas: ID y Grupo. Es el respaldo por si
-     Grupo todavia no viaja en «Datos para análisis». Es opcional. */
-  pide.push(CSV_KINDER ? traer(CSV_KINDER,t=>{
-    const cId=col(t.head,"ID"), cG=col(t.head,"Grupo");
+  /* De «Kínder» solo se leen dos columnas: ID y Grupo. Se conserva la
+     lectura, pero YA NO alimenta el grupo de nadie: el grupo sale de la fila
+     del mes del sello en «Datos para análisis». Un respaldo que contradiga
+     esa foto la falsearia. */
+  pide.push(CSV_KINDER ? traer(CSV_KINDER,"ID",rows=>{
+    const iCab=buscarCabecera(rows,"ID",0);
+    const head=rows[iCab].map(h=>h.trim());
+    const cId=col(head,"ID"), cG=col(head,"Grupo");
     const o={};
-    t.rows.forEach(r=>{ const id=(r[cId]||"").trim();
+    cuerpoDe(rows,iCab,false).forEach(r=>{ const id=(r[cId]||"").trim();
       if(id) o[id]=cG>=0?(r[cG]||"").trim():""; });
     return o;
   }) : Promise.resolve(null));
 
   return Promise.all(pide).then(([cfg,filas,grupos])=>{
-    CFG=cfg; FILAS=filas; GRUPOS_KINDER=grupos;
-    if(!CSV_CONFIG)        FALLOS.push("falta la dirección del CSV de «Config Kínder»");
-    else if(cfg===null)    FALLOS.push("no se pudo leer «Config Kínder»");
-    if(!CSV_ANALISIS)      FALLOS.push("falta la dirección del CSV de «Datos para análisis»");
-    else if(filas===null)  FALLOS.push("no se pudo leer «Datos para análisis»");
+    /* Leer el CSV y no encontrar el encabezado son dos fallos distintos y se
+       arreglan en sitios distintos, asi que se dicen por separado. */
+    const recoge=(res,quien)=>{
+      if(res===null) return null;
+      if(res.ok) return res.valor;
+      FALLOS.push("«"+quien+"»: "+res.motivo);
+      return null;
+    };
+    CFG   = recoge(cfg,"Config Kínder");
+    FILAS = recoge(filas,"Datos para análisis");
+    GRUPOS_KINDER = grupos && grupos.ok ? grupos.valor : null;
+    if(!CSV_CONFIG)   FALLOS.push("falta la dirección del CSV de «Config Kínder»");
+    if(!CSV_ANALISIS) FALLOS.push("falta la dirección del CSV de «Datos para análisis»");
   });
 }
 
@@ -662,11 +842,20 @@ function calcular(){
     return m? new Date(+m[1],+m[2]-1,+m[3]) : null;
   })();
 
-  d.capacidad = p("capacidad_por_grupo") || CAPACIDAD_POR_DEFECTO;
-  d.salonesTotales = p("grupos_totales") || SALONES_POR_DEFECTO;
-  d.costoSalon = p("costo_por_grupo");
-  d.meta       = p("meta_ninos");
-  d.fechaMeta  = fecha(p("fecha_meta"));
+  /* Los parametros salen de «Config Kínder» por etiqueta normalizada, tal
+     como los escribe el cliente. Se aceptan varias redacciones porque la
+     hoja la escribe una persona, no un programa. */
+  d.meta      = p("Meta de niños","meta_ninos","Meta niños","Meta");
+  d.fechaMeta = fecha(p("Fecha meta","fecha_meta","Fecha de meta"));
+  d.capacidadMaxima = p("Capacidad máxima","capacidad_maxima");
+  d.tarifa45  = p("Tarifa plan 4.5 horas","tarifa 4.5 horas","precio_45h");
+  d.tarifa8   = p("Tarifa plan 8 horas","tarifa 8 horas","precio_8h");
+
+  /* Los dos costos por salon. El REAL manda en toda cifra del mes —margen,
+     resultado de cada salon, equilibrio principal—. El OBJETIVO es solo una
+     marca secundaria: si falta, el tablero funciona completo sin ella. */
+  d.costoReal     = costoDe("real");
+  d.costoObjetivo = costoDe("objetivo");
 
   if(!FILAS || !FILAS.length){
     d.motivo = !CSV_ANALISIS
@@ -697,15 +886,9 @@ function calcular(){
     if(f.ing && !n.ing) n.ing=f.ing;
     if(f.sal && !n.sal) n.sal=f.sal;
     if(f.nac && !n.nac) n.nac=f.nac;
-    if(f.grupo && !n.grupo) n.grupo=f.grupo;
-    if(f.mes) n.meses[f.mes]={pago:f.pago,activo:f.activo};
+    /* El grupo se guarda POR MES, no una vez por niño. */
+    if(f.mes) n.meses[f.mes]={pago:f.pago,activo:f.activo,grupo:f.grupo};
   });
-  /* Respaldo de Grupo desde la pestaña Kinder, si esta conectada. */
-  if(GRUPOS_KINDER){
-    Object.values(porNino).forEach(n=>{
-      if(!n.grupo && GRUPOS_KINDER[n.id]) n.grupo=GRUPOS_KINDER[n.id];
-    });
-  }
   d.porNino=porNino;
   /* Una fecha ilegible corre un alta o una baja de mes entero, asi que se
      dice cuantos niños la tienen. Por niño, no por fila. */
@@ -775,53 +958,96 @@ function calcular(){
     d.ingreso=null; d.ticket=null;
   }
 
-  /* --- Salones --- */
-  const sinGrupo = matriculados.filter(n=>!n.grupo);
-  d.sinGrupo = sinGrupo.length;
+  /* --- Salones ---
+     El grupo de cada niño es el de SU FILA DEL MES DEL SELLO. El tablero es
+     una foto de ese mes: tomar el primero que aparezca, el ultimo o el mas
+     frecuente pondria a un niño en un salon en el que hoy no esta. Si en el
+     mes del sello no tiene grupo, cuenta como sin grupo aunque lo tenga en
+     otros meses. */
+  matriculados.forEach(n=>{
+    const c=n.meses[mesHoy];
+    n.grupo = c && c.grupo ? c.grupo : "";
+  });
+  d.sinGrupo = matriculados.filter(n=>!n.grupo).length;
+
+  /* Los niños se reparten por nombre normalizado, para que «Green Room» y
+     «green room» sean el mismo salon. */
   const mapa={};
   matriculados.forEach(n=>{ if(!n.grupo) return;
-    (mapa[n.grupo]=mapa[n.grupo]||[]).push(n); });
+    const k=normalizar(n.grupo);
+    (mapa[k]=mapa[k]||{nombre:n.grupo, ninos:[]}).ninos.push(n); });
 
-  /* Orden: primero los nombres de la paleta, en el orden del brand book;
-     despues cualquier nombre desconocido, alfabetico. Asi el tablero no
-     cambia de orden solo porque cambio un conteo. */
-  const orden=Object.keys(COLOR_SALON);
-  const nombres=Object.keys(mapa).sort((a,b)=>{
-    const ia=orden.indexOf(a.toLowerCase()), ib=orden.indexOf(b.toLowerCase());
-    if(ia>=0&&ib>=0) return ia-ib;
-    if(ia>=0) return -1;
-    if(ib>=0) return 1;
-    return a.localeCompare(b,"es");
-  });
+  /* El universo de salones lo declara «Config Kínder», en el orden de la
+     hoja. Antes se deducia de quien tuviera niños, y por eso un salon
+     abierto y vacio no existia para el tablero. */
+  const decl = (CFG && CFG.salones) ? CFG.salones : [];
+  d.salonesDeclarados = decl.length;
+  const usados=new Set();
   const finDeMesHoy = new Date(anioDatos, mesHoy, 0);
-  d.salones = nombres.map(nom=>{
-    const ns=mapa[nom];
+
+  const arma=(nombre,capacidad,activo,ns)=>{
     const conPago=ns.filter(n=>n.pago!=null);
     const ing=conPago.reduce((a,n)=>a+n.pago,0);
     const tk=conPago.length? ing/conPago.length : null;
     return {
-      nombre:nom, abierto:true, color:varColor(nom), conocido:colorConocido(nom),
+      nombre, capacidad, abierto:activo,
+      color:varColor(nombre), conocido:colorConocido(nombre),
       ninos:ns.map(n=>({id:n.id, edad:anios(n.nac,finDeMesHoy), pago:n.pago})),
       edades:rangoEdades(ns.map(n=>anios(n.nac,finDeMesHoy))),
       ingreso:ing, conPago:conPago.length, ticket:tk,
-      equilibrio: (tk && d.costoSalon) ? Math.ceil(d.costoSalon/tk) : null
+      /* El equilibrio principal va con el costo REAL. El objetivo es la
+         marca secundaria. */
+      equilibrio:    (tk && d.costoReal!=null)     ? Math.ceil(d.costoReal/tk)     : null,
+      equilibrioObj: (tk && d.costoObjetivo!=null) ? Math.ceil(d.costoObjetivo/tk) : null
     };
-  });
-  /* Los salones sin ningun niño se muestran cerrados, hasta completar los
-     que declara Config Kinder. */
-  d.abiertos = d.salones.length;
-  for(let i=d.salones.length; i<d.salonesTotales; i++){
-    d.salones.push({nombre:"Salón "+(i+1), abierto:false});
-  }
-  d.cuposAbiertos = d.abiertos*d.capacidad;
-  d.cuposTotales  = d.salonesTotales*d.capacidad;
+  };
 
-  /* --- Costo y margen ---
+  d.salones = decl.map(s=>{
+    const k=normalizar(s.nombre);
+    usados.add(k);
+    const ns=(mapa[k]||{}).ninos||[];
+    /* ACTIVO = Sí con cero niños es un salon ABIERTO y vacio, que es una
+       cosa distinta de un salon cerrado. ACTIVO = No con niños dentro es una
+       contradiccion de la hoja y se avisa, no se tapa. */
+    return Object.assign(arma(s.nombre,s.capacidad,s.activo===true,ns),
+                         {activoDeclarado:s.activo, enConfig:true});
+  });
+
+  /* Un grupo que aparece en los datos pero no esta en la tabla de salones:
+     existe, tiene niños, y hay que verlo aunque Config no lo liste. */
+  d.salonesFueraDeConfig=[];
+  Object.keys(mapa).forEach(k=>{
+    if(usados.has(k)) return;
+    const g=mapa[k];
+    d.salonesFueraDeConfig.push(g.nombre);
+    d.salones.push(Object.assign(arma(g.nombre,null,true,g.ninos),
+                                 {activoDeclarado:null, enConfig:false}));
+  });
+
+  /* Contradicciones entre la hoja y los datos, para decirlas en pantalla. */
+  d.cerradosConNinos = d.salones.filter(s=>!s.abierto && s.ninos.length)
+                                .map(s=>s.nombre);
+  d.sinCapacidad     = d.salones.filter(s=>s.abierto && s.capacidad==null)
+                                .map(s=>s.nombre);
+
+  const abiertos = d.salones.filter(s=>s.abierto);
+  d.abiertos = abiertos.length;
+  /* Los cupos se suman salon por salon: cada uno trae su capacidad en su
+     fila, no hay una capacidad global. Los de capacidad desconocida no
+     suman —no se inventa un 10— y se avisa aparte. */
+  d.cuposAbiertos = abiertos.reduce((a,s)=>a+(s.capacidad||0),0);
+  d.cuposTotales  = d.salones.reduce((a,s)=>a+(s.capacidad||0),0);
+  /* Todas las capacidades iguales permiten la frase del diseño («Diez por
+     salón, ochenta en total»). Si difieren, la frase cambia sola. */
+  const caps=[...new Set(d.salones.map(s=>s.capacidad).filter(c=>c!=null))];
+  d.capacidadUnica = caps.length===1 ? caps[0] : null;
+
+  /* --- Costo y margen, con el costo REAL ---
      Con cero salones abiertos el costo NO es cero: es desconocido. El kinder
      cuesta lo que cuesta aunque nadie tenga salon asignado, y un costo de $0
      convierte todo el ingreso en margen. Eso seria la lectura mas falsa que
      puede dar este tablero, asi que sin salones no se calcula. */
-  d.costo  = (d.costoSalon!=null && d.abiertos>0) ? d.abiertos*d.costoSalon : null;
+  d.costo  = (d.costoReal!=null && d.abiertos>0) ? d.abiertos*d.costoReal : null;
   d.margen = (d.ingreso!=null && d.costo!=null) ? d.ingreso-d.costo : null;
 
   /* --- Meta --- */
@@ -833,11 +1059,20 @@ function calcular(){
     }
   }
 
-  /* --- Planes, deducidos del monto --- */
+  /* --- Planes, deducidos del monto ---
+     El corte no es fijo: se deduce del hueco mas grande entre los montos del
+     mes que se esta mostrando. Si no hay un hueco claro, no se reparte. */
   if(d.conPago.length){
-    d.g8  = d.conPago.filter(n=>n.pago>=UMBRAL_PLAN);
-    d.g45 = d.conPago.filter(n=>n.pago< UMBRAL_PLAN);
-    d.ambiguos = d.conPago.filter(n=>n.pago>=AMBIGUO_DESDE && n.pago<=AMBIGUO_HASTA).length;
+    const u=umbralDe(d.conPago.map(n=>n.pago));
+    d.umbral       = u.umbral;
+    d.umbralMotivo = u.motivo || "";
+    if(d.umbral!=null){
+      d.g8  = d.conPago.filter(n=>n.pago>=d.umbral);
+      d.g45 = d.conPago.filter(n=>n.pago< d.umbral);
+    }
+    /* Banda EXCLUSIVA: 460 y 576 son los bordes de los dos grupos y se
+       clasifican solos. Ambiguo es solo lo que cae estrictamente en medio. */
+    d.ambiguos = d.conPago.filter(n=>n.pago>AMBIGUO_DESDE && n.pago<AMBIGUO_HASTA).length;
   }
 
   d.ok=true;
@@ -911,27 +1146,46 @@ function pintarAviso(d){
 /* ---- Los ocho salones ---- */
 function pintarSalones(d){
   const cont=$("salones");
-  $("hero-tit").textContent = "Los "+enPalabras(d.salonesTotales)+" salones";
-  $("hero-sub").textContent = "Cada cuadro es un cupo. "+
-    capitalizar(enPalabras(d.capacidad))+" por salón, "+
-    enPalabras(d.capacidad*d.salonesTotales)+" en total.";
   if(!d.ok || !d.salones.length){
+    $("hero-tit").textContent="Los salones";
+    $("hero-sub").textContent="Cada cuadro es un cupo.";
     cont.innerHTML = sinDato("los salones",
-      d.motivo || "El tablero no recibió filas de Kínder.");
+      d.motivo || "«Config Kínder» no trae la tabla de salones y ningún niño "+
+      "tiene grupo asignado, así que no hay salones que dibujar.");
+    $("salones-aviso").innerHTML="";
     return;
   }
+  /* El titulo y el subtitulo salen del dato: un titulo que diga ocho sobre
+     una fila de seis salones contradice lo que tiene debajo. */
+  $("hero-tit").textContent = "Los "+enPalabras(d.salones.length)+" salones";
+  $("hero-sub").textContent = d.capacidadUnica!=null
+    ? "Cada cuadro es un cupo. "+capitalizar(enPalabras(d.capacidadUnica))+
+      " por salón, "+enPalabras(d.cuposTotales)+" en total."
+    : "Cada cuadro es un cupo. "+d.cuposTotales+" en total.";
+
   cont.innerHTML = d.salones.map(s=>{
+    const n=s.ninos.length;
     if(!s.abierto){
+      /* Un salon cerrado con niños dentro es una contradiccion de la hoja.
+         Se muestran los niños igual —existen— y se avisa abajo. */
+      const cupos = s.capacidad!=null
+        ? '<div class="cupos">'+'<div class="cupo"></div>'.repeat(s.capacidad)+'</div>'
+        : '';
       return '<div class="salon cerrado">'+
         '<div class="s-cab"><div class="s-nom" style="color:var(--tinta3)">'+
           '<span class="s-punto" style="background:var(--vacio)"></span>'+esc(s.nombre)+'</div>'+
         '<div class="s-cifra"><i>cerrado</i></div></div>'+
-        '<div class="cupos">'+'<div class="cupo"></div>'.repeat(d.capacidad)+'</div>'+
-        '<div class="s-pie">'+d.capacidad+' cupos sin abrir</div></div>';
+        cupos+
+        '<div class="s-pie">'+(n
+          ? '<b>'+n+'</b> '+(n===1?"niño":"niños")+' con este salón, y está marcado cerrado'
+          : (s.capacidad!=null? s.capacidad+" cupos sin abrir" : "sin capacidad en Config Kínder"))+
+        '</div></div>';
     }
-    const n=s.ninos.length;
+    /* Sin capacidad declarada no se inventa una rejilla: se dibujan los
+       cupos ocupados y se dice que falta el dato. */
+    const tope = s.capacidad!=null ? s.capacidad : n;
     let cuadros="";
-    for(let i=1;i<=d.capacidad;i++){
+    for(let i=1;i<=tope;i++){
       if(i<=n){
         const k=s.ninos[i-1];
         /* «Datos para análisis» no tiene columna de nombre, a proposito:
@@ -946,25 +1200,40 @@ function pintarSalones(d){
         cuadros+='<div class="cupo libre" aria-label="cupo libre"></div>';
       }
     }
+    const edades = s.edades || (n? "edades sin dato" : "abierto y vacío");
     const pie = s.equilibrio!=null
-      ? (s.edades||"edades sin dato")+' · cubre desde <b>'+s.equilibrio+'</b>'
-      : (s.edades||"edades sin dato")+' · sin pagos para calcular el equilibrio';
+      ? edades+' · cubre desde <b>'+s.equilibrio+'</b>'
+      : edades+(n? ' · sin pagos para calcular el equilibrio'
+                 : ' · todavía sin niños');
     return '<div class="salon">'+
       '<div class="s-cab"><div class="s-nom">'+
         '<span class="s-punto" style="background:var('+s.color+')"></span>'+esc(s.nombre)+
         (s.conocido?"":' <i title="Nombre fuera de la paleta de VEA Kids">sin color</i>')+
         '</div>'+
-      '<div class="s-cifra num">'+n+'<i>/'+d.capacidad+'</i></div></div>'+
+      '<div class="s-cifra num">'+n+'<i>/'+(s.capacidad!=null?s.capacidad:"?")+'</i></div></div>'+
       '<div class="cupos">'+cuadros+'</div>'+
       '<div class="s-pie">'+pie+'</div></div>';
   }).join("");
 
   const avisos=[];
   if(d.sinGrupo) avisos.push('<b>'+d.sinGrupo+'</b> '+(d.sinGrupo===1?"niño matriculado no tiene":
-    "niños matriculados no tienen")+' salón asignado, así que no aparecen en ningún cuadro de arriba.');
-  const raros=d.salones.filter(s=>s.abierto&&!s.conocido).map(s=>s.nombre);
+    "niños matriculados no tienen")+' salón asignado en el mes del sello, así que no aparecen '+
+    'en ningún cuadro de arriba.');
+  /* Se avisa tambien de los cerrados: conviene saber que a ese salon le
+     falta color ANTES de abrirlo, no el dia que se abra. */
+  const raros=d.salones.filter(s=>!s.conocido).map(s=>s.nombre);
   if(raros.length) avisos.push('Sin color en la paleta de VEA Kids: <b>'+
     raros.map(esc).join("</b>, <b>")+'</b>. Se pintan en gris hasta que se les asigne uno.');
+  if(d.salonesFueraDeConfig && d.salonesFueraDeConfig.length)
+    avisos.push('Con niños pero sin fila en «Config Kínder»: <b>'+
+      d.salonesFueraDeConfig.map(esc).join("</b>, <b>")+'</b>. Se muestran igual, sin capacidad.');
+  if(d.cerradosConNinos && d.cerradosConNinos.length)
+    avisos.push('Marcados <b>ACTIVO = No</b> en «Config Kínder» pero con niños dentro: <b>'+
+      d.cerradosConNinos.map(esc).join("</b>, <b>")+'</b>. O la bandera está mal, o los niños '+
+      'siguen asignados a un salón que ya cerró.');
+  if(d.sinCapacidad && d.sinCapacidad.length)
+    avisos.push('Sin capacidad en «Config Kínder»: <b>'+
+      d.sinCapacidad.map(esc).join("</b>, <b>")+'</b>. No entran en el conteo de cupos.');
   $("salones-aviso").innerHTML = avisos.length ? nota(avisos.join("<br>")) : "";
 }
 
@@ -995,8 +1264,8 @@ function pintarLecturas(d){
 
   if(d.margen==null){
     let porque;
-    if(d.costoSalon==null)   porque="Falta costo_por_grupo en Config Kínder";
-    else if(!d.abiertos)     porque="Ningún niño tiene salón asignado: sin salones abiertos "+
+    if(d.costoReal==null)    porque="Falta el costo real por salón en Config Kínder";
+    else if(!d.abiertos)     porque="Ningún salón está abierto: sin salones abiertos "+
                                     "no se puede contar el costo, y no es cero";
     else                     porque="Ningún mes tiene pagos cargados";
     set("k-mar","—",porque);
@@ -1148,6 +1417,15 @@ function pintarPlanes(d){
     porSalon.innerHTML=""; nota2.innerHTML="";
     return;
   }
+  /* Sin un corte claro no se reparte: repartir mal es peor que no repartir. */
+  if(d.umbral==null){
+    planes.innerHTML = sinDato("la mezcla de planes",
+      "El Sheet no guarda el plan de cada niño y este bloque lo deduce del monto "+
+      "pagado, partiendo por el hueco más grande entre los montos del mes. Pero "+
+      esc(d.umbralMotivo)+".");
+    porSalon.innerHTML=""; nota2.innerHTML=""; $("plan-aviso").innerHTML="";
+    return;
+  }
   const todos=d.conPago, g8=d.g8, g45=d.g45;
   const ing = a => a.reduce((x,n)=>x+n.pago,0);
   const bloque = (lbl,color,arr)=>{
@@ -1196,7 +1474,7 @@ function pintarPlanes(d){
         '<div class="ps-riel"><div style="width:100%;background:var(--vacio)"></div></div>'+
         '<div class="ps-pie">sin pagos cargados</div></div>';
     }
-    const o=cp.filter(k=>k.pago>=UMBRAL_PLAN).length, n=cp.length;
+    const o=cp.filter(k=>k.pago>=d.umbral).length, n=cp.length;
     return '<div class="ps">'+
       '<div class="ps-nom"><span class="s-punto" style="background:var('+s.color+
         ')"></span>'+esc(s.nombre)+'</div>'+
@@ -1207,16 +1485,20 @@ function pintarPlanes(d){
       '<div class="ps-pie"><b>'+o+'</b> de '+n+' en 8 horas</div></div>';
   }).join("");
 
+  /* El corte se dice en pantalla, con el mes de donde salio: es un dato
+     derivado y el lector tiene que poder discutirlo. */
   let txt="El Sheet no guarda el plan de cada niño. Este bloque lo deduce del monto pagado: "+
-    "por debajo de "+dinero(UMBRAL_PLAN)+" se cuenta como 4.5 horas y de ahí para arriba "+
-    "como 8. Cuando el aplicativo guarde el plan, se lee de ahí y deja de deducirse.";
+    "el corte queda en <b>"+dinero(d.umbral)+"</b>, que es el hueco más grande entre los "+
+    "montos de "+MES_LARGO[d.mesPagos-1]+". No es un número fijo: se recalcula cada mes, "+
+    "para que siga funcionando cuando las tarifas cambien. Cuando el aplicativo guarde el "+
+    "plan, se lee de ahí y deja de deducirse.";
   nota2.innerHTML = txt;
 
   $("plan-aviso").innerHTML = d.ambiguos
     ? nota('<b>'+d.ambiguos+(d.ambiguos===1?' pago cae':' pagos caen')+' entre '+
-        dinero(AMBIGUO_DESDE)+' y '+dinero(AMBIGUO_HASTA)+'</b>, que es la zona donde los dos '+
-        'planes se solapan. El umbral de '+dinero(UMBRAL_PLAN)+' los reparte, pero ese reparto '+
-        'puede estar mal: no se puede saber desde el monto. '+
+        dinero(AMBIGUO_DESDE)+' y '+dinero(AMBIGUO_HASTA)+'</b>, sin tocar ninguno de los dos '+
+        'bordes: es tierra de nadie entre los dos planes. El corte de '+dinero(d.umbral)+
+        ' los reparte, pero ese reparto puede estar mal: no se puede saber desde el monto. '+
         (d.ambiguos===1?'Ese niño necesita':'Esos niños necesitan')+' que el plan se cargue a mano.')
     : "";
 }
@@ -1230,29 +1512,49 @@ function pintarGrupos(d){
       d.motivo || "Ningún salón tiene niños asignados.");
     return;
   }
-  if(d.costoSalon==null){
+  /* El costo REAL manda: sin el no hay margen ni equilibrio que marcar. El
+     objetivo es solo la marca secundaria y su ausencia no bloquea nada. */
+  if(d.costoReal==null){
     cont.innerHTML = sinDato("el punto de equilibrio de cada salón",
-      "Falta <b>costo_por_grupo</b> en «Config Kínder». Sin el costo no hay equilibrio que marcar.");
+      "Falta el <b>costo real por salón</b> en «Config Kínder». Sin el costo no hay "+
+      "equilibrio que marcar."+
+      (d.costoObjetivo!=null
+        ? " El costo objetivo sí está, pero solo sirve como marca secundaria: no "+
+          "reemplaza al real, porque el resultado del mes se mide contra lo que se paga hoy."
+        : ""));
     return;
   }
   cont.innerHTML = abiertos.map(s=>{
-    const n=s.ninos.length, res = s.ticket!=null ? s.ingreso-d.costoSalon : null;
+    const n=s.ninos.length, res = s.ticket!=null ? s.ingreso-d.costoReal : null;
+    /* Sin capacidad declarada la barra no tiene escala; se usa el conteo
+       para no dividir por cero ni inventar un tope. */
+    const tope = s.capacidad!=null ? s.capacidad : Math.max(n, s.equilibrio||0, 1);
+    const pc = v => Math.max(0,Math.min(v,tope))/tope*100;
+    /* Dos marcas: la principal con el costo real, la secundaria —mas tenue—
+       con el objetivo. Las dos llevan etiqueta: dos marcas sin etiqueta son
+       peores que una sola. */
+    const marcaObj = (s.equilibrioObj!=null && s.equilibrioObj!==s.equilibrio)
+      ? '<div class="gcorte gcorte-obj" style="left:'+pc(s.equilibrioObj)+'%">'+
+        '<span class="gcorte-etq">en '+s.equilibrioObj+' con la nómina objetivo</span></div>'
+      : '';
     const barra = '<div class="gbarra"><div class="gbarra-fondo">'+
-      '<div class="gllena" style="width:'+(n/d.capacidad*100)+
+      '<div class="gllena" style="width:'+pc(n)+
         '%;background:var('+s.color+')"></div></div>'+
+      marcaObj+
       (s.equilibrio!=null
-        ? '<div class="gcorte" style="left:'+(Math.min(s.equilibrio,d.capacidad)/d.capacidad*100)+'%">'+
-          '<span class="gcorte-etq">cubre en '+s.equilibrio+'</span></div>'
+        ? '<div class="gcorte" style="left:'+pc(s.equilibrio)+'%">'+
+          '<span class="gcorte-etq">cubre en '+s.equilibrio+' hoy</span></div>'
         : '')+
       '</div>';
     const der = s.ticket!=null
       ? '<div class="gres"><div class="gres-num" style="color:var(--'+(res>=0?"lima-texto":"rojo-texto")+')">'+
         dinero(res)+'</div><div class="gres-pie">'+dinero(s.ticket)+' por niño</div></div>'
       : '<div class="gres"><div class="gres-num" style="color:var(--tinta3)">—</div>'+
-        '<div class="gres-pie">sin pagos cargados</div></div>';
+        '<div class="gres-pie">'+(n?"sin pagos cargados":"abierto y vacío")+'</div></div>';
     return '<div class="gfila">'+
       '<div class="gnom"><span class="s-punto" style="background:var('+s.color+')"></span>'+
-        esc(s.nombre)+' <span style="color:var(--tinta3);font-weight:500">'+n+'/'+d.capacidad+'</span></div>'+
+        esc(s.nombre)+' <span style="color:var(--tinta3);font-weight:500">'+n+'/'+
+        (s.capacidad!=null?s.capacidad:"?")+'</span></div>'+
       barra+der+
     '</div>';
   }).join("");
@@ -1262,13 +1564,17 @@ function pintarGrupos(d){
 function pintarPie(d){
   const el=$("pie-costo");
   if(!el) return;
-  el.innerHTML = d.ok && d.costoSalon!=null
-    ? "El equilibrio de cada salón se calcula con el ticket que ese salón cobra hoy, no con la "+
-      "tarifa de lista. Con la tarifa de lista el equilibrio sería más bajo y el salón parecería "+
-      "rentable antes de serlo. El costo de "+dinero(d.costoSalon)+" por salón sale de "+
-      "<b>costo_por_grupo</b> en «Config Kínder»."
-    : "El equilibrio de cada salón se calcula con el ticket que ese salón cobra hoy, no con la "+
-      "tarifa de lista.";
+  let txt="El equilibrio de cada salón se calcula con el ticket que ese salón cobra hoy, no con la "+
+    "tarifa de lista. Con la tarifa de lista el equilibrio sería más bajo y el salón parecería "+
+    "rentable antes de serlo.";
+  if(d.ok && d.costoReal!=null){
+    txt+=" La marca principal usa el costo real de "+dinero(d.costoReal)+" por salón.";
+    txt+= d.costoObjetivo!=null
+      ? " La marca tenue usa el costo objetivo de "+dinero(d.costoObjetivo)+": es a dónde "+
+        "llega el equilibrio cuando la nómina esté completa."
+      : " El costo objetivo todavía no está en «Config Kínder», así que no hay marca secundaria.";
+  }
+  el.innerHTML = txt;
 }
 
 function pintarTodo(){
