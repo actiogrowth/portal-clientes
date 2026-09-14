@@ -263,6 +263,49 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
   background:repeating-linear-gradient(45deg,
     #FFFFFF 0 2px, rgba(255,255,255,0) 2px 5px)}
 
+/* EL CUPO DE UN SALÓN SIN ABRIR TIENE QUE VERSE.
+   El diseño lo dejaba transparente con un filete de 1px casi blanco, y en
+   una pantalla de portátil no se distingue del papel. Pasa a llevar el
+   relleno gris de la paleta —el mismo que ya usa .cupo de base—, que se ve
+   sin competir con los cupos ocupados. */
+.salon.cerrado .cupo{background:var(--vacio);box-shadow:none}
+
+/* Muestras de la leyenda del mapa de cupos. Mismo tamaño que .lg-m, con la
+   misma forma que el cupo real que representan. */
+.lg-cupo{border-radius:3px}
+.lg-rayado{position:relative;overflow:hidden}
+.lg-rayado::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,
+    #FFFFFF 0 2px, rgba(255,255,255,0) 2px 5px)}
+.lg-libre{background:transparent;box-shadow:inset 0 0 0 1.5px var(--vacio)}
+.lg-cerrado{background:var(--vacio)}
+
+/* El identificador va detrás del nombre y más apagado: sirve para buscar en
+   la hoja, no para leerlo a diario. */
+.quien-id{color:var(--tinta3);font-weight:500}
+
+/* «Lo que se cobró cada mes». Reutiliza .mat-lienzo, .mat-cols, .mat-col,
+   .mat-ejex y .mat-mes del bloque de matrícula; lo de aquí es solo la barra,
+   que a diferencia de aquella crece desde abajo y lleva la cifra encima. */
+/* Una cifra de dinero es mucho más ancha que un «+3», así que con doce meses
+   en una pantalla estrecha las columnas no caben y empujaban la página entera
+   a desplazarse en horizontal. El gráfico se desplaza DENTRO de su tarjeta y
+   conserva la cifra exacta; en escritorio no cambia nada. */
+.ing-scroll{overflow-x:auto}
+.ing-scroll > .mat{min-width:520px}
+.mat-lienzo-ing{height:190px}
+.ing-col{justify-content:flex-end}
+.ing-hueco{flex:1 1 auto;min-height:0}
+.ing-cifra{text-align:center;font-size:10.5px;font-weight:700;color:var(--tinta);
+  font-variant-numeric:tabular-nums;margin-bottom:4px;white-space:nowrap}
+.ing-barra{background:var(--azul);border-radius:5px 5px 0 0;flex:none;
+  position:relative;overflow:hidden}
+.ing-barra.en-curso::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,
+    #FFFFFF 0 3px, rgba(255,255,255,0) 3px 7px)}
+.ing-nada{margin-top:auto;text-align:center;font-size:10px;line-height:1.3;
+  color:var(--tinta3);padding-bottom:4px}
+
 /* «Cada salón por dentro»: encabezado de la columna de cifras y fila de
    total. Misma rejilla que .gfila para que las tres columnas se alineen. */
 .gfila.gcab{border-bottom:1px solid var(--linea);padding-bottom:6px}
@@ -295,6 +338,7 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
     <div class="hero-tit" id="hero-tit">Los salones</div>
     <div class="hero-sub" id="hero-sub">Cada cuadro es un cupo.</div>
     <div class="salones" id="salones"></div>
+    <div class="leyenda" id="salones-leyenda"></div>
     <div id="salones-aviso"></div>
 
     <div class="hero-lect">
@@ -351,6 +395,24 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
       </div>
       <div class="cierre" id="mat-cierre"></div>
       <div id="mat-aviso"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit">Lo que se cobró cada mes</div>
+    <div class="sec-sub">Va debajo de la matrícula a propósito: las dos series se leen
+      juntas. Si entran niños y lo cobrado no sube, se ve aquí.</div>
+    <div class="tarjeta" id="ing-tarjeta">
+      <div class="ing-scroll">
+        <div class="mat">
+          <div class="mat-lienzo mat-lienzo-ing">
+            <div class="mat-cols" id="ing-cols"></div>
+          </div>
+          <div class="mat-ejex" id="ing-ejex"></div>
+        </div>
+      </div>
+      <div class="leyenda" id="ing-leyenda"></div>
+      <div class="cierre" id="ing-cierre"></div>
     </div>
   </div>
 
@@ -613,6 +675,19 @@ function sinDato(que,porque){
 }
 function nota(texto){
   return '<div class="nota-aviso">'+texto+'</div>';
+}
+/* CÓMO SE NOMBRA A UN NIÑO EN PANTALLA.
+   El nombre primero, siempre: quien mira el tablero se sabe los nombres, no
+   los identificadores. El identificador va detrás, entre paréntesis, porque
+   es lo que sirve para buscarlo en la hoja. Sin nombre cargado, cae al
+   identificador solo. */
+function quien(n){
+  const nom=(n&&n.nombre||"").trim();
+  return nom ? esc(nom)+' <span class="quien-id">('+esc(n.id)+')</span>' : '<b>'+esc(n.id)+'</b>';
+}
+function quienLlano(n){
+  const nom=(n&&n.nombre||"").trim();
+  return nom ? esc(nom)+' ('+esc(n.id)+')' : esc(n.id);
 }
 
 /* ==========================================================================
@@ -925,7 +1000,7 @@ function calcular(){
     const cs=Object.values(n.meses);
     const pagos=cs.filter(c=>c.pago>0);
     return {
-      id:n.id,
+      id:n.id, nombre:n.nombre,
       grupo:(cs.find(c=>c.grupo)||{}).grupo||"",
       pagos:pagos.length,
       dinero:pagos.reduce((a,c)=>a+c.pago,0),
@@ -942,7 +1017,8 @@ function calcular(){
     if(nuncaIds.has(n.id)) return;
     Object.keys(n.meses).forEach(m=>{
       const c=n.meses[m];
-      if(c.pago>0 && !c.activo) d.pagosEnMesInactivo.push({id:n.id,mes:+m,pago:c.pago});
+      if(c.pago>0 && !c.activo)
+        d.pagosEnMesInactivo.push({id:n.id,nombre:n.nombre,mes:+m,pago:c.pago});
     });
   });
 
@@ -1141,6 +1217,33 @@ function calcular(){
     }
   }
 
+  /* --- LO COBRADO CADA MES ---
+     Mismo corte que la serie de matrícula: nada después del mes del sello.
+
+     Y la MISMA definición de «cobrado» que el resto del tablero: los pagos
+     de los niños que ese mes constan como activos. Contar también los de
+     filas inactivas cambiaría el número de septiembre —que arriba dice
+     $10.001— y contradiría el aviso que dice que ese dinero queda fuera. Una
+     palabra, un significado, en toda la pantalla. */
+  d.serieIngreso=[];
+  for(let m=1;m<=hasta;m++){
+    let plata=0, conPagoMes=0;
+    const activosMes=Object.values(porNino).filter(n=>n.meses[m]&&n.meses[m].activo);
+    activosMes.forEach(n=>{
+      const c=n.meses[m];
+      if(c.pago>0){ plata+=c.pago; conPagoMes++; }
+    });
+    d.serieIngreso.push({
+      mes:m, etq:MES_CORTO[m-1],
+      plata, conPago:conPagoMes, activos:activosMes.length,
+      /* Sin ningún pago cargado no se pinta un cero: un cero dice que se
+         midió y dio cero, y aquí lo que pasa es que no hay nada cargado. */
+      hayDato: conPagoMes>0,
+      /* El mes del sello está a medias por definición: el mes no ha cerrado. */
+      enCurso: m===hasta
+    });
+  }
+
   /* --- Planes, deducidos del monto ---
      El corte no es fijo: se deduce del hueco mas grande entre los montos del
      mes que se esta mostrando. Si no hay un hueco claro, no se reparte. */
@@ -1240,14 +1343,13 @@ function pintarSalones(d){
   /* El titulo y el subtitulo salen del dato: un titulo que diga ocho sobre
      una fila de seis salones contradice lo que tiene debajo. */
   $("hero-tit").textContent = "Los "+enPalabras(d.salones.length)+" salones";
-  let sub = d.capacidadUnica!=null
+  /* El rayado ya NO se explica aquí: está en la leyenda de debajo de los
+     salones, junto a la muestra. Un párrafo gris arriba del todo no se
+     relee cuando se está mirando un cuadro. */
+  $("hero-sub").textContent = d.capacidadUnica!=null
     ? "Cada cuadro es un cupo. "+capitalizar(enPalabras(d.capacidadUnica))+
       " por salón, "+enPalabras(d.cuposTotales)+" en total."
     : "Cada cuadro es un cupo. "+d.cuposTotales+" en total.";
-  /* La leyenda del rayado solo aparece si hay algo rayado que explicar. */
-  if(d.sinPago) sub += " Los rayados son niños matriculados sin pago cargado en "+
-    MES_LARGO[d.mesPagos-1]+".";
-  $("hero-sub").textContent = sub;
 
   cont.innerHTML = d.salones.map(s=>{
     const n=s.ninos.length;
@@ -1308,14 +1410,28 @@ function pintarSalones(d){
       '<div class="s-pie">'+pie+'</div></div>';
   }).join("");
 
+  /* LEYENDA DEL MAPA, con la muestra al lado del texto. Mismo componente y
+     mismo tamaño de muestra que la leyenda del bloque de matrícula.
+     Los cuatro estados, incluidos los dos que hasta hoy no se explicaban en
+     ninguna parte: el cupo libre y el salón sin abrir. */
+  $("salones-leyenda").innerHTML =
+    '<span class="lg"><span class="lg-m lg-cupo" style="background:var(--celeste)"></span>'+
+      'Niño con pago cargado · el cuadro lleva el color de su salón</span>'+
+    '<span class="lg"><span class="lg-m lg-cupo lg-rayado" style="background:var(--celeste)"></span>'+
+      'Niño sin pago cargado en '+MES_LARGO[d.mesHoy-1]+'</span>'+
+    '<span class="lg"><span class="lg-m lg-cupo lg-libre"></span>Cupo libre</span>'+
+    '<span class="lg"><span class="lg-m lg-cupo lg-cerrado"></span>Cupo de un salón sin abrir</span>';
+
   const avisos=[];
   if(d.sinGrupo){
-    /* Se nombran por ID: contarlos no alcanza para ir a buscarlos al Sheet. */
-    const ids=d.matriculados.filter(n=>!n.grupo).map(n=>n.id);
-    avisos.push('<b>'+d.sinGrupo+'</b> '+(d.sinGrupo===1?"niño matriculado no tiene":
-      "niños matriculados no tienen")+' salón asignado en el mes del sello, así que no aparecen '+
-      'en ningún cuadro de arriba: <b>'+ids.map(esc).join('</b>, <b>')+'</b>. '+
-      (d.sinGrupo===1?'Cuenta':'Cuentan')+' igual en el total y en la ocupación.');
+    /* La consecuencia primero: qué no se está viendo en el mapa de arriba. */
+    const quienes=d.matriculados.filter(n=>!n.grupo);
+    const k=quienes.length;
+    avisos.push((k===1?'Hay <b>1 niño</b> que no aparece':'Hay <b>'+k+' niños</b> que no aparecen')+
+      ' en ningún salón del mapa de arriba, porque no '+(k===1?'tiene':'tienen')+
+      ' salón asignado en '+MES_LARGO[d.mesHoy-1]+': '+
+      quienes.map(quien).join(' · ')+'. '+
+      (k===1?'Cuenta':'Cuentan')+' igual en los matriculados y en la ocupación.');
   }
   /* Se avisa tambien de los cerrados: conviene saber que a ese salon le
      falta color ANTES de abrirlo, no el dia que se abra. */
@@ -1339,31 +1455,39 @@ function pintarSalones(d){
   if(d.nuncaActivos && d.nuncaActivos.length){
     const k=d.nuncaActivos.length;
     const plata=d.nuncaActivos.reduce((a,x)=>a+x.dinero,0);
+    /* Una línea por niño, y cada una empieza por LO QUE FALTA EN PANTALLA:
+       tiene salón asignado y aun así no está dibujado en él. Después, lo que
+       consta de él. Sin nombres de columna: quien lee el tablero no conoce la
+       hoja, conoce a los niños. */
     const lineas=d.nuncaActivos.map(x=>{
-      const partes=[];
-      partes.push(x.grupo? 'salón '+esc(x.grupo) : 'sin salón');
-      partes.push(x.pagos
-        ? x.pagos+(x.pagos===1?' pago':' pagos')+' por '+dinero(x.dinero)
-        : 'sin pagos');
-      if(x.sinIngreso) partes.push('sin fecha de ingreso');
-      return '<b>'+esc(x.id)+'</b> — '+partes.join(' · ');
+      let l = quien(x)+' — ';
+      l += x.grupo
+        ? 'está asignado a <b>'+esc(x.grupo)+'</b> y aun así no aparece en ese salón'
+        : 'no aparece en ningún salón, y tampoco tiene uno asignado';
+      if(x.pagos) l += '. Tiene '+x.pagos+(x.pagos===1?' pago registrado':' pagos registrados')+
+        ' por '+dinero(x.dinero);
+      if(x.sinIngreso) l += '. No tiene fecha de ingreso registrada';
+      return l+'.';
     }).join('<br>');
-    avisos.push('<b>'+k+(k===1?' niño está':' niños están')+'</b> en la hoja pero figura'+
-      (k===1?'':'n')+' como <b>Activo ese mes = 0 los doce meses</b>, así que no '+
-      (k===1?'entra':'entran')+' en ninguna cifra de este tablero: ni en los matriculados, '+
-      'ni en la ocupación, ni en la meta, ni en el cobrado.<br>'+lineas+
-      (plata? '<br>Eso deja <b>'+dinero(plata)+'</b> fuera del cobrado de su mes.' : ''));
+    avisos.push((k===1
+        ? 'Hay <b>1 niño</b> que no está contado en ninguna cifra de esta pantalla'
+        : 'Hay <b>'+k+' niños</b> que no están contados en ninguna cifra de esta pantalla')+
+      ' —ni en los matriculados, ni en la ocupación, ni en el camino a la meta, ni en lo '+
+      'cobrado— porque en la hoja no consta que '+(k===1?'haya estado activo':'hayan estado activos')+
+      ' ningún mes del año.<br>'+lineas+
+      (plata? '<br>Eso deja <b>'+dinero(plata)+'</b> fuera de lo cobrado.' : ''));
   }
 
   /* Dinero cargado en un mes en que el niño figura inactivo. No se suma a
      nada: se dice que esta ahi. */
   if(d.pagosEnMesInactivo && d.pagosEnMesInactivo.length){
     const ps=d.pagosEnMesInactivo, tot=ps.reduce((a,p)=>a+p.pago,0);
-    avisos.push('<b>'+ps.length+(ps.length===1?' pago':' pagos')+' por '+dinero(tot)+
-      '</b> '+(ps.length===1?'está':'están')+' cargado'+(ps.length===1?'':'s')+
-      ' en un mes en que el niño figura inactivo, así que no '+
-      (ps.length===1?'entra':'entran')+' en el cobrado de ese mes: '+
-      ps.map(p=>esc(p.id)+' en '+MES_LARGO[p.mes-1]+', '+dinero(p.pago)).join(' · ')+'.');
+    avisos.push('<b>'+dinero(tot)+'</b> no '+(ps.length===1?'aparece':'aparecen')+
+      ' en lo cobrado de ningún mes, aunque '+(ps.length===1?'está':'están')+
+      ' registrado'+(ps.length===1?'':'s')+' en la hoja: '+
+      ps.map(p=>quien(p)+', '+dinero(p.pago)+' en '+MES_LARGO[p.mes-1]).join(' · ')+
+      '. En la hoja, '+(ps.length===1?'ese niño no consta':'esos niños no constan')+
+      ' como activo'+(ps.length===1?'':'s')+' en el mes del pago.');
   }
 
   $("salones-aviso").innerHTML = avisos.length ? nota(avisos.join("<br>")) : "";
@@ -1548,10 +1672,92 @@ function pintarMatricula(d){
   $("mat-aviso").innerHTML = (d.descuadres && d.descuadres.length)
     ? nota("En "+(d.descuadres.length===1?"":"los meses de ")+
         "<b>"+d.descuadres.join("</b>, <b>")+"</b> la línea no cuadra con las barras: "+
-        "el total sale de «Activo ese mes» y las entradas y salidas salen de las fechas, "+
-        "que son dos columnas distintas del Sheet. Suele ser una fecha de ingreso o de "+
-        "salida que falta o no se pudo leer.")
+        "el total con el que cerró el mes no coincide con las entradas y salidas de ese mes. "+
+        "Las dos cosas se leen de sitios distintos de la hoja, y lo habitual es que a algún "+
+        "niño le falte la fecha de ingreso o la de salida.")
     : "";
+
+  montarGlobo();
+}
+
+/* ---- Lo que se cobró cada mes ----
+   Mismo lenguaje que el bloque de matrícula: misma rejilla de columnas, mismo
+   eje de meses, misma tipografía de cifras y la cifra escrita sobre cada
+   columna. Lo único propio es el rayado del mes en curso, que es el mismo
+   recurso que ya usan los cupos sin pago y significa lo mismo: esto está a
+   medias. */
+function pintarIngreso(d){
+  const cont=$("ing-tarjeta"), cols=$("ing-cols"), ejex=$("ing-ejex");
+  if(!d.ok || !d.serieIngreso || !d.serieIngreso.length){
+    cont.innerHTML = sinDato("lo cobrado mes a mes",
+      d.motivo || "No hay meses por debajo de la fecha del sello.");
+    return;
+  }
+  const S=d.serieIngreso;
+  const conDato=S.filter(m=>m.hayDato);
+  if(!conDato.length){
+    cont.innerHTML = sinDato("lo cobrado mes a mes",
+      "Ningún mes del año tiene pagos cargados.");
+    return;
+  }
+  const rej="repeat("+S.length+",1fr)";
+  cols.style.gridTemplateColumns=rej; ejex.style.gridTemplateColumns=rej;
+
+  const tope=Math.max(...conDato.map(m=>m.plata));
+  /* Se deja aire arriba para que la cifra escrita no toque el borde. */
+  cols.innerHTML=S.map(m=>{
+    if(!m.hayDato){
+      return '<div class="mat-col ing-col">'+
+        '<div class="ing-nada" tabindex="0" data-nom="'+MES_LARGO[m.mes-1]+
+          '" data-info="ningún pago cargado">sin pagos<br>cargados</div></div>';
+    }
+    const h=(m.plata/tope)*78;
+    const info=m.conPago+" de "+m.activos+" niños con pago cargado";
+    return '<div class="mat-col ing-col">'+
+      '<div class="ing-hueco"></div>'+
+      '<div class="ing-cifra">'+dinero(m.plata)+'</div>'+
+      '<div class="ing-barra'+(m.enCurso?' en-curso':'')+'" style="height:'+h+'%" '+
+        'tabindex="0" data-nom="'+MES_LARGO[m.mes-1]+'" data-info="'+esc(info)+
+        (m.enCurso?' · el mes todavía no ha cerrado':'')+'"></div></div>';
+  }).join("");
+
+  ejex.innerHTML=S.map((m,i)=>
+    '<div class="mat-mes'+(i===S.length-1?" ahora":"")+'">'+m.etq+'</div>').join("");
+
+  $("ing-leyenda").innerHTML =
+    '<span class="lg"><span class="lg-m" style="background:var(--azul)"></span>'+
+      'Cobrado en el mes</span>'+
+    '<span class="lg"><span class="lg-m lg-rayado" style="background:var(--azul)"></span>'+
+      'Mes en curso, todavía incompleto</span>';
+
+  /* El mes en curso se dice con números, no solo con un rayado: cuántos de
+     cuántos llevan pago. Sin eso, la columna más baja del año se lee como una
+     caída y lo que hay es un mes a medio cobrar. */
+  const ult=S[S.length-1];
+  let cierre="";
+  if(ult.hayDato){
+    const faltan=ult.activos-ult.conPago;
+    cierre = "<b>"+capitalizar(MES_LARGO[ult.mes-1])+" todavía no ha cerrado</b>: llevan pago "+
+      "cargado <b>"+ult.conPago+" de "+ult.activos+"</b> niños"+
+      (faltan? ", faltan "+faltan : "")+". Por eso su columna va rayada: la cifra va a "+
+      "subir, no es una caída.";
+  }
+  /* Los demás meses también pueden tener niños sin pago cargado. Se dice, sin
+     sacar ninguna conclusión: apuntando una columna se ve cuántos son. */
+  const anteriores=S.filter(m=>m.hayDato && !m.enCurso);
+  const otrosIncompletos=anteriores.filter(m=>m.conPago<m.activos);
+  if(otrosIncompletos.length)
+    cierre += (cierre?" ":"")+"Los meses cerrados tampoco tienen el pago de todos: "+
+      (otrosIncompletos.length===anteriores.length
+        ? "en <b>ninguno</b> de los anteriores están todos"
+        : "les falta a <b>"+otrosIncompletos.length+"</b> de "+anteriores.length)+
+      ". Apuntá cualquier columna para ver cuántos niños de ese mes tienen pago cargado.";
+  const sinNada=S.filter(m=>!m.hayDato);
+  if(sinNada.length)
+    cierre += (cierre?" ":"")+"Sin ningún pago cargado: <b>"+
+      sinNada.map(m=>MES_LARGO[m.mes-1]).join("</b>, <b>")+"</b>. No se dibujan en cero "+
+      "porque no es que se cobrara cero: es que no hay nada cargado.";
+  $("ing-cierre").innerHTML=cierre;
 
   montarGlobo();
 }
@@ -1813,6 +2019,7 @@ function pintarTodo(){
   pintarLecturas(d);
   pintarMeta(d);
   pintarMatricula(d);
+  pintarIngreso(d);
   pintarPlanes(d);
   pintarGrupos(d);
   pintarPie(d);
