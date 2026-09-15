@@ -300,10 +300,17 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
    dos casos: color casi blanco —se confunde con la tarjeta— y color casi
    gris —se confunde con el cupo libre—. El rayado invertido sigue colgando
    solo de «claro»: Grey Room lleva contorno y conserva su rayado blanco. */
+/* UNA SOLA REGLA PARA TODO LO QUE LLEVA CONTORNO.
+   La pone `pintaSalon()`, que es el unico sitio que pinta el color de un
+   salon. El color sale de la variable --contorno, que ese mismo sitio
+   escribe en linea: es el color del propio salon oscurecido. El respaldo
+   --tinta3 solo entra si algo fallara al resolver el color.
+
+   Un grosor por tamaño de elemento, no por sitio: 1,5px en el cuadro del
+   cupo, 1px en todo lo demas —el punto de 9px y las barras—, donde un filete
+   mas grueso se comeria el color en vez de enmarcarlo. */
+.perfilado{box-shadow:inset 0 0 0 1px var(--contorno,var(--tinta3))}
 .cupo.ocupado.perfilado{box-shadow:inset 0 0 0 1.5px var(--contorno,var(--tinta3))}
-/* El punto del encabezado tiene el mismo problema y la misma regla. Va a 1px
-   porque mide 9: el filete de 1,5 del cupo se le comeria medio cuadro. */
-.s-punto.perfilado{box-shadow:inset 0 0 0 1px var(--contorno,var(--tinta3))}
 /* Mismo ángulo y mismo paso que el rayado normal: lo único que cambia es de
    qué color son las rayas. Así los dos se leen como el mismo signo. */
 .cupo.ocupado.sin-pago.claro::after{
@@ -940,6 +947,35 @@ function contornoDe(varCol){
   const c = rgbDe(varCol);
   const v = c ? "rgb("+c.map(x=>Math.round(x*255*0.65)).join(",")+")" : "";
   return _contorno[varCol] = v;
+}
+
+/* EL UNICO SITIO QUE PINTA EL COLOR DE UN SALON.
+   Todo lo que lleve el color de un salon —el cupo del mapa, el punto del
+   encabezado, el segmento del riel de la meta, la barra de «Cada salon por
+   dentro», el punto del reparto por plan— pasa por aqui.
+
+   POR QUE ESTA JUNTO. La regla del contorno se escribio una vez y se aplico
+   en dos de los siete sitios; los otros cinco quedaron fuera y el defecto
+   reaparecio tres veces seguidas, cada vez en un sitio nuevo. Una regla
+   repartida en siete copias se corrige en seis. Es lo mismo que paso con los
+   dos creadores de titulo del Apps Script.
+
+   `siempre` es para las barras anchas. Ahi el contorno va en TODAS, tengan o
+   no el problema: un filete sobre una barra ancha no compite con el color, y
+   con todas iguales no hay una excepcion que recordar el dia que abra un
+   salon claro. En los puntos de 9px si manda la regla condicional, porque
+   ahi un filete constante si pesa sobre el color.
+
+   El contorno NUNCA es un gris fijo: es el color del propio salon oscurecido.
+   Un gris fijo sobre el rojo o el morado se ve sucio, y sobre el gris del
+   brand book resulto ser invisible. */
+function pintaSalon(varCol, siempre){
+  const con = siempre || necesitaContorno(varCol);
+  return {
+    clase:  con ? " perfilado" : "",
+    estilo: "background:var("+varCol+")" +
+            (con ? ";--contorno:"+contornoDe(varCol) : "")
+  };
 }
 
 /* Nada de capacidades ni de numero de salones por defecto: los dos salen de
@@ -1591,6 +1627,7 @@ function pintarSalones(d){
     /* Sin capacidad declarada no se inventa una rejilla: se dibujan los
        cupos ocupados y se dice que falta el dato. */
     const tope = s.capacidad!=null ? s.capacidad : n;
+    const pinta = pintaSalon(s.color);
     let cuadros="";
     for(let i=1;i<=tope;i++){
       if(i<=n){
@@ -1607,10 +1644,8 @@ function pintarSalones(d){
            traslúcido se confunde con un cupo libre. */
         const sinPago = k.pago==null;
         cuadros+='<button class="cupo ocupado'+(sinPago?' sin-pago':'')+
-            (esClaro(s.color)?' claro':'')+
-            (necesitaContorno(s.color)?' perfilado':'')+'" '+
-          'style="background:var('+s.color+')'+
-            (necesitaContorno(s.color)?';--contorno:'+contornoDe(s.color):'')+'" '+
+            (esClaro(s.color)?' claro':'')+pinta.clase+'" '+
+          'style="'+pinta.estilo+'" '+
           'data-nom="'+esc(quien)+'" data-info="'+esc(info)+'" '+
           'aria-label="'+esc(quien)+(sinPago?', sin pago cargado':'')+'"></button>';
       } else {
@@ -1624,10 +1659,7 @@ function pintarSalones(d){
                  : ' · todavía sin niños');
     return '<div class="salon">'+
       '<div class="s-cab"><div class="s-nom">'+
-        '<span class="s-punto'+(necesitaContorno(s.color)?' perfilado':'')+
-          '" style="background:var('+s.color+')'+
-            (necesitaContorno(s.color)?';--contorno:'+contornoDe(s.color):'')+
-          '"></span>'+esc(s.nombre)+
+        '<span class="s-punto'+pinta.clase+'" style="'+pinta.estilo+'"></span>'+esc(s.nombre)+
         (s.conocido?"":' <i title="Nombre fuera de la paleta de VEA Kids">sin color</i>')+
         '</div>'+
       '<div class="s-cifra num">'+n+'<i>/'+(s.capacidad!=null?s.capacidad:"?")+'</i></div></div>'+
@@ -1800,9 +1832,11 @@ function pintarMeta(d){
   tit.innerHTML='Camino a los '+d.meta+' niños<span id="meta-falta">faltan '+d.falta+
     ', hoy hay '+d.ninos+'</span>';
   riel.innerHTML =
-    d.salones.filter(s=>s.abierto).map(s=>
-      '<div class="riel-seg" style="width:'+(s.ninos.length/d.meta*100)+
-      '%;background:var('+s.color+')"></div>').join("")+
+    d.salones.filter(s=>s.abierto).map(s=>{
+      const p = pintaSalon(s.color);
+      return '<div class="riel-seg'+p.clase+'" style="width:'+
+        (s.ninos.length/d.meta*100)+'%;'+p.estilo+'"></div>';
+    }).join("")+
     '<div class="riel-seg" style="width:'+
       (Math.max(0,Math.min(d.cuposAbiertos,d.meta)-d.ninos)/d.meta*100)+
       '%;background:var(--azul-tenue)"></div>';
@@ -2088,9 +2122,10 @@ function pintarPlanes(d){
   porSalon.innerHTML = d.salones.filter(s=>s.abierto).map(s=>{
     const cp=s.ninos.filter(k=>k.pago!=null);
     if(!cp.length){
+      const p0 = pintaSalon(s.color);
       return '<div class="ps">'+
-        '<div class="ps-nom"><span class="s-punto" style="background:var('+s.color+
-          ')"></span>'+esc(s.nombre)+'</div>'+
+        '<div class="ps-nom"><span class="s-punto'+p0.clase+'" style="'+p0.estilo+
+          '"></span>'+esc(s.nombre)+'</div>'+
         '<div class="ps-riel"><div style="width:100%;background:var(--vacio)"></div></div>'+
         '<div class="ps-pie">'+(s.ninos.length
           ? s.ninos.length+' sin clasificar: ninguno tiene pago cargado'
@@ -2100,9 +2135,10 @@ function pintarPlanes(d){
     /* Tambien aqui se dice cuantos quedaron fuera: si el salon tiene 10
        niños y solo 6 con pago, «2 de 6» sin mas se lee como si fueran 6. */
     const fuera = s.ninos.length - n;
+    const p1 = pintaSalon(s.color);
     return '<div class="ps">'+
-      '<div class="ps-nom"><span class="s-punto" style="background:var('+s.color+
-        ')"></span>'+esc(s.nombre)+'</div>'+
+      '<div class="ps-nom"><span class="s-punto'+p1.clase+'" style="'+p1.estilo+
+        '"></span>'+esc(s.nombre)+'</div>'+
       '<div class="ps-riel">'+
         '<div style="width:'+((n-o)/n*100)+'%;background:var(--azul)"></div>'+
         '<div style="width:'+(o/n*100)+'%;background:var(--morado)"></div>'+
@@ -2165,9 +2201,13 @@ function pintarGrupos(d){
       ? '<div class="gcorte gcorte-obj" style="left:'+pc(s.equilibrioObj)+'%">'+
         '<span class="gcorte-etq">en '+s.equilibrioObj+' con la nómina objetivo</span></div>'
       : '';
+    /* La barra ES el dato: su largo es lo que comunica. Una barra que no se
+       ve no dice «5 de 10», dice cero. Por eso aqui el contorno va siempre. */
+    const pb = pintaSalon(s.color, true);   /* la barra: contorno siempre */
+    const pp = pintaSalon(s.color);         /* el punto: regla condicional */
     const barra = '<div class="gbarra"><div class="gbarra-fondo">'+
-      '<div class="gllena" style="width:'+pc(n)+
-        '%;background:var('+s.color+')"></div></div>'+
+      '<div class="gllena'+pb.clase+'" style="width:'+pc(n)+'%;'+pb.estilo+
+        '"></div></div>'+
       marcaObj+
       (s.equilibrio!=null
         ? '<div class="gcorte" style="left:'+pc(s.equilibrio)+'%">'+
@@ -2180,7 +2220,7 @@ function pintarGrupos(d){
       : '<div class="gres"><div class="gres-num" style="color:var(--tinta3)">—</div>'+
         '<div class="gres-pie">'+(n?"sin pagos cargados":"abierto y vacío")+'</div></div>';
     return '<div class="gfila">'+
-      '<div class="gnom"><span class="s-punto" style="background:var('+s.color+')"></span>'+
+      '<div class="gnom"><span class="s-punto'+pp.clase+'" style="'+pp.estilo+'"></span>'+
         esc(s.nombre)+' <span style="color:var(--tinta3);font-weight:500">'+n+'/'+
         (s.capacidad!=null?s.capacidad:"?")+'</span></div>'+
       barra+der+
