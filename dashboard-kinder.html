@@ -294,8 +294,16 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 
    El contorno es deliberadamente más marcado que el del cupo de un salón
    cerrado: son los dos únicos cuadros de la pantalla con contorno, y tienen
-   que distinguirse. */
-.cupo.ocupado.claro{box-shadow:inset 0 0 0 1.5px var(--tinta3)}
+   que distinguirse.
+
+   El contorno NO cuelga de «claro» sino de «perfilado», que es la union de
+   dos casos: color casi blanco —se confunde con la tarjeta— y color casi
+   gris —se confunde con el cupo libre—. El rayado invertido sigue colgando
+   solo de «claro»: Grey Room lleva contorno y conserva su rayado blanco. */
+.cupo.ocupado.perfilado{box-shadow:inset 0 0 0 1.5px var(--contorno,var(--tinta3))}
+/* El punto del encabezado tiene el mismo problema y la misma regla. Va a 1px
+   porque mide 9: el filete de 1,5 del cupo se le comeria medio cuadro. */
+.s-punto.perfilado{box-shadow:inset 0 0 0 1px var(--contorno,var(--tinta3))}
 /* Mismo ángulo y mismo paso que el rayado normal: lo único que cambia es de
    qué color son las rayas. Así los dos se leen como el mismo signo. */
 .cupo.ocupado.sin-pago.claro::after{
@@ -692,14 +700,40 @@ function anios(nac,hasta){
   if(m<0||(m===0&&hasta.getDate()<nac.getDate())) a--;
   return a;
 }
-/* «2 a 4 años», «3 años», «4 y 5 años». Sin edades devuelve vacio. */
+/* EL RANGO DE EDAD DE UN SALON, Y POR QUE NO SIEMPRE ES UN RANGO.
+   «3 a 5 años» · «4 y 5 años» · «todos de 4 años» · «un niño de 4 años».
+
+   Con un solo niño esto decia «4 años» a secas, y ahi dejaba de leerse como
+   el resumen de un salon para leerse como un dato suelto: el pie dice
+   «4 años · cubre desde 3» y no se entiende de quien habla. Con pocos niños
+   pasa constantemente, y va a pasar en produccion en cuanto abra un salon
+   nuevo.
+
+   Lo que cambia es COMO se dice cuando no hay rango que decir, no el dato.
+
+   Y hay una trampa que obliga a contar dos cosas distintas: cuantos niños
+   hay en el salon y cuantos tienen fecha de nacimiento. No son el mismo
+   numero. Si de cinco niños solo uno tiene fecha, «un niño de 4 años» seria
+   falso, y «todos de 4 años» tambien. Cuando no coinciden, se dice a quien
+   se refiere la edad en vez de dar a entender que son todos. */
 function rangoEdades(lista){
-  const e=lista.map(x=>x).filter(x=>x!==null&&x!==undefined).sort((a,b)=>a-b);
-  if(!e.length) return "";
-  const lo=e[0], hi=e[e.length-1];
-  if(lo===hi) return lo+(lo===1?" año":" años");
-  if(hi-lo===1) return lo+" y "+hi+" años";
-  return lo+" a "+hi+" años";
+  const total = lista.length;
+  const e = lista.filter(x=>x!==null&&x!==undefined).sort((a,b)=>a-b);
+  const k = e.length;
+  if(!k) return "";
+  const lo=e[0], hi=e[k-1];
+  const anios = x => x+(x===1?" año":" años");
+
+  /* Un rango de verdad: hay dos edades distintas. Se dice igual que siempre. */
+  if(lo!==hi) return (hi-lo===1) ? lo+" y "+anios(hi) : lo+" a "+anios(hi);
+
+  /* Una sola edad. Aqui es donde «4 años» se leia raro. */
+  if(k===1){
+    return total===1 ? "un niño de "+anios(lo)
+                     : anios(lo)+", el único con fecha de nacimiento";
+  }
+  return k===total ? "todos de "+anios(lo)
+                   : anios(lo)+" los que tienen fecha de nacimiento";
 }
 function mesesEnteros(a,b){
   return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
@@ -814,23 +848,98 @@ function colorConocido(nombre){
    contraste (1,5:1) y conviene mirarlo el día que Yellow Room abra, que hoy
    está cerrado y sin niños. */
 const UMBRAL_CLARO = 0.75;
-const _esClaro = {};
-function esClaro(varCol){
-  if(varCol in _esClaro) return _esClaro[varCol];
-  let L = 0;
+
+/* El color resuelto de una variable, en canales 0..1. Cacheado: se pregunta
+   una vez por salon y por pintada. Devuelve null si no se pudo leer. */
+const _rgb = {};
+function rgbDe(varCol){
+  if(varCol in _rgb) return _rgb[varCol];
+  let c = null;
   try{
     const sonda = document.createElement("span");
     sonda.style.cssText = "position:absolute;visibility:hidden;color:var("+varCol+")";
     document.body.appendChild(sonda);
     const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(sonda).color);
     sonda.remove();
-    if(m){
-      const c = m[1].split(",").slice(0,3).map(v=>parseFloat(v)/255);
-      const lin = x => x<=0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
-      L = 0.2126*lin(c[0]) + 0.7152*lin(c[1]) + 0.0722*lin(c[2]);
-    }
-  }catch(e){ L = 0; }   /* Ante la duda, oscuro: es la conducta de hoy. */
-  return _esClaro[varCol] = L > UMBRAL_CLARO;
+    if(m) c = m[1].split(",").slice(0,3).map(v=>parseFloat(v)/255);
+  }catch(e){ c = null; }
+  return _rgb[varCol] = c;
+}
+function luminancia(c){
+  const lin = x => x<=0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
+  return 0.2126*lin(c[0]) + 0.7152*lin(c[1]) + 0.0722*lin(c[2]);
+}
+function esClaro(varCol){
+  const c = rgbDe(varCol);
+  if(!c) return false;            /* Ante la duda, oscuro: es la conducta de hoy. */
+  return luminancia(c) > UMBRAL_CLARO;
+}
+
+/* ¿EL COLOR DEL SALON SE CONFUNDE CON UN GRIS DEL SISTEMA?
+   El cupo libre es gris con relleno. Un salon cuyo color se acerque a ese
+   gris produce el mismo problema que White Room producia contra la tarjeta:
+   dos cuadros que significan cosas distintas y se ven igual.
+
+   Hacen falta las DOS condiciones, y la primera es la que hace que esto sea
+   una regla y no una excepcion escrita para Grey Room:
+
+   · Que el color sea casi NEUTRO. El croma de la paleta separa esto sin
+     ninguna duda: gris 0,08 y blanco 0,00, contra 0,31 el siguiente
+     —morado— y 0,50 el lima. Sin esta condicion entraria el lima, que tiene
+     una luminancia parecida a la del cupo libre y aun asi no se confunde con
+     el porque es verde.
+   · Que ademas este CERCA en luminancia. Un «Black Room» seria neutro y no
+     necesitaria contorno ninguno: contrasta 14 a 1 contra el cupo libre.
+
+   Con el umbral en 2,0: gris contra cupo libre da 1,6 y entra; negro daria
+   13,7 y se queda fuera. */
+const UMBRAL_CROMA = 0.12;
+const UMBRAL_CERCA = 2.0;
+function contraste(a,b){
+  const hi=Math.max(a,b), lo=Math.min(a,b);
+  return (hi+0.05)/(lo+0.05);
+}
+function seConfundeConGris(varCol){
+  const c = rgbDe(varCol);
+  if(!c) return false;
+  if(Math.max(c[0],c[1],c[2]) - Math.min(c[0],c[1],c[2]) > UMBRAL_CROMA) return false;
+  const gris = rgbDe("--vacio");   /* el relleno del cupo libre */
+  if(!gris) return false;
+  return contraste(luminancia(c), luminancia(gris)) < UMBRAL_CERCA;
+}
+
+/* CUANDO UN CUPO —O EL PUNTO DEL ENCABEZADO— NECESITA CONTORNO.
+   Las dos razones son la misma cosa vista dos veces: el color no se
+   distingue de lo que tiene al lado. En White Room es la tarjeta; en Grey
+   Room es el cupo libre. Misma solucion para el mismo problema.
+
+   Ojo con lo que NO incluye: el rayado invertido sigue colgando solo de
+   esClaro(). Grey Room lleva contorno pero conserva su rayado blanco, que
+   sobre su color se ve perfectamente. */
+function necesitaContorno(varCol){
+  return esClaro(varCol) || seConfundeConGris(varCol);
+}
+
+/* DE QUE COLOR ES ESE CONTORNO.
+   No puede ser un gris fijo. El primer intento uso --tinta3, y para White
+   Room funcionaba —gris sobre blanco— pero para Grey Room resulto ser
+   EXACTAMENTE su propio color: el cupo llevaba un contorno invisible contra
+   si mismo. Un contorno que no se ve es peor que no ponerlo, porque el
+   codigo dice que esta.
+
+   La regla que si vale para cualquier color: el contorno es el color DEL
+   PROPIO SALON oscurecido. Asi siempre contrasta con su relleno, sea cual
+   sea, y no hay una lista de parejas que mantener.
+
+   El factor 0,65 da ~2,2 de contraste contra el relleno tanto en blanco como
+   en gris, que es el peso que tenia el contorno aprobado para White Room.
+   Se mantiene el mismo trazo visual para los dos. */
+const _contorno = {};
+function contornoDe(varCol){
+  if(varCol in _contorno) return _contorno[varCol];
+  const c = rgbDe(varCol);
+  const v = c ? "rgb("+c.map(x=>Math.round(x*255*0.65)).join(",")+")" : "";
+  return _contorno[varCol] = v;
 }
 
 /* Nada de capacidades ni de numero de salones por defecto: los dos salen de
@@ -1498,8 +1607,10 @@ function pintarSalones(d){
            traslúcido se confunde con un cupo libre. */
         const sinPago = k.pago==null;
         cuadros+='<button class="cupo ocupado'+(sinPago?' sin-pago':'')+
-            (esClaro(s.color)?' claro':'')+'" '+
-          'style="background:var('+s.color+')" '+
+            (esClaro(s.color)?' claro':'')+
+            (necesitaContorno(s.color)?' perfilado':'')+'" '+
+          'style="background:var('+s.color+')'+
+            (necesitaContorno(s.color)?';--contorno:'+contornoDe(s.color):'')+'" '+
           'data-nom="'+esc(quien)+'" data-info="'+esc(info)+'" '+
           'aria-label="'+esc(quien)+(sinPago?', sin pago cargado':'')+'"></button>';
       } else {
@@ -1513,7 +1624,10 @@ function pintarSalones(d){
                  : ' · todavía sin niños');
     return '<div class="salon">'+
       '<div class="s-cab"><div class="s-nom">'+
-        '<span class="s-punto" style="background:var('+s.color+')"></span>'+esc(s.nombre)+
+        '<span class="s-punto'+(necesitaContorno(s.color)?' perfilado':'')+
+          '" style="background:var('+s.color+')'+
+            (necesitaContorno(s.color)?';--contorno:'+contornoDe(s.color):'')+
+          '"></span>'+esc(s.nombre)+
         (s.conocido?"":' <i title="Nombre fuera de la paleta de VEA Kids">sin color</i>')+
         '</div>'+
       '<div class="s-cifra num">'+n+'<i>/'+(s.capacidad!=null?s.capacidad:"?")+'</i></div></div>'+
