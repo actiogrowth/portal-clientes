@@ -26,6 +26,11 @@
 
   --green:var(--lima); --purple:var(--morado); --yellow:var(--amarillo);
   --blue:var(--celeste); --orange:var(--naranja);
+  /* Los tres que faltaban. Rojo y gris ya estaban arriba, en el brand book:
+     lo que no existia era el mapeo desde el nombre del salon. Blanco no es
+     un color de la paleta —es la ausencia de uno— y por eso el cupo de un
+     salon blanco necesita contorno para tener forma. Ver .cupo.claro. */
+  --red:var(--rojo); --grey:var(--gris); --white:#FFFFFF;
 
   /* Los colores de marca son de relleno. Sobre blanco, lima da 1,9 de
      contraste y amarillo 1,5: como texto no se leen. Para cifras se usan
@@ -67,9 +72,16 @@ body{font-family:'Poppins',sans-serif;background:var(--fondo);color:var(--tinta)
 .hero-tit{font-size:15px;font-weight:600;margin-bottom:3px}
 .hero-sub{font-size:12.5px;color:var(--tinta2);margin-bottom:22px}
 .salones{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+/* El salon abierto NO va en blanco puro: lleva un fondo apenas tenido. Es lo
+   que le da suelo a un cupo blanco, que sobre papel puro no se veria. Tan
+   tenue como para que la vista siga buscando primero los colores de los
+   salones, que es lo que el mapa existe para mostrar. */
 .salon{border:1px solid var(--linea);border-radius:12px;padding:13px 13px 11px;
-  background:var(--papel)}
-.salon.cerrado{background:#FAFBFC;border-style:dashed;border-color:#D9E1E4}
+  background:#FCFDFD}
+/* Y el cerrado, mas tenue que antes. Al ganar relleno el cupo libre, un
+   contorno marcado aqui competiria con los salones que si tienen niños. Un
+   salon sin abrir no debe pesar lo mismo que uno lleno. */
+.salon.cerrado{background:#F8FAFB;border-style:dashed;border-color:#E6ECEE}
 .s-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
   margin-bottom:10px}
 .s-nom{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
@@ -80,8 +92,18 @@ body{font-family:'Poppins',sans-serif;background:var(--fondo);color:var(--tinta)
 .cupos{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
 .cupo{aspect-ratio:1;border-radius:4px;background:var(--vacio);
   border:none;padding:0}
-.cupo.libre{background:transparent;box-shadow:inset 0 0 0 1.5px var(--vacio)}
-.salon.cerrado .cupo{background:transparent;box-shadow:inset 0 0 0 1px #E8EDEF}
+/* EL CUPO LIBRE TIENE CUERPO, y esa es la diferencia con lleno: relleno, no
+   color. Antes era transparente con contorno, y eso tenia dos problemas a la
+   vez. Uno: un salon con 9 de 10 y otro con 10 de 10 se veian casi iguales,
+   porque el hueco no pesaba nada. Dos: «blanco con contorno» significaba
+   tambien «cupo ocupado de White Room», asi que dentro de ese salon no se
+   distinguia lleno de vacio. Con relleno, lleno y libre se separan por
+   densidad y White Room deja de ser un caso especial. */
+.cupo.libre{background:var(--vacio);box-shadow:none}
+/* El de un salon sin abrir es ahora lo contrario: contorno sin cuerpo. Es el
+   elemento mas parecido al cupo libre de toda la pantalla, y por eso su
+   filete va deliberadamente por debajo del relleno de aquel. */
+.salon.cerrado .cupo{background:transparent;box-shadow:inset 0 0 0 1px #E4EAEC}
 .cupo.ocupado{cursor:pointer;transition:transform .12s}
 .cupo.ocupado:hover,.cupo.ocupado:focus-visible{transform:scale(1.2);
   outline:2px solid var(--tinta);outline-offset:1px}
@@ -263,22 +285,48 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
   background:repeating-linear-gradient(45deg,
     #FFFFFF 0 2px, rgba(255,255,255,0) 2px 5px)}
 
-/* EL CUPO DE UN SALÓN SIN ABRIR TIENE QUE VERSE.
-   El diseño lo dejaba transparente con un filete de 1px casi blanco, y en
-   una pantalla de portátil no se distingue del papel. Pasa a llevar el
-   relleno gris de la paleta —el mismo que ya usa .cupo de base—, que se ve
-   sin competir con los cupos ocupados. */
-.salon.cerrado .cupo{background:var(--vacio);box-shadow:none}
+/* SALÓN CLARO: contorno, y rayado invertido.
+   Un cupo cuyo color es casi blanco no tiene forma sobre la tarjeta, y el
+   rayado blanco de «sin pago» encima de él no contrasta con nada: no se ve.
+   Las dos cosas se arreglan aquí, y las dos se activan por la MISMA clase,
+   que el pintado pone midiendo la luminancia del color —no por una lista de
+   nombres—. Un salón claro que se agregue mañana cae solo en esta regla.
+
+   El contorno es deliberadamente más marcado que el del cupo de un salón
+   cerrado: son los dos únicos cuadros de la pantalla con contorno, y tienen
+   que distinguirse. */
+.cupo.ocupado.claro{box-shadow:inset 0 0 0 1.5px var(--tinta3)}
+/* Mismo ángulo y mismo paso que el rayado normal: lo único que cambia es de
+   qué color son las rayas. Así los dos se leen como el mismo signo. */
+.cupo.ocupado.sin-pago.claro::after{
+  background:repeating-linear-gradient(45deg,
+    var(--tinta3) 0 2px, rgba(0,0,0,0) 2px 5px)}
 
 /* Muestras de la leyenda del mapa de cupos. Mismo tamaño que .lg-m, con la
-   misma forma que el cupo real que representan. */
+   misma forma que el cupo real que representan. Si un estado cambia arriba,
+   su muestra cambia aquí: una leyenda que no se parece a lo que hay en
+   pantalla es peor que no tenerla. */
 .lg-cupo{border-radius:3px}
 .lg-rayado{position:relative;overflow:hidden}
 .lg-rayado::after{content:"";position:absolute;inset:0;
   background:repeating-linear-gradient(45deg,
     #FFFFFF 0 2px, rgba(255,255,255,0) 2px 5px)}
-.lg-libre{background:transparent;box-shadow:inset 0 0 0 1.5px var(--vacio)}
-.lg-cerrado{background:var(--vacio)}
+.lg-libre{background:var(--vacio);box-shadow:none}
+.lg-cerrado{background:transparent;box-shadow:inset 0 0 0 1px #E4EAEC}
+
+/* LAS OBSERVACIONES, UNA POR BLOQUE.
+   Antes iban todas dentro del mismo recuadro amarillo separadas por <br>, y
+   se leían como un párrafo corrido: no se veía dónde terminaba una y
+   empezaba la otra, ni cuántas había. Ahora cada una lleva encima lo que es,
+   en dos o tres palabras, y una línea de separación.
+
+   El encabezado no es decoración: permite saber de qué habla cada una sin
+   leer la frase entera, que es lo que hace que se miren cuando son varias.
+   Hoy son tres porque los datos están sanos; un mes mal cargado enciende
+   cinco o seis, y ahí es donde esto se paga. */
+.obs + .obs{margin-top:12px;padding-top:12px;border-top:1px solid #F0E2B8}
+.obs-t{font-weight:600;color:#4A3B00;font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;margin-bottom:3px}
 
 /* El identificador va detrás del nombre y más apagado: sirve para buscar en
    la hoja, no para leerlo a diario. */
@@ -676,6 +724,18 @@ function sinDato(que,porque){
 function nota(texto){
   return '<div class="nota-aviso">'+texto+'</div>';
 }
+/* VARIAS OBSERVACIONES, CADA UNA EN SU BLOQUE.
+   Recibe {t: qué es, en dos o tres palabras · d: el detalle} y las separa
+   con una línea. El texto de cada una no cambia: cambia que se pueda ver
+   dónde termina una y empieza la otra, y contarlas de un vistazo.
+
+   Sirve igual para una sola —queda un bloque con su encabezado, sin líneas
+   sueltas— que para seis, que es lo que enciende un mes mal cargado. */
+function notaObs(lista){
+  return '<div class="nota-aviso">'+
+    lista.map(o=>'<div class="obs"><div class="obs-t">'+o.t+'</div>'+o.d+'</div>').join("")+
+    '</div>';
+}
 /* CÓMO SE NOMBRA A UN NIÑO EN PANTALLA.
    El nombre primero, siempre: quien mira el tablero se sabe los nombres, no
    los identificadores. El identificador va detrás, entre paréntesis, porque
@@ -711,7 +771,12 @@ let FALLOS=[];           /* fuentes que no se pudieron leer */
    esconde, para que alguien decida su color. */
 const COLOR_SALON = {
   green:"--green", purple:"--purple", yellow:"--yellow",
-  blue:"--blue",   orange:"--orange"
+  blue:"--blue",   orange:"--orange",
+  /* Los tres que faltaban. Rojo y gris salen del brand book; blanco no es un
+     color de la paleta, y por eso su cupo necesita contorno para tener forma.
+     «gray» entra junto a «grey» porque las dos grafías se escriben solas en
+     una hoja que llena una persona, igual que en el aplicativo. */
+  red:"--red",     grey:"--grey",   gray:"--grey",  white:"--white"
 };
 function claveColor(nombre){
   return normalizar(nombre).replace(/\broom\b/g,"").replace(/\s+/g," ").trim();
@@ -721,6 +786,51 @@ function varColor(nombre){
 }
 function colorConocido(nombre){
   return !!COLOR_SALON[claveColor(nombre)];
+}
+
+/* ¿ES UN SALÓN CLARO?
+   Dos cosas dependen de esto: que su cupo lleve contorno —si no, sobre la
+   tarjeta no tiene forma— y que el rayado de «sin pago» sea gris en vez de
+   blanco —si no, no contrasta con nada y no se ve—.
+
+   Se decide MIDIENDO el color, no con una lista de nombres. Un «Cream Room»
+   que alguien agregue mañana a «Config Kínder» cae solo en esta regla, sin
+   que nadie toque código. Eso es lo que la hace una regla y no una excepción
+   escrita para White Room.
+
+   Por qué hace falta el elemento de sonda: las variables de salón apuntan a
+   otras variables —«--green: var(--lima)»— y getPropertyValue devuelve el
+   texto «var(--lima)», no un color. Pintando el color en un elemento y
+   leyendo su estilo calculado, el navegador resuelve la cadena entera.
+
+   El umbral, con las luminancias de la paleta medidas:
+
+       blanco 1,00 │ amarillo 0,64 │ lima 0,51 │ gris 0,44
+       naranja 0,36 │ celeste 0,35 │ rojo 0,18 │ morado y azul ~0,13
+
+   Queda en 0,75: solo atrapa lo que está cerca del blanco. Amarillo es el
+   siguiente y se queda fuera A PROPÓSITO — es uno de los cinco colores ya
+   aprobados y no se toca. Dicho con honestidad: su rayado blanco tiene poco
+   contraste (1,5:1) y conviene mirarlo el día que Yellow Room abra, que hoy
+   está cerrado y sin niños. */
+const UMBRAL_CLARO = 0.75;
+const _esClaro = {};
+function esClaro(varCol){
+  if(varCol in _esClaro) return _esClaro[varCol];
+  let L = 0;
+  try{
+    const sonda = document.createElement("span");
+    sonda.style.cssText = "position:absolute;visibility:hidden;color:var("+varCol+")";
+    document.body.appendChild(sonda);
+    const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(sonda).color);
+    sonda.remove();
+    if(m){
+      const c = m[1].split(",").slice(0,3).map(v=>parseFloat(v)/255);
+      const lin = x => x<=0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
+      L = 0.2126*lin(c[0]) + 0.7152*lin(c[1]) + 0.0722*lin(c[2]);
+    }
+  }catch(e){ L = 0; }   /* Ante la duda, oscuro: es la conducta de hoy. */
+  return _esClaro[varCol] = L > UMBRAL_CLARO;
 }
 
 /* Nada de capacidades ni de numero de salones por defecto: los dos salen de
@@ -1387,7 +1497,8 @@ function pintarSalones(d){
            de transparencia: el lima y el amarillo son claros y un cuadro
            traslúcido se confunde con un cupo libre. */
         const sinPago = k.pago==null;
-        cuadros+='<button class="cupo ocupado'+(sinPago?' sin-pago':'')+'" '+
+        cuadros+='<button class="cupo ocupado'+(sinPago?' sin-pago':'')+
+            (esClaro(s.color)?' claro':'')+'" '+
           'style="background:var('+s.color+')" '+
           'data-nom="'+esc(quien)+'" data-info="'+esc(info)+'" '+
           'aria-label="'+esc(quien)+(sinPago?', sin pago cargado':'')+'"></button>';
@@ -1421,33 +1532,41 @@ function pintarSalones(d){
       'Niño sin pago cargado en '+MES_LARGO[d.mesHoy-1]+'</span>'+
     '<span class="lg"><span class="lg-m lg-cupo lg-libre"></span>Cupo libre</span>'+
     '<span class="lg"><span class="lg-m lg-cupo lg-cerrado"></span>Cupo de un salón sin abrir</span>';
+  /* Las dos últimas muestras se intercambiaron el 15-sep, no se retocaron:
+     el cupo libre pasó a tener relleno y el del salón cerrado a ser solo
+     contorno. La leyenda sigue al mapa, nunca al revés. */
 
   const avisos=[];
   if(d.sinGrupo){
     /* La consecuencia primero: qué no se está viendo en el mapa de arriba. */
     const quienes=d.matriculados.filter(n=>!n.grupo);
     const k=quienes.length;
-    avisos.push((k===1?'Hay <b>1 niño</b> que no aparece':'Hay <b>'+k+' niños</b> que no aparecen')+
+    avisos.push({t:'Sin salón asignado', d:
+      (k===1?'Hay <b>1 niño</b> que no aparece':'Hay <b>'+k+' niños</b> que no aparecen')+
       ' en ningún salón del mapa de arriba, porque no '+(k===1?'tiene':'tienen')+
       ' salón asignado en '+MES_LARGO[d.mesHoy-1]+': '+
       quienes.map(quien).join(' · ')+'. '+
-      (k===1?'Cuenta':'Cuentan')+' igual en los matriculados y en la ocupación.');
+      (k===1?'Cuenta':'Cuentan')+' igual en los matriculados y en la ocupación.'});
   }
   /* Se avisa tambien de los cerrados: conviene saber que a ese salon le
      falta color ANTES de abrirlo, no el dia que se abra. */
   const raros=d.salones.filter(s=>!s.conocido).map(s=>s.nombre);
-  if(raros.length) avisos.push('Sin color en la paleta de VEA Kids: <b>'+
-    raros.map(esc).join("</b>, <b>")+'</b>. Se pintan en gris hasta que se les asigne uno.');
+  if(raros.length) avisos.push({t:'Salones sin color', d:
+    'Sin color en la paleta de VEA Kids: <b>'+
+    raros.map(esc).join("</b>, <b>")+'</b>. Se pintan en gris hasta que se les asigne uno.'});
   if(d.salonesFueraDeConfig && d.salonesFueraDeConfig.length)
-    avisos.push('Con niños pero sin fila en «Config Kínder»: <b>'+
-      d.salonesFueraDeConfig.map(esc).join("</b>, <b>")+'</b>. Se muestran igual, sin capacidad.');
+    avisos.push({t:'Salones sin ficha', d:
+      'Con niños pero sin fila en «Config Kínder»: <b>'+
+      d.salonesFueraDeConfig.map(esc).join("</b>, <b>")+'</b>. Se muestran igual, sin capacidad.'});
   if(d.cerradosConNinos && d.cerradosConNinos.length)
-    avisos.push('Marcados <b>ACTIVO = No</b> en «Config Kínder» pero con niños dentro: <b>'+
+    avisos.push({t:'Cerrados con niños', d:
+      'Marcados <b>ACTIVO = No</b> en «Config Kínder» pero con niños dentro: <b>'+
       d.cerradosConNinos.map(esc).join("</b>, <b>")+'</b>. O la bandera está mal, o los niños '+
-      'siguen asignados a un salón que ya cerró.');
+      'siguen asignados a un salón que ya cerró.'});
   if(d.sinCapacidad && d.sinCapacidad.length)
-    avisos.push('Sin capacidad en «Config Kínder»: <b>'+
-      d.sinCapacidad.map(esc).join("</b>, <b>")+'</b>. No entran en el conteo de cupos.');
+    avisos.push({t:'Sin capacidad declarada', d:
+      'Sin capacidad en «Config Kínder»: <b>'+
+      d.sinCapacidad.map(esc).join("</b>, <b>")+'</b>. No entran en el conteo de cupos.'});
 
   /* LOS QUE NO ESTAN EN NINGUNA CIFRA.
      Se nombran uno por uno con lo que consta de cada uno. El tablero no dice
@@ -1469,28 +1588,30 @@ function pintarSalones(d){
       if(x.sinIngreso) l += '. No tiene fecha de ingreso registrada';
       return l+'.';
     }).join('<br>');
-    avisos.push((k===1
+    avisos.push({t:'Fuera de todas las cifras', d:
+      (k===1
         ? 'Hay <b>1 niño</b> que no está contado en ninguna cifra de esta pantalla'
         : 'Hay <b>'+k+' niños</b> que no están contados en ninguna cifra de esta pantalla')+
       ' —ni en los matriculados, ni en la ocupación, ni en el camino a la meta, ni en lo '+
       'cobrado— porque en la hoja no consta que '+(k===1?'haya estado activo':'hayan estado activos')+
       ' ningún mes del año.<br>'+lineas+
-      (plata? '<br>Eso deja <b>'+dinero(plata)+'</b> fuera de lo cobrado.' : ''));
+      (plata? '<br>Eso deja <b>'+dinero(plata)+'</b> fuera de lo cobrado.' : '')});
   }
 
   /* Dinero cargado en un mes en que el niño figura inactivo. No se suma a
      nada: se dice que esta ahi. */
   if(d.pagosEnMesInactivo && d.pagosEnMesInactivo.length){
     const ps=d.pagosEnMesInactivo, tot=ps.reduce((a,p)=>a+p.pago,0);
-    avisos.push('<b>'+dinero(tot)+'</b> no '+(ps.length===1?'aparece':'aparecen')+
+    avisos.push({t:'Pagos fuera de lo cobrado', d:
+      '<b>'+dinero(tot)+'</b> no '+(ps.length===1?'aparece':'aparecen')+
       ' en lo cobrado de ningún mes, aunque '+(ps.length===1?'está':'están')+
       ' registrado'+(ps.length===1?'':'s')+' en la hoja: '+
       ps.map(p=>quien(p)+', '+dinero(p.pago)+' en '+MES_LARGO[p.mes-1]).join(' · ')+
       '. En la hoja, '+(ps.length===1?'ese niño no consta':'esos niños no constan')+
-      ' como activo'+(ps.length===1?'':'s')+' en el mes del pago.');
+      ' como activo'+(ps.length===1?'':'s')+' en el mes del pago.'});
   }
 
-  $("salones-aviso").innerHTML = avisos.length ? nota(avisos.join("<br>")) : "";
+  $("salones-aviso").innerHTML = avisos.length ? notaObs(avisos) : "";
 }
 
 /* ---- Las cuatro lecturas ---- */
