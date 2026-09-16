@@ -19,8 +19,8 @@ const fs = require('fs');
 const path = require('path');
 
 /* El sufijo no es decorativo: Pages publica main, asi que esta direccion es
-   publica. El nombre no se deriva del portal que el cliente ya tiene, igual
-   que seguimiento-a7f39c21.html. Si se renombra el HTML, se cambia aqui. */
+   publica. El nombre no se deriva del portal que el cliente ya tiene. Si se
+   renombra el HTML, se cambia aqui. */
 const ARCHIVO = path.join(__dirname, 'presentacion-vea-efb4db06.html');
 
 function cargarBloques(ids) {
