@@ -1563,12 +1563,81 @@ function pintarCabecera(d){
     return;
   }
   const dias = d.selloFecha ? Math.floor((new Date()-d.selloFecha)/86400000) : null;
-  el.textContent = "Datos al "+fmtFechaLarga(d.selloFecha);
+  /* La antigüedad, visible. Si el sello no trae hora legible, se dice la
+     fecha como antes: sin hora no hay antigüedad que calcular, y una
+     inventada es peor que ninguna. */
+  const edad = edadDelSello(SELLO);
+  el.textContent = edad
+    ? "Datos de "+edad.hace+" · "+edad.momento
+    : "Datos al "+fmtFechaLarga(d.selloFecha);
+  /* El rojo sigue con la regla de siempre, sin tocar: cuenta días naturales
+     desde la medianoche del sello. Cambiarla es decidir un umbral, y eso no
+     se decide aquí. */
   const viejo = dias!==null && dias>2;
   el.classList.toggle("viejo", viejo);
   el.title = viejo
     ? "Hace "+dias+" días que no se regeneran. La regeneración diaria puede estar caída."
     : "Generado el "+SELLO;
+}
+
+/* ¿ESTO INCLUYE LO QUE ACABO DE CAMBIAR?
+   Esa es la pregunta de quien mira el tablero, y «Datos al 17 de septiembre»
+   no la contesta: dice que corrió el disparador, no cuándo. El disparador
+   corre de madrugada, así que desde las dos de la mañana ese texto parece
+   fresco y deja fuera todo lo que el cliente cargó durante el día. La hora
+   existía, pero solo en el globo, y en una reunión con pantalla compartida
+   nadie pasa el ratón.
+
+   Por eso la antigüedad va delante y el momento detrás:
+       «Datos de hace 8 horas · hoy, 1:08»
+   «hace 8 horas» es lo que se lee de un vistazo; «hoy, 1:08» es para quien
+   quiere precisión.
+
+   DE DÓNDE SALE. El sello es el de siempre —generado_en— y nada más. Lo que
+   se usa del reloj del navegador es solo el AHORA contra el que se mide la
+   antigüedad: sin él no hay «hace» posible. El sello nunca se sustituye por
+   la fecha de hoy.
+
+   LA ZONA. generado_en lo escribe el Apps Script con la zona del archivo,
+   America/Bogota: UTC-5 y sin horario de verano. Se lee así explícitamente
+   para que la antigüedad salga bien aunque el navegador esté en otra zona.
+   La hora que se MUESTRA es la escrita, tal cual —«1:08»—, para que coincida
+   con la celda del Sheet.
+
+   Y SE ACTUALIZA SOLA. Un «hace 5 minutos» que se queda en pantalla dos
+   horas miente. Cada minuto se vuelve a escribir este texto; los datos no se
+   vuelven a leer. */
+const ZONA_SELLO_MIN = -300;   /* America/Bogota, UTC-5, sin horario de verano */
+function edadDelSello(s){
+  /* El Sheet lo publica como «2026-09-17 1:08»: la hora puede venir sin cero. */
+  const m=/^([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{1,2}):([0-9]{2})/.exec(s||"");
+  if(!m) return null;
+  const y=+m[1], mo=+m[2], dd=+m[3], h=+m[4], mi=m[5];
+  const instante = Date.UTC(y,mo-1,dd,h,+mi) - ZONA_SELLO_MIN*60000;
+  const ahora = Date.now();
+
+  /* Cuánto hace. Hasta dos días se cuenta en horas: «hace 30 horas» dice más
+     que «hace 1 día», que cubre desde 24 hasta 47. Un reloj que vaya por
+     detrás del sello no produce una antigüedad negativa. */
+  const min = Math.floor((ahora-instante)/60000);
+  let hace;
+  if(min < 1)       hace = "hace un momento";
+  else if(min < 60) hace = "hace "+min+(min===1?" minuto":" minutos");
+  else {
+    const hs = Math.floor(min/60);
+    hace = hs < 48 ? "hace "+hs+(hs===1?" hora":" horas")
+                   : "hace "+Math.floor(hs/24)+" días";
+  }
+
+  /* El momento, en el calendario de Bogotá: «hoy», «ayer» o la fecha. */
+  const b = new Date(ahora + ZONA_SELLO_MIN*60000);
+  const diaHoy = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
+  const dif = Math.round((diaHoy - Date.UTC(y,mo-1,dd))/86400000);
+  const hora = h+":"+mi;
+  const momento = dif===0 ? "hoy, "+hora
+                : dif===1 ? "ayer, "+hora
+                : dd+" de "+MES_LARGO[mo-1]+", "+hora;
+  return { hace, momento };
 }
 
 /* ---- Barra de avisos de fuente ---- */
@@ -2286,10 +2355,16 @@ function pintarPie(d){
   el.innerHTML = txt;
 }
 
+/* La cabecera se vuelve a escribir cada minuto, con los MISMOS datos: solo
+   cambia el «hace». Un tablero abierto toda una reunión no puede seguir
+   diciendo «hace 5 minutos» al cabo de dos horas. No se vuelve a leer nada. */
+let _cabeceraViva = null;
 function pintarTodo(){
   const d=calcular();
   pintarAviso(d);
   pintarCabecera(d);
+  if(_cabeceraViva) clearInterval(_cabeceraViva);
+  _cabeceraViva = setInterval(()=>pintarCabecera(d), 60000);
   pintarSalones(d);
   pintarLecturas(d);
   pintarMeta(d);
