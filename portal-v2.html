@@ -242,25 +242,34 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .empty{font-size:13px;color:var(--texto-secundario);font-style:italic;padding:18px 20px}
 
 /* ---------- Tareas del cliente ----------
-   Lo que el cliente tiene que hacer. Solo llegan las PENDIENTES, asi que no
-   hay columna de estado: diria lo mismo en todas las filas. La unica señal
-   que varia se calcula aqui, con la fecha de compromiso y el dia de hoy. */
-.tareas{border:1px solid var(--marca-borde-suave);border-radius:12px;overflow:hidden}
-.tarea-fila{display:flex;align-items:center;gap:14px;padding:14px 18px;border-top:1px solid var(--marca-borde-suave)}
-.tarea-fila:first-child{border-top:none}
-.tarea-txt{flex:1 1 auto;font-size:14px;line-height:1.5;color:var(--texto-principal)}
-.tarea-fecha{font-size:12px;color:var(--texto-secundario);white-space:nowrap}
-.tarea-señal{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-  padding:4px 10px;border-radius:999px;white-space:nowrap}
-.tarea-señal.atrasada{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte)}
-.tarea-señal.hoy{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
-.tarea-señal.semana{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
-.tarea-señal.despues{background:var(--marca-gris-claro);color:var(--texto-secundario)}
-.tarea-señal.sinfecha{background:var(--marca-gris-claro);color:var(--texto-secundario);font-style:italic}
+   Lo que el cliente tiene que hacer. Solo llegan las PENDIENTES.
+   La señal de urgencia va en el GRUPO y no en cada fila: con dos tareas sin
+   fecha, una etiqueta «Sin fecha» repetida en todas las filas no dice nada,
+   por el mismo motivo por el que no viaja una columna de estado. Los grupos
+   son los de Documentos (.grupo / .grupo-h) y las filas, las de Avance
+   (punto de color, texto, fecha a la derecha), para que sea la misma página.
+   Las filas no se pulsan, así que no reaccionan al pasar por encima. */
+.tareas-caja{background:var(--superficie);border:1px solid var(--borde);border-radius:12px;padding:2px 20px}
+.tarea{display:flex;align-items:baseline;gap:12px;padding:14px 0;border-bottom:1px solid var(--borde-suave)}
+.tarea:last-child{border-bottom:none}
+.tarea-punto{width:7px;height:7px;border-radius:50%;flex-shrink:0;transform:translateY(-2px);background:var(--marca-verde-profundo)}
+.tarea-txt{flex:1;min-width:0;font-size:14px;line-height:1.5;color:var(--texto-principal)}
+.tarea-fecha{font-size:11.5px;color:var(--texto-secundario);white-space:nowrap;flex-shrink:0;text-align:right}
+/* El color de cada grupo, en su punto del rótulo y en el de cada fila. */
+.tg-atrasada .tarea-punto,.grupo-h.tg-atrasada::before{background:var(--estado-riesgo)}
+.tg-hoy .tarea-punto,.grupo-h.tg-hoy::before{background:var(--estado-atencion)}
+.tg-semana .tarea-punto,.grupo-h.tg-semana::before{background:var(--estado-en-meta)}
+.tg-despues .tarea-punto,.grupo-h.tg-despues::before{background:var(--estado-neutro)}
+/* Sin fecha: punto hueco. No es un aviso ni un error, es algo por acordar. */
+.tg-sinfecha .tarea-punto,.grupo-h.tg-sinfecha::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--estado-neutro)}
+.tg-atrasada .tarea-fecha{color:var(--estado-riesgo-fuerte);font-weight:600}
+.tg-hoy .tarea-fecha{color:var(--estado-atencion-fuerte);font-weight:600}
 .tareas-nota{font-size:12px;color:var(--texto-secundario);margin-top:14px}
 @media(max-width:640px){
-  .tarea-fila{flex-wrap:wrap;gap:8px 12px}
-  .tarea-txt{flex-basis:100%}
+  .tareas-caja{padding:2px 16px}
+  .tarea{flex-wrap:wrap;row-gap:4px}
+  .tarea-txt{flex-basis:calc(100% - 19px)}
+  .tarea-fecha{margin-left:19px;text-align:left}
 }
 
 /* ---- DOCUMENTOS ---- */
@@ -369,6 +378,13 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .foot{border-top:1px solid var(--borde);margin:40px 0 0;padding-top:20px;
   font-size:11px;color:var(--texto-secundario);line-height:1.9}
 .foot b{color:var(--texto-principal);font-weight:600}
+/* Las líneas propias de una pestaña se ven solo con ella abierta. Funciona
+   porque el pie va DESPUÉS de las pestañas en la página: no depende del
+   JavaScript que las cambia, y una pestaña nueva sin línea propia solo
+   enseña la fuente. */
+.foot-avance,.foot-tareas{display:none}
+#p-avance.on~.foot .foot-avance,
+#p-tareas.on~.foot .foot-tareas{display:block}
 /* ---- VISOR ----
    Capa sobre la misma pantalla en vez de sacar al cliente del portal.
    El boton de abrir en pestaña nueva esta siempre presente: es a la vez
@@ -496,7 +512,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
     <div class="titulo">
       <div class="h-title">Sistema Operativo</div>
     </div>
-    <div class="stamp" id="stamp">Cargando informacion...</div>
+    <div class="stamp" id="stamp">Cargando información...</div>
     <div class="marca-cliente">
       <img src="logo-cliente.png" alt="Vida en Arte" onerror="this.style.display='none';document.getElementById('bf').style.display='block'">
       <div id="bf" class="brand-fallback" style="display:none">VIDA EN ARTE</div>
@@ -521,10 +537,16 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   <div class="pane" id="p-reu"><div class="load">Cargando reuniones...</div></div>
   <div class="pane" id="p-aten"><div class="load">Cargando acompañamiento...</div></div>
 
+  <!-- El pie es uno solo para las cinco pestañas. Cada línea que explica algo
+       de UNA pestaña solo se ve con esa pestaña abierta (regla CSS de .foot-*):
+       el modelo de cálculo explica el porcentaje de Avance y no pinta nada
+       debajo de una lista de tareas. La fuente vale para todas. -->
   <div class="foot">
-    <b>Modelo de cálculo:</b> el avance total = entregables completados / total de entregables del proyecto.
-    Las unidades cuyo alcance aún no está definido no entran en el cálculo hasta que se definan.<br>
-    <b>Fuente:</b> sistema de gestión de Actio Growth &middot; la información se actualiza automáticamente.
+    <div class="foot-linea foot-avance"><b>Modelo de cálculo:</b> el avance total = entregables completados / total de entregables del proyecto.
+    Las unidades cuyo alcance aún no está definido no entran en el cálculo hasta que se definan.</div>
+    <div class="foot-linea foot-tareas"><b>Cómo se ordenan:</b> por su fecha de compromiso, de la más urgente a la que tiene más margen.
+    «Esta semana» son los próximos siete días; las que todavía no tienen fecha van al final.</div>
+    <div class="foot-linea"><b>Fuente:</b> sistema de gestión de Actio Growth &middot; la información se actualiza automáticamente.</div>
   </div>
 </div>
 
@@ -751,7 +773,7 @@ function cargarTareas(){
   .then(txt=>{
     const t=tabla(txt);
     const faltan=TAREAS_ENC.filter(h=>col(t.head,h)<0);
-    if(faltan.length) throw new Error("la lista no llego completa ("+faltan.join(", ")+")");
+    if(faltan.length) throw new Error("la lista no llegó completa ("+faltan.join(", ")+")");
     const cT=col(t.head,"Tarea"), cF=col(t.head,"Fecha compromiso");
     TAREAS=t.rows.map(r=>({ texto:(r[cT]||"").trim(), compromiso:fecha(r[cF]) }))
                  .filter(x=>x.texto);
@@ -773,35 +795,63 @@ function señalDeTarea(f){
   if(dias<0)  return {clase:"atrasada", texto:"Atrasada"};
   if(dias===0)return {clase:"hoy",      texto:"Vence hoy"};
   if(dias<=7) return {clase:"semana",   texto:"Esta semana"};
-  return {clase:"despues", texto:"Mas adelante"};
+  return {clase:"despues", texto:"Más adelante"};
+}
+
+/* Los grupos, en orden de urgencia. Solo se pintan los que tienen tareas:
+   con dos tareas sin fecha sale un único grupo, y no cuatro vacíos. */
+const GRUPOS_TAREAS=[
+  {clase:"atrasada", titulo:"Atrasadas"},
+  {clase:"hoy",      titulo:"Vencen hoy"},
+  {clase:"semana",   titulo:"Esta semana"},
+  {clase:"despues",  titulo:"Más adelante"},
+  {clase:"sinfecha", titulo:"Sin fecha acordada"}
+];
+
+/* La fecha de la derecha dice lo que importa en cada grupo: en «Vencen hoy»,
+   «hoy»; en los demás, el día. En «Sin fecha acordada» no hay nada que poner,
+   y no se pone un guion en cada fila. */
+function fechaDeTarea(t,clase){
+  if(!t.compromiso) return "";
+  if(clase==="hoy") return "hoy";
+  if(clase==="atrasada") return "venció el "+fmt(t.compromiso);
+  return fmt(t.compromiso);
 }
 
 function renderTareas(){
   let h='<div class="sec-label">Tu parte</div><h2>Tus tareas</h2>'+
-        '<div class="sub">Lo que quedo de tu lado para que el proyecto avance. '+
-        'Cuando termines una, avisanos y la cerramos contigo.</div>';
+        '<div class="sub">Lo que quedó de tu lado para que el proyecto avance. '+
+        'Cuando termines una, avísanos y la cerramos contigo.</div>';
   if(!TAREAS.length){
     h+='<div class="empty">No tienes tareas pendientes ahora mismo.</div>'+
-       '<div class="tareas-nota">Cuando acordemos una nueva, aparecera aqui.</div>';
+       '<div class="tareas-nota">Cuando acordemos una nueva, aparecerá aquí.</div>';
     document.getElementById("p-tareas").innerHTML=h;return;
   }
-  /* Por fecha de compromiso; las que no tienen, al final. */
+  /* Por fecha de compromiso dentro de cada grupo; las sin fecha, en el orden
+     en que llegan. */
   const orden=TAREAS.slice().sort((a,b)=>{
     if(!a.compromiso&&!b.compromiso) return 0;
     if(!a.compromiso) return 1;
     if(!b.compromiso) return -1;
     return a.compromiso-b.compromiso;
   });
-  h+='<div class="tareas">';
-  orden.forEach(t=>{
-    const s=señalDeTarea(t.compromiso);
-    h+='<div class="tarea-fila">'+
-         '<div class="tarea-txt">'+esc(t.texto)+'</div>'+
-         '<div class="tarea-fecha">'+(t.compromiso?fmt(t.compromiso):"—")+'</div>'+
-         '<div class="tarea-señal '+s.clase+'">'+s.texto+'</div>'+
-       '</div>';
+  GRUPOS_TAREAS.forEach(g=>{
+    const deGrupo=orden.filter(t=>señalDeTarea(t.compromiso).clase===g.clase);
+    if(!deGrupo.length) return;
+    h+='<div class="grupo tg-'+g.clase+'">'+
+         '<div class="grupo-h tg-'+g.clase+'">'+g.titulo+
+           '<span class="n">'+deGrupo.length+' tarea'+(deGrupo.length!==1?'s':'')+'</span></div>'+
+         '<div class="tareas-caja">';
+    deGrupo.forEach(t=>{
+      const f=fechaDeTarea(t,g.clase);
+      h+='<div class="tarea">'+
+           '<span class="tarea-punto" aria-hidden="true"></span>'+
+           '<div class="tarea-txt">'+esc(t.texto)+'</div>'+
+           (f?'<div class="tarea-fecha">'+esc(f)+'</div>':'')+
+         '</div>';
+    });
+    h+='</div></div>';
   });
-  h+='</div>';
   document.getElementById("p-tareas").innerHTML=h;
 }
 
@@ -826,7 +876,7 @@ fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text
     let c=new Date(min.getFullYear(),min.getMonth(),1);
     while(c<=max){MONTHS.push(new Date(c));c.setMonth(c.getMonth()+1);}
   }
-  document.getElementById("stamp").textContent="Informacion en vivo \u00b7 "+fmt(new Date());
+  document.getElementById("stamp").textContent="Información en vivo \u00b7 "+fmt(new Date());
   renderAvance();
 })
 .catch(e=>{ document.getElementById("p-avance").innerHTML=
@@ -1269,7 +1319,7 @@ function renderDocs(){
   h+='<div class="sub">Todos los entregables y documentos de su proyecto. Haz clic para abrir.</div>';
 
   if(!DOCS.length){
-    h+='<div class="empty">Aun no hay documentos publicados en esta seccion.</div>';
+    h+='<div class="empty">Aún no hay documentos publicados en esta sección.</div>';
     document.getElementById("p-docs").innerHTML=h;return;
   }
 
@@ -1369,10 +1419,10 @@ function bindDocs(){
 /* ============ REUNIONES ============ */
 function renderReus(){
   let h='<div class="sec-label">Historial</div><h2>Reuniones y minutas</h2>';
-  h+='<div class="sub">Registro de las reuniones del proyecto, con su minuta y grabacion cuando esta disponible.</div>';
+  h+='<div class="sub">Registro de las reuniones del proyecto, con su minuta y grabación cuando está disponible.</div>';
 
   if(!REUS.length){
-    h+='<div class="empty">Aun no hay reuniones registradas.</div>';
+    h+='<div class="empty">Aún no hay reuniones registradas.</div>';
     document.getElementById("p-reu").innerHTML=h;return;
   }
 
@@ -1383,8 +1433,8 @@ function renderReus(){
        '<div class="reu-t">'+esc(r.tema)+'</div></div><div class="reu-links">';
     h+= r.minuta ? '<a class="lnk" href="'+esc(r.minuta)+'" target="_blank" rel="noopener" data-titulo="Minuta &middot; '+esc(r.tema)+'">Ver minuta</a>'
                  : '<span class="lnk off">Minuta pendiente</span>';
-    h+= r.grabacion ? '<a class="lnk" href="'+esc(r.grabacion)+'" target="_blank" rel="noopener" data-titulo="Grabación &middot; '+esc(r.tema)+'">Ver grabacion</a>'
-                    : '<span class="lnk off">Sin grabacion</span>';
+    h+= r.grabacion ? '<a class="lnk" href="'+esc(r.grabacion)+'" target="_blank" rel="noopener" data-titulo="Grabación &middot; '+esc(r.tema)+'">Ver grabación</a>'
+                    : '<span class="lnk off">Sin grabación</span>';
     h+='</div></div>';
   });
   h+='</div>';
