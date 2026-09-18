@@ -241,6 +241,28 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .b-late{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte)}
 .empty{font-size:13px;color:var(--texto-secundario);font-style:italic;padding:18px 20px}
 
+/* ---------- Tareas del cliente ----------
+   Lo que el cliente tiene que hacer. Solo llegan las PENDIENTES, asi que no
+   hay columna de estado: diria lo mismo en todas las filas. La unica señal
+   que varia se calcula aqui, con la fecha de compromiso y el dia de hoy. */
+.tareas{border:1px solid var(--marca-borde-suave);border-radius:12px;overflow:hidden}
+.tarea-fila{display:flex;align-items:center;gap:14px;padding:14px 18px;border-top:1px solid var(--marca-borde-suave)}
+.tarea-fila:first-child{border-top:none}
+.tarea-txt{flex:1 1 auto;font-size:14px;line-height:1.5;color:var(--texto-principal)}
+.tarea-fecha{font-size:12px;color:var(--texto-secundario);white-space:nowrap}
+.tarea-señal{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;white-space:nowrap}
+.tarea-señal.atrasada{background:var(--estado-riesgo-suave);color:var(--estado-riesgo-fuerte)}
+.tarea-señal.hoy{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
+.tarea-señal.semana{background:var(--marca-tenue);color:var(--marca-verde-profundo)}
+.tarea-señal.despues{background:var(--marca-gris-claro);color:var(--texto-secundario)}
+.tarea-señal.sinfecha{background:var(--marca-gris-claro);color:var(--texto-secundario);font-style:italic}
+.tareas-nota{font-size:12px;color:var(--texto-secundario);margin-top:14px}
+@media(max-width:640px){
+  .tarea-fila{flex-wrap:wrap;gap:8px 12px}
+  .tarea-txt{flex-basis:100%}
+}
+
 /* ---- DOCUMENTOS ---- */
 .filtros-grupo{margin-bottom:22px}
 .filtros{display:flex;gap:8px;flex-wrap:wrap}
@@ -483,6 +505,9 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
 
   <nav>
     <button class="tab on" data-p="avance" aria-controls="p-avance" aria-current="true">Avance del proyecto</button>
+    <!-- Nace oculta: solo aparece si CSV_TAREAS tiene direccion. Un portal sin
+         tareas configuradas no enseña una pestaña vacia. -->
+    <button class="tab" data-p="tareas" aria-controls="p-tareas" hidden>Tus tareas<span class="cnt" id="ct"></span></button>
     <button class="tab" data-p="docs" aria-controls="p-docs">Documentos<span class="cnt" id="cd"></span></button>
     <button class="tab" data-p="reu" aria-controls="p-reu">Reuniones y minutas<span class="cnt" id="cr"></span></button>
     <!-- Nace oculta y solo se revela si su CSV trae filas: al replicar a
@@ -491,6 +516,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   </nav>
 
   <div class="pane on" id="p-avance"><div class="load">Cargando hoja de ruta...</div></div>
+  <div class="pane" id="p-tareas"><div class="load">Cargando tus tareas...</div></div>
   <div class="pane" id="p-docs"><div class="load">Cargando documentos...</div></div>
   <div class="pane" id="p-reu"><div class="load">Cargando reuniones...</div></div>
   <div class="pane" id="p-aten"><div class="load">Cargando acompañamiento...</div></div>
@@ -549,6 +575,12 @@ const CSV_ATENCION="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592
 
    Vacia o inalcanzable, el portal deriva todo de los datos por orden
    de primera aparicion. Nunca es un requisito para que funcione. */
+/* Las tareas que le corresponden al cliente, ya filtradas del lado de Actio:
+   Tablero -> Espejo Tareas <cliente> -> Datos Tareas — <cliente> -> este CSV.
+   Solo llegan las PENDIENTES, y solo dos columnas: Tarea y Fecha compromiso.
+   Mientras esté vacia, la pestaña no aparece. */
+const CSV_TAREAS="https://docs.google.com/spreadsheets/d/e/2PACX-1vQO65DytrFaxdPfmeK8lmiQVwzrdyRqr3202bYAB8GLINDmkrNVzmqYVt27rxvF5zA05SoHvTqqjRx1/pub?gid=0&single=true&output=csv";
+
 const CSV_CATALOGO="https://docs.google.com/spreadsheets/d/e/2PACX-1vSEylRe3F592VKdUAhwo3cHg0TsSOJ9ZXpWzsZhAEdMRalWi7gpOMFzqYtdnEm-FSqM-CHKDFZ8wTTJ/pub?gid=1825091344&single=true&output=csv";
 
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -705,6 +737,74 @@ function cargarCatalogo(){
     .catch(()=>null);
 }
 
+/* ---------- Tareas del cliente ----------
+   Tres estados distintos, y hay que distinguirlos: no se pudo cargar, la cadena
+   esta rota (el CSV no trae los encabezados) y no hay tareas. Solo el tercero
+   dice "no tienes tareas": una cadena rota no es una lista vacia. */
+var TAREAS=[];
+const TAREAS_ENC=["Tarea","Fecha compromiso"];
+
+function cargarTareas(){
+  if(!CSV_TAREAS) return;
+  document.querySelector('.tab[data-p="tareas"]').hidden=false;
+  fetch(CSV_TAREAS).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
+  .then(txt=>{
+    const t=tabla(txt);
+    const faltan=TAREAS_ENC.filter(h=>col(t.head,h)<0);
+    if(faltan.length) throw new Error("la lista no llego completa ("+faltan.join(", ")+")");
+    const cT=col(t.head,"Tarea"), cF=col(t.head,"Fecha compromiso");
+    TAREAS=t.rows.map(r=>({ texto:(r[cT]||"").trim(), compromiso:fecha(r[cF]) }))
+                 .filter(x=>x.texto);
+    document.getElementById("ct").textContent=TAREAS.length?" "+TAREAS.length:"";
+    renderTareas();
+  })
+  .catch(e=>{ document.getElementById("p-tareas").innerHTML=
+    '<div class="err"><b>No se pudieron cargar tus tareas.</b><br>'+
+    'El resto del portal funciona con normalidad.<br>Detalle: '+esc(e.message)+'</div>'; });
+}
+
+/* La unica señal que varia entre filas. Se calcula AQUI, al abrir el portal, y
+   no en la hoja: una columna con HOY() dentro de la hoja se recalcula cuando
+   Google sirve la publicacion, no cuando el cliente mira. */
+function señalDeTarea(f){
+  if(!f) return {clase:"sinfecha", texto:"Sin fecha"};
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const dias=Math.round((f-hoy)/86400000);
+  if(dias<0)  return {clase:"atrasada", texto:"Atrasada"};
+  if(dias===0)return {clase:"hoy",      texto:"Vence hoy"};
+  if(dias<=7) return {clase:"semana",   texto:"Esta semana"};
+  return {clase:"despues", texto:"Mas adelante"};
+}
+
+function renderTareas(){
+  let h='<div class="sec-label">Tu parte</div><h2>Tus tareas</h2>'+
+        '<div class="sub">Lo que quedo de tu lado para que el proyecto avance. '+
+        'Cuando termines una, avisanos y la cerramos contigo.</div>';
+  if(!TAREAS.length){
+    h+='<div class="empty">No tienes tareas pendientes ahora mismo.</div>'+
+       '<div class="tareas-nota">Cuando acordemos una nueva, aparecera aqui.</div>';
+    document.getElementById("p-tareas").innerHTML=h;return;
+  }
+  /* Por fecha de compromiso; las que no tienen, al final. */
+  const orden=TAREAS.slice().sort((a,b)=>{
+    if(!a.compromiso&&!b.compromiso) return 0;
+    if(!a.compromiso) return 1;
+    if(!b.compromiso) return -1;
+    return a.compromiso-b.compromiso;
+  });
+  h+='<div class="tareas">';
+  orden.forEach(t=>{
+    const s=señalDeTarea(t.compromiso);
+    h+='<div class="tarea-fila">'+
+         '<div class="tarea-txt">'+esc(t.texto)+'</div>'+
+         '<div class="tarea-fecha">'+(t.compromiso?fmt(t.compromiso):"—")+'</div>'+
+         '<div class="tarea-señal '+s.clase+'">'+s.texto+'</div>'+
+       '</div>';
+  });
+  h+='</div>';
+  document.getElementById("p-tareas").innerHTML=h;
+}
+
 function cargarDatos(){
 fetch(CSV_ENTREGABLES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
 .then(txt=>{
@@ -777,6 +877,8 @@ fetch(CSV_REUNIONES).then(r=>{if(!r.ok)throw new Error(r.status);return r.text()
    dibuja su pestaña y tampoco muestra un aviso de error. Es opcional
    por diseño, y un cliente cuya hoja no tenga esta pestaña no tiene por
    que enterarse de que existe. */
+cargarTareas();
+
 if(CSV_ATENCION) fetch(CSV_ATENCION).then(r=>{if(!r.ok)throw new Error(r.status);return r.text();})
 .then(txt=>{
   const t=tabla(txt),h=t.head;
