@@ -525,23 +525,62 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
    ========================================================================== */
 
 /* ==========================================================================
-   FUENTES DE DATOS
-   Mecanismo conservado tal cual del archivo anterior: CSV publicados del
-   Sheet, sin credenciales, leidos por NOMBRE de columna.
+   FUENTE DE DATOS — EL UNICO SITIO QUE SABE DE DONDE SALEN
 
-   Para conectar se rellenan estas cadenas. No se toca nada mas.
+   Hoy: CSV publicados del Sheet, sin credenciales. Las direcciones reales
+   NO van aqui: este archivo es publico. Van en config-local.js, fuera de
+   git, que las deja en window.*_LOCAL. Si ese archivo no esta,
+   window.*_LOCAL sale undefined y aqui queda "": el tablero lo dice en
+   pantalla y no se rompe.
 
-   Las direcciones reales NO van aqui: este archivo es publico. Van en
-   config-local.js, fuera de git, que las deja en window.*_LOCAL. Si ese
-   archivo no esta, window.*_LOCAL sale undefined y aqui queda "" — el
-   comportamiento de hoy, sin romperse.
+   LA COSTURA (18-sep). El tablero va a pasar al dominio del cliente y ahi
+   la lectura va a ser autenticada, de una forma que todavia no esta
+   decidida. Para cambiarla se escribe OTRA fuente con la misma forma que
+   FUENTE_CSV y se asigna a FUENTE, abajo. Nada mas: leerDatos() y todo lo
+   que viene despues no saben de donde salen las filas.
+
+   La forma de una fuente:
+     filas(tabla)       -> promesa de la tabla cruda, como filas de texto:
+                           [["celda","celda",...],...], tal como se ve la
+                           pestaña, con sus titulos y notas de arriba. Si no
+                           puede leer, la promesa falla con un Error cuyo
+                           mensaje dice por que, en palabras.
+     configurada(tabla) -> true si sabe de donde leer esa tabla.
+     queFalta(tabla)    -> como se dice lo que falta para poder leerla.
+     que                -> como se llama lo leido en los mensajes.
+   Las tablas son tres: "config" (Config Kínder), "analisis" (📊 Datos
+   para análisis) y "kinder" (Kínder, opcional).
+
+   Por que la costura va en filas de texto, y no en el texto crudo ni en
+   los objetos ya interpretados: es lo que cualquier forma de leer una hoja
+   entrega igual —un CSV partido, o los valores de un rango pedido con
+   credenciales— y deja fuera de la fuente todo lo que se sabe del Sheet:
+   donde esta el encabezado, que columna es cual, que fila es de Kinder.
    ========================================================================== */
 const CSV_ANALISIS = window.CSV_ANALISIS_LOCAL || "";   /* pestaña «📊 Datos para análisis», formato largo. Direccion real en config-local.js */
 const CSV_KINDER   = "";   /* pestaña «Kínder». Opcional: solo respalda Grupo. No se recomienda publicarla: trae Nombre del niño y Responsable */
 const CSV_CONFIG   = window.CSV_CONFIG_LOCAL || "";   /* pestaña «Config Kínder», pares parametro/valor. Direccion real en config-local.js */
 
+const FUENTE_CSV = {
+  que: "el CSV",
+  direcciones: { config: CSV_CONFIG, analisis: CSV_ANALISIS, kinder: CSV_KINDER },
+  nombres: { config: "Config Kínder", analisis: "Datos para análisis", kinder: "Kínder" },
+  configurada(tabla){ return !!this.direcciones[tabla]; },
+  queFalta(tabla){ return "la dirección del CSV de «"+this.nombres[tabla]+"»"; },
+  filas(tabla){
+    return fetch(this.direcciones[tabla])
+      .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
+      .then(parseCSV)
+      .catch(e=>{throw new Error("no se pudo leer el CSV ("+e.message+")");});
+  }
+};
+
+/* La fuente en uso. Es la unica linea que cambia el dia de la lectura
+   autenticada. */
+const FUENTE = FUENTE_CSV;
+
 /* ==========================================================================
-   LECTURA — sin cambios respecto del archivo anterior
+   LECTURA
    ========================================================================== */
 function parseCSV(t){
   const rows=[];let row=[],cur="",q=false;
@@ -605,20 +644,23 @@ function tabla(txt,marcador){
   return {head:rows[i].map(h=>h.trim()), rows:cuerpoDe(rows,i,false),
           hallado:true, crudas:rows, iCab:i};
 }
-/* Cada fuente falla por su cuenta: si cae una, las demas siguen. Se
-   distingue no poder leer el CSV de leerlo y no encontrar el encabezado:
-   son dos problemas distintos y se arreglan en sitios distintos. */
-function traer(url,marcador,parsear){
-  return fetch(url)
-    .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
-    .then(txt=>{
-      const rows=parseCSV(txt);
+/* Cada tabla falla por su cuenta: si cae una, las demas siguen. Se
+   distingue no poder leerla de leerla y no encontrar el encabezado: son dos
+   problemas distintos y se arreglan en sitios distintos.
+
+   Una tabla sin configurar devuelve null, no un fallo: lo que falta se dice
+   aparte, en leerDatos. Si la interpretacion revienta, se informa igual que
+   si no se hubiera podido leer. */
+function leerTabla(tabla,marcador,interpretar){
+  if(!FUENTE.configurada(tabla)) return Promise.resolve(null);
+  return FUENTE.filas(tabla)
+    .then(rows=>{
       if(buscarCabecera(rows,marcador,0)<0)
-        return {ok:false, motivo:"se leyó el CSV pero ninguna fila contiene «"+
+        return {ok:false, motivo:"se leyó "+FUENTE.que+" pero ninguna fila contiene «"+
                 marcador+"»: no se encontró el encabezado"};
-      return {ok:true, valor:parsear(rows,txt)};
-    })
-    .catch(e=>({ok:false, motivo:"no se pudo leer el CSV ("+e.message+")"}));
+      try { return {ok:true, valor:interpretar(rows)}; }
+      catch(e){ return {ok:false, motivo:"no se pudo leer "+FUENTE.que+" ("+e.message+")"}; }
+    }, e=>({ok:false, motivo:e.message}));
 }
 
 /* ==========================================================================
@@ -799,6 +841,7 @@ let FILAS=null;          /* filas de «Datos para análisis», Unidad = Kinder *
 let GRUPOS_KINDER=null;  /* respaldo de Grupo desde la pestaña Kinder */
 let SELLO="";            /* generado_en, «aaaa-mm-dd HH:mm» */
 let FALLOS=[];           /* fuentes que no se pudieron leer */
+let SIN_ANALISIS="";     /* por que no hay de donde leer el analisis; "" si lo hay */
 
 /* El color del salon sale de su nombre contra la paleta de VEA Kids. El
    Sheet los llama «Green Room», «Purple Room»: para mapear color se
@@ -1044,11 +1087,13 @@ function umbralDe(pagos){
 
 /* ==========================================================================
    CARGA
+   leerDatos() es la unica puerta a los datos: pide las tablas a FUENTE, las
+   interpreta y entrega el resultado ya parseado —
+       { cfg, filas, sello, grupos, fallos, sinAnalisis }
+   — sin que le importe de donde salieron. Las tres interpretaciones de
+   abajo saben del Sheet (encabezados, columnas, que fila es de Kinder),
+   nunca de como se leyo.
    ========================================================================== */
-function cargar(){
-  FALLOS=[];
-
-  const pide = [];
 
   /* «Config Kínder» son DOS tablas apiladas en la misma pestaña, separadas
      por filas vacias:
@@ -1060,7 +1105,7 @@ function cargar(){
      Se leen por separado, y la segunda se localiza por su encabezado GRUPO,
      nunca por una posicion fija: si el cliente agrega un parametro arriba,
      la tabla de salones se corre y hay que seguirla. */
-  pide.push(CSV_CONFIG ? traer(CSV_CONFIG,"PARÁMETRO",rows=>{
+  function interpretarConfig(rows){
     const cfg={param:{}, salones:[], salonesHallados:false};
 
     const iP=buscarCabecera(rows,"PARÁMETRO",0);
@@ -1092,11 +1137,11 @@ function cargar(){
       });
     }
     return cfg;
-  }) : Promise.resolve(null));
+  }
 
   /* De «Datos para análisis» se toman TODAS las filas de Kinder: el formato
      es largo —una por niño y mes— y la serie mensual se arma con eso. */
-  pide.push(CSV_ANALISIS ? traer(CSV_ANALISIS,"ID niño",rows=>{
+  function interpretarAnalisis(rows){
     const iCab=buscarCabecera(rows,"ID niño",0);
     const head=rows[iCab].map(h=>h.trim());
     const cuerpo=cuerpoDe(rows,iCab,false);
@@ -1113,9 +1158,9 @@ function cargar(){
           cNom=col(head,"Nombre del niño");
     /* El sello lo escribe el script en UNA sola celda, asi que se toma el
        primer valor que aparezca. */
-    SELLO="";
+    let sello="";
     if(cSello>=0){
-      for(const r of cuerpo){ const v=(r[cSello]||"").trim(); if(v){ SELLO=v; break; } }
+      for(const r of cuerpo){ const v=(r[cSello]||"").trim(); if(v){ sello=v; break; } }
     }
     const out=[];
     cuerpo.forEach(r=>{
@@ -1141,14 +1186,14 @@ function cargar(){
         nombre: cNom>=0?(r[cNom]||"").trim():""
       });
     });
-    return out;
-  }) : Promise.resolve(null));
+    return {filas:out, sello};
+  }
 
   /* De «Kínder» solo se leen dos columnas: ID y Grupo. Se conserva la
      lectura, pero YA NO alimenta el grupo de nadie: el grupo sale de la fila
      del mes del sello en «Datos para análisis». Un respaldo que contradiga
      esa foto la falsearia. */
-  pide.push(CSV_KINDER ? traer(CSV_KINDER,"ID",rows=>{
+  function interpretarKinder(rows){
     const iCab=buscarCabecera(rows,"ID",0);
     const head=rows[iCab].map(h=>h.trim());
     const cId=col(head,"ID"), cG=col(head,"Grupo");
@@ -1156,22 +1201,47 @@ function cargar(){
     cuerpoDe(rows,iCab,false).forEach(r=>{ const id=(r[cId]||"").trim();
       if(id) o[id]=cG>=0?(r[cG]||"").trim():""; });
     return o;
-  }) : Promise.resolve(null));
+  }
 
-  return Promise.all(pide).then(([cfg,filas,grupos])=>{
-    /* Leer el CSV y no encontrar el encabezado son dos fallos distintos y se
-       arreglan en sitios distintos, asi que se dicen por separado. */
+function leerDatos(){
+  return Promise.all([
+    leerTabla("config",  "PARÁMETRO", interpretarConfig),
+    leerTabla("analisis","ID niño",   interpretarAnalisis),
+    leerTabla("kinder",  "ID",        interpretarKinder)
+  ]).then(([cfg,analisis,grupos])=>{
+    const fallos=[];
+    /* Leer la tabla y no encontrar el encabezado son dos fallos distintos y
+       se arreglan en sitios distintos, asi que se dicen por separado. */
     const recoge=(res,quien)=>{
       if(res===null) return null;
       if(res.ok) return res.valor;
-      FALLOS.push("«"+quien+"»: "+res.motivo);
+      fallos.push("«"+quien+"»: "+res.motivo);
       return null;
     };
-    CFG   = recoge(cfg,"Config Kínder");
-    FILAS = recoge(filas,"Datos para análisis");
-    GRUPOS_KINDER = grupos && grupos.ok ? grupos.valor : null;
-    if(!CSV_CONFIG)   FALLOS.push("falta la dirección del CSV de «Config Kínder»");
-    if(!CSV_ANALISIS) FALLOS.push("falta la dirección del CSV de «Datos para análisis»");
+    const c = recoge(cfg,"Config Kínder");
+    const a = recoge(analisis,"Datos para análisis");
+    if(!FUENTE.configurada("config"))   fallos.push("falta "+FUENTE.queFalta("config"));
+    if(!FUENTE.configurada("analisis")) fallos.push("falta "+FUENTE.queFalta("analisis"));
+    return {
+      cfg:    c,
+      filas:  a ? a.filas : null,
+      sello:  a ? a.sello : "",
+      grupos: grupos && grupos.ok ? grupos.valor : null,
+      fallos,
+      /* Lo que el bloque principal dice si no hay de donde leer el analisis.
+         Vacio si la fuente si sabe de donde leerlo. */
+      sinAnalisis: FUENTE.configurada("analisis") ? ""
+                 : "El tablero todavía no tiene "+FUENTE.queFalta("analisis")+"."
+    };
+  });
+}
+
+/* El tablero guarda lo que entrega leerDatos() en su estado y pinta con
+   eso. Es el unico sitio que la llama. */
+function cargar(){
+  return leerDatos().then(d=>{
+    CFG=d.cfg; FILAS=d.filas; SELLO=d.sello; GRUPOS_KINDER=d.grupos;
+    FALLOS=d.fallos; SIN_ANALISIS=d.sinAnalisis;
   });
 }
 
@@ -1204,9 +1274,8 @@ function calcular(){
   d.costoObjetivo = p(ETQ_COSTO_OBJETIVO);
 
   if(!FILAS || !FILAS.length){
-    d.motivo = !CSV_ANALISIS
-      ? "El tablero todavía no tiene la dirección del CSV de «Datos para análisis»."
-      : "«Datos para análisis» no devolvió ninguna fila de Kínder.";
+    d.motivo = SIN_ANALISIS
+      || "«Datos para análisis» no devolvió ninguna fila de Kínder.";
     return d;
   }
 
