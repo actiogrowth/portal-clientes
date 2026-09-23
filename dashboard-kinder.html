@@ -1790,11 +1790,14 @@ function pintarSalones(d){
         cuadros+='<div class="cupo libre" aria-label="cupo libre"></div>';
       }
     }
-    const edades = s.edades || (n? "edades sin dato" : "abierto y vacío");
-    const pie = s.equilibrio!=null
-      ? edades+' · cubre desde <b>'+s.equilibrio+'</b>'
-      : edades+(n? ' · sin pagos para calcular el equilibrio'
-                 : ' · todavía sin niños');
+    /* EL PIE DE LA TARJETA LLEVA SOLO EL RANGO DE EDAD.
+       Hasta el 22-sep decía además «cubre desde N», el punto de equilibrio
+       del salón. Se quitó: eso está completo en «Cada salón por dentro», con
+       la marca sobre la barra y las dos lecturas de costo, y repetirlo aquí
+       en gris no añadía nada. Con él se van sus dos explicaciones de cuando
+       no hay equilibrio que dar; la de «todavía sin niños» ya la decía el
+       propio rango, que en ese caso pone «abierto y vacío». */
+    const pie = s.edades || (n? "edades sin dato" : "abierto y vacío");
     return '<div class="salon">'+
       '<div class="s-cab"><div class="s-nom">'+
         '<span class="s-punto'+pinta.clase+'" style="'+pinta.estilo+'"></span>'+esc(s.nombre)+
@@ -1908,11 +1911,22 @@ function pintarLecturas(d){
   }
   set("k-ninos", d.ninos, "En "+d.abiertos+(d.abiertos===1?" salón abierto":" salones abiertos"));
 
-  set("k-ocu", d.cuposAbiertos? pct(d.ninos/d.cuposAbiertos) : "—",
-    d.cuposAbiertos
-      ? d.ninos+" de "+d.cuposAbiertos+" cupos abiertos · "+pct(d.ninos/d.cuposTotales)+
-        " de los "+d.cuposTotales+" del edificio"
-      : "Ningún salón abierto");
+  /* LA OCUPACIÓN SE MIDE CONTRA EL EDIFICIO, NO CONTRA LOS SALONES ABIERTOS.
+     Decidido el 22-sep. Con la base vieja, abrir un salón hacía CAER la
+     cifra: los mismos 26 niños pasaban de 26 de 30 (87%) a 26 de 40 (65%).
+     La lectura que más mira la gerencia se desplomaba justo cuando la unidad
+     crece, que es lo contrario de lo que pasó. Contra los 80 del edificio,
+     abrir un salón no la mueve: solo la mueve la matrícula.
+
+     La base sale de «Capacidad máxima» de «Config Kínder», nunca escrita
+     aquí. Si falta, no hay ocupación que enseñar y se dice cuál es la celda:
+     un cero o un 100% inventado serían peores que el hueco (regla 10). */
+  const topeEdificio = typeof d.capacidadMaxima==="number" && d.capacidadMaxima>0
+    ? d.capacidadMaxima : null;
+  set("k-ocu", topeEdificio ? pct(d.ninos/topeEdificio) : "—",
+    topeEdificio
+      ? d.ninos+" de "+topeEdificio+" cupos del edificio"
+      : "Falta «Capacidad máxima» en «Config Kínder»");
 
   /* LA ETIQUETA DICE «COBRADO», NO «INGRESO DEL MES».
      La cifra es lo que han pagado los niños que ya pagaron, y el mes puede
