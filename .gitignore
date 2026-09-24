@@ -22,3 +22,10 @@ dashboard-kinder-diseno.html
 # Direcciones reales de los CSV del Sheet de VEA Kids. dashboard-kinder.html
 # es publico; las direcciones van aqui, no ahi.
 config-local.js
+
+# La configuracion del portal del cliente (cPanel): lleva las direcciones
+# reales de los CSV y la clave. En el servidor vive DOS niveles por encima de
+# la carpeta publicada, fuera de lo que nginx entrega. Aqui se nombra para que
+# una copia traida del servidor no se pueda commitear por descuido.
+portal_config.php
+auth.php

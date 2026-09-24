@@ -243,6 +243,11 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 </style>
 </head>
 <body>
+<!-- Vuelta al portal del cliente. En local apunta a una ruta que no existe y
+     no estorba; en el dominio es la salida de esta página. -->
+<p style="max-width:1100px;margin:12px auto 0;padding:0 20px;font:13px/1.4 'Poppins',system-ui,Arial,sans-serif">
+  <a href="/kinder/" style="color:#6b6f76;text-decoration:none">&larr; Volver a Kínder</a>
+</p>
 
 <!-- ==========================================================================
      AÑADIDOS AL DISEÑO
@@ -506,10 +511,22 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 
 </div>
 
-<!-- Direcciones reales de los CSV, fuera de git (ver .gitignore). Si el
-     archivo no existe —como en lo que se commitea— falla en silencio: el
-     navegador solo reporta un 404 y el tablero sigue con las cadenas
-     vacias de mas abajo. Tiene que cargar ANTES del script principal. -->
+<!-- DE DÓNDE SALEN LAS DIRECCIONES DE LAS TABLAS. Dos etiquetas, a propósito,
+     porque el mismo archivo corre en dos sitios y en cada uno solo existe una:
+
+       · En el portal del cliente (cPanel) está `config.php`, que exige sesión
+         y deja las rutas del propio portal —`csv.php?tabla=…`—, nunca las
+         direcciones del Sheet. Las reales viven en `portal_config.php`, fuera
+         de la carpeta publicada.
+       · En local está `config-local.js`, fuera de git (ver .gitignore), con
+         las direcciones reales de los CSV publicados.
+
+     La que falta da un 404 inofensivo: el navegador lo reporta y el tablero
+     sigue. Va segundo `config-local.js` para que, si algún día estuvieran los
+     dos, mande el de local, que es el de trabajar.
+
+     Las dos tienen que cargar ANTES del script principal. -->
+<script src="config.php"></script>
 <script src="config-local.js"></script>
 
 <script>
@@ -567,11 +584,43 @@ const FUENTE_CSV = {
   nombres: { config: "Config Kínder", analisis: "Datos para análisis", kinder: "Kínder" },
   configurada(tabla){ return !!this.direcciones[tabla]; },
   queFalta(tabla){ return "la dirección del CSV de «"+this.nombres[tabla]+"»"; },
+  /* LA SESIÓN DEL PORTAL: RECONOCER UNA PÁGINA CUANDO SE PIDIÓ UN CSV.
+     En el dominio del cliente las tablas no se piden al Sheet: las sirve
+     `csv.php`, detrás del login de portal.vidaenarte.com. Si la sesión
+     caduca con el tablero abierto, esa ruta deja de entregar el CSV y
+     responde la página de entrada —o un 401/403—.
+
+     Sin esto, el tablero decía «se leyó el CSV pero ninguna fila contiene
+     “ID niño”» y mandaba a buscar el fallo al Sheet, que es el sitio
+     equivocado: el Sheet está bien y lo que se acabó es la sesión.
+
+     Se reconoce por tres señales, en este orden: el código 401 o 403; que la
+     respuesta se declare HTML; o, si no hay cabecera fiable, que el cuerpo
+     empiece por «<», cosa que una página hace y un CSV no. Un 404 o un 500
+     NO son esto y siguen contándose como lo que son. */
+  sesionCaducada(r, texto){
+    if(r.status===401 || r.status===403) return true;
+    if(!r.ok) return false;
+    const tipo=(r.headers.get("content-type")||"").toLowerCase();
+    if(tipo.indexOf("text/html")>=0) return true;
+    return /^﻿?\s*</.test(texto);
+  },
   filas(tabla){
     return fetch(this.direcciones[tabla])
-      .then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.text();})
-      .then(parseCSV)
-      .catch(e=>{throw new Error("no se pudo leer el CSV ("+e.message+")");});
+      .then(r=>r.text().then(texto=>{
+        if(this.sesionCaducada(r,texto)){
+          const e=new Error("la sesión del portal caducó. Vuelve a entrar en el "+
+                            "portal y recarga esta página");
+          e.sesion=true;
+          throw e;
+        }
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        return parseCSV(texto);
+      }))
+      /* El aviso de sesión sale tal cual: envolverlo en «no se pudo leer el
+         CSV (…)» lo volvería a mandar al Sheet. */
+      .catch(e=>{ if(e.sesion) throw e;
+                  throw new Error("no se pudo leer el CSV ("+e.message+")"); });
   }
 };
 
@@ -1228,10 +1277,16 @@ function leerDatos(){
       sello:  a ? a.sello : "",
       grupos: grupos && grupos.ok ? grupos.valor : null,
       fallos,
-      /* Lo que el bloque principal dice si no hay de donde leer el analisis.
-         Vacio si la fuente si sabe de donde leerlo. */
-      sinAnalisis: FUENTE.configurada("analisis") ? ""
-                 : "El tablero todavía no tiene "+FUENTE.queFalta("analisis")+"."
+      /* POR QUÉ NO HAY ANÁLISIS, para el bloque principal. Vacío si lo hay.
+         Son dos motivos distintos y el bloque tiene que decir el suyo: que la
+         fuente no sepa de dónde leerlo, o que lo intentara y no pudiera —el
+         caso de la sesión caducada—. Antes, el segundo acababa en «no
+         devolvió ninguna fila de Kínder», que manda a mirar el Sheet. */
+      sinAnalisis: !FUENTE.configurada("analisis")
+                 ? "El tablero todavía no tiene "+FUENTE.queFalta("analisis")+"."
+                 : (analisis && !analisis.ok
+                     ? "«Datos para análisis» no se pudo leer: "+analisis.motivo+"."
+                     : "")
     };
   });
 }
