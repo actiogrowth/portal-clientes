@@ -948,6 +948,32 @@ ok(DATOS.PRUEBA_VERANITO.relacion, 11, 'relacion de retorno de Veranito (11 a 1)
 ok(DATOS.VALOR_VIDA.kinder.relacion, 28, 'valor de vida contra adquisicion en Kinder (28 a 1)', 0.2);
 ok(DATOS.VALOR_VIDA.veranito.relacion, 19, 'venta contra adquisicion en Veranito', 0.1);
 
+/* ==========================================================================
+   LOS DOS ARCHIVOS USAN EL MISMO MODELO
+
+   La proyeccion y la presentacion tienen que dar las mismas cifras porque
+   corren el mismo codigo, no porque alguien copie los cambios dos veces.
+   Esto se rompe el dia que uno de los dos lleve su propia copia del motor
+   o deje de cargar uno de los archivos compartidos.
+   ========================================================================== */
+console.log('\nMODELO COMPARTIDO');
+
+const PROYECCION = path.join(__dirname, 'proyeccion-vea-103cd2f8.html');
+const COMPARTIDOS = ['modelo-vea-estilos.css', 'modelo-vea-motor.js', 'modelo-vea-pintado.js'];
+for (const [nombre, ruta] of [['presentacion', ARCHIVO], ['proyeccion', PROYECCION]]) {
+  const html = fs.readFileSync(ruta, 'utf8');
+  const pos = COMPARTIDOS.map(c => html.indexOf('"' + c + '"'));
+  esIgual(pos.every(p => p >= 0), true, nombre + ': carga los tres archivos compartidos');
+  esIgual(pos[1] < pos[2], true, nombre + ': el motor antes que el pintado');
+  esIgual(/const (MOTOR|FORMATO|OCUPACION|PARAMETROS) =|function montar(Unidades|Resumen)\(/.test(html), false,
+          nombre + ': no lleva copia propia del modelo');
+}
+const proy = fs.readFileSync(PROYECCION, 'utf8');
+esIgual(/id="(ruta|inversion)"|montar(Ruta|Inversion)|INVERSION|ENTREGABLES/.test(proy), false,
+        'la proyeccion no trae hoja de ruta ni inversion');
+esIgual(/function plan\(/.test(fs.readFileSync(MOTOR_COMPARTIDO, 'utf8')), false,
+        'el cronograma de pagos no esta en el motor compartido');
+
 
 /* ========================================================================== */
 console.log(`\n${'-'.repeat(78)}`);

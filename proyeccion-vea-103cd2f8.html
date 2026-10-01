@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Proyección por unidad de negocio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Todo el aspecto viene del archivo compartido con la presentacion. Este
+     archivo no declara estilos propios: si algo se ve distinto aqui que en
+     la presentacion, el arreglo va en modelo-vea-estilos.css. -->
+<link rel="stylesheet" href="modelo-vea-estilos.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Sin rango de fechas: sin hoja de ruta no hay periodo que anunciar. -->
+  <header>
+    <div class="marca-actio"><img src="logo-actio-verde.png" alt="Actio Growth"></div>
+    <div class="titulo">
+      <h1>Proyección por unidad de negocio</h1>
+    </div>
+    <div class="marca-cliente"><img src="logo-cliente.png" alt="Vida en Arte"></div>
+  </header>
+
+  <nav id="nav" aria-label="Secciones de la proyección"></nav>
+
+  <main id="main">
+    <section data-seccion="1" class="activa">
+      <div class="encabezado-seccion">
+        <h2>Detalle por unidad</h2>
+        <p>Las cinco unidades con su capacidad, sus precios y su margen. Los controles se mueven durante la conversación.</p>
+      </div>
+      <div id="unidades"></div>
+    </section>
+
+    <section data-seccion="2">
+      <div class="encabezado-seccion">
+        <h2>Cuadro resumen</h2>
+        <p>2025 cerrado, siete meses reales de 2026 y 2027 proyectado. La ocupación y los gastos de 2027 se mueven aquí.</p>
+      </div>
+      <div id="resumen"></div>
+    </section>
+  </main>
+
+</div>
+
+<!-- El modelo es el mismo que el de presentacion-vea-efb4db06.html: los dos
+     cargan estos archivos y ninguno lleva copia propia. -->
+<script src="modelo-vea-motor.js"></script>
+<script src="modelo-vea-pintado.js"></script>
+
+<script id="vista">
+/* ==========================================================================
+   VISTA. Navegacion entre las dos secciones del modelo.
+   Es la misma de la presentacion, con sus dos pestañas renumeradas.
+   ========================================================================== */
+const SECCIONES = ['Detalle por unidad', 'Cuadro resumen'];
+
+function irA(n){
+  document.querySelectorAll('section[data-seccion]').forEach(s => {
+    s.classList.toggle('activa', s.dataset.seccion === String(n));
+  });
+  document.querySelectorAll('#nav button').forEach(b => {
+    b.setAttribute('aria-current', b.dataset.ir === String(n) ? 'true' : 'false');
+  });
+  window.scrollTo({ top:0, behavior:'instant' });
+}
+
+(function montarNav(){
+  const nav = document.getElementById('nav');
+  SECCIONES.forEach((titulo, i) => {
+    const n = i + 1;
+    const b = document.createElement('button');
+    b.dataset.ir = String(n);
+    b.setAttribute('aria-current', n === 1 ? 'true' : 'false');
+    b.innerHTML = `<span class="indice">${n}</span>${titulo}`;
+    b.addEventListener('click', () => irA(n));
+    nav.appendChild(b);
+  });
+})();
+
+/* Flechas para recorrer sin apuntar al boton. Se ignoran mientras el foco
+   esta en un control: ahi las flechas mueven el valor. */
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea')) return;
+  const actual = Number(document.querySelector('section.activa').dataset.seccion);
+  if (e.key === 'ArrowRight' && actual < SECCIONES.length) irA(actual + 1);
+  if (e.key === 'ArrowLeft'  && actual > 1)                irA(actual - 1);
+});
+
+/* ==========================================================================
+   MONTAJE. Las tarjetas primero: el cuadro arranca en la ocupacion que
+   ellas publican.
+   ========================================================================== */
+montarUnidades(document.getElementById('unidades'));
+montarResumen(document.getElementById('resumen'));
+</script>
+
+</body>
+</html>
