@@ -1,0 +1,370 @@
+/* ==========================================================================
+   MODELO DE PROYECCION DE VIDA EN ARTE · ESTILOS COMPARTIDOS
+
+   Lo cargan los dos archivos que muestran el modelo:
+     presentacion-vea-efb4db06.html   la presentacion 360 completa
+     proyeccion-vea-*.html            solo las dos secciones del modelo
+
+   Aqui va todo lo que pintan "Detalle por unidad" y "Cuadro resumen", mas
+   los tokens, la cabecera y la navegacion, que los dos usan igual. Lo que
+   es de un solo archivo (hoja de ruta, inversion) se queda en su <style>.
+   Cambiar algo aqui cambia los dos a la vez: es la razon de este archivo.
+   ========================================================================== */
+
+/* ==========================================================================
+   TOKENS. Unico lugar del archivo donde se declara un color.
+   Los de marca y estado vienen de portal-v2.html sin cambios, para que la
+   presentacion y el portal se lean como el mismo sistema.
+
+   Lo que se agrega aqui y no esta en el portal es la escala tipografica:
+   esto se proyecta y se lee a tres metros, asi que las cifras principales
+   arrancan donde el portal termina.
+   ========================================================================== */
+:root{
+  /* ---------- Marca Actio ----------
+     Identidad. Nunca comunica estado. */
+  --marca-verde-profundo:#004225;
+  --marca-verde-medio:#355E3B;
+  --marca-verde-claro:#4C6B47;
+  --marca-gris-claro:#F5F5F0;
+
+  --texto-principal:#1A1A1A;
+  --texto-secundario:#6B6B6B;
+  --texto-sobre-oscuro:#FFFFFF;
+  --texto-sobre-oscuro-2:rgba(255,255,255,.55);
+  --texto-sobre-oscuro-3:rgba(255,255,255,.66);
+
+  --marca-tenue:#EDF2EE;
+  --marca-borde-suave:#C9D6CC;
+  --marca-realce:rgba(0,66,37,.06);
+  --marca-sombra:rgba(0,66,37,.10);
+  --marca-sombra-fuerte:rgba(0,66,37,.16);
+
+  /* ---------- Estado ----------
+     Solo para ocupacion y deltas. Nunca para identidad. */
+  --estado-en-meta:#2E9E5B;
+  --estado-en-meta-suave:#E4F6EB;
+  --estado-en-meta-fuerte:#1B6E3C;
+  --estado-en-meta-halo:rgba(46,158,91,.18);
+
+  --estado-atencion:#C77F1A;
+  --estado-atencion-suave:#FDF0DC;
+  --estado-atencion-fuerte:#8A5A00;
+
+  --estado-riesgo:#D1453B;
+  --estado-riesgo-suave:#FBE3E1;
+  --estado-riesgo-fuerte:#93231B;
+
+  --estado-neutro:#82888E;
+  --estado-neutro-suave:#ECEDEA;
+  --estado-neutro-fuerte:#5A5A5A;
+
+  /* ---------- Superficies ---------- */
+  --fondo:var(--marca-gris-claro);
+  --superficie:#FFFFFF;
+  --superficie-sutil:#FAFAF7;
+  --borde:#E3E3DD;
+  --borde-suave:#EFEFE9;
+
+  --font:'Inter',system-ui,sans-serif;
+
+  /* ---------- Escala para proyeccion ----------
+     Medida para una sala donde el mas lejano esta a tres metros de una
+     pantalla de 55". Por debajo de --cifra-2 ninguna cifra que el cliente
+     tenga que leer en voz alta. */
+  --cifra-1:56px;   /* consolidado y deltas */
+  --cifra-2:34px;   /* cifras por unidad */
+  --cifra-3:22px;   /* cifras de apoyo */
+  --cifra-2027:46px; /* margen bruto y EBITDA en la columna de 2027 */
+  --cifra-ingresos:40px;      /* ingresos en 2025 y 2026 */
+  --cifra-ingresos-2027:56px; /* ingresos en la columna que se mueve */
+  --cuerpo:16px;
+  --menudo:13px;    /* solo notas al pie, nunca cifras */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--fondo);color:var(--texto-principal);
+  font-weight:300;line-height:1.55;font-size:var(--cuerpo)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 72px}
+
+/* ==========================================================================
+   CABECERA Y NAVEGACION
+   La navegacion es pegajosa: si el cliente pregunta algo de la seccion 2
+   estando en la 5, Ricardo salta sin volver arriba.
+   ========================================================================== */
+header{display:flex;align-items:center;gap:18px;background:var(--superficie);
+  border:1px solid var(--borde);border-radius:14px;padding:15px 24px;margin:22px 0 14px}
+.marca-actio{display:flex;align-items:center;flex-shrink:0;
+  padding-right:16px;border-right:1px solid var(--marca-verde-claro)}
+.marca-actio img{height:36px;display:block}
+.marca-cliente{display:flex;align-items:center;flex-shrink:0;margin-left:auto}
+.marca-cliente img{height:28px;display:block}
+.titulo h1{font-size:19px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--marca-verde-profundo);line-height:1.2}
+.titulo p{font-size:var(--menudo);color:var(--texto-secundario);margin-top:2px}
+
+nav{position:sticky;top:0;z-index:20;display:flex;gap:6px;flex-wrap:wrap;
+  background:var(--fondo);padding:10px 0 12px;margin-bottom:6px}
+nav button{font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;
+  background:var(--superficie);color:var(--texto-secundario);
+  border:1px solid var(--borde);border-radius:999px;padding:9px 17px;
+  transition:background .12s,color .12s,border-color .12s}
+nav button:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+nav button[aria-current="true"]{background:var(--marca-verde-profundo);
+  color:var(--texto-sobre-oscuro);border-color:var(--marca-verde-profundo)}
+nav .indice{font-weight:700;opacity:.55;margin-right:7px}
+nav button[aria-current="true"] .indice{opacity:.7}
+
+/* ==========================================================================
+   SECCIONES. Una visible a la vez.
+   ========================================================================== */
+section[data-seccion]{display:none}
+section[data-seccion].activa{display:block}
+.encabezado-seccion{margin:14px 0 22px}
+.encabezado-seccion h2{font-size:30px;font-weight:700;letter-spacing:-.5px;
+  color:var(--marca-verde-profundo)}
+.encabezado-seccion p{font-size:17px;color:var(--texto-secundario);margin-top:5px;max-width:75ch}
+
+/* Nota al pie de cada unidad. Sin esto el margen se lee como utilidad neta
+   y no lo es: los calculos cubren mano de obra directa unicamente. */
+.nota-costo{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
+  border-top:1px solid var(--borde-suave);margin-top:14px;padding-top:10px}
+
+/* ==========================================================================
+   TARJETA DE UNIDAD
+   Mismo tratamiento visual en las cuatro unidades, como pide la seccion 2:
+   lo que cambia entre ellas son las cifras, no la jerarquia.
+   ========================================================================== */
+/* Dos por fila. Con cuatro unidades quedan dos filas de dos, y cada tarjeta
+   tiene ancho suficiente para que sus tres cifras no se pisen. Por debajo de
+   ~950 px pasa a una sola columna, que es mas ancha todavia. */
+/* Las tarjetas de unidad van apiladas a ancho completo, no en reticula. */
+.unidad{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:18px 20px 16px;display:flex;flex-direction:column;
+  container-type:inline-size}
+.unidad-cab{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.unidad-cab h3{font-size:var(--cifra-3);font-weight:700;letter-spacing:-.2px;color:var(--marca-verde-profundo)}
+
+/* La ocupacion se dice con forma ademas de con color, igual que los estados
+   del panel interno: proyectado y a distancia el color solo no basta.
+
+   Va a --cifra-3 y no al cuerpo menudo porque en la seccion 2 la ocupacion
+   ES el contenido, no una etiqueta. A 13px daban unos 9 mm de altura de
+   mayuscula proyectada en una pantalla de 55" a tres metros, por debajo de
+   los ~15 mm que hacen falta para leerla desde el fondo de la sala. */
+.pastilla{font-size:var(--cifra-3);font-weight:600;border-radius:999px;
+  padding:4px 14px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.pastilla .glifo{font-size:15px;line-height:1}
+.pastilla[data-nivel="alto"] {background:var(--estado-en-meta-suave); color:var(--estado-en-meta-fuerte)}
+.pastilla[data-nivel="medio"]{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte)}
+.pastilla[data-nivel="bajo"] {background:var(--estado-riesgo-suave); color:var(--estado-riesgo-fuerte)}
+
+/* repeat(3,1fr) parece tres columnas iguales, pero 1fr tiene suelo
+   min-content: si la cifra no cabe, la columna crece y la rejilla se sale
+   de la tarjeta cortando la ultima cifra contra el borde. Con auto-fit y
+   un minimo explicito las columnas se reparten en menos filas antes que
+   desbordar. */
+.cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:10px;margin-bottom:12px}
+.cifra-bloque{display:flex;flex-direction:column;gap:1px;min-width:0;
+  container-type:inline-size}
+.cifra-bloque .etiqueta{font-size:11px;font-weight:600;letter-spacing:.7px;
+  text-transform:uppercase;color:var(--texto-secundario);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* El cuerpo se ata al ancho de su propia celda, no al de la ventana: la
+   cifra se achica antes que salirse. El piso de 22px son ~15 mm de
+   mayuscula proyectada, el minimo legible desde el fondo de la sala. */
+.cifra-bloque b{font-size:clamp(22px, 22cqw, var(--cifra-2));font-weight:700;letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap}
+.cifra-bloque.destacada b{color:var(--marca-verde-profundo)}
+.cifra-apoyo{font-size:var(--cifra-3);font-weight:600;font-variant-numeric:tabular-nums}
+/* Sin esto, una tarjeta sin linea de apoyo deja un hueco que desalinea su
+   fila contra la de al lado. */
+.cifra-apoyo:empty{display:none}
+
+/* Aviso de tope real. Kinder por encima de 80 no cabe en la capacidad
+   instalada y hay que decirlo, porque habilitar salones es inversion
+   del cliente y no de Actio. */
+.aviso{background:var(--estado-atencion-suave);color:var(--estado-atencion-fuerte);
+  border-left:3px solid var(--estado-atencion);border-radius:0 8px 8px 0;
+  padding:9px 13px;font-size:14px;font-weight:500;margin-bottom:12px}
+
+/* ==========================================================================
+   CONTROLES
+   Se manejan desde el computador, asi que van compactos. Lo que la sala lee
+   son las cifras de arriba, no estas etiquetas.
+   ========================================================================== */
+.controles{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;
+  border-top:1px solid var(--borde-suave);padding-top:13px;margin-top:auto}
+.control{display:flex;flex-direction:column;gap:3px;min-width:0}
+.control.ancho{grid-column:1 / -1}
+.control label{font-size:11px;font-weight:600;color:var(--texto-secundario);
+  display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.control label .valor{font-weight:700;color:var(--texto-principal);
+  font-variant-numeric:tabular-nums;font-size:13px}
+.control input[type="range"]{width:100%;accent-color:var(--marca-verde-profundo);height:18px;cursor:pointer}
+.control input[type="number"]{font-family:var(--font);font-size:14px;font-weight:600;
+  border:1px solid var(--borde);border-radius:7px;padding:5px 8px;width:100%;
+  background:var(--superficie-sutil);color:var(--texto-principal)}
+.control input[type="number"]:focus{outline:2px solid var(--marca-borde-suave);
+  outline-offset:-1px;background:var(--superficie)}
+
+/* ==========================================================================
+   CONSOLIDADO Y DELTAS
+   La cifra que lee toda la sala. Verde profundo de marca, no de estado: no
+   comunica que las cosas vayan bien, es la identidad del bloque.
+   ========================================================================== */
+.consolidado{background:var(--marca-verde-profundo);color:var(--texto-sobre-oscuro);
+  border-radius:16px;padding:24px 28px;margin-top:16px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:20px 24px;align-items:end}
+.consolidado > div{min-width:0;container-type:inline-size}
+.consolidado .etiqueta{font-size:12px;font-weight:600;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--texto-sobre-oscuro-2);display:block;margin-bottom:2px}
+/* Mismo criterio que en las tarjetas: la cifra se ata a su celda. El factor
+   esta calculado sobre la cifra mas larga que aparece aqui, la facturacion
+   anual con Veranito, que llega a diez caracteres. */
+.consolidado b{font-size:clamp(26px, 17cqw, var(--cifra-1));font-weight:800;letter-spacing:-2px;
+  font-variant-numeric:tabular-nums;line-height:1.05;display:block;white-space:nowrap}
+.consolidado .menor b{font-size:clamp(22px, 12cqw, var(--cifra-2));letter-spacing:-1px}
+
+.barra-acciones{display:flex;justify-content:flex-end;margin:14px 0 0}
+.barra-acciones button{font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;
+  background:var(--superficie);color:var(--texto-secundario);border:1px solid var(--borde);
+  border-radius:999px;padding:8px 18px}
+.barra-acciones button:hover{border-color:var(--marca-borde-suave);color:var(--marca-verde-profundo)}
+
+/* Celda editable dentro de una tabla de desglose. */
+.celda-editable{font-family:var(--font);font-size:15px;font-weight:600;text-align:right;
+  font-variant-numeric:tabular-nums;width:72px;padding:4px 7px;
+  border:1px solid var(--borde);border-radius:6px;background:var(--superficie-sutil);
+  color:var(--texto-principal)}
+.celda-editable:focus{outline:2px solid var(--marca-borde-suave);outline-offset:-1px;
+  background:var(--superficie)}
+
+/* ==========================================================================
+   SECCION 2 · TARJETA DE ANCHO COMPLETO
+   Una por unidad, apiladas. La tabla desglosada a la izquierda y las cifras
+   con los controles a la derecha: el cliente ve de donde sale cada dolar
+   mientras Ricardo mueve el deslizador.
+   ========================================================================== */
+.unidad-ancha{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  padding:20px 24px 18px;margin-bottom:14px}
+.ua-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.ua-cab h3{font-size:24px;font-weight:700;letter-spacing:-.3px;color:var(--marca-verde-profundo)}
+.ua-cuerpo{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr);
+  gap:24px;align-items:start;margin-top:12px}
+.ua-tabla{overflow-x:auto}
+.ua-lado{display:flex;flex-direction:column;gap:14px;container-type:inline-size}
+
+table.desglose{width:100%;border-collapse:collapse}
+table.desglose th, table.desglose td{padding:9px 12px;vertical-align:baseline}
+table.desglose thead th{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);text-align:left;white-space:nowrap}
+table.desglose thead th.num{text-align:right}
+table.desglose tbody th{text-align:left;font-size:14px;font-weight:500;color:var(--texto-principal)}
+table.desglose td.num{text-align:right;font-size:15px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+table.desglose tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.desglose tbody tr:last-child{border-bottom:none}
+/* Filas que no son un renglon mas sino el cierre de la cuenta: el total y
+   su prorrateo. Sin esta distincion se leerian como dos temporadas mas. */
+table.desglose tbody tr.suma{border-top:1px solid var(--borde);background:var(--superficie-sutil)}
+table.desglose tbody tr.suma th{font-weight:700}
+table.desglose tbody tr.suma.destacada{background:var(--marca-tenue)}
+table.desglose tbody tr.suma.destacada th,
+table.desglose tbody tr.suma.destacada td{color:var(--marca-verde-profundo);font-weight:700}
+
+/* Las cuatro cifras de la tarjeta caben en una fila del lado derecho; el
+   cuerpo se ata al ancho de su celda para no salirse nunca. */
+.ua-lado .cifras{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:0}
+/* Con cuatro cifras la columna se estrecha y "Facturación anual" no cabe en
+   una linea: se cortaba en "Facturación an…", que es justo lo que hay que
+   poder distinguir de la mensual. Se deja envolver, y se reserva el alto de
+   dos lineas en las cuatro para que sus cifras no queden a distinta altura. */
+.ua-lado .cifra-bloque .etiqueta{white-space:normal;overflow:visible;
+  line-height:1.2;min-height:2.4em}
+.ua-lado .controles{margin-top:0;border-top:1px solid var(--borde-suave);padding-top:13px}
+
+/* El control maestro manda sobre los granulares y se distingue de ellos: si
+   los cinco se vieran igual, volveria a pasar que una tarjeta queda en un
+   estado y el cuadro resumen en otro. */
+.control.maestro label span:first-child{font-size:12px;font-weight:700;
+  color:var(--marca-verde-profundo);letter-spacing:.3px}
+.control.maestro label .valor{font-size:17px;color:var(--marca-verde-profundo)}
+.control.maestro input[type=range]{height:22px}
+.separador-control{display:flex;align-items:center;gap:9px;margin:2px 0 -2px;
+  font-size:10.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--texto-secundario)}
+.separador-control::after{content:;flex:1;height:1px;background:var(--borde)}
+
+
+/* ==========================================================================
+   SECCION 3 · CUADRO RESUMEN
+   ========================================================================== */
+.tabla-caja{background:var(--superficie);border:1px solid var(--borde);border-radius:14px;
+  overflow-x:auto;margin-top:16px}
+table.resumen{width:100%;border-collapse:collapse;min-width:640px}
+table.resumen th, table.resumen td{padding:14px 20px;text-align:right;vertical-align:baseline}
+table.resumen thead th{font-size:12px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--texto-secundario);border-bottom:1px solid var(--borde);white-space:nowrap}
+table.resumen tbody th{text-align:left;font-size:16px;font-weight:500;color:var(--texto-principal);
+  white-space:nowrap}
+table.resumen tbody tr{border-bottom:1px solid var(--borde-suave)}
+table.resumen tbody tr:last-child{border-bottom:none}
+table.resumen td b{font-size:var(--cifra-3);font-weight:600;font-variant-numeric:tabular-nums;
+  display:block;white-space:nowrap}
+.porcentaje{font-size:var(--menudo);color:var(--texto-secundario);
+  font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+/* Margen bruto y EBITDA son las dos lineas que el cliente busca. */
+table.resumen tr.destacada{background:var(--marca-tenue)}
+table.resumen tr.destacada th{font-weight:700;color:var(--marca-verde-profundo)}
+table.resumen tr.destacada td b{font-size:var(--cifra-2);font-weight:800;letter-spacing:-1px;
+  color:var(--marca-verde-profundo)}
+table.resumen tr.verde{background:var(--marca-verde-profundo)}
+table.resumen tr.verde th{color:var(--texto-sobre-oscuro)}
+table.resumen tr.verde td b{color:var(--texto-sobre-oscuro)}
+table.resumen tr.verde .porcentaje{color:var(--texto-sobre-oscuro-3)}
+/* La columna de 2027 es la unica viva; se distingue sin gritar. */
+table.resumen th:last-child, table.resumen td:last-child{
+  box-shadow:inset 2px 0 0 var(--marca-borde-suave)}
+/* 2025 y 2026 son datos cerrados: se estrechan y le dejan el ancho a 2027,
+   que es la columna que se mueve durante la reunion. */
+table.resumen th:nth-child(2), table.resumen td:nth-child(2),
+table.resumen th:nth-child(3), table.resumen td:nth-child(3){
+  width:13%;padding-left:10px;padding-right:10px}
+table.resumen th:last-child, table.resumen td:last-child{width:34%}
+/* Las tres lineas que el cliente busca —ingresos, margen bruto y EBITDA—
+   van mas grandes solo en 2027. Los porcentajes no se tocan. */
+table.resumen tr.grande td:last-child b{font-size:var(--cifra-2)}
+table.resumen tr.grande.destacada td:last-child b{font-size:var(--cifra-2027)}
+/* Ingresos por encima de EBITDA en las tres columnas: es la cifra que abre la
+   conversacion. Va despues de .grande a proposito —misma especificidad, gana
+   la ultima— y la jerarquia se mantiene en toda la fila y no solo en 2027,
+   para que el ojo no la pierda al comparar contra 2025. */
+table.resumen tr.ingresos td b{font-size:var(--cifra-ingresos);font-weight:800;letter-spacing:-1px}
+table.resumen tr.ingresos td:last-child b{font-size:var(--cifra-ingresos-2027)}
+
+.notas-metodo{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.notas-metodo p{font-size:var(--menudo);color:var(--texto-secundario);line-height:1.45;
+  padding-left:14px;border-left:2px solid var(--borde)}
+
+/* Bloque que pertenece a una unidad concreta: el resultado de Veranito, el
+   valor de vida de Kinder, el potencial de Baby and Me. */
+.unidad-extra:empty{display:none}
+.bloque-unidad{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
+  border-radius:10px;padding:13px 16px;margin-bottom:12px;font-size:14px;line-height:1.5}
+.bloque-unidad strong{font-weight:700;color:var(--marca-verde-profundo)}
+
+/* Panel de deslizadores del cuadro resumen. La clase nacio en la seccion
+   de inversion, cuando alli habia controles; hoy solo la usa el cuadro. */
+.plan-controles{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+  gap:14px 20px;background:var(--superficie);border:1px solid var(--borde);
+  border-radius:14px;padding:20px 24px;margin-top:16px}
+.plan-controles .control label{font-size:12px}
+.plan-controles .control label .valor{font-size:15px}
+
+/* Hallazgo: el dato que Ricardo dice en voz alta cuando el cliente ya vio
+   los numeros. Va despues de las cifras, nunca antes. */
+.hallazgo{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
+  border-radius:14px;padding:18px 22px;margin-top:14px;font-size:17px;line-height:1.5}
+.hallazgo strong{font-weight:700;color:var(--marca-verde-profundo)}

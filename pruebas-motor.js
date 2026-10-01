@@ -9,10 +9,11 @@
    spec esta aqui como caso de prueba, asi que si alguien toca una tarifa
    o una regla de escalado, la consola lo dice antes que Ricardo.
 
-   El motor vive dentro del HTML (la spec pide un solo archivo). Este
-   arnes lo extrae del bloque <script id="motor"> y lo evalua en node,
-   de modo que se prueba exactamente el codigo que corre en la reunion,
-   no una copia que puede quedar desincronizada.
+   El motor vive en modelo-vea-motor.js, que cargan tal cual la presentacion
+   y la proyeccion. Este arnes evalua ese mismo archivo en node, mas los dos
+   bloques que siguen dentro de la presentacion (<script id="datos"> y
+   <script id="plan">), de modo que se prueba exactamente el codigo que
+   corre en la reunion, no una copia que puede quedar desincronizada.
    ========================================================================== */
 
 const fs = require('fs');
@@ -22,17 +23,23 @@ const path = require('path');
    publica. El nombre no se deriva del portal que el cliente ya tiene. Si se
    renombra el HTML, se cambia aqui. */
 const ARCHIVO = path.join(__dirname, 'presentacion-vea-efb4db06.html');
+const MOTOR_COMPARTIDO = path.join(__dirname, 'modelo-vea-motor.js');
 
-function cargarBloques(ids) {
+function bloqueDe(html, id) {
+  const m = html.match(new RegExp('<script id="' + id + '">([\\s\\S]*?)<\\/script>'));
+  if (!m) throw new Error('No se encontro el bloque <script id="' + id + '"> en ' + ARCHIVO);
+  return m[1];
+}
+
+/* Mismo orden que en la pagina: el motor compartido primero, porque datos
+   lee cifras reales de MOTOR y VALOR_VIDA. */
+function cargar() {
   const html = fs.readFileSync(ARCHIVO, 'utf8');
-  const cuerpos = ids.map(id => {
-    const m = html.match(new RegExp('<script id="' + id + '">([\\s\\S]*?)<\\/script>'));
-    if (!m) throw new Error('No se encontro el bloque <script id="' + id + '"> en ' + ARCHIVO);
-    return m[1];
-  });
-  const exportar = ids.map(id => 'exports.' + id.toUpperCase() + ' = ' + id.toUpperCase() + ';').join('\n');
+  const codigo = [fs.readFileSync(MOTOR_COMPARTIDO, 'utf8'), bloqueDe(html, 'datos'), bloqueDe(html, 'plan')];
+  const nombres = ['MOTOR', 'FORMATO', 'VALOR_VIDA', 'DATOS', 'PLAN'];
+  const exportar = nombres.map(n => 'exports.' + n + ' = ' + n + ';').join('\n');
   const sandbox = {};
-  new Function('exports', cuerpos.join('\n') + '\n' + exportar)(sandbox);
+  new Function('exports', codigo.join('\n') + '\n' + exportar)(sandbox);
   return sandbox;
 }
 
@@ -56,8 +63,7 @@ function esIgual(real, esperado, titulo) {
   console.log(`${bien ? '  ok  ' : ' FALLA'} ${titulo.padEnd(52)} ${String(real).padStart(11)}   esperado ${esperado}`);
 }
 
-/* El orden importa: datos lee cifras reales de MOTOR. */
-const { MOTOR, DATOS, FORMATO } = cargarBloques(['motor', 'datos', 'formato']);
+const { MOTOR, DATOS, FORMATO, PLAN } = cargar();
 
 /* ==========================================================================
    KINDER
@@ -588,14 +594,14 @@ esIgual(FORMATO.entero(17.32), '17', 'entero al tope de Cumpleanos');
    ========================================================================== */
 console.log('\nPLAN DE PAGOS');
 
-const pl1 = MOTOR.plan({ total:96000, pctPrimero:0.5, meses:6, pctFinal:0 });
+const pl1 = PLAN.plan({ total:96000, pctPrimero:0.5, meses:6, pctFinal:0 });
 ok(pl1.primero, 48000, 'primer pago del 50%', 0);
 ok(pl1.mensualidad, 8000, 'seis mensualidades de 8.000', 0);
 ok(pl1.final, 0, 'sin pago final', 0);
 esIgual(pl1.suma === 96000, true, 'los montos suman el total');
 esIgual(pl1.valido, true, 'plan valido');
 
-const pl2 = MOTOR.plan({ total:96000, pctPrimero:0.4, meses:5, pctFinal:0.1 });
+const pl2 = PLAN.plan({ total:96000, pctPrimero:0.4, meses:5, pctFinal:0.1 });
 ok(pl2.primero, 38400, 'primer pago del 40%', 0);
 ok(pl2.final, 9600, 'pago final del 10%', 0);
 ok(pl2.mensualidad, 9600, 'cinco mensualidades de 9.600', 0);
@@ -604,7 +610,7 @@ esIgual(pl2.suma === 96000, true, 'con pago final tambien suma el total');
 /* El caso que rompe cualquier cronograma escrito a mano: el resto no se
    divide exacto. El ajuste va a la ultima cuota y se dice cual es. */
 // 70.000 entre 6 no da exacto: 11.666 y una ultima de 11.670.
-const pl3 = MOTOR.plan({ total:100000, pctPrimero:0.3, meses:6, pctFinal:0 });
+const pl3 = PLAN.plan({ total:100000, pctPrimero:0.3, meses:6, pctFinal:0 });
 esIgual(pl3.suma === 100000, true, 'resto indivisible: sigue sumando el total');
 esIgual(pl3.ultimaDifiere, true, 'la ultima cuota absorbe el ajuste');
 ok(pl3.mensualidad, 11666, 'cuota regular', 0);
@@ -614,19 +620,19 @@ esIgual(Number.isInteger(pl3.mensualidad) && Number.isInteger(pl3.ultima), true,
         'las cuotas son enteras');
 
 // Y cuando si divide exacto, no se inventa una ultima distinta.
-const pl3b = MOTOR.plan({ total:100000, pctPrimero:0.3, meses:7, pctFinal:0 });
+const pl3b = PLAN.plan({ total:100000, pctPrimero:0.3, meses:7, pctFinal:0 });
 esIgual(pl3b.ultimaDifiere, false, 'division exacta: todas las cuotas iguales');
 ok(pl3b.mensualidad, 10000, 'siete cuotas de 10.000', 0);
 
-const pl4 = MOTOR.plan({ total:96000, pctPrimero:1, meses:0, pctFinal:0 });
+const pl4 = PLAN.plan({ total:96000, pctPrimero:1, meses:0, pctFinal:0 });
 ok(pl4.primero, 96000, 'pago unico', 0);
 ok(pl4.mensualidad, 0, 'sin mensualidades', 0);
 esIgual(pl4.valido, true, 'pago unico es valido');
 
-const pl5 = MOTOR.plan({ total:96000, pctPrimero:0.7, meses:3, pctFinal:0.5 });
+const pl5 = PLAN.plan({ total:96000, pctPrimero:0.7, meses:3, pctFinal:0.5 });
 esIgual(pl5.valido, false, 'primer pago mas final por encima del total es invalido');
 
-const pl6 = MOTOR.plan({ total:96000, pctPrimero:0, meses:12, pctFinal:0 });
+const pl6 = PLAN.plan({ total:96000, pctPrimero:0, meses:12, pctFinal:0 });
 ok(pl6.mensualidad, 8000, 'sin primer pago: doce cuotas de 8.000', 0);
 esIgual(pl6.suma === 96000, true, 'sin primer pago tambien cuadra');
 
@@ -707,7 +713,7 @@ esIgual(soloBaby.ingresos > uniforme.ingresos, true, 'y subir solo Baby and Me t
    ========================================================================== */
 console.log('\nPLAN POR MONTOS');
 
-const pm = MOTOR.plan({ total:71500, primero:25000, meses:10, final:7750 });
+const pm = PLAN.plan({ total:71500, primero:25000, meses:10, final:7750 });
 ok(pm.primero, 25000, 'pago inicial', 0);
 ok(pm.mensualidad, 3875, 'diez mensualidades de 3.875', 0);
 ok(pm.final, 7750, 'pago final', 0);
@@ -719,11 +725,11 @@ ok(pm.pctFinal * 100, 10.8, 'y el del final tambien', 0.1);
 
 /* Si los dos pagos se pasan del total, se dice en vez de mostrar una cuota
    negativa. */
-const pmMal = MOTOR.plan({ total:71500, primero:50000, meses:10, final:30000 });
+const pmMal = PLAN.plan({ total:71500, primero:50000, meses:10, final:30000 });
 esIgual(pmMal.valido, false, 'inicial mas final por encima del total es invalido');
 
 /* Resto indivisible: el ajuste va a la ultima y se declara. */
-const pmResto = MOTOR.plan({ total:100000, primero:30000, meses:6, final:0 });
+const pmResto = PLAN.plan({ total:100000, primero:30000, meses:6, final:0 });
 esIgual(pmResto.suma === 100000, true, 'con resto indivisible sigue sumando');
 esIgual(pmResto.ultimaDifiere, true, 'y la ultima absorbe el ajuste');
 
@@ -922,7 +928,7 @@ ok(DATOS.INVERSION.primero, 28000, 'pago inicial', 0);
 ok(DATOS.INVERSION.cuotas, 10, 'numero de mensualidades', 0);
 ok(DATOS.INVERSION.final, 5000, 'pago final', 0);
 
-const inv = MOTOR.plan({ total:DATOS.INVERSION.total, primero:DATOS.INVERSION.primero,
+const inv = PLAN.plan({ total:DATOS.INVERSION.total, primero:DATOS.INVERSION.primero,
                          meses:DATOS.INVERSION.cuotas, final:DATOS.INVERSION.final });
 ok(inv.primero, 28000, 'el desglose arranca con los 28.000', 0);
 ok(inv.mensualidad, 4450, 'diez cuotas de 4.450', 0);
