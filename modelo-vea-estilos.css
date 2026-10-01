@@ -368,3 +368,48 @@ table.resumen tr.ingresos td:last-child b{font-size:var(--cifra-ingresos-2027)}
 .hallazgo{background:var(--marca-tenue);border:1px solid var(--marca-borde-suave);
   border-radius:14px;padding:18px 22px;margin-top:14px;font-size:17px;line-height:1.5}
 .hallazgo strong{font-weight:700;color:var(--marca-verde-profundo)}
+
+/* ==========================================================================
+   CELULAR
+   Todo lo de arriba esta medido para una pantalla de 55" y en un telefono
+   no cabe: la columna de cifras pide 300 px minimo, las cuatro cifras de la
+   tarjeta se pisaban y las pastillas no se partian, de modo que la pagina
+   se ensanchaba hasta 451 px y el navegador la encogia entera. La
+   presentacion lo disimulaba porque su hoja de ruta ya la ensanchaba; la
+   proyeccion, sin hoja de ruta, lo dejaba a la vista.
+
+   Solo cambia la disposicion por debajo de 640 px. Por encima no se toca
+   nada, que es donde se proyecta.
+   ========================================================================== */
+@media (max-width:640px){
+  .wrap{padding:0 14px 56px}
+
+  /* Logos arriba, titulo debajo a todo el ancho. */
+  header{flex-wrap:wrap;gap:10px 14px;padding:13px 16px;margin-top:14px}
+  .marca-actio img{height:30px}
+  .marca-cliente img{height:24px}
+  .titulo{order:3;flex-basis:100%}
+  .titulo h1{font-size:15px;letter-spacing:.8px}
+
+  .encabezado-seccion h2{font-size:25px}
+  .encabezado-seccion p{font-size:15px}
+
+  /* Una sola columna: la tabla arriba y las cifras con sus controles debajo. */
+  .unidad-ancha{padding:16px 14px 14px}
+  .ua-cab h3{font-size:21px}
+  .ua-cuerpo{grid-template-columns:minmax(0,1fr);gap:16px}
+
+  /* La pastilla puede partirse: "610 de 1000 cupos al año · 61%" no cabe
+     en una linea a este tamaño. */
+  .pastilla{white-space:normal;font-size:17px;padding:4px 12px}
+  .cifra-apoyo{font-size:17px}
+
+  /* Cuatro cifras en dos filas de dos. */
+  .ua-lado .cifras{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px}
+
+  .controles{grid-template-columns:minmax(0,1fr)}
+  .control.ancho{grid-column:auto}
+
+  table.resumen th, table.resumen td{padding:12px 12px}
+  .hallazgo{font-size:15px;padding:14px 16px}
+}
