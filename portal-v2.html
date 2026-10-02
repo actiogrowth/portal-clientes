@@ -321,18 +321,29 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   padding-left:12px;border-left:2px solid var(--borde)}
 .fd-version{padding:8px 12px}
 .fd-version .fd-nombre{font-weight:500}
-/* Un entregable con documentos se pulsa: el nombre lleva una marca —una
-   punta si despliega, una flecha si abre— y se realza al pasar por encima.
-   Uno sin documentos no cambia en nada. */
+/* Un entregable con documentos se pulsa: al lado del nombre lleva una
+   etiqueta que dice lo que va a pasar —«Ver» si abre el documento, «Ver (3)»
+   si despliega los tres que tiene— y se realza al pasar por encima. Uno sin
+   documentos no cambia en nada. Es el mismo par de palabras que usa la
+   pestaña de documentos: el cliente aprende el vocabulario una sola vez.
+
+   La etiqueta es un <span> y no un ::after: un glifo decorativo puede vivir
+   en el CSS, pero una palabra que el cliente lee tiene que poder
+   seleccionarse y llegar al lector de pantalla. El numero contesta antes del
+   clic la pregunta que la punta sola dejaba abierta: cuantos hay, y va entre
+   parentesis porque «Ver 3» se lee como «la version 3». */
 .item-sum{list-style:none;cursor:pointer;display:block}
 .item-sum::-webkit-details-marker{display:none}
 .item-sum::marker{content:""}
 .item-link{display:block;text-decoration:none;color:inherit}
 .item-pulsable{cursor:pointer}
-.item-sum:hover .i-name,.item-link:hover .i-name{color:var(--marca-verde-profundo)}
-.i-despliega::after{content:" ▸";display:inline-block;color:var(--texto-secundario);transition:transform .15s}
+.item-sum:hover .i-name,.item-link:hover .i-name,
+.item-sum:hover .i-ver,.item-link:hover .i-ver{color:var(--marca-verde-profundo)}
+.i-ver{margin-left:8px;font-size:11px;font-weight:500;color:var(--texto-secundario);
+  white-space:nowrap;transition:color .15s}
+/* La punta hereda el color para girar y encenderse junto a su palabra. */
+.i-despliega::after{content:" ▸";display:inline-block;color:inherit;transition:transform .15s}
 .item-det[open] .i-despliega::after{transform:rotate(90deg)}
-.i-abre::after{content:" ↗";color:var(--texto-secundario)}
 /* Las opciones del entregable: sangradas bajo su fila. */
 .item-ops{display:flex;flex-direction:column;gap:5px;margin:7px 0 11px 19px;
   padding-left:12px;border-left:2px solid var(--borde)}
@@ -340,7 +351,7 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   border:1px solid var(--borde);border-radius:8px;background:var(--superficie)}
 .op:hover{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
 .op-etq{flex:1;font-size:13px;font-weight:500;color:var(--texto-principal);min-width:0}
-.op-abrir{font-size:12px;font-weight:600;color:var(--marca-verde-profundo);white-space:nowrap}
+.op-ver{font-size:12px;font-weight:600;color:var(--marca-verde-profundo);white-space:nowrap}
 .op-dentro{margin-left:14px}
 .op-titulo{font-size:12px;font-weight:600;color:var(--texto-secundario);margin:4px 0 1px}
 .fila-doc{display:flex;align-items:center;gap:14px;padding:10px 14px;
@@ -494,11 +505,16 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   header .stamp{order:4;flex-basis:100%;max-width:max-content;margin:0}
   /* La fila se pliega: nombre en la primera linea, etiquetas y fecha en
      la segunda. La accion se va, porque toda la fila responde al toque
-     y repetir "Abrir" solo gasta ancho. */
+     y repetir "Ver" solo gasta ancho. */
   .fila-doc{flex-wrap:wrap;gap:7px 10px;padding:11px 13px}
   .fd-nombre{flex-basis:100%;white-space:normal;overflow:visible;text-overflow:clip}
   .fd-fecha{display:block;margin-left:auto}
   .fd-accion{display:none}
+  /* Menos la de la cabecera de un grupo: ahi la etiqueta no repite lo que
+     hace la fila, dice que hay algo dentro. Sin ella y sin su punta, un
+     grupo de tres versiones no se distingue de un documento suelto y el
+     cliente toca a ciegas. */
+  .fd-grupo .fd-accion{display:inline-block}
 }
 </style>
 </head>
@@ -1103,11 +1119,16 @@ function detalle(u){
       const col2={done:"var(--estado-en-meta)",prog:"var(--estado-atencion)",late:"var(--estado-riesgo)",pend:"var(--estado-neutro)"}[st];
       const bc={done:"b-done",prog:"b-prog",late:"b-late",pend:"b-pend"}[st];
       const bt={done:"Entregado",prog:"En progreso",late:"Fecha vencida",pend:"Por entregar"}[st];
-      /* La fila del entregable, identica en los tres casos salvo la marca de
-         que se puede pulsar: el estado, el porcentaje y la fecha no cambian. */
-      const fila=marca=>'<div class="item'+(marca?' item-pulsable':'')+'">'+
+      /* La fila del entregable, identica en los tres casos salvo la etiqueta
+         de que se puede pulsar: el estado, el porcentaje y la fecha no
+         cambian. La etiqueta va dentro del nombre y no al lado: .i-name se
+         lleva el espacio sobrante con flex:1, asi que fuera quedaria pegada a
+         la barra de avance en vez de al texto que explica. */
+      const fila=(marca,etiqueta)=>'<div class="item'+(marca?' item-pulsable':'')+'">'+
         '<div class="i-dot" style="background:'+col2+'"></div>'+
-        '<div class="i-name'+(marca?' i-'+marca:'')+'">'+esc(it.nombre)+'</div>'+
+        '<div class="i-name">'+esc(it.nombre)+
+          (marca?'<span class="i-ver'+(marca==="despliega"?' i-despliega':'')+'">'+
+                 esc(etiqueta)+'</span>':'')+'</div>'+
         ((st==="prog"||st==="late")&&it.pct>0
           ? '<div class="i-prog"><div class="b"><div class="f" style="width:'+it.pct+'%"></div></div><div class="t">'+it.pct+'%</div></div>'
           : '<div class="i-prog"></div>')+
@@ -1125,14 +1146,18 @@ function detalle(u){
       if(suyos.length===1&&suyos[0].versiones.length===1){
         const d=suyos[0].versiones[0];
         h+='<a class="item-link" href="'+esc(d.enlace)+'" target="_blank" rel="noopener"'+
-           ' data-titulo="'+esc(d.nombre)+'">'+fila("abre")+'</a>';
+           ' data-titulo="'+esc(d.nombre)+'">'+fila("abre","Ver")+'</a>';
         return;
       }
 
-      /* Varias opciones: el nombre despliega. El <summary> conserva su
-         display y la maquetacion vive dentro, que es lo que mantiene el
-         plegado funcionando en Safari. */
-      h+='<details class="item-det"><summary class="item-sum">'+fila("despliega")+'</summary>'+
+      /* Varias opciones: el nombre despliega. El numero son los documentos que
+         hay dentro, versiones incluidas, que es lo que se va a encontrar al
+         desplegar; los grupos son un detalle de como se presentan. El
+         <summary> conserva su display y la maquetacion vive dentro, que es lo
+         que mantiene el plegado funcionando en Safari. */
+      const cuantos=suyos.reduce((s,g)=>s+g.versiones.length,0);
+      h+='<details class="item-det"><summary class="item-sum">'+
+         fila("despliega","Ver ("+cuantos+")")+'</summary>'+
          '<div class="item-ops">'+opcionesDoc(suyos,it.nombre)+'</div></details>';
     });
     h+='</div>';
@@ -1254,11 +1279,11 @@ function filaGrupoDoc(g,titulo){
         (d.tipo?'<span class="pill">'+esc(d.tipo)+'</span>':'')+
       '</span>'+
       '<span class="fd-fecha">'+fmt(d.fecha)+'</span>'+
-      '<span class="fd-accion">Abrir →</span></a>';
+      '<span class="fd-accion">Ver</span></a>';
   }
   /* El <summary> conserva su display propio y la maquetacion vive en un div
      de dentro: poner display:flex sobre el <summary> deja de plegar en
-     Safari, y ahi el cliente se queda con "3 versiones" y sin nada al tocar. */
+     Safari, y ahi el cliente se queda con "Ver (3)" y sin nada al tocar. */
   return '<details class="doc-grupo"><summary class="fd-summary">'+
     '<span class="fila-doc fd-grupo">'+
       '<span class="fd-nombre"'+(repetido?'':' title="'+esc(g.base)+'"')+'>'+(repetido?'':esc(g.base))+'</span>'+
@@ -1267,19 +1292,19 @@ function filaGrupoDoc(g,titulo){
         (g.tipo?'<span class="pill">'+esc(g.tipo)+'</span>':'')+
       '</span>'+
       '<span class="fd-fecha">'+fmt(g.fecha)+'</span>'+
-      '<span class="fd-accion">'+g.versiones.length+' versiones</span>'+
+      '<span class="fd-accion">Ver ('+g.versiones.length+')</span>'+
     '</span></summary>'+
     '<div class="doc-versiones">'+g.versiones.map(v=>{
       const et=etiquetaVersion(v.nombre)||"Versión";
       return '<a class="fila-doc fd-version" href="'+esc(v.enlace)+'" target="_blank" rel="noopener"'+
         ' data-titulo="'+esc(v.nombre)+'">'+
         '<span class="fd-nombre" title="'+esc(v.nombre)+'">'+esc(et)+'</span>'+
-        '<span class="fd-accion">Abrir →</span></a>';
+        '<span class="fd-accion">Ver</span></a>';
     }).join("")+'</div></details>';
 }
 
 /* Lo que se despliega bajo un entregable. Cada opcion es un enlace con su
-   etiqueta a la izquierda y el Abrir a la derecha.
+   etiqueta a la izquierda y el Ver a la derecha.
 
    Un entregable puede tener varios documentos distintos, no solo varias
    versiones del mismo: "Aplicacion VEA Kids - Book" tiene dos, y uno de
@@ -1289,7 +1314,7 @@ function opcionDoc(v,etiqueta,dentro){
   return '<a class="op'+(dentro?' op-dentro':'')+'" href="'+esc(v.enlace)+'" target="_blank"'+
     ' rel="noopener" data-titulo="'+esc(v.nombre)+'">'+
     '<span class="op-etq">'+esc(etiqueta)+'</span>'+
-    '<span class="op-abrir">Abrir →</span></a>';
+    '<span class="op-ver">Ver</span></a>';
 }
 function opcionesDoc(grupos,nombreEntregable){
   return grupos.map(g=>{
