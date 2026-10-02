@@ -322,14 +322,16 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
 .fd-version{padding:8px 12px}
 .fd-version .fd-nombre{font-weight:500}
 /* Un entregable con documentos se pulsa: al lado del nombre lleva una
-   etiqueta que dice lo que va a pasar —«Ver» si abre el documento, «Ver 3»
+   etiqueta que dice lo que va a pasar —«Ver» si abre el documento, «Ver (3)»
    si despliega los tres que tiene— y se realza al pasar por encima. Uno sin
-   documentos no cambia en nada.
+   documentos no cambia en nada. Es el mismo par de palabras que usa la
+   pestaña de documentos: el cliente aprende el vocabulario una sola vez.
 
    La etiqueta es un <span> y no un ::after: un glifo decorativo puede vivir
    en el CSS, pero una palabra que el cliente lee tiene que poder
    seleccionarse y llegar al lector de pantalla. El numero contesta antes del
-   clic la pregunta que la punta sola dejaba abierta: cuantos hay. */
+   clic la pregunta que la punta sola dejaba abierta: cuantos hay, y va entre
+   parentesis porque «Ver 3» se lee como «la version 3». */
 .item-sum{list-style:none;cursor:pointer;display:block}
 .item-sum::-webkit-details-marker{display:none}
 .item-sum::marker{content:""}
@@ -349,7 +351,7 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   border:1px solid var(--borde);border-radius:8px;background:var(--superficie)}
 .op:hover{border-color:var(--marca-verde-claro);background:var(--marca-tenue)}
 .op-etq{flex:1;font-size:13px;font-weight:500;color:var(--texto-principal);min-width:0}
-.op-abrir{font-size:12px;font-weight:600;color:var(--marca-verde-profundo);white-space:nowrap}
+.op-ver{font-size:12px;font-weight:600;color:var(--marca-verde-profundo);white-space:nowrap}
 .op-dentro{margin-left:14px}
 .op-titulo{font-size:12px;font-weight:600;color:var(--texto-secundario);margin:4px 0 1px}
 .fila-doc{display:flex;align-items:center;gap:14px;padding:10px 14px;
@@ -503,7 +505,7 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   header .stamp{order:4;flex-basis:100%;max-width:max-content;margin:0}
   /* La fila se pliega: nombre en la primera linea, etiquetas y fecha en
      la segunda. La accion se va, porque toda la fila responde al toque
-     y repetir "Abrir" solo gasta ancho. */
+     y repetir "Ver" solo gasta ancho. */
   .fila-doc{flex-wrap:wrap;gap:7px 10px;padding:11px 13px}
   .fd-nombre{flex-basis:100%;white-space:normal;overflow:visible;text-overflow:clip}
   .fd-fecha{display:block;margin-left:auto}
@@ -1150,7 +1152,7 @@ function detalle(u){
          que mantiene el plegado funcionando en Safari. */
       const cuantos=suyos.reduce((s,g)=>s+g.versiones.length,0);
       h+='<details class="item-det"><summary class="item-sum">'+
-         fila("despliega","Ver "+cuantos)+'</summary>'+
+         fila("despliega","Ver ("+cuantos+")")+'</summary>'+
          '<div class="item-ops">'+opcionesDoc(suyos,it.nombre)+'</div></details>';
     });
     h+='</div>';
@@ -1272,11 +1274,11 @@ function filaGrupoDoc(g,titulo){
         (d.tipo?'<span class="pill">'+esc(d.tipo)+'</span>':'')+
       '</span>'+
       '<span class="fd-fecha">'+fmt(d.fecha)+'</span>'+
-      '<span class="fd-accion">Abrir →</span></a>';
+      '<span class="fd-accion">Ver</span></a>';
   }
   /* El <summary> conserva su display propio y la maquetacion vive en un div
      de dentro: poner display:flex sobre el <summary> deja de plegar en
-     Safari, y ahi el cliente se queda con "3 versiones" y sin nada al tocar. */
+     Safari, y ahi el cliente se queda con "Ver (3)" y sin nada al tocar. */
   return '<details class="doc-grupo"><summary class="fd-summary">'+
     '<span class="fila-doc fd-grupo">'+
       '<span class="fd-nombre"'+(repetido?'':' title="'+esc(g.base)+'"')+'>'+(repetido?'':esc(g.base))+'</span>'+
@@ -1285,19 +1287,19 @@ function filaGrupoDoc(g,titulo){
         (g.tipo?'<span class="pill">'+esc(g.tipo)+'</span>':'')+
       '</span>'+
       '<span class="fd-fecha">'+fmt(g.fecha)+'</span>'+
-      '<span class="fd-accion">'+g.versiones.length+' versiones</span>'+
+      '<span class="fd-accion">Ver ('+g.versiones.length+')</span>'+
     '</span></summary>'+
     '<div class="doc-versiones">'+g.versiones.map(v=>{
       const et=etiquetaVersion(v.nombre)||"Versión";
       return '<a class="fila-doc fd-version" href="'+esc(v.enlace)+'" target="_blank" rel="noopener"'+
         ' data-titulo="'+esc(v.nombre)+'">'+
         '<span class="fd-nombre" title="'+esc(v.nombre)+'">'+esc(et)+'</span>'+
-        '<span class="fd-accion">Abrir →</span></a>';
+        '<span class="fd-accion">Ver</span></a>';
     }).join("")+'</div></details>';
 }
 
 /* Lo que se despliega bajo un entregable. Cada opcion es un enlace con su
-   etiqueta a la izquierda y el Abrir a la derecha.
+   etiqueta a la izquierda y el Ver a la derecha.
 
    Un entregable puede tener varios documentos distintos, no solo varias
    versiones del mismo: "Aplicacion VEA Kids - Book" tiene dos, y uno de
@@ -1307,7 +1309,7 @@ function opcionDoc(v,etiqueta,dentro){
   return '<a class="op'+(dentro?' op-dentro':'')+'" href="'+esc(v.enlace)+'" target="_blank"'+
     ' rel="noopener" data-titulo="'+esc(v.nombre)+'">'+
     '<span class="op-etq">'+esc(etiqueta)+'</span>'+
-    '<span class="op-abrir">Abrir →</span></a>';
+    '<span class="op-ver">Ver</span></a>';
 }
 function opcionesDoc(grupos,nombreEntregable){
   return grupos.map(g=>{
