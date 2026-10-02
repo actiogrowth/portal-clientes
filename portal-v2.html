@@ -510,6 +510,11 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{
   .fd-nombre{flex-basis:100%;white-space:normal;overflow:visible;text-overflow:clip}
   .fd-fecha{display:block;margin-left:auto}
   .fd-accion{display:none}
+  /* Menos la de la cabecera de un grupo: ahi la etiqueta no repite lo que
+     hace la fila, dice que hay algo dentro. Sin ella y sin su punta, un
+     grupo de tres versiones no se distingue de un documento suelto y el
+     cliente toca a ciegas. */
+  .fd-grupo .fd-accion{display:inline-block}
 }
 </style>
 </head>
