@@ -321,18 +321,27 @@ h2{font-size:27px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px}
   padding-left:12px;border-left:2px solid var(--borde)}
 .fd-version{padding:8px 12px}
 .fd-version .fd-nombre{font-weight:500}
-/* Un entregable con documentos se pulsa: el nombre lleva una marca —una
-   punta si despliega, una flecha si abre— y se realza al pasar por encima.
-   Uno sin documentos no cambia en nada. */
+/* Un entregable con documentos se pulsa: al lado del nombre lleva una
+   etiqueta que dice lo que va a pasar —«Ver» si abre el documento, «Ver 3»
+   si despliega los tres que tiene— y se realza al pasar por encima. Uno sin
+   documentos no cambia en nada.
+
+   La etiqueta es un <span> y no un ::after: un glifo decorativo puede vivir
+   en el CSS, pero una palabra que el cliente lee tiene que poder
+   seleccionarse y llegar al lector de pantalla. El numero contesta antes del
+   clic la pregunta que la punta sola dejaba abierta: cuantos hay. */
 .item-sum{list-style:none;cursor:pointer;display:block}
 .item-sum::-webkit-details-marker{display:none}
 .item-sum::marker{content:""}
 .item-link{display:block;text-decoration:none;color:inherit}
 .item-pulsable{cursor:pointer}
-.item-sum:hover .i-name,.item-link:hover .i-name{color:var(--marca-verde-profundo)}
-.i-despliega::after{content:" ▸";display:inline-block;color:var(--texto-secundario);transition:transform .15s}
+.item-sum:hover .i-name,.item-link:hover .i-name,
+.item-sum:hover .i-ver,.item-link:hover .i-ver{color:var(--marca-verde-profundo)}
+.i-ver{margin-left:8px;font-size:11px;font-weight:500;color:var(--texto-secundario);
+  white-space:nowrap;transition:color .15s}
+/* La punta hereda el color para girar y encenderse junto a su palabra. */
+.i-despliega::after{content:" ▸";display:inline-block;color:inherit;transition:transform .15s}
 .item-det[open] .i-despliega::after{transform:rotate(90deg)}
-.i-abre::after{content:" ↗";color:var(--texto-secundario)}
 /* Las opciones del entregable: sangradas bajo su fila. */
 .item-ops{display:flex;flex-direction:column;gap:5px;margin:7px 0 11px 19px;
   padding-left:12px;border-left:2px solid var(--borde)}
@@ -1103,11 +1112,16 @@ function detalle(u){
       const col2={done:"var(--estado-en-meta)",prog:"var(--estado-atencion)",late:"var(--estado-riesgo)",pend:"var(--estado-neutro)"}[st];
       const bc={done:"b-done",prog:"b-prog",late:"b-late",pend:"b-pend"}[st];
       const bt={done:"Entregado",prog:"En progreso",late:"Fecha vencida",pend:"Por entregar"}[st];
-      /* La fila del entregable, identica en los tres casos salvo la marca de
-         que se puede pulsar: el estado, el porcentaje y la fecha no cambian. */
-      const fila=marca=>'<div class="item'+(marca?' item-pulsable':'')+'">'+
+      /* La fila del entregable, identica en los tres casos salvo la etiqueta
+         de que se puede pulsar: el estado, el porcentaje y la fecha no
+         cambian. La etiqueta va dentro del nombre y no al lado: .i-name se
+         lleva el espacio sobrante con flex:1, asi que fuera quedaria pegada a
+         la barra de avance en vez de al texto que explica. */
+      const fila=(marca,etiqueta)=>'<div class="item'+(marca?' item-pulsable':'')+'">'+
         '<div class="i-dot" style="background:'+col2+'"></div>'+
-        '<div class="i-name'+(marca?' i-'+marca:'')+'">'+esc(it.nombre)+'</div>'+
+        '<div class="i-name">'+esc(it.nombre)+
+          (marca?'<span class="i-ver'+(marca==="despliega"?' i-despliega':'')+'">'+
+                 esc(etiqueta)+'</span>':'')+'</div>'+
         ((st==="prog"||st==="late")&&it.pct>0
           ? '<div class="i-prog"><div class="b"><div class="f" style="width:'+it.pct+'%"></div></div><div class="t">'+it.pct+'%</div></div>'
           : '<div class="i-prog"></div>')+
@@ -1125,14 +1139,18 @@ function detalle(u){
       if(suyos.length===1&&suyos[0].versiones.length===1){
         const d=suyos[0].versiones[0];
         h+='<a class="item-link" href="'+esc(d.enlace)+'" target="_blank" rel="noopener"'+
-           ' data-titulo="'+esc(d.nombre)+'">'+fila("abre")+'</a>';
+           ' data-titulo="'+esc(d.nombre)+'">'+fila("abre","Ver")+'</a>';
         return;
       }
 
-      /* Varias opciones: el nombre despliega. El <summary> conserva su
-         display y la maquetacion vive dentro, que es lo que mantiene el
-         plegado funcionando en Safari. */
-      h+='<details class="item-det"><summary class="item-sum">'+fila("despliega")+'</summary>'+
+      /* Varias opciones: el nombre despliega. El numero son los documentos que
+         hay dentro, versiones incluidas, que es lo que se va a encontrar al
+         desplegar; los grupos son un detalle de como se presentan. El
+         <summary> conserva su display y la maquetacion vive dentro, que es lo
+         que mantiene el plegado funcionando en Safari. */
+      const cuantos=suyos.reduce((s,g)=>s+g.versiones.length,0);
+      h+='<details class="item-det"><summary class="item-sum">'+
+         fila("despliega","Ver "+cuantos)+'</summary>'+
          '<div class="item-ops">'+opcionesDoc(suyos,it.nombre)+'</div></details>';
     });
     h+='</div>';
