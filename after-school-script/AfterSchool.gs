@@ -62,7 +62,7 @@ var COLUMNAS = {
            'Edades', 'Activa'],
   inscripciones: ['ID inscripción', 'ID niño', 'Código clase', 'Fecha alta',
                   'Fecha baja', 'Motivo baja', 'Detalle motivo', 'Registrado por',
-                  'Fecha registro'],
+                  'Fecha registro', 'Notas'],
   pagos: ['ID pago', 'ID niño', 'Mes que cubre', 'Concepto', 'Plan', 'Monto',
           'Fecha pago', 'Forma de pago', 'Registrado por', 'Notas'],
   bajas: ['ID niño', 'Fecha baja', 'Motivo', 'Detalle', 'Registrado por'],
@@ -144,6 +144,11 @@ var PROP_CLAVE = 'AS_CLAVE_API';
 var PROP_ID_CARGA = 'AS_ID_CARGA';
 
 var USUARIO_CARGA = 'Carga inicial Poliwin';
+
+/* La carga marca así las inscripciones de niños en clases de adultos, para
+   que Vida en Arte las confirme. Se ve en la lista de la clase y se quita con
+   «Quitar nota» cuando esté verificada. */
+var NOTA_CLASE_ADULTOS = 'Por verificar: clase de adultos';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -660,12 +665,14 @@ function planCarga_() {
                  !fecha ? 'fecha de reserva ilegible «' + texto_(fechaTxt) + '»' : '';
     if (motivo) { plan.rechazos.push('Inscripciones fila ' + f.n + ' (socio ' + (socio || '—') + ', ' + (cod || '—') + '): ' + motivo); return; }
     vistas[socio + '|' + cod] = true;
+    var adultos = norm_(codigos[cod].edades) === 'adultos';
     plan.inscripciones.push({
       'ID inscripción': sigIns(), 'ID niño': idNino, 'Código clase': cod, 'Fecha alta': fecha,
       'Fecha baja': '', 'Motivo baja': '', 'Detalle motivo': '',
-      'Registrado por': USUARIO_CARGA, 'Fecha registro': ahora
+      'Registrado por': USUARIO_CARGA, 'Fecha registro': ahora,
+      'Notas': adultos ? NOTA_CLASE_ADULTOS : ''
     });
-    if (norm_(codigos[cod].edades) === 'adultos') {
+    if (adultos) {
       var n = ninoPorId[idNino];
       plan.revisarEdad.push(cod + ' (' + codigos[cod].edades + '): ' + idNino + ', socio ' + socio +
         ', ' + (n._nac ? edadTexto_(n._nac) : 'sin fecha de nacimiento'));
@@ -711,6 +718,7 @@ function informeCarga_(plan, escrito) {
   plan.avisos.forEach(function (r) { l.push('   ' + r); });
   l.push('Inscripciones en clases de adultos, para revisar: ' + plan.revisarEdad.length);
   plan.revisarEdad.forEach(function (r) { l.push('   ' + r); });
+  if (plan.revisarEdad.length) l.push('   (se cargan con la nota «' + NOTA_CLASE_ADULTOS + '» en la inscripción)');
   return l.join('\n');
 }
 
@@ -754,7 +762,8 @@ var ACCIONES = {
   bajaClase: { escribe: true, fn: accBajaClase_ },
   bajaTotal: { escribe: true, fn: accBajaTotal_ },
   registrarPago: { escribe: true, fn: accRegistrarPago_ },
-  revisar: { escribe: true, fn: accRevisar_ }
+  revisar: { escribe: true, fn: accRevisar_ },
+  notaInscripcion: { escribe: true, fn: accNotaInscripcion_ }
 };
 
 function atender_(p) {
@@ -831,7 +840,7 @@ function accLeer_(datos, usuario) {
   var ninos = leerTabla_('ninos').filas.map(ninoPublico_);
   var ins = leerTabla_('inscripciones').filas.filter(inscripcionActiva_).map(function (f) {
     return { id: texto_(f['ID inscripción']), idNino: texto_(f['ID niño']),
-             codigo: texto_(f['Código clase']), alta: aISO_(f['Fecha alta']) };
+             codigo: texto_(f['Código clase']), alta: aISO_(f['Fecha alta']), nota: texto_(f['Notas']) };
   });
   var cuenta = {};
   ins.forEach(function (i) { cuenta[i.codigo] = (cuenta[i.codigo] || 0) + 1; });
@@ -1116,4 +1125,16 @@ function accRegistrarPago_(datos, usuario) {
   }]);
   historial_(usuario, 'Registrar pago', id, texto_(n['ID']) + ' · ' + mes + ' · ' + concepto + ' · ' + monto);
   return { id: id };
+}
+
+/** Cambia o quita la nota de una inscripción activa (p. ej. la de clase de adultos ya verificada). */
+function accNotaInscripcion_(datos, usuario) {
+  var ins = leerTabla_('inscripciones');
+  var f = buscarInscripcionActiva_(ins, datos.idInscripcion);
+  var antes = texto_(f['Notas']), despues = texto_(datos.nota);
+  if (antes === despues) return { id: texto_(f['ID inscripción']), sinCambios: true };
+  ponerCeldas_(ins, f, { 'Notas': despues });
+  historial_(usuario, despues ? 'Nota de inscripción' : 'Quitar nota de inscripción', texto_(f['ID niño']),
+    texto_(f['ID inscripción']) + ' · ' + texto_(f['Código clase']) + ' · antes: «' + antes + '»' + (despues ? ' · ahora: «' + despues + '»' : ''));
+  return { id: texto_(f['ID inscripción']) };
 }

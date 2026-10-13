@@ -11,7 +11,8 @@ const { spawnSync } = require('child_process');
 
 const GS = path.join(__dirname, '..', 'AfterSchool.gs');
 const PRUEBA = path.join(__dirname, 'prueba-after-school.js');
-const original = fs.readFileSync(GS, 'utf8');
+// Con core.autocrlf el .gs puede llegar con CRLF: se normaliza para que las roturas de varias líneas encuentren su texto.
+const original = fs.readFileSync(GS, 'utf8').replace(/\r\n/g, '\n');
 
 const ROTURAS = [
   ['no exige la clave', "if (!igualSeguro_(p.key, clave)) return", "if (false) return"],
@@ -28,6 +29,8 @@ const ROTURAS = [
   ['Por revisar no depende de Revisar', "'Estado': revisar ? ESTADO.revisar : ESTADO.activo", "'Estado': ESTADO.activo"],
   ['no avisa el pago repetido', "if (previos.length) throw", "if (false) throw"],
   ['sin lock al escribir', "if (!lock.tryLock(20000)) return", "if (false) return"],
+  ['la carga no marca la clase de adultos', "'Notas': adultos ? NOTA_CLASE_ADULTOS : ''", "'Notas': ''"],
+  ['leer no devuelve la nota', "nota: texto_(f['Notas']) };", "nota: '' };"],
   ['fecha con la zona del script', "var f = Utilities.parseDate(txt, zona_(), 'yyyy-MM-dd');", "var f = Utilities.parseDate(txt, 'UTC', 'yyyy-MM-dd');"]
 ];
 

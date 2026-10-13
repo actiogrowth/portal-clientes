@@ -136,6 +136,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--gris2);margin-bot
 .chip.Retirado{background:var(--vea-gris);color:var(--gris2)}
 .chip.revisar{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
 .chip.clase{background:var(--vea-celeste);color:var(--negro);font-weight:500}
+.chip.nota{background:var(--amarillo-fondo);color:var(--amarillo-texto);border:1px solid var(--amarillo-borde);white-space:normal}
+.celda .marca{font-size:10px;font-weight:700;line-height:1.2;margin-top:2px}
 .ficha-tit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .ficha-tit h2{margin:0}
 .acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -535,9 +537,11 @@ function pintarOcupacion() {
         h += '<td>' + (cs.length ? cs.map(c => {
           const est = estadoCelda(c);
           const txt = est === 'lleno' ? 'LLENO' : c.reservados + ' / ' + c.cupo;
+          const notas = (IDX.insClase[c.codigo] || []).filter(i => i.nota).length;
           return '<button class="celda ' + est + '" data-clase="' + esc(c.codigo) + '" type="button" aria-label="' + esc(etiquetaClase(c) + ': ' + c.reservados + ' de ' + c.cupo) + '">' +
             '<span class="r num">' + txt + '</span>' + (est === 'lleno' ? '<span class="e num">' + c.reservados + ' / ' + c.cupo + '</span>' : '') +
-            '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span></button>';
+            '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span>' +
+            (notas ? '<span class="marca">⚑ ' + notas + (notas === 1 ? ' nota' : ' notas') + '</span>' : '') + '</button>';
         }).join('') : '<div class="vacia" aria-hidden="true"></div>') + '</td>';
       });
       h += '</tr>';
@@ -555,13 +559,22 @@ function abrirClase(codigo) {
   $('#dcTit').textContent = etiquetaClase(c);
   $('#dcSub').textContent = c.codigo + ' · ' + c.reservados + ' de ' + c.cupo + ' cupos · ' + (c.edades || 'edades sin definir') + (c.activa ? '' : ' · INACTIVA');
   $('#dcCuerpo').innerHTML = ins.length ? '<table class="datos"><thead><tr><th>Niño</th><th>Edad</th><th>Teléfono</th><th>Alta</th><th></th></tr></thead><tbody>' +
-    ins.map(({ i, n }) => '<tr><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + (n.estado !== 'Activo' ? ' · ' + esc(n.estado) : '') + '</div></td>' +
+    ins.map(({ i, n }) => '<tr><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + (n.estado !== 'Activo' ? ' · ' + esc(n.estado) : '') + '</div>' +
+      (i.nota ? '<div style="margin-top:4px"><span class="chip nota">⚑ ' + esc(i.nota) + '</span> <button class="btn sec chico" data-quitar-nota="' + esc(i.id) + '" type="button">Quitar nota</button></div>' : '') + '</td>' +
       '<td>' + esc(edad(n)) + '</td><td>' + esc(n.telefono) + '</td><td class="num">' + fecha(i.alta) + '</td>' +
       '<td class="der"><button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button> ' +
       '<button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> ' +
       '<button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja</button></td></tr>').join('') + '</tbody></table>'
     : '<p class="ayuda">Nadie inscrito en esta clase.</p>';
+  const conNota = ins.filter(x => x.i.nota).length;
+  if (conNota) $('#dcCuerpo').insertAdjacentHTML('afterbegin', '<div class="aviso ojo">' + conNota + (conNota === 1 ? ' inscripción tiene' : ' inscripciones tienen') + ' una nota pendiente. Cuando esté verificada, «Quitar nota».</div>');
   enganchar($('#dcCuerpo'));
+  $('#dcCuerpo').querySelectorAll('[data-quitar-nota]').forEach(b => b.onclick = async () => {
+    const i = E.inscripciones.find(x => x.id === b.dataset.quitarNota);
+    if (!i || !confirm('¿Quitar la nota «' + i.nota + '»? Queda registrada en el Historial.')) return;
+    const r = await escribir('notaInscripcion', { idInscripcion: i.id, nota: '' }, 'Nota quitada');
+    if (r) abrirClase(codigo);
+  });
   $('#dlgClase').showModal();
 }
 
@@ -666,7 +679,8 @@ function pintarFicha() {
     '<h3>Clases</h3>' +
     (ins.length ? ins.map(i => {
       const c = IDX.clases[i.codigo];
-      return '<div class="fila-ins"><span><span class="chip clase">' + esc(c ? etiquetaClase(c) : i.codigo) + '</span> <span class="ayuda">desde ' + fecha(i.alta) + '</span></span>' +
+      return '<div class="fila-ins"><span><span class="chip clase">' + esc(c ? etiquetaClase(c) : i.codigo) + '</span> <span class="ayuda">desde ' + fecha(i.alta) + '</span>' +
+        (i.nota ? ' <span class="chip nota">⚑ ' + esc(i.nota) + '</span>' : '') + '</span>' +
         '<span><button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> <button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja de esta clase</button></span></div>';
     }).join('') : '<p class="ayuda">Sin clases activas.</p>') +
     (retirado ? '<div class="aviso ojo" style="margin-top:10px">Retirado: para inscribirlo otra vez, reactívalo primero.</div><div class="acciones"><button class="btn" id="btnReactivar" type="button">Reactivar</button></div>'

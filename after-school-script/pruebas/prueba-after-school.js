@@ -143,6 +143,9 @@ seccion('ensayo y carga inicial');
   const I = g._libro.getSheetByName('Inscripciones');
   ok(I.getLastRow() === 9, '4 inscripciones escritas');
   ok(Object.prototype.toString.call(I.celda(6, 5)) === '[object Date]' && g.aISO_(I.celda(6, 5)) === '2026-09-01', 'fecha de alta = Reservado en Poliwin el, como fecha real');
+  ok(I.celda(9, 11) === 'Por verificar: clase de adultos' && I.celda(9, 4) === 'SAB-0900-TELAS', 'la inscripción en clase de adultos lleva la nota «Por verificar»');
+  ok([6, 7, 8].every(f => I.celda(f, 11) === ''), 'las demás inscripciones van sin nota');
+  ok(/se cargan con la nota «Por verificar: clase de adultos»/.test(res), 'el informe dice que van marcadas');
   const C = g._libro.getSheetByName('Clases');
   ok(C.celda(6, 6) === '16:30', 'la hora de la clase queda como texto');
   ok(C.celda(6, 9) === 'Sí', 'clases cargadas como activas');
@@ -274,6 +277,19 @@ seccion('por revisar');
   ok(r.ok && r.estado.ninos.find(n => n.id === 'AS-0002').estado === 'Retirado' && r.resultado.clasesCerradas === 1, 'Por revisar → Retirado cierra sus clases');
   ok(g._libro.getSheetByName('Bajas').getLastRow() === 6, 'y deja fila en Bajas');
   ok(!g.llamar('revisar', { idNino: 'AS-0005', estado: 'Otro' }).ok, 'estado inválido → rechazo');
+}
+
+seccion('nota de inscripción');
+{
+  const g = entornoCargado();
+  const adulta = g.llamar('leer').resultado.inscripciones.find(i => i.codigo === 'SAB-0900-TELAS');
+  ok(adulta && adulta.nota === 'Por verificar: clase de adultos', 'leer devuelve la nota de la inscripción');
+  let r = g.llamar('notaInscripcion', { idInscripcion: adulta.id, nota: '' });
+  ok(r.ok && r.estado.inscripciones.find(i => i.id === adulta.id).nota === '', 'quitar la nota');
+  ok(r.estado.clases.find(c => c.codigo === 'SAB-0900-TELAS').reservados === 1, 'quitar la nota no cambia la ocupación');
+  const H = g._libro.getSheetByName('Historial');
+  ok(H.celda(H.getLastRow(), 4) === 'Quitar nota de inscripción' && /antes: «Por verificar/.test(H.celda(H.getLastRow(), 6)), 'el Historial guarda la nota que se quitó');
+  ok(!g.llamar('notaInscripcion', { idInscripcion: 'INS-9999', nota: '' }).ok, 'inscripción inexistente → rechazo');
 }
 
 seccion('pagos');

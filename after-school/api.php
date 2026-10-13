@@ -18,6 +18,13 @@
  * Diagnóstico: GET api.php?diagnostico=1 (con sesión) dice qué claves trae la
  * sesión —solo los NOMBRES, nunca los valores— y si encontró al usuario y si
  * está autorizado. Sirve para fijar 'as_campo_sesion' sin abrir auth.php.
+ *
+ * APAGADO POR DEFECTO. Solo responde si portal_config.php lleva
+ *     'as_diagnostico' => true,
+ * exactamente true (no "1", no "sí"). Sin esa línea, o con cualquier otro
+ * valor, contesta 404 como si no existiera. Se enciende un momento para
+ * ajustar as_campo_sesion y se borra la línea: olvidarla o borrarla deja el
+ * sistema del lado seguro.
  */
 
 require dirname(__DIR__) . '/auth.php';
@@ -73,6 +80,7 @@ function autorizado(string $usuario, array $cfg): bool {
 $usuario = usuario_del_portal($cfg);
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['diagnostico'])) {
+    if (($cfg['as_diagnostico'] ?? null) !== true) fallo('no encontrado', 404);
     $claves = [];
     foreach (($_SESSION ?? []) as $k => $v) {
         $claves[] = is_array($v) ? $k . ' → [' . implode(', ', array_map('strval', array_keys($v))) . ']' : (string)$k;
@@ -86,7 +94,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['diagnostico'
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') fallo('solo POST', 405);
-if ($usuario === '') fallo('No se pudo leer el usuario de la sesión del portal. Abrir api.php?diagnostico=1 y fijar as_campo_sesion en portal_config.php.', 403, 'sin_usuario');
+if ($usuario === '') fallo('No se pudo leer el usuario de la sesión del portal. Encender as_diagnostico en portal_config.php, abrir api.php?diagnostico=1, fijar as_campo_sesion y volver a apagarlo.', 403, 'sin_usuario');
 if (!autorizado($usuario, $cfg)) fallo('El usuario «' . $usuario . '» no tiene acceso a After School.', 403, 'no_autorizado');
 
 $datos = json_decode(file_get_contents('php://input'), true);
