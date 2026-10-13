@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>After School · Vida en Arte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  After School · Vida en Arte — herramienta provisional de registro.
+  Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
+  Lee y escribe SOLO a través de api.php (misma carpeta), que exige sesión y
+  pone la clave del Apps Script en el servidor. Esta página no lleva ninguna
+  clave, dirección del Sheet ni dato de niños: todo llega por api.php.
+-->
+<style>
+/* ==========================================================================
+   TOKENS — los mismos del tablero de Kínder (marca Vida en Arte).
+   Único lugar del archivo donde se declara un color.
+   ========================================================================== */
+:root{
+  --rojo:#D71C0E; --azul:#1974A8; --naranja:#FFA615;
+  --negro:#111111; --gris1:#222222; --gris2:#6b6b6b; --gris3:#E0E0E0;
+  --blanco:#ffffff; --fondo:#F5F7FA;
+  --vea-rosa:#FCCDCE; --vea-arena:#F1C873; --vea-celeste:#AED7EB; --vea-gris:#E5E5E5;
+  --verde-texto:#16794a; --rojo-texto:#a3170c;
+  --pos-fondo:#f0faf4; --pos-borde:#b7e4c7;
+  --neg-fondo:#fff0f0; --neg-borde:#ffb3b3;
+  --amarillo-fondo:#fdf3d8; --amarillo-borde:#F1C873; --amarillo-texto:#7a5300;
+  --azul-hover:#155f8a;
+  --sombra:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins',sans-serif;background:var(--fondo);color:var(--gris1);
+  min-height:100vh;line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--gris1)}
+.oculto{display:none !important}
+
+/* Encabezado */
+header{background:var(--blanco);border-bottom:1px solid var(--gris3);position:sticky;top:0;z-index:20}
+.barra{max-width:1240px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.marca{font-weight:700;font-size:17px;color:var(--negro)}
+.marca span{color:var(--azul)}
+.barra .usuario{margin-left:auto;font-size:12px;color:var(--gris2);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.barra a{color:var(--azul);text-decoration:none;font-weight:600}
+nav{max-width:1240px;margin:0 auto;padding:0 16px;display:flex;gap:4px;overflow-x:auto}
+nav button{background:none;border:none;border-bottom:3px solid transparent;padding:10px 14px;
+  font-weight:600;color:var(--gris2);cursor:pointer;white-space:nowrap;min-height:44px}
+nav button[aria-selected="true"]{color:var(--azul);border-bottom-color:var(--azul)}
+.insignia{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--rojo);
+  color:var(--blanco);font-size:11px;line-height:20px;text-align:center;margin-left:4px}
+main{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+
+/* Pantallas de estado */
+.pantalla{max-width:520px;margin:60px auto;background:var(--blanco);border-radius:16px;padding:32px;
+  text-align:center;box-shadow:var(--sombra)}
+.pantalla h2{font-size:18px;margin-bottom:8px}
+.pantalla p{color:var(--gris2);margin-bottom:16px}
+.pantalla pre{text-align:left;white-space:pre-wrap;font-size:12px;background:var(--fondo);padding:10px;border-radius:8px;margin-bottom:16px}
+
+/* Botones */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 16px;
+  border-radius:20px;border:1.5px solid var(--azul);background:var(--azul);color:var(--blanco);
+  font-weight:600;cursor:pointer;transition:.15s;text-decoration:none}
+.btn:hover{background:var(--azul-hover);border-color:var(--azul-hover)}
+.btn.sec{background:var(--blanco);color:var(--azul)}
+.btn.sec:hover{background:var(--fondo)}
+.btn.peligro{background:var(--blanco);color:var(--rojo-texto);border-color:var(--rojo)}
+.btn.peligro:hover{background:var(--neg-fondo)}
+.btn.chico{min-height:32px;padding:4px 12px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Avisos */
+.aviso{border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;border:1px solid}
+.aviso.mal{background:var(--neg-fondo);border-color:var(--neg-borde);color:var(--rojo-texto)}
+.aviso.ojo{background:var(--amarillo-fondo);border-color:var(--amarillo-borde);color:var(--amarillo-texto)}
+.aviso.bien{background:var(--pos-fondo);border-color:var(--pos-borde);color:var(--verde-texto)}
+
+/* Tarjetas */
+.tarjeta{background:var(--blanco);border-radius:14px;padding:18px;box-shadow:var(--sombra);margin-bottom:16px}
+.tarjeta h2{font-size:15px;margin-bottom:12px}
+.tarjeta h3{font-size:13px;margin:14px 0 8px;color:var(--gris2);text-transform:uppercase;letter-spacing:.04em}
+.ayuda{font-size:12px;color:var(--gris2)}
+
+/* Resumen de ocupación */
+.resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.dato{background:var(--blanco);border-radius:14px;padding:14px 16px;box-shadow:var(--sombra)}
+.dato .et{font-size:12px;color:var(--gris2);font-weight:500}
+.dato .val{font-size:22px;font-weight:700;color:var(--negro)}
+.dato .val small{font-size:13px;color:var(--gris2);font-weight:500}
+.dato .barra-oc{height:6px;background:var(--vea-gris);border-radius:3px;margin-top:8px;overflow:hidden}
+.dato .barra-oc i{display:block;height:100%;background:var(--azul)}
+.dato.principal{border-top:4px solid var(--azul)}
+
+/* Grillas */
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--gris2);margin-bottom:12px}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.leyenda i{width:14px;height:14px;border-radius:4px;border:1px solid}
+.grillas{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:16px}
+.grilla{width:100%;border-collapse:separate;border-spacing:6px;table-layout:fixed}
+.grilla th{font-size:12px;color:var(--gris2);font-weight:600;text-align:center;padding:2px}
+.grilla th.hora{width:58px;text-align:right;padding-right:6px}
+.grilla td{padding:0}
+.celda{width:100%;min-height:58px;border-radius:10px;border:1.5px solid;cursor:pointer;padding:6px 4px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blanco);transition:transform .1s}
+.celda:hover{transform:translateY(-1px)}
+.celda .r{font-size:16px;font-weight:700}
+.celda .e{font-size:10px;line-height:1.2;opacity:.85;text-align:center}
+.celda.libre{background:var(--pos-fondo);border-color:var(--pos-borde);color:var(--verde-texto)}
+.celda.casi{background:var(--amarillo-fondo);border-color:var(--amarillo-borde);color:var(--amarillo-texto)}
+.celda.lleno{background:var(--rojo);border-color:var(--rojo);color:var(--blanco)}
+.celda.inactiva{background:var(--fondo);border-color:var(--gris3);color:var(--gris2);border-style:dashed}
+.vacia{min-height:58px;border-radius:10px;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--vea-gris) 6px 7px);opacity:.6}
+
+/* Registrar */
+.dos{display:grid;grid-template-columns:minmax(260px,360px) 1fr;gap:16px;align-items:start}
+.buscador{display:flex;gap:8px;margin-bottom:10px}
+.buscador input{flex:1}
+input[type=text],input[type=search],input[type=date],input[type=month],input[type=email],input[type=tel],select,textarea{
+  width:100%;min-height:40px;padding:8px 12px;border:1.5px solid var(--gris3);border-radius:10px;background:var(--blanco);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--azul)}
+textarea{min-height:64px;resize:vertical}
+label{display:block;font-size:12px;font-weight:600;color:var(--gris2);margin-bottom:4px}
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.campos .ancho{grid-column:1/-1}
+.lista{list-style:none;max-height:62vh;overflow-y:auto}
+.lista li button{width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--vea-gris);
+  padding:10px 8px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;min-height:44px}
+.lista li button:hover,.lista li button[aria-current="true"]{background:var(--fondo)}
+.lista .sub{font-size:11px;color:var(--gris2)}
+.chip{display:inline-block;padding:1px 9px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+.chip.Activo{background:var(--pos-fondo);color:var(--verde-texto)}
+.chip.Retirado{background:var(--vea-gris);color:var(--gris2)}
+.chip.revisar{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
+.chip.clase{background:var(--vea-celeste);color:var(--negro);font-weight:500}
+.ficha-tit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.ficha-tit h2{margin:0}
+.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table.datos{width:100%;border-collapse:collapse;font-size:13px}
+table.datos th{text-align:left;font-size:11px;color:var(--gris2);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--gris3)}
+table.datos td{padding:8px;border-bottom:1px solid var(--vea-gris);vertical-align:middle}
+table.datos td.der,table.datos th.der{text-align:right}
+.fila-ins{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--vea-gris)}
+.inscribir{display:grid;grid-template-columns:1fr 160px auto;gap:8px;align-items:end;margin-top:8px}
+
+/* Diálogos */
+dialog{border:none;border-radius:16px;padding:0;width:min(560px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog.ancho{width:min(820px,calc(100vw - 32px))}
+.dlg-cab{padding:16px 20px;border-bottom:1px solid var(--gris3);display:flex;justify-content:space-between;align-items:start;gap:12px}
+.dlg-cab h2{font-size:16px}
+.dlg-cuerpo{padding:16px 20px;max-height:65vh;overflow-y:auto}
+.dlg-pie{padding:12px 20px;border-top:1px solid var(--gris3);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.cerrar{background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:var(--gris2);min-width:36px;min-height:36px}
+.campo{margin-bottom:12px}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--negro);color:var(--blanco);
+  padding:10px 18px;border-radius:20px;font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+#toast.ver{opacity:1}
+
+/* Pagos y revisar */
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.mini{background:var(--blanco);border-radius:12px;padding:14px;box-shadow:var(--sombra);border-left:4px solid var(--vea-arena)}
+.mini h3{font-size:14px;margin-bottom:2px}
+.mini p{font-size:12px;color:var(--gris2);margin:4px 0}
+
+@media (max-width:1100px){ .grillas{grid-template-columns:1fr} }
+@media (max-width:900px){
+  .dos{grid-template-columns:1fr}
+  .lista{max-height:40vh}
+}
+@media (max-width:600px){
+  .inscribir{grid-template-columns:1fr}
+  .grilla{border-spacing:3px}
+  .grilla th.hora{width:44px}
+  .celda .e{display:none}
+  .celda .r{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="barra">
+    <div class="marca">Vida en Arte <span>· After School</span></div>
+    <div class="usuario">
+      <span id="quien"></span>
+      <button class="btn sec chico" id="btnActualizar" type="button">Actualizar</button>
+      <a href="/">Portal</a>
+      <a href="/logout.php">Cerrar sesión</a>
+    </div>
+  </div>
+  <nav role="tablist" id="pestanas">
+    <button role="tab" data-vista="ocupacion" aria-selected="true">Ocupación</button>
+    <button role="tab" data-vista="registrar" aria-selected="false">Registrar</button>
+    <button role="tab" data-vista="pagos" aria-selected="false">Pagos</button>
+    <button role="tab" data-vista="revisar" aria-selected="false">Por revisar <span class="insignia oculto" id="cuentaRevisar"></span></button>
+  </nav>
+</header>
+
+<main>
+  <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo la base de After School.</p></div>
+  <div id="avisos"></div>
+
+  <!-- VISTA 1 · OCUPACIÓN -->
+  <section id="v-ocupacion" class="vista oculto">
+    <div class="resumen" id="resumen"></div>
+    <div class="leyenda">
+      <span><i style="background:var(--pos-fondo);border-color:var(--pos-borde)"></i>Con cupos</span>
+      <span><i style="background:var(--amarillo-fondo);border-color:var(--amarillo-borde)"></i><span id="leyendaUmbral">Casi llena</span></span>
+      <span><i style="background:var(--rojo);border-color:var(--rojo)"></i>LLENO</span>
+      <span><i style="background:var(--fondo);border-color:var(--gris3)"></i>Inactiva</span>
+      <span>Toca una celda para ver los niños</span>
+    </div>
+    <div class="grillas" id="grillas"></div>
+  </section>
+
+  <!-- VISTA 2 · REGISTRAR -->
+  <section id="v-registrar" class="vista oculto">
+    <div class="dos">
+      <div class="tarjeta">
+        <div class="buscador">
+          <input type="search" id="buscar" placeholder="Nombre, ID, socio o teléfono" aria-label="Buscar niño">
+          <button class="btn" id="btnNuevo" type="button">+ Nuevo</button>
+        </div>
+        <label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" id="verRetirados"> Incluir retirados</label>
+        <p class="ayuda" id="cuentaBusqueda" style="margin:6px 0"></p>
+        <ul class="lista" id="resultados"></ul>
+      </div>
+      <div id="ficha"><div class="tarjeta"><p class="ayuda">Busca un niño a la izquierda o crea uno nuevo.</p></div></div>
+    </div>
+  </section>
+
+  <!-- VISTA 3 · PAGOS -->
+  <section id="v-pagos" class="vista oculto">
+    <div class="dos">
+      <div class="tarjeta">
+        <h2>Registrar pago</h2>
+        <form id="formPago" autocomplete="off">
+          <div class="campo"><label for="pNino">Niño</label>
+            <input type="text" id="pNino" list="listaNinos" placeholder="Escribe el nombre o el ID" required>
+            <datalist id="listaNinos"></datalist>
+            <p class="ayuda" id="pNinoInfo"></p></div>
+          <div class="campos">
+            <div><label for="pMes">Mes que cubre</label><input type="month" id="pMes" required></div>
+            <div><label for="pConcepto">Concepto</label><select id="pConcepto" required></select></div>
+            <div><label for="pPlan">Plan</label><select id="pPlan"></select><p class="ayuda" id="pPrecio"></p></div>
+            <div><label for="pMonto">Monto (USD)</label><input type="text" id="pMonto" inputmode="decimal" placeholder="0.00" required></div>
+            <div><label for="pFecha">Fecha de pago</label><input type="date" id="pFecha" required></div>
+            <div><label for="pForma">Forma de pago</label><select id="pForma" required></select></div>
+            <div class="ancho"><label for="pNotas">Notas</label><input type="text" id="pNotas"></div>
+          </div>
+          <div class="acciones"><button class="btn" type="submit">Registrar pago</button></div>
+        </form>
+      </div>
+      <div>
+        <div class="tarjeta">
+          <h2 id="sinPagoTit">Activos sin pago del mes</h2>
+          <p class="ayuda" id="sinPagoAyuda"></p>
+          <table class="datos"><thead><tr><th>Niño</th><th>Clases</th><th></th></tr></thead><tbody id="sinPago"></tbody></table>
+        </div>
+        <div class="tarjeta">
+          <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:10px">
+            <h2 style="margin:0;flex:1">Pagos registrados</h2>
+            <div><label for="mesLista">Mes</label><input type="month" id="mesLista"></div>
+          </div>
+          <div id="listaPagos"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA 4 · POR REVISAR -->
+  <section id="v-revisar" class="vista oculto">
+    <div class="tarjeta">
+      <h2>Por revisar</h2>
+      <p class="ayuda">Niños que vinieron de Poliwin con algo que confirmar. Al marcarlos «Activo» siguen igual; «Retirado» pide fecha y motivo y cierra sus clases.</p>
+    </div>
+    <div class="tarjetas" id="listaRevisar"></div>
+  </section>
+</main>
+
+<!-- Diálogo: niños de una clase -->
+<dialog id="dlgClase" class="ancho">
+  <div class="dlg-cab"><div><h2 id="dcTit"></h2><p class="ayuda" id="dcSub"></p></div><button class="cerrar" data-cerrar aria-label="Cerrar">×</button></div>
+  <div class="dlg-cuerpo" id="dcCuerpo"></div>
+</dialog>
+
+<!-- Diálogo: baja (de una clase, total o desde Por revisar) -->
+<dialog id="dlgBaja">
+  <form method="dialog" id="formBaja">
+    <div class="dlg-cab"><div><h2 id="dbTit">Dar de baja</h2><p class="ayuda" id="dbSub"></p></div><button class="cerrar" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo">
+      <div class="campo"><label for="dbFecha">Fecha de baja</label><input type="date" id="dbFecha" required></div>
+      <div class="campo"><label for="dbMotivo">Motivo</label><select id="dbMotivo" required></select></div>
+      <div class="campo"><label for="dbDetalle">Detalle (opcional)</label><textarea id="dbDetalle"></textarea></div>
+      <div id="dbError"></div>
+    </div>
+    <div class="dlg-pie"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn peligro" type="submit" id="dbOk">Dar de baja</button></div>
+  </form>
+</dialog>
+
+<!-- Diálogo: mover de clase -->
+<dialog id="dlgMover">
+  <form method="dialog" id="formMover">
+    <div class="dlg-cab"><div><h2>Mover de clase</h2><p class="ayuda" id="dmSub"></p></div><button class="cerrar" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo">
+      <div class="campo"><label for="dmClase">Clase nueva</label><select id="dmClase" required></select></div>
+      <div class="campo"><label for="dmFecha">Desde</label><input type="date" id="dmFecha" required></div>
+      <div class="campo"><label for="dmDetalle">Detalle (opcional)</label><input type="text" id="dmDetalle"></div>
+      <div id="dmError"></div>
+    </div>
+    <div class="dlg-pie"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Mover</button></div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ==========================================================================
+   TRANSPORTE — todo pasa por api.php. Nunca se muestran datos vacíos sin
+   avisar: si la lectura falla, la pantalla lo dice y ofrece Reintentar.
+   ========================================================================== */
+const API = 'api.php';
+
+class ErrorApi extends Error {
+  constructor(mensaje, codigo) { super(mensaje); this.codigo = codigo || ''; }
+}
+
+async function api(accion, datos) {
+  let r;
+  try {
+    r = await fetch(API, { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ accion, datos: datos || {} }) });
+  } catch (e) {
+    throw new ErrorApi('No hay conexión con el servidor del portal. Revisa internet y vuelve a intentarlo.', 'red');
+  }
+  const tipo = r.headers.get('content-type') || '';
+  const txt = await r.text();
+  // La sesión del portal caducada responde con la página de login (HTML) o 401.
+  if (r.status === 401 || /text\/html/i.test(tipo) || /^\s*</.test(txt))
+    throw new ErrorApi('La sesión del portal caducó.', 'sesion');
+  let j;
+  try { j = JSON.parse(txt); } catch (e) { throw new ErrorApi('El servidor respondió algo que no se entiende (código ' + r.status + ').', 'ilegible'); }
+  if (!j.ok) throw new ErrorApi(j.error || ('Error ' + r.status), j.codigo);
+  return j;
+}
+
+/* ==========================================================================
+   ESTADO
+   ========================================================================== */
+let E = null;              // lo último que devolvió el servidor
+let vista = 'ocupacion';
+let fichaId = null;        // niño abierto en Registrar ('' = nuevo)
+let ocupado = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const nombre = n => (n.nombre + ' ' + n.apellidos).trim();
+const fecha = iso => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—';
+const dinero = v => (typeof v === 'number' && !isNaN(v)) ? '$' + v.toFixed(2) : '—';
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const nombreMes = m => m ? MESES[+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4) : '';
+const DIA_CORTO = { 'Lunes': 'Lun', 'Martes': 'Mar', 'Miércoles': 'Mié', 'Jueves': 'Jue', 'Viernes': 'Vie', 'Sábado': 'Sáb', 'Domingo': 'Dom' };
+
+function edad(n) {
+  if (!n.nacimiento || !E) return '';
+  const [y, m, d] = n.nacimiento.split('-').map(Number), [hy, hm, hd] = E.hoy.split('-').map(Number);
+  let meses = (hy - y) * 12 + (hm - m) - (hd < d ? 1 : 0);
+  if (meses < 0) return '';
+  return meses < 24 ? meses + ' meses' : Math.floor(meses / 12) + ' años';
+}
+
+/* Índices que se rehacen con cada lectura. */
+let IDX = {};
+function indexar() {
+  const ninos = {}, clases = {}, insNino = {}, insClase = {};
+  E.ninos.forEach(n => { ninos[n.id] = n; });
+  E.clases.forEach(c => { clases[c.codigo] = c; });
+  E.inscripciones.forEach(i => {
+    (insNino[i.idNino] = insNino[i.idNino] || []).push(i);
+    (insClase[i.codigo] = insClase[i.codigo] || []).push(i);
+  });
+  IDX = { ninos, clases, insNino, insClase };
+}
+const etiquetaClase = c => c ? c.servicio + ' · ' + c.dia + ' ' + c.hora : '';
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('ver');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('ver'), 3200);
+}
+
+/* ==========================================================================
+   CARGA Y PANTALLAS DE ESTADO
+   ========================================================================== */
+function pantalla(html) {
+  const p = $('#pantalla');
+  p.innerHTML = html; p.classList.remove('oculto');
+  document.querySelectorAll('.vista').forEach(v => v.classList.add('oculto'));
+  $('#avisos').innerHTML = '';
+}
+
+function pantallaError(e) {
+  if (e.codigo === 'sesion') {
+    pantalla('<h2>Tu sesión caducó</h2><p>Vuelve a entrar al portal y abre After School otra vez. No se perdió nada de lo que ya estaba guardado.</p><a class="btn" href="/">Entrar al portal</a>');
+    return;
+  }
+  pantalla('<h2>No se pudieron leer los datos</h2><p>La página no muestra nada hasta poder leer la base, para no dar a entender que está vacía.</p><pre>' +
+    esc(e.message) + '</pre><button class="btn" id="btnReintentar" type="button">Reintentar</button>');
+  $('#btnReintentar').onclick = cargar;
+}
+
+async function cargar() {
+  pantalla('<h2>Cargando…</h2><p>Leyendo la base de After School.</p>');
+  try {
+    const r = await api('leer');
+    aplicar(r.resultado);
+  } catch (e) { pantallaError(e); }
+}
+
+function aplicar(estado) {
+  if (!estado || !Array.isArray(estado.clases) || !Array.isArray(estado.ninos) || !Array.isArray(estado.inscripciones) || !estado.config) {
+    pantallaError(new ErrorApi('La respuesta del servidor no trae clases, niños e inscripciones.'));
+    return;
+  }
+  E = estado;
+  indexar();
+  $('#pantalla').classList.add('oculto');
+  $('#quien').textContent = E.usuario ? 'Entraste como ' + E.usuario : '';
+  pintarAvisos();
+  pintarTodo();
+  mostrarVista(vista);
+}
+
+function pintarAvisos() {
+  const a = [];
+  if (!E.clases.length) a.push('<div class="aviso mal">La pestaña <b>Clases</b> no tiene ninguna clase. La ocupación sale vacía porque no hay clases, no porque no haya niños.</div>');
+  (E.config.faltan || []).forEach(f => a.push('<div class="aviso mal">Falta en la pestaña <b>Config</b>: ' + esc(f) + '.</div>'));
+  const huerf = E.inscripciones.filter(i => !IDX.clases[i.codigo] || !IDX.ninos[i.idNino]);
+  if (huerf.length) a.push('<div class="aviso ojo">' + huerf.length + ' inscripción(es) apuntan a una clase o un niño que no existe: ' +
+    esc(huerf.slice(0, 5).map(i => i.id).join(', ')) + (huerf.length > 5 ? '…' : '') + '. No se cuentan en la ocupación.</div>');
+  $('#avisos').innerHTML = a.join('');
+}
+
+function pintarTodo() {
+  pintarOcupacion();
+  pintarBusqueda();
+  pintarFicha();
+  pintarPagos();
+  pintarRevisar();
+  const nRev = E.ninos.filter(n => n.estado === 'Por revisar').length;
+  const ins = $('#cuentaRevisar');
+  ins.textContent = nRev; ins.classList.toggle('oculto', !nRev);
+}
+
+function mostrarVista(v) {
+  vista = v;
+  document.querySelectorAll('#pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.vista === v ? 'true' : 'false'));
+  document.querySelectorAll('.vista').forEach(s => s.classList.toggle('oculto', s.id !== 'v-' + v || !E));
+}
+document.querySelectorAll('#pestanas button').forEach(b => b.onclick = () => mostrarVista(b.dataset.vista));
+$('#btnActualizar').onclick = cargar;
+
+/* Escritura: bloquea la pantalla mientras guarda y repinta con lo releído. */
+async function escribir(accion, datos, mensajeOk, opciones) {
+  if (ocupado) return null;
+  ocupado = true; document.body.style.cursor = 'progress';
+  document.querySelectorAll('button').forEach(b => { if (!b.disabled) { b.dataset.reactivar = '1'; b.disabled = true; } });
+  try {
+    let r;
+    try { r = await api(accion, datos); }
+    catch (e) {
+      if (e.codigo !== 'duplicado') throw e;
+      if (!confirm(e.message)) return null;   // canceló: no hay nada que avisar
+      r = await api(accion, Object.assign({}, datos, { confirmarDuplicado: true }));
+    }
+    aplicar(r.estado);
+    if (mensajeOk) toast(mensajeOk);
+    return r.resultado;
+  } catch (e) {
+    if (e.codigo === 'sesion') { pantallaError(e); return null; }
+    if (opciones && opciones.donde) opciones.donde.innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>';
+    else alert(e.message);
+    return null;
+  } finally {
+    ocupado = false; document.body.style.cursor = '';
+    document.querySelectorAll('button[data-reactivar]').forEach(b => { b.disabled = false; delete b.dataset.reactivar; });
+  }
+}
+
+/* ==========================================================================
+   VISTA 1 · OCUPACIÓN
+   ========================================================================== */
+function estadoCelda(c) {
+  if (!c.activa) return 'inactiva';
+  if (c.reservados >= c.cupo) return 'lleno';
+  if (E.config.umbral != null && c.reservados / c.cupo >= E.config.umbral) return 'casi';
+  return 'libre';
+}
+function suma(cl) {
+  const a = cl.filter(c => c.activa);
+  const r = a.reduce((x, c) => x + c.reservados, 0), k = a.reduce((x, c) => x + (c.cupo || 0), 0);
+  return { r, k, p: k ? Math.round(r / k * 100) : 0 };
+}
+function datoHtml(et, s, principal) {
+  return '<div class="dato' + (principal ? ' principal' : '') + '"><div class="et">' + esc(et) + '</div><div class="val num">' + s.r +
+    ' <small>/ ' + s.k + ' · ' + s.p + ' %</small></div><div class="barra-oc"><i style="width:' + Math.min(s.p, 100) + '%"></i></div></div>';
+}
+
+function pintarOcupacion() {
+  const servicios = [...new Set(E.clases.map(c => c.servicio))];
+  const modalidades = [...new Set(E.clases.map(c => c.modalidad))];
+  $('#resumen').innerHTML = modalidades.map(m => datoHtml(m, suma(E.clases.filter(c => c.modalidad === m)), true)).join('') +
+    servicios.map(s => datoHtml(s, suma(E.clases.filter(c => c.servicio === s)))).join('');
+  $('#leyendaUmbral').textContent = E.config.umbral != null ? 'Desde ' + Math.round(E.config.umbral * 100) + ' %' : 'Sin umbral en Config';
+
+  const dias = E.dias.filter(d => E.clases.some(c => c.dia === d));
+  $('#grillas').innerHTML = servicios.map(s => {
+    const cl = E.clases.filter(c => c.servicio === s);
+    const horas = [...new Set(cl.map(c => c.hora))].sort();
+    const tot = suma(cl);
+    let h = '<div class="tarjeta"><h2>' + esc(s) + ' <span class="ayuda num">' + tot.r + ' / ' + tot.k + ' · ' + tot.p + ' %</span></h2>' +
+      '<table class="grilla"><thead><tr><th class="hora"></th>' + dias.map(d => '<th>' + esc(DIA_CORTO[d] || d) + '</th>').join('') + '</tr></thead><tbody>';
+    horas.forEach(hr => {
+      h += '<tr><th class="hora num">' + esc(hr) + '</th>';
+      dias.forEach(d => {
+        const cs = cl.filter(c => c.dia === d && c.hora === hr);
+        h += '<td>' + (cs.length ? cs.map(c => {
+          const est = estadoCelda(c);
+          const txt = est === 'lleno' ? 'LLENO' : c.reservados + ' / ' + c.cupo;
+          return '<button class="celda ' + est + '" data-clase="' + esc(c.codigo) + '" type="button" aria-label="' + esc(etiquetaClase(c) + ': ' + c.reservados + ' de ' + c.cupo) + '">' +
+            '<span class="r num">' + txt + '</span>' + (est === 'lleno' ? '<span class="e num">' + c.reservados + ' / ' + c.cupo + '</span>' : '') +
+            '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span></button>';
+        }).join('') : '<div class="vacia" aria-hidden="true"></div>') + '</td>';
+      });
+      h += '</tr>';
+    });
+    return h + '</tbody></table></div>';
+  }).join('');
+  $('#grillas').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase));
+}
+
+function abrirClase(codigo) {
+  const c = IDX.clases[codigo];
+  if (!c) return;
+  const ins = (IDX.insClase[codigo] || []).map(i => ({ i, n: IDX.ninos[i.idNino] })).filter(x => x.n)
+    .sort((a, b) => nombre(a.n).localeCompare(nombre(b.n), 'es'));
+  $('#dcTit').textContent = etiquetaClase(c);
+  $('#dcSub').textContent = c.codigo + ' · ' + c.reservados + ' de ' + c.cupo + ' cupos · ' + (c.edades || 'edades sin definir') + (c.activa ? '' : ' · INACTIVA');
+  $('#dcCuerpo').innerHTML = ins.length ? '<table class="datos"><thead><tr><th>Niño</th><th>Edad</th><th>Teléfono</th><th>Alta</th><th></th></tr></thead><tbody>' +
+    ins.map(({ i, n }) => '<tr><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + (n.estado !== 'Activo' ? ' · ' + esc(n.estado) : '') + '</div></td>' +
+      '<td>' + esc(edad(n)) + '</td><td>' + esc(n.telefono) + '</td><td class="num">' + fecha(i.alta) + '</td>' +
+      '<td class="der"><button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button> ' +
+      '<button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> ' +
+      '<button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja</button></td></tr>').join('') + '</tbody></table>'
+    : '<p class="ayuda">Nadie inscrito en esta clase.</p>';
+  enganchar($('#dcCuerpo'));
+  $('#dlgClase').showModal();
+}
+
+/* Botones Ficha / Mover / Baja dentro de cualquier bloque. */
+function enganchar(raiz) {
+  raiz.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => { cerrarDialogos(); abrirFicha(b.dataset.ficha); });
+  raiz.querySelectorAll('[data-mover]').forEach(b => b.onclick = () => abrirMover(b.dataset.mover));
+  raiz.querySelectorAll('[data-baja]').forEach(b => b.onclick = () => abrirBaja({ tipo: 'clase', idInscripcion: b.dataset.baja }));
+}
+
+/* ==========================================================================
+   VISTA 2 · REGISTRAR
+   ========================================================================== */
+function coincide(n, q) {
+  if (!q) return true;
+  const h = norm([n.nombre, n.apellidos, n.id, n.socio, n.telefono, n.telefono2, n.responsable, n.correo].join(' '));
+  return q.split(/\s+/).every(p => h.includes(p));
+}
+function chipEstado(e) { return '<span class="chip ' + (e === 'Por revisar' ? 'revisar' : esc(e)) + '">' + esc(e) + '</span>'; }
+
+function pintarBusqueda() {
+  const q = norm($('#buscar').value), ret = $('#verRetirados').checked;
+  const r = E.ninos.filter(n => (ret || n.estado !== 'Retirado') && coincide(n, q))
+    .sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'));
+  const tope = 60;
+  $('#cuentaBusqueda').textContent = r.length + (r.length === 1 ? ' niño' : ' niños') + (r.length > tope ? ' · se muestran los primeros ' + tope + ', afina la búsqueda' : '');
+  $('#resultados').innerHTML = r.slice(0, tope).map(n => {
+    const cl = (IDX.insNino[n.id] || []).length;
+    return '<li><button type="button" data-id="' + esc(n.id) + '"' + (n.id === fichaId ? ' aria-current="true"' : '') + '><span><b>' + esc(nombre(n)) +
+      '</b><br><span class="sub">' + esc(n.id) + ' · ' + cl + (cl === 1 ? ' clase' : ' clases') + (edad(n) ? ' · ' + esc(edad(n)) : '') + '</span></span>' + chipEstado(n.estado) + '</button></li>';
+  }).join('');
+  $('#resultados').querySelectorAll('button').forEach(b => b.onclick = () => abrirFicha(b.dataset.id));
+}
+$('#buscar').oninput = pintarBusqueda;
+$('#verRetirados').onchange = pintarBusqueda;
+$('#btnNuevo').onclick = () => abrirFicha('');
+
+function abrirFicha(id) {
+  fichaId = id;
+  mostrarVista('registrar');
+  pintarBusqueda();
+  pintarFicha();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+const CAMPOS = [
+  ['nombre', 'Nombre', 'text', true], ['apellidos', 'Apellidos', 'text'], ['nacimiento', 'Fecha de nacimiento', 'date'],
+  ['sexo', 'Sexo', 'text'], ['responsable', 'Nombre del responsable', 'text'], ['telefono', 'Teléfono', 'tel'],
+  ['telefono2', 'Teléfono 2', 'tel'], ['correo', 'Correo', 'email'], ['socio', 'Número socio Poliwin', 'text'],
+  ['cabeza', 'Cabeza de familia (n.º Poliwin)', 'text'], ['ingreso', 'Fecha de ingreso', 'date'], ['notas', 'Notas', 'textarea']
+];
+
+function formularioNino(n) {
+  return '<div class="campos">' + CAMPOS.map(([k, et, tipo, req]) => {
+    const v = n ? n[k] : '';
+    const ctl = tipo === 'textarea' ? '<textarea id="f_' + k + '">' + esc(v) + '</textarea>'
+      : '<input type="' + tipo + '" id="f_' + k + '" value="' + esc(v) + '"' + (req ? ' required' : '') + (tipo === 'date' ? ' max="' + esc(E.hoy) + '"' : '') + '>';
+    return '<div' + (tipo === 'textarea' ? ' class="ancho"' : '') + '><label for="f_' + k + '">' + esc(et) + (req ? ' *' : '') + '</label>' + ctl + '</div>';
+  }).join('') + '</div>';
+}
+function leerFormulario() {
+  const o = {};
+  CAMPOS.forEach(([k]) => { o[k] = $('#f_' + k).value.trim(); });
+  return o;
+}
+
+/* Opciones de clase para inscribir o mover: agrupadas por servicio, las
+   llenas, inactivas o ya tomadas aparecen pero no se pueden elegir. */
+function opcionesClase(excluir) {
+  const servicios = [...new Set(E.clases.map(c => c.servicio))];
+  const orden = c => E.dias.indexOf(c.dia) * 10000 + Number(c.hora.replace(':', ''));
+  return '<option value="">Elige una clase…</option>' + servicios.map(s => '<optgroup label="' + esc(s) + '">' +
+    E.clases.filter(c => c.servicio === s).sort((a, b) => orden(a) - orden(b)).map(c => {
+      const lleno = c.reservados >= c.cupo, ya = excluir.includes(c.codigo);
+      const nota = !c.activa ? ' — inactiva' : ya ? ' — ya inscrito' : lleno ? ' — LLENA' : '';
+      return '<option value="' + esc(c.codigo) + '"' + (!c.activa || lleno || ya ? ' disabled' : '') + '>' + esc(c.dia + ' ' + c.hora + ' · ' + c.edades + ' · ' + c.reservados + '/' + c.cupo + nota) + '</option>';
+    }).join('') + '</optgroup>').join('');
+}
+
+function pintarFicha() {
+  const cont = $('#ficha');
+  if (fichaId === null) return;
+  if (fichaId === '') {
+    cont.innerHTML = '<div class="tarjeta"><h2>Nuevo niño</h2>' + formularioNino(null) +
+      '<div id="fError"></div><div class="acciones"><button class="btn" id="btnCrear" type="button">Crear niño</button></div></div>';
+    $('#btnCrear').onclick = async () => {
+      const datos = leerFormulario();
+      if (!datos.nombre) { $('#fError').innerHTML = '<div class="aviso mal">El nombre es obligatorio.</div>'; return; }
+      const r = await escribir('crearNino', { nino: datos }, 'Niño creado', { donde: $('#fError') });
+      if (r) abrirFicha(r.id);
+    };
+    return;
+  }
+  const n = IDX.ninos[fichaId];
+  if (!n) { cont.innerHTML = '<div class="tarjeta"><div class="aviso mal">El niño ' + esc(fichaId) + ' ya no está en la base.</div></div>'; return; }
+  const ins = IDX.insNino[n.id] || [];
+  const retirado = n.estado === 'Retirado';
+  cont.innerHTML =
+    '<div class="tarjeta"><div class="ficha-tit"><h2>' + esc(nombre(n)) + '</h2>' + chipEstado(n.estado) + '</div>' +
+    '<p class="ayuda">' + esc(n.id) + (n.socio ? ' · socio Poliwin ' + esc(n.socio) : '') + (edad(n) ? ' · ' + esc(edad(n)) : '') + '</p>' +
+    (n.estado === 'Por revisar' ? '<div class="aviso ojo" style="margin-top:10px">Este niño está «Por revisar». Se resuelve en la pestaña Por revisar.</div>' : '') +
+    '<h3>Clases</h3>' +
+    (ins.length ? ins.map(i => {
+      const c = IDX.clases[i.codigo];
+      return '<div class="fila-ins"><span><span class="chip clase">' + esc(c ? etiquetaClase(c) : i.codigo) + '</span> <span class="ayuda">desde ' + fecha(i.alta) + '</span></span>' +
+        '<span><button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> <button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja de esta clase</button></span></div>';
+    }).join('') : '<p class="ayuda">Sin clases activas.</p>') +
+    (retirado ? '<div class="aviso ojo" style="margin-top:10px">Retirado: para inscribirlo otra vez, reactívalo primero.</div><div class="acciones"><button class="btn" id="btnReactivar" type="button">Reactivar</button></div>'
+      : '<div class="inscribir"><div><label for="insClase">Inscribir en</label><select id="insClase">' + opcionesClase(ins.map(i => i.codigo)) + '</select></div>' +
+        '<div><label for="insFecha">Fecha de alta</label><input type="date" id="insFecha" value="' + esc(E.hoy) + '"></div>' +
+        '<button class="btn" id="btnInscribir" type="button">Inscribir</button></div><div id="insError"></div>') +
+    '</div>' +
+    '<div class="tarjeta"><h2>Datos</h2>' + formularioNino(n) + '<div id="fError"></div><div class="acciones">' +
+    '<button class="btn" id="btnGuardar" type="button">Guardar cambios</button>' +
+    (retirado ? '' : '<button class="btn peligro" id="btnBajaTotal" type="button">Dar de baja del todo</button>') + '</div></div>';
+  enganchar(cont);
+  if ($('#btnInscribir')) $('#btnInscribir').onclick = () => {
+    const codigo = $('#insClase').value;
+    if (!codigo) { $('#insError').innerHTML = '<div class="aviso mal">Elige una clase.</div>'; return; }
+    escribir('inscribir', { idNino: n.id, codigo, fechaAlta: $('#insFecha').value }, 'Inscrito en ' + etiquetaClase(IDX.clases[codigo]), { donde: $('#insError') });
+  };
+  if ($('#btnReactivar')) $('#btnReactivar').onclick = () => escribir('editarNino', { id: n.id, cambios: {}, reactivar: true }, 'Reactivado');
+  $('#btnGuardar').onclick = () => {
+    const datos = leerFormulario();
+    if (!datos.nombre) { $('#fError').innerHTML = '<div class="aviso mal">El nombre no puede quedar vacío.</div>'; return; }
+    escribir('editarNino', { id: n.id, cambios: datos }, 'Cambios guardados', { donde: $('#fError') });
+  };
+  if ($('#btnBajaTotal')) $('#btnBajaTotal').onclick = () => abrirBaja({ tipo: 'total', idNino: n.id });
+}
+
+/* ==========================================================================
+   DIÁLOGOS DE BAJA Y DE MOVER
+   ========================================================================== */
+let bajaActual = null, moverActual = null;
+function cerrarDialogos() { document.querySelectorAll('dialog[open]').forEach(d => d.close()); }
+document.querySelectorAll('[data-cerrar]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+function abrirBaja(op) {
+  bajaActual = op;
+  let tit = 'Dar de baja', sub = '';
+  if (op.tipo === 'clase') {
+    const i = E.inscripciones.find(x => x.id === op.idInscripcion), n = i && IDX.ninos[i.idNino];
+    tit = 'Baja de una clase'; sub = (n ? nombre(n) : '') + ' · ' + (i ? etiquetaClase(IDX.clases[i.codigo]) : '');
+  } else {
+    const n = IDX.ninos[op.idNino], k = (IDX.insNino[op.idNino] || []).length;
+    tit = op.tipo === 'revisar' ? 'Marcar como Retirado' : 'Dar de baja del todo';
+    sub = (n ? nombre(n) : '') + ' · se cierran sus ' + k + (k === 1 ? ' clase' : ' clases') + ' y queda Retirado';
+  }
+  $('#dbTit').textContent = tit; $('#dbSub').textContent = sub;
+  $('#dbFecha').value = E.hoy; $('#dbFecha').max = E.hoy;
+  $('#dbMotivo').innerHTML = '<option value="">Elige el motivo…</option>' + E.config.motivos.map(m => '<option>' + esc(m) + '</option>').join('');
+  $('#dbDetalle').value = ''; $('#dbError').innerHTML = '';
+  $('#dlgBaja').showModal();
+}
+$('#formBaja').onsubmit = async ev => {
+  ev.preventDefault();
+  const op = bajaActual, f = $('#dbFecha').value, m = $('#dbMotivo').value, d = $('#dbDetalle').value.trim();
+  if (!f || !m) { $('#dbError').innerHTML = '<div class="aviso mal">La fecha y el motivo son obligatorios.</div>'; return; }
+  let r;
+  if (op.tipo === 'clase') r = await escribir('bajaClase', { idInscripcion: op.idInscripcion, fecha: f, motivo: m, detalle: d }, 'Baja registrada', { donde: $('#dbError') });
+  else if (op.tipo === 'total') r = await escribir('bajaTotal', { idNino: op.idNino, fecha: f, motivo: m, detalle: d }, 'Niño retirado', { donde: $('#dbError') });
+  else r = await escribir('revisar', { idNino: op.idNino, estado: 'Retirado', fecha: f, motivo: m, detalle: d }, 'Marcado como Retirado', { donde: $('#dbError') });
+  if (r) cerrarDialogos();
+};
+
+function abrirMover(idIns) {
+  const i = E.inscripciones.find(x => x.id === idIns);
+  if (!i) return;
+  moverActual = i;
+  const n = IDX.ninos[i.idNino];
+  $('#dmSub').textContent = (n ? nombre(n) : '') + ' · ahora en ' + etiquetaClase(IDX.clases[i.codigo]);
+  $('#dmClase').innerHTML = opcionesClase((IDX.insNino[i.idNino] || []).map(x => x.codigo));
+  $('#dmFecha').value = E.hoy; $('#dmFecha').max = E.hoy;
+  $('#dmDetalle').value = ''; $('#dmError').innerHTML = '';
+  $('#dlgMover').showModal();
+}
+$('#formMover').onsubmit = async ev => {
+  ev.preventDefault();
+  const c = $('#dmClase').value;
+  if (!c) { $('#dmError').innerHTML = '<div class="aviso mal">Elige la clase nueva.</div>'; return; }
+  const r = await escribir('mover', { idInscripcion: moverActual.id, codigoNuevo: c, fecha: $('#dmFecha').value, detalle: $('#dmDetalle').value.trim() },
+    'Movido a ' + etiquetaClase(IDX.clases[c]), { donde: $('#dmError') });
+  if (r) cerrarDialogos();
+};
+
+/* ==========================================================================
+   VISTA 3 · PAGOS
+   ========================================================================== */
+let pagosIniciados = false;
+function etiquetaNino(n) { return nombre(n) + ' · ' + n.id; }
+function idDeEtiqueta(v) { const m = /·\s*(AS-\d+)\s*$/.exec(v || '') || /^(AS-\d+)$/i.exec((v || '').trim()); return m ? m[1].toUpperCase() : ''; }
+
+function pintarPagos() {
+  const cfg = E.config;
+  const opts = (l, vacio) => (vacio ? '<option value="">' + esc(vacio) + '</option>' : '') + l.map(v => '<option>' + esc(v) + '</option>').join('');
+  const conserva = (sel, html) => { const v = sel.value; sel.innerHTML = html; if (v) sel.value = v; };
+  conserva($('#pConcepto'), opts(cfg.conceptos));
+  conserva($('#pPlan'), opts(cfg.planes.map(p => p.nombre), '— sin plan —'));
+  conserva($('#pForma'), opts(cfg.formas, 'Elige…'));
+  if (!pagosIniciados) {
+    $('#pMes').value = E.mes; $('#pFecha').value = E.hoy; $('#mesLista').value = E.mes;
+    if (cfg.conceptoMensual) $('#pConcepto').value = cfg.conceptoMensual;
+    pagosIniciados = true;
+  }
+  $('#pFecha').max = E.hoy;
+  $('#listaNinos').innerHTML = E.ninos.filter(n => n.estado !== 'Retirado').map(n => '<option value="' + esc(etiquetaNino(n)) + '">').join('');
+  pintarPrecio(); pintarNinoPago();
+
+  // Activos sin pago del mes en curso
+  const mensual = norm(cfg.conceptoMensual);
+  const pagaron = new Set(E.pagosMes.filter(p => norm(p.concepto) === mensual).map(p => p.idNino));
+  const sin = E.ninos.filter(n => n.estado === 'Activo' && !pagaron.has(n.id)).sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'));
+  $('#sinPagoTit').textContent = 'Activos sin ' + (cfg.conceptoMensual || 'mensualidad').toLowerCase() + ' de ' + nombreMes(E.mes) + ' (' + sin.length + ')';
+  $('#sinPagoAyuda').textContent = cfg.conceptoMensual ? 'Cuenta como pagado quien tiene un pago de «' + cfg.conceptoMensual + '» con mes ' + E.mes + '. Toca «Cobrar» para llenar el formulario.' :
+    'Falta en Config qué concepto cuenta como mensualidad: la lista no se puede calcular.';
+  $('#sinPago').innerHTML = !cfg.conceptoMensual ? '' : sin.length ? sin.map(n => {
+    const cl = (IDX.insNino[n.id] || []).map(i => '<span class="chip clase">' + esc(IDX.clases[i.codigo] ? (DIA_CORTO[IDX.clases[i.codigo].dia] || '') + ' ' + IDX.clases[i.codigo].hora + ' ' + IDX.clases[i.codigo].servicio : i.codigo) + '</span>').join(' ');
+    return '<tr><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + '</div></td><td>' + (cl || '<span class="ayuda">sin clases</span>') + '</td>' +
+      '<td class="der"><button class="btn sec chico" data-cobrar="' + esc(n.id) + '" type="button">Cobrar</button></td></tr>';
+  }).join('') : '<tr><td colspan="3" class="ayuda">Todos los activos tienen su pago de ' + esc(nombreMes(E.mes)) + '.</td></tr>';
+  $('#sinPago').querySelectorAll('[data-cobrar]').forEach(b => b.onclick = () => {
+    const n = IDX.ninos[b.dataset.cobrar];
+    $('#pNino').value = etiquetaNino(n); $('#pMes').value = E.mes;
+    if (cfg.conceptoMensual) $('#pConcepto').value = cfg.conceptoMensual;
+    pintarNinoPago(); $('#pMonto').focus(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  cargarListaPagos();
+}
+
+function pintarPrecio() {
+  const p = E.config.planes.find(x => x.nombre === $('#pPlan').value);
+  $('#pPrecio').textContent = p && p.precio != null ? 'Precio de referencia: $' + p.precio.toFixed(2) + ' (el monto se escribe a mano)' : '';
+}
+function pintarNinoPago() {
+  const id = idDeEtiqueta($('#pNino').value), n = IDX.ninos[id];
+  $('#pNinoInfo').textContent = n ? n.estado + ' · ' + ((IDX.insNino[id] || []).map(i => IDX.clases[i.codigo] ? etiquetaClase(IDX.clases[i.codigo]) : i.codigo).join(' · ') || 'sin clases') : '';
+}
+$('#pPlan').onchange = pintarPrecio;
+$('#pNino').oninput = pintarNinoPago;
+
+$('#formPago').onsubmit = async ev => {
+  ev.preventDefault();
+  const id = idDeEtiqueta($('#pNino').value);
+  if (!IDX.ninos[id]) { alert('Elige el niño de la lista (nombre · ID).'); return; }
+  const r = await escribir('registrarPago', {
+    idNino: id, mes: $('#pMes').value, concepto: $('#pConcepto').value, plan: $('#pPlan').value,
+    monto: $('#pMonto').value, fechaPago: $('#pFecha').value, forma: $('#pForma').value, notas: $('#pNotas').value.trim()
+  }, 'Pago registrado');
+  if (r) { $('#pNino').value = ''; $('#pMonto').value = ''; $('#pNotas').value = ''; pintarNinoPago(); }
+};
+
+let pedidoLista = 0;
+async function cargarListaPagos() {
+  const mes = $('#mesLista').value || E.mes, yo = ++pedidoLista, cont = $('#listaPagos');
+  const pintar = pagos => {
+    const total = pagos.reduce((x, p) => x + (p.monto || 0), 0);
+    cont.innerHTML = pagos.length ? '<p class="ayuda" style="margin-bottom:6px">' + pagos.length + ' pagos · total $' + total.toFixed(2) + '</p><table class="datos"><thead><tr><th>Niño</th><th>Concepto</th><th>Fecha</th><th>Forma</th><th class="der">Monto</th></tr></thead><tbody>' +
+      pagos.slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')).map(p => {
+        const n = IDX.ninos[p.idNino];
+        return '<tr><td>' + esc(n ? nombre(n) : p.idNino) + '<div class="ayuda">' + esc(p.id) + ' · ' + esc(p.registradoPor) + '</div></td><td>' + esc(p.concepto) + (p.plan ? '<div class="ayuda">' + esc(p.plan) + '</div>' : '') +
+          '</td><td class="num">' + fecha(p.fecha) + '</td><td>' + esc(p.forma) + '</td><td class="der num">' + dinero(p.monto) + '</td></tr>';
+      }).join('') + '</tbody></table>' : '<p class="ayuda">No hay pagos registrados para ' + esc(nombreMes(mes)) + '.</p>';
+  };
+  if (mes === E.mes) { pintar(E.pagosMes); return; }
+  cont.innerHTML = '<p class="ayuda">Cargando ' + esc(nombreMes(mes)) + '…</p>';
+  try {
+    const r = await api('listarPagos', { mes });
+    if (yo === pedidoLista) pintar(r.resultado.pagos);
+  } catch (e) {
+    if (e.codigo === 'sesion') return pantallaError(e);
+    if (yo === pedidoLista) cont.innerHTML = '<div class="aviso mal">No se pudieron leer los pagos de ' + esc(nombreMes(mes)) + ': ' + esc(e.message) + '</div>';
+  }
+}
+$('#mesLista').onchange = cargarListaPagos;
+
+/* ==========================================================================
+   VISTA 4 · POR REVISAR
+   ========================================================================== */
+function pintarRevisar() {
+  const l = E.ninos.filter(n => n.estado === 'Por revisar').sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'));
+  $('#listaRevisar').innerHTML = l.length ? l.map(n => {
+    const cl = (IDX.insNino[n.id] || []).map(i => '<span class="chip clase">' + esc(IDX.clases[i.codigo] ? etiquetaClase(IDX.clases[i.codigo]) : i.codigo) + '</span>').join(' ');
+    return '<div class="mini"><h3>' + esc(nombre(n)) + '</h3><p>' + esc(n.id) + (n.socio ? ' · socio ' + esc(n.socio) : '') + (edad(n) ? ' · ' + esc(edad(n)) : '') + (n.telefono ? ' · ' + esc(n.telefono) : '') + '</p>' +
+      (n.notas ? '<p>' + esc(n.notas) + '</p>' : '') + '<p>' + (cl || 'Sin clases reservadas') + '</p>' +
+      '<div class="acciones"><button class="btn chico" data-activo="' + esc(n.id) + '" type="button">Activo</button>' +
+      '<button class="btn peligro chico" data-retirado="' + esc(n.id) + '" type="button">Retirado</button>' +
+      '<button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button></div></div>';
+  }).join('') : '<div class="tarjeta"><div class="aviso bien" style="margin:0">No queda nadie por revisar.</div></div>';
+  const raiz = $('#listaRevisar');
+  raiz.querySelectorAll('[data-activo]').forEach(b => b.onclick = () => {
+    const n = IDX.ninos[b.dataset.activo];
+    if (confirm('¿Marcar a ' + nombre(n) + ' como Activo?')) escribir('revisar', { idNino: n.id, estado: 'Activo' }, nombre(n) + ' quedó Activo');
+  });
+  raiz.querySelectorAll('[data-retirado]').forEach(b => b.onclick = () => abrirBaja({ tipo: 'revisar', idNino: b.dataset.retirado }));
+  raiz.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => abrirFicha(b.dataset.ficha));
+}
+
+cargar();
+</script>
+</body>
+</html>
