@@ -170,6 +170,34 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
 .mini h3{font-size:14px;margin-bottom:2px}
 .mini p{font-size:12px;color:var(--gris2);margin:4px 0}
 
+/* Ocupación por fecha */
+.fecha-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.fecha-nav input{width:auto;min-height:32px;padding:4px 10px}
+.grilla th small{display:block;font-weight:500;font-size:11px}
+.grilla th.hoy{color:var(--azul)}
+.celda .pr{font-size:10px;font-weight:700;line-height:1.2}
+
+/* Pruebas e inscripción múltiple */
+.chip.Prospecto{background:var(--vea-celeste);color:var(--negro)}
+.chip.pr-ag{background:var(--vea-celeste);color:var(--negro)}
+.chip.pr-si{background:var(--pos-fondo);color:var(--verde-texto)}
+.chip.pr-no,.chip.pr-ca{background:var(--vea-gris);color:var(--gris2)}
+.segmentado{display:flex;gap:16px;flex-wrap:wrap}
+.segmentado label{display:flex;gap:6px;align-items:center;font-weight:500;color:var(--gris1);font-size:14px;margin:0}
+.etiqueta{display:block;font-size:12px;font-weight:600;color:var(--gris2);margin-bottom:4px}
+.casillas{display:flex;flex-wrap:wrap;gap:6px 16px}
+.casillas label{display:flex;gap:6px;align-items:center;font-weight:500;color:var(--gris1);font-size:13px;margin:0;min-height:32px}
+.lista-clases{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:8px}
+.lista-clases fieldset{border:1px solid var(--gris3);border-radius:10px;padding:8px 10px}
+.lista-clases legend{font-size:12px;font-weight:700;padding:0 4px}
+.lista-clases label{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:500;color:var(--gris1);margin:0;min-height:34px}
+.lista-clases label.no{color:var(--gris2)}
+.lista-clases label.no .por{font-weight:700}
+.pie-inscribir{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px}
+.pie-inscribir > div{width:170px}
+tr.pendiente td{background:var(--amarillo-fondo)}
+tr.cancelada td{color:var(--gris2)}
+
 @media (max-width:1100px){ .grillas{grid-template-columns:1fr} }
 @media (max-width:900px){
   .dos{grid-template-columns:1fr}
@@ -199,6 +227,7 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
   <nav role="tablist" id="pestanas">
     <button role="tab" data-vista="ocupacion" aria-selected="true">Ocupación</button>
     <button role="tab" data-vista="registrar" aria-selected="false">Registrar</button>
+    <button role="tab" data-vista="pruebas" aria-selected="false">Pruebas <span class="insignia oculto" id="cuentaPruebas"></span></button>
     <button role="tab" data-vista="pagos" aria-selected="false">Pagos</button>
     <button role="tab" data-vista="revisar" aria-selected="false">Por revisar <span class="insignia oculto" id="cuentaRevisar"></span></button>
   </nav>
@@ -210,12 +239,20 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
 
   <!-- VISTA 1 · OCUPACIÓN -->
   <section id="v-ocupacion" class="vista oculto">
+    <div class="fecha-nav">
+      <button class="btn sec chico" id="ocAnt" type="button" aria-label="Semana anterior">‹ Semana anterior</button>
+      <input type="date" id="ocFecha" aria-label="Fecha de la semana que se muestra">
+      <button class="btn sec chico" id="ocHoy" type="button">Hoy</button>
+      <button class="btn sec chico" id="ocSig" type="button" aria-label="Semana siguiente">Semana siguiente ›</button>
+      <span class="ayuda" id="ocRango"></span>
+    </div>
     <div class="resumen" id="resumen"></div>
     <div class="leyenda">
       <span><i style="background:var(--pos-fondo);border-color:var(--pos-borde)"></i>Con cupos</span>
       <span><i style="background:var(--amarillo-fondo);border-color:var(--amarillo-borde)"></i><span id="leyendaUmbral">Casi llena</span></span>
       <span><i style="background:var(--rojo);border-color:var(--rojo)"></i>LLENO</span>
       <span><i style="background:var(--fondo);border-color:var(--gris3)"></i>Inactiva</span>
+      <span>«18 + 2 prueba» = 18 inscritos y 2 en clase de prueba ese día</span>
       <span>Toca una celda para ver los niños</span>
     </div>
     <div class="grillas" id="grillas"></div>
@@ -234,6 +271,58 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
         <ul class="lista" id="resultados"></ul>
       </div>
       <div id="ficha"><div class="tarjeta"><p class="ayuda">Busca un niño a la izquierda o crea uno nuevo.</p></div></div>
+    </div>
+  </section>
+
+  <!-- VISTA · PRUEBAS -->
+  <section id="v-pruebas" class="vista oculto">
+    <div class="dos">
+      <div class="tarjeta">
+        <h2>Agendar clase de prueba</h2>
+        <form id="formPrueba" autocomplete="off">
+          <div class="campos">
+            <div><label for="agServicio">Servicio *</label><select id="agServicio"></select></div>
+            <div><label for="agFecha">Fecha *</label><input type="date" id="agFecha"></div>
+            <div class="ancho"><label for="agClase">Clase *</label><select id="agClase"></select><p class="ayuda" id="agClaseAyuda"></p></div>
+            <div class="ancho"><label for="agNota">Nota de la prueba</label><input type="text" id="agNota"></div>
+          </div>
+          <h3>El niño</h3>
+          <div class="campo segmentado" role="radiogroup" aria-label="Niño">
+            <label><input type="radio" name="agTipo" value="nuevo" checked> Niño nuevo</label>
+            <label><input type="radio" name="agTipo" value="existente"> Ya está en la base</label>
+          </div>
+          <div id="agExistente" class="oculto">
+            <div class="campo"><label for="agNino">Niño</label>
+              <input type="text" id="agNino" list="listaNinosTodos" placeholder="Escribe el nombre o el ID">
+              <datalist id="listaNinosTodos"></datalist>
+              <p class="ayuda" id="agNinoInfo"></p></div>
+          </div>
+          <div id="agNuevo">
+            <div class="campos">
+              <div><label for="ag_nombre">Nombre *</label><input type="text" id="ag_nombre"></div>
+              <div><label for="ag_apellidos">Apellidos *</label><input type="text" id="ag_apellidos"></div>
+              <div><label for="ag_nacimiento">Fecha de nacimiento *</label><input type="date" id="ag_nacimiento"></div>
+              <div><label for="ag_responsable">Nombre del responsable *</label><input type="text" id="ag_responsable"></div>
+              <div><label for="ag_telefono">Teléfono *</label><input type="tel" id="ag_telefono"></div>
+              <div><label for="ag_correo">Correo</label><input type="email" id="ag_correo"></div>
+              <div><label for="ag_responsable2">Segundo responsable</label><input type="text" id="ag_responsable2"></div>
+              <div><label for="ag_telefonoResp2">Teléfono del segundo responsable</label><input type="tel" id="ag_telefonoResp2"></div>
+              <div><label for="ag_colegio">Colegio</label><input type="text" id="ag_colegio"></div>
+              <div><label for="ag_comoConocio">Cómo nos conoció</label><select id="ag_comoConocio"></select></div>
+              <div><label for="ag_referido">Familia que lo refirió</label><input type="text" id="ag_referido"></div>
+              <div><label for="ag_hermanos">Hermanos y sus edades</label><input type="text" id="ag_hermanos" placeholder="p. ej. Ana 9, Luis 4"></div>
+              <div class="ancho"><span class="etiqueta">Interés en otros servicios de VEA</span><div class="casillas" id="ag_interes"></div></div>
+            </div>
+          </div>
+          <div id="agError"></div>
+          <div class="acciones"><button class="btn" type="submit">Agendar prueba</button></div>
+        </form>
+      </div>
+      <div>
+        <div class="tarjeta" id="prPendientesCaja"><h2>Pendientes de resultado</h2><p class="ayuda">Pruebas que ya pasaron y siguen «Agendada».</p><div id="prPendientes"></div></div>
+        <div class="tarjeta"><h2>Hoy y próximas</h2><div id="prProximas"></div></div>
+        <div class="tarjeta"><h2>Últimos 30 días, con resultado</h2><div id="prPasadas"></div></div>
+      </div>
     </div>
   </section>
 
@@ -320,6 +409,23 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
   </form>
 </dialog>
 
+<!-- Diálogo: resultado de una prueba -->
+<dialog id="dlgResultado">
+  <form method="dialog" id="formResultado">
+    <div class="dlg-cab"><div><h2>Resultado de la prueba</h2><p class="ayuda" id="drSub"></p></div><button class="cerrar" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo">
+      <div class="campo segmentado" role="radiogroup" aria-label="Resultado" id="drEstado"></div>
+      <p class="ayuda" id="drEstadoAyuda"></p>
+      <div class="campo"><label for="drSe">¿Se inscribió?</label>
+        <select id="drSe"><option value="">— todavía no se sabe —</option><option>Sí</option><option>No</option></select></div>
+      <div class="campo oculto" id="drMotivoCaja"><label for="drMotivo">Motivo de no inscripción *</label><select id="drMotivo"></select></div>
+      <div class="campo"><label for="drNota">Nota</label><textarea id="drNota"></textarea></div>
+      <div id="drError"></div>
+    </div>
+    <div class="dlg-pie"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar resultado</button></div>
+  </form>
+</dialog>
+
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -389,16 +495,48 @@ function edad(n) {
 /* Índices que se rehacen con cada lectura. */
 let IDX = {};
 function indexar() {
-  const ninos = {}, clases = {}, insNino = {}, insClase = {};
+  const ninos = {}, clases = {}, insNino = {}, insClase = {}, cerradasClase = {}, pruebasClase = {}, pruebasNino = {};
+  const meter = (o, k, v) => (o[k] = o[k] || []).push(v);
   E.ninos.forEach(n => { ninos[n.id] = n; });
   E.clases.forEach(c => { clases[c.codigo] = c; });
-  E.inscripciones.forEach(i => {
-    (insNino[i.idNino] = insNino[i.idNino] || []).push(i);
-    (insClase[i.codigo] = insClase[i.codigo] || []).push(i);
-  });
-  IDX = { ninos, clases, insNino, insClase };
+  E.inscripciones.forEach(i => { meter(insNino, i.idNino, i); meter(insClase, i.codigo, i); });
+  (E.inscripcionesCerradas || []).forEach(i => meter(cerradasClase, i.codigo, i));
+  (E.pruebas || []).forEach(p => { meter(pruebasClase, p.codigo, p); meter(pruebasNino, p.idNino, p); });
+  IDX = { ninos, clases, insNino, insClase, cerradasClase, pruebasClase, pruebasNino };
 }
 const etiquetaClase = c => c ? c.servicio + ' · ' + c.dia + ' ' + c.hora : '';
+
+/* ── Fechas ───────────────────────────────────────────────────────────────
+   Todo en texto 'yyyy-mm-dd'. Se arma la fecha al mediodía para que ningún
+   cambio de hora mueva el día. */
+const isoDe = d => d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+const aFecha = iso => new Date(iso + 'T12:00:00');
+function sumarDias(iso, n) { const d = aFecha(iso); d.setDate(d.getDate() + n); return isoDe(d); }
+function lunesDe(iso) { const d = aFecha(iso); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return isoDe(d); }
+const diaDeIso = iso => E.dias[(aFecha(iso).getDay() + 6) % 7];
+const fechaCorta = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+
+/* Ocupación de una clase en una fecha: inscripciones activas ese día (alta
+   ≤ día y sin baja, o baja posterior) + pruebas que ocupan cupo ese día. Es
+   la misma regla que aplica el servidor (ocupacionEn_ en AfterSchool.gs). */
+function ocupacion(c, iso, excluirNino) {
+  const i = (IDX.insClase[c.codigo] || []).filter(x => !x.alta || x.alta <= iso).length +
+            (IDX.cerradasClase[c.codigo] || []).filter(x => (!x.alta || x.alta <= iso) && x.baja > iso).length;
+  const p = (IDX.pruebasClase[c.codigo] || []).filter(x => x.fecha === iso && E.pruebaOcupa.includes(x.estado) && x.idNino !== excluirNino).length;
+  return { i, p, t: i + p };
+}
+
+/* Por qué no se puede inscribir de forma fija a idNino en la clase c (''
+   si se puede). Espeja exigirCupoFijo_ del servidor, que es el que manda. */
+function motivoSinCupo(c, idNino) {
+  if (!c.activa) return 'inactiva';
+  if ((IDX.insNino[idNino] || []).some(i => i.codigo === c.codigo)) return 'ya inscrito';
+  if ((IDX.insClase[c.codigo] || []).length >= c.cupo) return 'LLENA';
+  const fechas = [...new Set((IDX.pruebasClase[c.codigo] || [])
+    .filter(p => p.fecha >= E.hoy && E.pruebaOcupa.includes(p.estado) && p.idNino !== idNino).map(p => p.fecha))].sort();
+  for (const d of fechas) if (ocupacion(c, d, idNino).t + 1 > c.cupo) return 'sin cupo el ' + fechaCorta(d) + ' (pruebas)';
+  return '';
+}
 
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('ver');
@@ -467,9 +605,12 @@ function pintarTodo() {
   pintarFicha();
   pintarPagos();
   pintarRevisar();
+  pintarPruebas();
   const nRev = E.ninos.filter(n => n.estado === 'Por revisar').length;
   const ins = $('#cuentaRevisar');
   ins.textContent = nRev; ins.classList.toggle('oculto', !nRev);
+  const nPend = pruebasPendientes().length, ip = $('#cuentaPruebas');
+  ip.textContent = nPend; ip.classList.toggle('oculto', !nPend);
 }
 
 function mostrarVista(v) {
@@ -489,7 +630,8 @@ const INCIERTOS = new Set(['red', 'ilegible', 'incierto']);
 const QUE_ES = {
   crearNino: 'la creación del niño', editarNino: 'los cambios del niño', inscribir: 'la inscripción',
   mover: 'el cambio de clase', bajaClase: 'la baja de la clase', bajaTotal: 'la baja del niño',
-  revisar: 'la revisión', registrarPago: 'el pago', notaInscripcion: 'el cambio de la nota'
+  revisar: 'la revisión', registrarPago: 'el pago', notaInscripcion: 'el cambio de la nota',
+  inscribirVarias: 'la inscripción', agendarPrueba: 'la prueba', resultadoPrueba: 'el resultado de la prueba'
 };
 
 /* Lo que una escritura cambia, medido sobre E. Si cambió entre antes y
@@ -508,6 +650,13 @@ function huella(accion, d) {
     case 'registrarPago':
       return d.mes === E.mes ? E.pagosMes.filter(p => p.idNino === d.idNino && norm(p.concepto) === norm(d.concepto)).length : null;
     case 'notaInscripcion': { const i = E.inscripciones.find(x => x.id === d.idInscripcion); return i ? i.nota : null; }
+    case 'inscribirVarias':
+      return (d.codigos || []).filter(c => E.inscripciones.some(i => i.idNino === d.idNino && i.codigo === c)).length;
+    case 'agendarPrueba': return (E.pruebas || []).filter(p => p.codigo === d.codigo && p.fecha === d.fecha).length;
+    case 'resultadoPrueba': {
+      const p = (E.pruebas || []).find(x => x.id === d.idPrueba);
+      return p ? [p.estado, p.seInscribio, p.motivo, p.nota].join('|') : null;
+    }
   }
   return null;
 }
@@ -564,17 +713,26 @@ async function escribir(accion, datos, mensajeOk, opciones) {
 }
 
 /* ==========================================================================
-   VISTA 1 · OCUPACIÓN
+   VISTA 1 · OCUPACIÓN — la semana de una fecha (por defecto, hoy). Se calcula
+   en la página con lo que trajo leer(): cambiar de semana no llama al servidor.
    ========================================================================== */
-function estadoCelda(c) {
+let fechaOcup = null;      // la fecha elegida; null = hoy
+
+function estadoCelda(c, o) {
   if (!c.activa) return 'inactiva';
-  if (c.reservados >= c.cupo) return 'lleno';
-  if (E.config.umbral != null && c.reservados / c.cupo >= E.config.umbral) return 'casi';
+  if (o.t >= c.cupo) return 'lleno';
+  if (E.config.umbral != null && o.t / c.cupo >= E.config.umbral) return 'casi';
   return 'libre';
 }
-function suma(cl) {
-  const a = cl.filter(c => c.activa);
-  const r = a.reduce((x, c) => x + c.reservados, 0), k = a.reduce((x, c) => x + (c.cupo || 0), 0);
+/* La semana: para cada día con clases, su fecha. */
+function semanaDe(iso) {
+  const lunes = lunesDe(iso), s = {};
+  E.dias.forEach((d, k) => { s[d] = sumarDias(lunes, k); });
+  return s;
+}
+function suma(cl, semana) {
+  const a = cl.filter(c => c.activa && semana[c.dia]);
+  const r = a.reduce((x, c) => x + ocupacion(c, semana[c.dia]).t, 0), k = a.reduce((x, c) => x + (c.cupo || 0), 0);
   return { r, k, p: k ? Math.round(r / k * 100) : 0 };
 }
 function datoHtml(et, s, principal) {
@@ -583,30 +741,37 @@ function datoHtml(et, s, principal) {
 }
 
 function pintarOcupacion() {
+  const ref = fechaOcup || E.hoy, semana = semanaDe(ref);
+  const dias = E.dias.filter(d => E.clases.some(c => c.dia === d));
+  $('#ocFecha').value = ref;
+  $('#ocRango').textContent = dias.length ? 'Semana del ' + fecha(semana[dias[0]]) + ' al ' + fecha(semana[dias[dias.length - 1]]) : '';
   const servicios = [...new Set(E.clases.map(c => c.servicio))];
   const modalidades = [...new Set(E.clases.map(c => c.modalidad))];
-  $('#resumen').innerHTML = modalidades.map(m => datoHtml(m, suma(E.clases.filter(c => c.modalidad === m)), true)).join('') +
-    servicios.map(s => datoHtml(s, suma(E.clases.filter(c => c.servicio === s)))).join('');
+  $('#resumen').innerHTML = modalidades.map(m => datoHtml(m, suma(E.clases.filter(c => c.modalidad === m), semana), true)).join('') +
+    servicios.map(s => datoHtml(s, suma(E.clases.filter(c => c.servicio === s), semana))).join('');
   $('#leyendaUmbral').textContent = E.config.umbral != null ? 'Desde ' + Math.round(E.config.umbral * 100) + ' %' : 'Sin umbral en Config';
 
-  const dias = E.dias.filter(d => E.clases.some(c => c.dia === d));
   $('#grillas').innerHTML = servicios.map(s => {
     const cl = E.clases.filter(c => c.servicio === s);
     const horas = [...new Set(cl.map(c => c.hora))].sort();
-    const tot = suma(cl);
+    const tot = suma(cl, semana);
     let h = '<div class="tarjeta"><h2>' + esc(s) + ' <span class="ayuda num">' + tot.r + ' / ' + tot.k + ' · ' + tot.p + ' %</span></h2>' +
-      '<table class="grilla"><thead><tr><th class="hora"></th>' + dias.map(d => '<th>' + esc(DIA_CORTO[d] || d) + '</th>').join('') + '</tr></thead><tbody>';
+      '<table class="grilla"><thead><tr><th class="hora"></th>' + dias.map(d => '<th' + (semana[d] === E.hoy ? ' class="hoy"' : '') + '>' +
+        esc(DIA_CORTO[d] || d) + '<small class="num">' + fechaCorta(semana[d]) + '</small></th>').join('') + '</tr></thead><tbody>';
     horas.forEach(hr => {
       h += '<tr><th class="hora num">' + esc(hr) + '</th>';
       dias.forEach(d => {
-        const cs = cl.filter(c => c.dia === d && c.hora === hr);
+        const cs = cl.filter(c => c.dia === d && c.hora === hr), iso = semana[d];
         h += '<td>' + (cs.length ? cs.map(c => {
-          const est = estadoCelda(c);
-          const txt = est === 'lleno' ? 'LLENO' : c.reservados + ' / ' + c.cupo;
-          const notas = (IDX.insClase[c.codigo] || []).filter(i => i.nota).length;
-          return '<button class="celda ' + est + '" data-clase="' + esc(c.codigo) + '" type="button" aria-label="' + esc(etiquetaClase(c) + ': ' + c.reservados + ' de ' + c.cupo) + '">' +
-            '<span class="r num">' + txt + '</span>' + (est === 'lleno' ? '<span class="e num">' + c.reservados + ' / ' + c.cupo + '</span>' : '') +
-            '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span>' +
+          const o = ocupacion(c, iso), est = estadoCelda(c, o);
+          const txt = est === 'lleno' ? 'LLENO' : o.t + ' / ' + c.cupo;
+          const detalle = o.p ? o.i + ' + ' + o.p + (o.p === 1 ? ' prueba' : ' pruebas') : '';
+          const notas = iso <= E.hoy ? (IDX.insClase[c.codigo] || []).filter(i => i.nota && (!i.alta || i.alta <= iso)).length : 0;
+          return '<button class="celda ' + est + '" data-clase="' + esc(c.codigo) + '" data-fecha="' + iso + '" type="button" aria-label="' +
+            esc(etiquetaClase(c) + ' ' + fecha(iso) + ': ' + o.t + ' de ' + c.cupo + (o.p ? ', ' + o.p + ' en prueba' : '')) + '">' +
+            '<span class="r num">' + txt + '</span>' +
+            (est === 'lleno' ? '<span class="e num">' + o.t + ' / ' + c.cupo + '</span>' : '') +
+            (detalle ? '<span class="pr num">' + detalle + '</span>' : '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span>') +
             (notas ? '<span class="marca">⚑ ' + notas + (notas === 1 ? ' nota' : ' notas') + '</span>' : '') + '</button>';
         }).join('') : '<div class="vacia" aria-hidden="true"></div>') + '</td>';
       });
@@ -614,24 +779,47 @@ function pintarOcupacion() {
     });
     return h + '</tbody></table></div>';
   }).join('');
-  $('#grillas').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase));
+  $('#grillas').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase, b.dataset.fecha));
 }
+$('#ocFecha').onchange = () => { fechaOcup = $('#ocFecha').value || null; pintarOcupacion(); };
+$('#ocAnt').onclick = () => { fechaOcup = sumarDias(fechaOcup || E.hoy, -7); pintarOcupacion(); };
+$('#ocSig').onclick = () => { fechaOcup = sumarDias(fechaOcup || E.hoy, 7); pintarOcupacion(); };
+$('#ocHoy').onclick = () => { fechaOcup = null; pintarOcupacion(); };
 
-function abrirClase(codigo) {
+/* Los niños de una clase en una fecha: inscritos ese día y pruebas de ese día. */
+function abrirClase(codigo, iso) {
   const c = IDX.clases[codigo];
   if (!c) return;
-  const ins = (IDX.insClase[codigo] || []).map(i => ({ i, n: IDX.ninos[i.idNino] })).filter(x => x.n)
+  iso = iso || E.hoy;
+  const o = ocupacion(c, iso);
+  const ins = (IDX.insClase[codigo] || []).filter(i => !i.alta || i.alta <= iso).map(i => ({ i, n: IDX.ninos[i.idNino] })).filter(x => x.n)
     .sort((a, b) => nombre(a.n).localeCompare(nombre(b.n), 'es'));
-  $('#dcTit').textContent = etiquetaClase(c);
-  $('#dcSub').textContent = c.codigo + ' · ' + c.reservados + ' de ' + c.cupo + ' cupos · ' + (c.edades || 'edades sin definir') + (c.activa ? '' : ' · INACTIVA');
-  $('#dcCuerpo').innerHTML = ins.length ? '<table class="datos"><thead><tr><th>Niño</th><th>Edad</th><th>Teléfono</th><th>Alta</th><th></th></tr></thead><tbody>' +
-    ins.map(({ i, n }) => '<tr><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + (n.estado !== 'Activo' ? ' · ' + esc(n.estado) : '') + '</div>' +
-      (i.nota ? '<div style="margin-top:4px"><span class="chip nota">⚑ ' + esc(i.nota) + '</span> <button class="btn sec chico" data-quitar-nota="' + esc(i.id) + '" type="button">Quitar nota</button></div>' : '') + '</td>' +
-      '<td>' + esc(edad(n)) + '</td><td>' + esc(n.telefono) + '</td><td class="num">' + fecha(i.alta) + '</td>' +
-      '<td class="der"><button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button> ' +
-      '<button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> ' +
-      '<button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja</button></td></tr>').join('') + '</tbody></table>'
-    : '<p class="ayuda">Nadie inscrito en esta clase.</p>';
+  const cerradas = (IDX.cerradasClase[codigo] || []).filter(i => (!i.alta || i.alta <= iso) && i.baja > iso)
+    .map(i => ({ i, n: IDX.ninos[i.idNino] })).filter(x => x.n);
+  const pruebas = (IDX.pruebasClase[codigo] || []).filter(p => p.fecha === iso).map(p => ({ p, n: IDX.ninos[p.idNino] })).filter(x => x.n);
+  $('#dcTit').textContent = etiquetaClase(c) + ' · ' + fecha(iso);
+  $('#dcSub').textContent = c.codigo + ' · ' + o.i + (o.i === 1 ? ' inscrito' : ' inscritos') + (o.p ? ' + ' + o.p + (o.p === 1 ? ' prueba' : ' pruebas') : '') +
+    ' de ' + c.cupo + ' cupos · ' + (c.edades || 'edades sin definir') + (c.activa ? '' : ' · INACTIVA');
+  let html = '';
+  if (ins.length || cerradas.length) {
+    html += '<table class="datos"><thead><tr><th>Niño</th><th>Edad</th><th>Teléfono</th><th>Alta</th><th></th></tr></thead><tbody>' +
+      ins.map(({ i, n }) => '<tr><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + (n.estado !== 'Activo' ? ' · ' + esc(n.estado) : '') + '</div>' +
+        (i.nota ? '<div style="margin-top:4px"><span class="chip nota">⚑ ' + esc(i.nota) + '</span> <button class="btn sec chico" data-quitar-nota="' + esc(i.id) + '" type="button">Quitar nota</button></div>' : '') + '</td>' +
+        '<td>' + esc(edad(n)) + '</td><td>' + esc(n.telefono) + '</td><td class="num">' + fecha(i.alta) + '</td>' +
+        '<td class="der"><button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button> ' +
+        '<button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> ' +
+        '<button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja</button></td></tr>').join('') +
+      cerradas.map(({ i, n }) => '<tr class="cancelada"><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + ' · se dio de baja el ' + fecha(i.baja) + '</div></td>' +
+        '<td>' + esc(edad(n)) + '</td><td>' + esc(n.telefono) + '</td><td class="num">' + fecha(i.alta) + '</td>' +
+        '<td class="der"><button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button></td></tr>').join('') + '</tbody></table>';
+  } else html += '<p class="ayuda">Nadie inscrito en esta clase ese día.</p>';
+  if (pruebas.length) {
+    html += '<h3>Clases de prueba de ese día</h3><table class="datos"><tbody>' + pruebas.map(({ p, n }) =>
+      '<tr' + (E.pruebaOcupa.includes(p.estado) ? '' : ' class="cancelada"') + '><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + ' · ' + esc(edad(n)) + ' · ' + esc(n.telefono) + '</div></td>' +
+      '<td>' + chipPrueba(p.estado) + '</td><td class="der"><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button> ' +
+      '<button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button></td></tr>').join('') + '</tbody></table>';
+  }
+  $('#dcCuerpo').innerHTML = html;
   const conNota = ins.filter(x => x.i.nota).length;
   if (conNota) $('#dcCuerpo').insertAdjacentHTML('afterbegin', '<div class="aviso ojo">' + conNota + (conNota === 1 ? ' inscripción tiene' : ' inscripciones tienen') + ' una nota pendiente. Cuando esté verificada, «Quitar nota».</div>');
   enganchar($('#dcCuerpo'));
@@ -639,16 +827,21 @@ function abrirClase(codigo) {
     const i = E.inscripciones.find(x => x.id === b.dataset.quitarNota);
     if (!i || !confirm('¿Quitar la nota «' + i.nota + '»? Queda registrada en el Historial.')) return;
     const r = await escribir('notaInscripcion', { idInscripcion: i.id, nota: '' }, 'Nota quitada');
-    if (r) abrirClase(codigo);
+    if (r) abrirClase(codigo, iso);
   });
-  $('#dlgClase').showModal();
+  if (!$('#dlgClase').open) $('#dlgClase').showModal();
 }
 
-/* Botones Ficha / Mover / Baja dentro de cualquier bloque. */
+/* Botones Ficha / Mover / Baja / Resultado dentro de cualquier bloque. */
 function enganchar(raiz) {
   raiz.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => { cerrarDialogos(); abrirFicha(b.dataset.ficha); });
   raiz.querySelectorAll('[data-mover]').forEach(b => b.onclick = () => abrirMover(b.dataset.mover));
   raiz.querySelectorAll('[data-baja]').forEach(b => b.onclick = () => abrirBaja({ tipo: 'clase', idInscripcion: b.dataset.baja }));
+  raiz.querySelectorAll('[data-resultado]').forEach(b => b.onclick = () => abrirResultado(b.dataset.resultado));
+  raiz.querySelectorAll('[data-inscribir]').forEach(b => b.onclick = () => {
+    const p = (E.pruebas || []).find(x => x.id === b.dataset.inscribir);
+    if (p) { cerrarDialogos(); abrirFicha(p.idNino, { marcar: [p.codigo] }); }
+  });
 }
 
 /* ==========================================================================
@@ -678,8 +871,10 @@ $('#buscar').oninput = pintarBusqueda;
 $('#verRetirados').onchange = pintarBusqueda;
 $('#btnNuevo').onclick = () => abrirFicha('');
 
-function abrirFicha(id) {
+let fichaMarcar = [];      // clases que la ficha abre ya marcadas para inscribir (desde una prueba)
+function abrirFicha(id, opciones) {
   fichaId = id;
+  fichaMarcar = (opciones && opciones.marcar) || [];
   mostrarVista('registrar');
   pintarBusqueda();
   pintarFicha();
@@ -690,34 +885,70 @@ const CAMPOS = [
   ['nombre', 'Nombre', 'text', true], ['apellidos', 'Apellidos', 'text'], ['nacimiento', 'Fecha de nacimiento', 'date'],
   ['sexo', 'Sexo', 'text'], ['responsable', 'Nombre del responsable', 'text'], ['telefono', 'Teléfono', 'tel'],
   ['telefono2', 'Teléfono 2', 'tel'], ['correo', 'Correo', 'email'], ['socio', 'Número socio Poliwin', 'text'],
-  ['cabeza', 'Cabeza de familia (n.º Poliwin)', 'text'], ['ingreso', 'Fecha de ingreso', 'date'], ['notas', 'Notas', 'textarea']
+  ['cabeza', 'Cabeza de familia (n.º Poliwin)', 'text'], ['ingreso', 'Fecha de ingreso', 'date'],
+  ['responsable2', 'Segundo responsable', 'text'], ['telefonoResp2', 'Teléfono del segundo responsable', 'tel'],
+  ['colegio', 'Colegio', 'text'], ['comoConocio', 'Cómo nos conoció', 'conocio'], ['referido', 'Familia que lo refirió', 'text'],
+  ['hermanos', 'Hermanos y sus edades', 'text'], ['interes', 'Interés en otros servicios de VEA', 'interes'],
+  ['notas', 'Notas', 'textarea']
 ];
+
+/* «Cómo nos conoció» como desplegable de Config. Un valor guardado que ya no
+   esté en la lista se sigue ofreciendo, marcado, para no borrarlo sin querer. */
+function opcionesConocio(actual) {
+  const l = E.config.comoConocio || [];
+  const fuera = actual && !l.some(v => norm(v) === norm(actual));
+  return '<option value="">—</option>' + l.map(v => '<option' + (norm(v) === norm(actual) ? ' selected' : '') + '>' + esc(v) + '</option>').join('') +
+    (fuera ? '<option selected value="' + esc(actual) + '">' + esc(actual) + ' (fuera de la lista)</option>' : '');
+}
+/* «Interés en otros servicios» como casillas de Config. */
+function casillasInteres(prefijo, actual) {
+  const marcados = String(actual || '').split(',').map(x => norm(x)).filter(Boolean);
+  return (E.config.intereses || []).map((v, i) => '<label><input type="checkbox" id="' + prefijo + i + '" value="' + esc(v) + '"' +
+    (marcados.includes(norm(v)) ? ' checked' : '') + '> ' + esc(v) + '</label>').join('') ||
+    '<span class="ayuda">La lista «Interés en servicios» de Config está vacía.</span>';
+}
+const interesMarcado = raiz => [...raiz.querySelectorAll('input[type=checkbox]:checked')].map(x => x.value);
 
 function formularioNino(n) {
   return '<div class="campos">' + CAMPOS.map(([k, et, tipo, req]) => {
     const v = n ? n[k] : '';
-    const ctl = tipo === 'textarea' ? '<textarea id="f_' + k + '">' + esc(v) + '</textarea>'
-      : '<input type="' + tipo + '" id="f_' + k + '" value="' + esc(v) + '"' + (req ? ' required' : '') + (tipo === 'date' ? ' max="' + esc(E.hoy) + '"' : '') + '>';
+    let ctl;
+    if (tipo === 'textarea') ctl = '<textarea id="f_' + k + '">' + esc(v) + '</textarea>';
+    else if (tipo === 'conocio') ctl = '<select id="f_' + k + '">' + opcionesConocio(v) + '</select>';
+    else if (tipo === 'interes') return '<div class="ancho"><span class="etiqueta">' + esc(et) + '</span><div class="casillas" id="f_' + k + '">' + casillasInteres('f_int_', v) + '</div></div>';
+    else ctl = '<input type="' + tipo + '" id="f_' + k + '" value="' + esc(v) + '"' + (req ? ' required' : '') + (tipo === 'date' ? ' max="' + esc(E.hoy) + '"' : '') + '>';
     return '<div' + (tipo === 'textarea' ? ' class="ancho"' : '') + '><label for="f_' + k + '">' + esc(et) + (req ? ' *' : '') + '</label>' + ctl + '</div>';
   }).join('') + '</div>';
 }
 function leerFormulario() {
   const o = {};
-  CAMPOS.forEach(([k]) => { o[k] = $('#f_' + k).value.trim(); });
+  CAMPOS.forEach(([k, , tipo]) => { o[k] = tipo === 'interes' ? interesMarcado($('#f_' + k)) : $('#f_' + k).value.trim(); });
   return o;
 }
 
-/* Opciones de clase para inscribir o mover: agrupadas por servicio, las
-   llenas, inactivas o ya tomadas aparecen pero no se pueden elegir. */
-function opcionesClase(excluir) {
+/* Clases para mover: agrupadas por servicio; las que no admiten al niño
+   aparecen con el motivo y no se pueden elegir. */
+function ordenClase(c) { return E.dias.indexOf(c.dia) * 10000 + Number(c.hora.replace(':', '')); }
+function opcionesClase(idNino) {
   const servicios = [...new Set(E.clases.map(c => c.servicio))];
-  const orden = c => E.dias.indexOf(c.dia) * 10000 + Number(c.hora.replace(':', ''));
   return '<option value="">Elige una clase…</option>' + servicios.map(s => '<optgroup label="' + esc(s) + '">' +
-    E.clases.filter(c => c.servicio === s).sort((a, b) => orden(a) - orden(b)).map(c => {
-      const lleno = c.reservados >= c.cupo, ya = excluir.includes(c.codigo);
-      const nota = !c.activa ? ' — inactiva' : ya ? ' — ya inscrito' : lleno ? ' — LLENA' : '';
-      return '<option value="' + esc(c.codigo) + '"' + (!c.activa || lleno || ya ? ' disabled' : '') + '>' + esc(c.dia + ' ' + c.hora + ' · ' + c.edades + ' · ' + c.reservados + '/' + c.cupo + nota) + '</option>';
+    E.clases.filter(c => c.servicio === s).sort((a, b) => ordenClase(a) - ordenClase(b)).map(c => {
+      const por = motivoSinCupo(c, idNino);
+      return '<option value="' + esc(c.codigo) + '"' + (por ? ' disabled' : '') + '>' +
+        esc(c.dia + ' ' + c.hora + ' · ' + c.edades + ' · ' + (IDX.insClase[c.codigo] || []).length + '/' + c.cupo + (por ? ' — ' + por : '')) + '</option>';
     }).join('') + '</optgroup>').join('');
+}
+
+/* Casillas para inscribir en varias clases de una vez. Mismo criterio. */
+function casillasClases(idNino, marcar) {
+  const servicios = [...new Set(E.clases.map(c => c.servicio))];
+  return '<div class="lista-clases">' + servicios.map(s => '<fieldset><legend>' + esc(s) + '</legend>' +
+    E.clases.filter(c => c.servicio === s).sort((a, b) => ordenClase(a) - ordenClase(b)).map(c => {
+      const por = motivoSinCupo(c, idNino);
+      return '<label' + (por ? ' class="no"' : '') + '><input type="checkbox" value="' + esc(c.codigo) + '"' + (por ? ' disabled' : '') +
+        (!por && marcar.includes(c.codigo) ? ' checked' : '') + '> <span>' + esc((DIA_CORTO[c.dia] || c.dia) + ' ' + c.hora + ' · ' + c.edades) +
+        ' <span class="num">' + (IDX.insClase[c.codigo] || []).length + '/' + c.cupo + '</span>' + (por ? ' <span class="por">— ' + esc(por) + '</span>' : '') + '</span></label>';
+    }).join('') + '</fieldset>').join('') + '</div>';
 }
 
 function pintarFicha() {
@@ -749,19 +980,28 @@ function pintarFicha() {
         (i.nota ? ' <span class="chip nota">⚑ ' + esc(i.nota) + '</span>' : '') + '</span>' +
         '<span><button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> <button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja de esta clase</button></span></div>';
     }).join('') : '<p class="ayuda">Sin clases activas.</p>') +
+    pruebasDeNino(n) +
     (retirado ? '<div class="aviso ojo" style="margin-top:10px">Retirado: para inscribirlo otra vez, reactívalo primero.</div><div class="acciones"><button class="btn" id="btnReactivar" type="button">Reactivar</button></div>'
-      : '<div class="inscribir"><div><label for="insClase">Inscribir en</label><select id="insClase">' + opcionesClase(ins.map(i => i.codigo)) + '</select></div>' +
-        '<div><label for="insFecha">Fecha de alta</label><input type="date" id="insFecha" value="' + esc(E.hoy) + '"></div>' +
+      : '<h3>Inscribir en</h3>' + (n.estado === 'Prospecto' ? '<p class="ayuda">Es Prospecto: al inscribirlo pasa a Activo.</p>' : '') +
+        casillasClases(n.id, fichaMarcar) +
+        '<div class="pie-inscribir"><div><label for="insFecha">Fecha de alta</label><input type="date" id="insFecha" value="' + esc(E.hoy) + '" max="' + esc(E.hoy) + '"></div>' +
         '<button class="btn" id="btnInscribir" type="button">Inscribir</button></div><div id="insError"></div>') +
     '</div>' +
     '<div class="tarjeta"><h2>Datos</h2>' + formularioNino(n) + '<div id="fError"></div><div class="acciones">' +
     '<button class="btn" id="btnGuardar" type="button">Guardar cambios</button>' +
     (retirado ? '' : '<button class="btn peligro" id="btnBajaTotal" type="button">Dar de baja del todo</button>') + '</div></div>';
   enganchar(cont);
-  if ($('#btnInscribir')) $('#btnInscribir').onclick = () => {
-    const codigo = $('#insClase').value;
-    if (!codigo) { $('#insError').innerHTML = '<div class="aviso mal">Elige una clase.</div>'; return; }
-    escribir('inscribir', { idNino: n.id, codigo, fechaAlta: $('#insFecha').value }, 'Inscrito en ' + etiquetaClase(IDX.clases[codigo]), { donde: $('#insError') });
+  const marcadas = () => [...cont.querySelectorAll('.lista-clases input:checked')].map(x => x.value);
+  const rotular = () => { const k = marcadas().length; if ($('#btnInscribir')) $('#btnInscribir').textContent = k > 1 ? 'Inscribir en ' + k + ' clases' : 'Inscribir'; };
+  cont.querySelectorAll('.lista-clases input').forEach(x => x.onchange = rotular);
+  rotular();
+  if ($('#btnInscribir')) $('#btnInscribir').onclick = async () => {
+    const codigos = marcadas(), alta = $('#insFecha').value;
+    if (!codigos.length) { $('#insError').innerHTML = '<div class="aviso mal">Marca al menos una clase.</div>'; return; }
+    if (!alta || alta > E.hoy) { $('#insError').innerHTML = '<div class="aviso mal">La fecha de alta no puede ser posterior a hoy.</div>'; return; }
+    const r = await escribir('inscribirVarias', { idNino: n.id, codigos, fechaAlta: alta },
+      codigos.length > 1 ? 'Inscrito en ' + codigos.length + ' clases' : 'Inscrito en ' + etiquetaClase(IDX.clases[codigos[0]]), { donde: $('#insError') });
+    if (r) fichaMarcar = [];
   };
   if ($('#btnReactivar')) $('#btnReactivar').onclick = () => escribir('editarNino', { id: n.id, cambios: {}, reactivar: true }, 'Reactivado');
   $('#btnGuardar').onclick = () => {
@@ -813,7 +1053,7 @@ function abrirMover(idIns) {
   moverActual = i;
   const n = IDX.ninos[i.idNino];
   $('#dmSub').textContent = (n ? nombre(n) : '') + ' · ahora en ' + etiquetaClase(IDX.clases[i.codigo]);
-  $('#dmClase').innerHTML = opcionesClase((IDX.insNino[i.idNino] || []).map(x => x.codigo));
+  $('#dmClase').innerHTML = opcionesClase(i.idNino);
   $('#dmFecha').value = E.hoy; $('#dmFecha').max = E.hoy;
   $('#dmDetalle').value = ''; $('#dmError').innerHTML = '';
   $('#dlgMover').showModal();
@@ -830,6 +1070,184 @@ $('#formMover').onsubmit = async ev => {
 /* ==========================================================================
    VISTA 3 · PAGOS
    ========================================================================== */
+/* (Pagos sigue más abajo.) */
+
+/* ==========================================================================
+   VISTA · PRUEBAS — agendar una clase de prueba y anotar su resultado.
+   La prueba ocupa un cupo de la clase SOLO ese día. El servidor valida todo
+   otra vez (agendarPrueba / resultadoPrueba): lo de aquí es para no ofrecer
+   lo que no se puede.
+   ========================================================================== */
+const CLASE_PRUEBA = { 'Agendada': 'pr-ag', 'Asistió': 'pr-si', 'No asistió': 'pr-no', 'Cancelada': 'pr-ca' };
+const chipPrueba = e => '<span class="chip ' + (CLASE_PRUEBA[e] || 'pr-ca') + '">' + esc(e) + '</span>';
+const pruebasPendientes = () => (E.pruebas || []).filter(p => p.estado === 'Agendada' && p.fecha < E.hoy);
+
+/* Las pruebas de un niño, para su ficha. */
+function pruebasDeNino(n) {
+  const l = (IDX.pruebasNino[n.id] || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+  if (!l.length) return '';
+  return '<h3>Clases de prueba</h3>' + l.map(p => {
+    const c = IDX.clases[p.codigo];
+    return '<div class="fila-ins"><span><span class="chip clase">' + esc(c ? etiquetaClase(c) : p.codigo) + '</span> <span class="ayuda">' + fecha(p.fecha) + '</span> ' +
+      chipPrueba(p.estado) + (p.seInscribio ? ' <span class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' (' + esc(p.motivo) + ')' : '') + '</span>' : '') + '</span>' +
+      '<span><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button></span></div>';
+  }).join('');
+}
+
+function tablaPruebas(lista, vacio, resaltar) {
+  if (!lista.length) return '<p class="ayuda">' + esc(vacio) + '</p>';
+  return '<table class="datos"><thead><tr><th>Fecha</th><th>Clase</th><th>Niño</th><th>Estado</th><th></th></tr></thead><tbody>' + lista.map(p => {
+    const c = IDX.clases[p.codigo], n = IDX.ninos[p.idNino];
+    const yaInscrito = (IDX.insNino[p.idNino] || []).some(i => i.codigo === p.codigo);
+    const puedeInscribir = p.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado';
+    return '<tr class="' + (resaltar ? 'pendiente' : (p.estado === 'Cancelada' ? 'cancelada' : '')) + '">' +
+      '<td class="num"><b>' + fechaCorta(p.fecha) + '</b><div class="ayuda">' + esc(DIA_CORTO[diaDeIso(p.fecha)] || '') + (p.fecha === E.hoy ? ' · hoy' : '') + '</div></td>' +
+      '<td>' + esc(c ? c.servicio + ' ' + c.hora : p.codigo) + '<div class="ayuda">' + esc(c ? c.edades : '') + '</div></td>' +
+      '<td><b>' + esc(n ? nombre(n) : p.idNino) + '</b><div class="ayuda">' + esc(n ? [n.id, edad(n), n.telefono].filter(Boolean).join(' · ') : '') + '</div>' +
+      (p.nota ? '<div class="ayuda">' + esc(p.nota) + '</div>' : '') + '</td>' +
+      '<td>' + chipPrueba(p.estado) + (p.seInscribio ? '<div class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' · ' + esc(p.motivo) : '') + '</div>' : '') +
+      (yaInscrito ? '<div class="ayuda">ya inscrito en esa clase</div>' : '') + '</td>' +
+      '<td class="der"><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button> ' +
+      (puedeInscribir ? '<button class="btn chico" data-inscribir="' + esc(p.id) + '" type="button">Inscribir</button> ' : '') +
+      '<button class="btn sec chico" data-ficha="' + esc(p.idNino) + '" type="button">Ficha</button></td></tr>';
+  }).join('') + '</tbody></table>';
+}
+
+let pruebasIniciadas = false;
+function pintarPruebas() {
+  // Listas del formulario (conservando lo que ya esté elegido).
+  const servicios = [...new Set(E.clases.filter(c => c.activa).map(c => c.servicio))];
+  const sv = $('#agServicio').value;
+  $('#agServicio').innerHTML = '<option value="">Elige…</option>' + servicios.map(s => '<option' + (s === sv ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+  const cc = $('#ag_comoConocio').value;
+  $('#ag_comoConocio').innerHTML = opcionesConocio(cc);
+  const marcados = interesMarcado($('#ag_interes'));
+  $('#ag_interes').innerHTML = casillasInteres('ag_int_', marcados.join(', '));
+  $('#listaNinosTodos').innerHTML = E.ninos.map(n => '<option value="' + esc(etiquetaNino(n)) + '">').join('');
+  $('#agFecha').min = E.hoy;
+  if (!pruebasIniciadas) { $('#agFecha').value = E.hoy; pruebasIniciadas = true; }
+  pintarClasesPrueba();
+  pintarNinoPrueba();
+
+  // Listas de pruebas.
+  const todas = E.pruebas || [];
+  const pend = pruebasPendientes().sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const prox = todas.filter(p => p.fecha >= E.hoy).sort((a, b) => a.fecha.localeCompare(b.fecha) || (IDX.clases[a.codigo] ? IDX.clases[a.codigo].hora : '').localeCompare(IDX.clases[b.codigo] ? IDX.clases[b.codigo].hora : ''));
+  const hace30 = sumarDias(E.hoy, -30);
+  const pasadas = todas.filter(p => p.fecha < E.hoy && p.fecha >= hace30 && p.estado !== 'Agendada').sort((a, b) => b.fecha.localeCompare(a.fecha));
+  $('#prPendientesCaja').classList.toggle('oculto', !pend.length);
+  $('#prPendientes').innerHTML = tablaPruebas(pend, '', true);
+  $('#prProximas').innerHTML = tablaPruebas(prox, 'No hay pruebas para hoy ni para los próximos días.');
+  $('#prPasadas').innerHTML = tablaPruebas(pasadas, 'Ninguna en los últimos 30 días.');
+  ['#prPendientes', '#prProximas', '#prPasadas'].forEach(s => enganchar($(s)));
+}
+
+/* Las clases del servicio elegido que se dictan ese día, con su ocupación de
+   ese día. Las llenas o inactivas aparecen en gris y no se pueden elegir. */
+function pintarClasesPrueba() {
+  const s = $('#agServicio').value, iso = $('#agFecha').value, sel = $('#agClase'), antes = sel.value;
+  const ayuda = $('#agClaseAyuda');
+  ayuda.textContent = '';
+  if (!s || !iso) { sel.innerHTML = '<option value="">Elige servicio y fecha…</option>'; return; }
+  if (iso < E.hoy) { sel.innerHTML = '<option value="">—</option>'; ayuda.textContent = 'La fecha no puede ser pasada.'; return; }
+  const dia = diaDeIso(iso);
+  const cl = E.clases.filter(c => c.servicio === s && c.dia === dia).sort((a, b) => a.hora.localeCompare(b.hora));
+  if (!cl.length) {
+    sel.innerHTML = '<option value="">—</option>';
+    const dias = [...new Set(E.clases.filter(c => c.servicio === s).map(c => c.dia))].sort((a, b) => E.dias.indexOf(a) - E.dias.indexOf(b));
+    const plural = d => (d.endsWith('s') ? d : d + 's').toLowerCase();
+    ayuda.textContent = 'No hay clases de ' + s + ' los ' + plural(dia) + '. Hay los ' + dias.map(plural).join(', ') + '.';
+    return;
+  }
+  sel.innerHTML = '<option value="">Elige la clase…</option>' + cl.map(c => {
+    const o = ocupacion(c, iso), llena = !c.activa || o.t >= c.cupo;
+    return '<option value="' + esc(c.codigo) + '"' + (llena ? ' disabled' : '') + (c.codigo === antes && !llena ? ' selected' : '') + '>' +
+      esc(c.hora + ' · ' + c.edades + ' · ' + o.i + (o.p ? ' + ' + o.p + ' prueba' : '') + ' / ' + c.cupo + (!c.activa ? ' — inactiva' : o.t >= c.cupo ? ' — LLENA' : '')) + '</option>';
+  }).join('');
+}
+$('#agServicio').onchange = pintarClasesPrueba;
+$('#agFecha').onchange = pintarClasesPrueba;
+
+function tipoPrueba() { return document.querySelector('input[name=agTipo]:checked').value; }
+document.querySelectorAll('input[name=agTipo]').forEach(r => r.onchange = () => {
+  $('#agExistente').classList.toggle('oculto', tipoPrueba() !== 'existente');
+  $('#agNuevo').classList.toggle('oculto', tipoPrueba() !== 'nuevo');
+});
+function pintarNinoPrueba() {
+  const n = IDX.ninos[idDeEtiqueta($('#agNino').value)];
+  $('#agNinoInfo').textContent = n ? n.estado + (edad(n) ? ' · ' + edad(n) : '') + ' · ' + ((IDX.insNino[n.id] || []).map(i => IDX.clases[i.codigo] ? etiquetaClase(IDX.clases[i.codigo]) : i.codigo).join(' · ') || 'sin clases') : '';
+}
+$('#agNino').oninput = pintarNinoPrueba;
+
+const CAMPOS_PRUEBA = ['nombre', 'apellidos', 'nacimiento', 'responsable', 'telefono', 'correo', 'responsable2', 'telefonoResp2', 'colegio', 'comoConocio', 'referido', 'hermanos'];
+const OBLIGATORIOS_PRUEBA = { nombre: 'nombre', apellidos: 'apellidos', nacimiento: 'fecha de nacimiento', responsable: 'nombre del responsable', telefono: 'teléfono' };
+
+$('#formPrueba').onsubmit = async ev => {
+  ev.preventDefault();
+  const err = m => { $('#agError').innerHTML = '<div class="aviso mal">' + esc(m) + '</div>'; };
+  const datos = { codigo: $('#agClase').value, fecha: $('#agFecha').value, nota: $('#agNota').value.trim() };
+  if (tipoPrueba() === 'existente') {
+    datos.idNino = idDeEtiqueta($('#agNino').value);
+    if (!IDX.ninos[datos.idNino]) return err('Elige el niño de la lista (nombre · ID).');
+  } else {
+    const nino = {};
+    CAMPOS_PRUEBA.forEach(k => { nino[k] = $('#ag_' + k).value.trim(); });
+    nino.interes = interesMarcado($('#ag_interes'));
+    const faltan = Object.keys(OBLIGATORIOS_PRUEBA).filter(k => !nino[k]);
+    if (faltan.length) return err('Faltan: ' + faltan.map(k => OBLIGATORIOS_PRUEBA[k]).join(', ') + '.');
+    datos.nino = nino;
+  }
+  if (!datos.fecha || datos.fecha < E.hoy) return err('La fecha de la prueba tiene que ser de hoy en adelante.');
+  if (!datos.codigo) return err('Elige la clase.');
+  $('#agError').innerHTML = '';
+  const c = IDX.clases[datos.codigo];
+  const r = await escribir('agendarPrueba', datos, 'Prueba agendada: ' + etiquetaClase(c) + ', ' + fecha(datos.fecha), { donde: $('#agError') });
+  if (r) {
+    CAMPOS_PRUEBA.forEach(k => { $('#ag_' + k).value = ''; });
+    $('#ag_interes').querySelectorAll('input').forEach(x => { x.checked = false; });
+    $('#agNino').value = ''; $('#agNota').value = ''; $('#agClase').value = '';
+    pintarNinoPrueba();
+  }
+};
+
+/* Diálogo de resultado. */
+let resultadoActual = null;
+function abrirResultado(id) {
+  const p = (E.pruebas || []).find(x => x.id === id);
+  if (!p) return;
+  resultadoActual = p;
+  const c = IDX.clases[p.codigo], n = IDX.ninos[p.idNino], futura = p.fecha > E.hoy;
+  $('#drSub').textContent = (n ? nombre(n) : p.idNino) + ' · ' + (c ? etiquetaClase(c) : p.codigo) + ' · ' + fecha(p.fecha);
+  $('#drEstado').innerHTML = ['Asistió', 'No asistió', 'Cancelada'].map(e => {
+    const no = futura && e !== 'Cancelada';
+    return '<label><input type="radio" name="drEstado" value="' + e + '"' + (p.estado === e ? ' checked' : '') + (no ? ' disabled' : '') + '> ' + e + '</label>';
+  }).join('');
+  $('#drEstadoAyuda').textContent = futura ? 'La prueba es el ' + fecha(p.fecha) + ': «Asistió» y «No asistió» se marcan desde ese día. Ahora solo se puede cancelar.' : '';
+  $('#drSe').value = p.seInscribio || '';
+  $('#drMotivo').innerHTML = '<option value="">Elige el motivo…</option>' + (E.config.motivosNoInscripcion || []).map(m => '<option' + (m === p.motivo ? ' selected' : '') + '>' + esc(m) + '</option>').join('');
+  $('#drNota').value = p.nota || '';
+  $('#drError').innerHTML = '';
+  mostrarMotivo();
+  $('#dlgResultado').showModal();
+}
+function mostrarMotivo() { $('#drMotivoCaja').classList.toggle('oculto', $('#drSe').value !== 'No'); }
+$('#drSe').onchange = mostrarMotivo;
+$('#formResultado').onsubmit = async ev => {
+  ev.preventDefault();
+  const p = resultadoActual, marcado = document.querySelector('input[name=drEstado]:checked');
+  const err = m => { $('#drError').innerHTML = '<div class="aviso mal">' + esc(m) + '</div>'; };
+  if (!marcado) return err('Elige Asistió, No asistió o Cancelada.');
+  const datos = { idPrueba: p.id, estado: marcado.value, seInscribio: $('#drSe').value, motivo: $('#drSe').value === 'No' ? $('#drMotivo').value : '', nota: $('#drNota').value.trim() };
+  if (datos.seInscribio === 'No' && !datos.motivo) return err('Si no se inscribió, elige el motivo.');
+  const r = await escribir('resultadoPrueba', datos, 'Resultado guardado', { donde: $('#drError') });
+  if (!r) return;
+  cerrarDialogos();
+  const n = IDX.ninos[p.idNino];
+  const yaInscrito = (IDX.insNino[p.idNino] || []).some(i => i.codigo === p.codigo);
+  if (datos.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado' &&
+      confirm('¿Inscribir ahora a ' + nombre(n) + '? Se abre su ficha con la clase de la prueba marcada.')) abrirFicha(n.id, { marcar: [p.codigo] });
+};
+
 let pagosIniciados = false;
 function etiquetaNino(n) { return nombre(n) + ' · ' + n.id; }
 function idDeEtiqueta(v) { const m = /·\s*(AS-\d+)\s*$/.exec(v || '') || /^(AS-\d+)$/i.exec((v || '').trim()); return m ? m[1].toUpperCase() : ''; }

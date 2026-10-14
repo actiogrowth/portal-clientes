@@ -51,13 +51,23 @@ var HOJAS = {
   pagos:         'Pagos',
   bajas:         'Bajas',
   config:        'Config',
-  historial:     'Historial'
+  historial:     'Historial',
+  pruebas:       'Pruebas'
 };
 
+/* Las columnas que se agregan después de la carga inicial van SIEMPRE al
+   final de su lista: actualizarEstructura() las crea a la derecha de las que
+   ya existen, sin mover nada. Las columnas se buscan por título, así que el
+   orden de la hoja no importa para leer. */
 var COLUMNAS = {
   ninos: ['ID', 'Número socio Poliwin', 'Nombre', 'Apellidos', 'Fecha nacimiento',
           'Sexo', 'Nombre responsable', 'Teléfono', 'Teléfono 2', 'Correo',
-          'Cabeza de familia', 'Estado', 'Fecha ingreso', 'Notas'],
+          'Cabeza de familia', 'Estado', 'Fecha ingreso', 'Notas',
+          // 15-oct: datos de la clase de prueba
+          'Colegio', 'Cómo nos conoció', 'Familia que lo refirió', 'Hermanos (edades)',
+          'Interés en otros servicios', 'Responsable 2', 'Teléfono responsable 2'],
+  pruebas: ['ID prueba', 'Fecha', 'Clase ID', 'Niño ID', 'Estado', 'Se inscribió',
+            'Motivo no inscripción', 'Nota', 'Registrado por', 'Fecha de registro'],
   clases: ['Código clase', 'Servicio', 'Modalidad', 'Día', 'Hora inicio', 'Cupo',
            'Edades', 'Activa'],
   inscripciones: ['ID inscripción', 'ID niño', 'Código clase', 'Fecha alta',
@@ -73,30 +83,36 @@ var COLUMNAS = {
 /* Columnas que se guardan como texto (formato @). Sin esto, Sheets convierte
    «2026-10» o «16:30» en fechas y un teléfono con + en una fórmula. */
 var COLUMNAS_TEXTO = {
-  ninos: ['ID', 'Número socio Poliwin', 'Teléfono', 'Teléfono 2', 'Cabeza de familia'],
+  ninos: ['ID', 'Número socio Poliwin', 'Teléfono', 'Teléfono 2', 'Cabeza de familia', 'Teléfono responsable 2'],
   clases: ['Código clase', 'Hora inicio'],
   inscripciones: ['ID inscripción', 'ID niño', 'Código clase'],
   pagos: ['ID pago', 'ID niño', 'Mes que cubre'],
   bajas: ['ID niño'],
-  historial: ['ID']
+  historial: ['ID'],
+  pruebas: ['ID prueba', 'Clase ID', 'Niño ID']
 };
 var COLUMNAS_FECHA = {
   ninos: ['Fecha nacimiento', 'Fecha ingreso'],
   inscripciones: ['Fecha alta', 'Fecha baja'],
   pagos: ['Fecha pago'],
-  bajas: ['Fecha baja']
+  bajas: ['Fecha baja'],
+  pruebas: ['Fecha']
 };
 var COLUMNAS_FECHA_HORA = {
   inscripciones: ['Fecha registro'],
-  historial: ['Fecha']
+  historial: ['Fecha'],
+  pruebas: ['Fecha de registro']
 };
 
 /* Prefijos de los ID que genera el script. */
-var PREFIJO = { nino: 'AS-', inscripcion: 'INS-', pago: 'PAG-' };
+var PREFIJO = { nino: 'AS-', inscripcion: 'INS-', pago: 'PAG-', prueba: 'PRU-' };
 
 /* Vocabulario fijo del sistema (no son reglas de negocio: son los estados
    que el propio sistema sabe tratar). */
-var ESTADO = { activo: 'Activo', retirado: 'Retirado', revisar: 'Por revisar' };
+var ESTADO = { activo: 'Activo', retirado: 'Retirado', revisar: 'Por revisar', prospecto: 'Prospecto' };
+var ESTADO_PRUEBA = { agendada: 'Agendada', asistio: 'Asistió', noAsistio: 'No asistió', cancelada: 'Cancelada' };
+/* Las pruebas en estos estados ocupan un cupo de la clase ese día. */
+var PRUEBA_OCUPA = [ESTADO_PRUEBA.agendada, ESTADO_PRUEBA.asistio];
 var SI = 'Sí', NO = 'No';
 var MOTIVO_CAMBIO_CLASE = 'Cambio de clase';   // mover no es una deserción
 var DIAS_ORDEN = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -107,14 +123,19 @@ var LISTA = {
   plan:     'Plan',
   concepto: 'Concepto',
   forma:    'Forma de pago',
-  param:    'Parámetro'
+  param:    'Parámetro',
+  motivoNoInscripcion: 'Motivo no inscripción',
+  comoConocio:         'Cómo nos conoció',
+  interes:             'Interés en servicios'
 };
 var PARAM_UMBRAL = 'Umbral amarillo';   // fracción: 0,8 = 80 %
 var PARAM_CONCEPTO_MENSUAL = 'Concepto de mensualidad';  // cuál concepto cuenta como «pagó el mes»
 
-/* Valores iniciales de Config. ÚNICO sitio del código con valores de negocio:
-   instalar() los escribe solo si Config no tiene ninguna fila. Después mandan
-   los de la hoja. */
+/* Valores iniciales de Config. ÚNICO sitio del código con valores de negocio.
+   actualizarEstructura() escribe las filas de una lista SOLO si esa lista no
+   tiene ninguna fila en Config (y los parámetros, solo si ese parámetro no
+   existe). Después mandan los de la hoja: lo que Vida en Arte edite no se
+   vuelve a escribir. */
 var INS_CONFIG = [
   [LISTA.motivo, 'Horario', '', ''],
   [LISTA.motivo, 'Precio', '', ''],
@@ -136,7 +157,30 @@ var INS_CONFIG = [
   [LISTA.forma, 'Yappy', '', ''],
   [LISTA.forma, 'Otro', '', ''],
   [LISTA.param, PARAM_UMBRAL, 0.8, 'Desde esta ocupación la celda se pinta amarilla'],
-  [LISTA.param, PARAM_CONCEPTO_MENSUAL, '', 'Mensualidad']
+  [LISTA.param, PARAM_CONCEPTO_MENSUAL, '', 'Mensualidad'],
+  // 15-oct: clases de prueba
+  [LISTA.motivoNoInscripcion, 'Precio', '', ''],
+  [LISTA.motivoNoInscripcion, 'El horario no le sirve', '', ''],
+  [LISTA.motivoNoInscripcion, 'Al niño no le gustó', '', ''],
+  [LISTA.motivoNoInscripcion, 'Distancia o ubicación', '', ''],
+  [LISTA.motivoNoInscripcion, 'Eligió otro lugar', '', ''],
+  [LISTA.motivoNoInscripcion, 'Lo va a pensar o no respondió', '', ''],
+  [LISTA.motivoNoInscripcion, 'Otro', '', ''],
+  [LISTA.comoConocio, 'Instagram', '', ''],
+  [LISTA.comoConocio, 'Facebook', '', ''],
+  [LISTA.comoConocio, 'Google', '', ''],
+  [LISTA.comoConocio, 'Referido por una familia', '', ''],
+  [LISTA.comoConocio, 'Pasó por el local', '', ''],
+  [LISTA.comoConocio, 'Colegio', '', ''],
+  [LISTA.comoConocio, 'Otro', '', ''],
+  [LISTA.interes, 'Kínder', '', ''],
+  [LISTA.interes, 'Veranito', '', ''],
+  [LISTA.interes, 'Sábados', '', ''],
+  [LISTA.interes, 'Cumpleaños', '', ''],
+  [LISTA.interes, 'Parkour', '', ''],
+  [LISTA.interes, 'Telas', '', ''],
+  [LISTA.interes, 'Parkids', '', ''],
+  [LISTA.interes, 'Baby & Me', '', '']
 ];
 
 /* Propiedades del script. */
@@ -158,14 +202,14 @@ var NOTA_CLASE_ADULTOS = 'Por verificar: clase de adultos';
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('After School')
     .addItem('Comprobar estructura', 'menuComprobar')
-    .addItem('Instalar pestañas que falten', 'menuInstalar')
+    .addItem('Actualizar estructura (crea lo que falte, no toca datos)', 'menuInstalar')
     .addSeparator()
     .addItem('Ensayar carga inicial (no escribe)', 'menuEnsayar')
     .addItem('Ejecutar carga inicial', 'menuCargar')
     .addToUi();
 }
 function menuComprobar() { mostrar_('Comprobar estructura', comprobar()); }
-function menuInstalar()  { mostrar_('Instalar', instalar()); }
+function menuInstalar()  { mostrar_('Actualizar estructura', actualizarEstructura()); }
 function menuEnsayar()   { mostrar_('Ensayo de carga', ensayarCarga()); }
 function menuCargar() {
   var ui = SpreadsheetApp.getUi();
@@ -423,11 +467,15 @@ function numeroDe_(v) {
 
 function leerConfig_() {
   var t = leerTabla_('config');
-  var cfg = { motivos: [], planes: [], conceptos: [], formas: [], umbral: null, conceptoMensual: '', faltan: [] };
+  var cfg = { motivos: [], planes: [], conceptos: [], formas: [], umbral: null, conceptoMensual: '',
+              motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [] };
   t.filas.forEach(function (f) {
     var lista = norm_(f['Lista']), valor = texto_(f['Valor']);
     if (!valor) return;
     if (lista === norm_(LISTA.motivo)) cfg.motivos.push(valor);
+    else if (lista === norm_(LISTA.motivoNoInscripcion)) cfg.motivosNoInscripcion.push(valor);
+    else if (lista === norm_(LISTA.comoConocio)) cfg.comoConocio.push(valor);
+    else if (lista === norm_(LISTA.interes)) cfg.intereses.push(valor);
     else if (lista === norm_(LISTA.plan)) cfg.planes.push({ nombre: valor, precio: numeroDe_(f['Número']) });
     else if (lista === norm_(LISTA.concepto)) cfg.conceptos.push(valor);
     else if (lista === norm_(LISTA.forma)) cfg.formas.push(valor);
@@ -446,6 +494,9 @@ function leerConfig_() {
   if (!cfg.planes.length) cfg.faltan.push('filas «' + LISTA.plan + '»');
   if (!cfg.conceptos.length) cfg.faltan.push('filas «' + LISTA.concepto + '»');
   if (!cfg.formas.length) cfg.faltan.push('filas «' + LISTA.forma + '»');
+  if (!cfg.motivosNoInscripcion.length) cfg.faltan.push('filas «' + LISTA.motivoNoInscripcion + '»');
+  if (!cfg.comoConocio.length) cfg.faltan.push('filas «' + LISTA.comoConocio + '»');
+  if (!cfg.intereses.length) cfg.faltan.push('filas «' + LISTA.interes + '»');
   if (cfg.umbral === null) cfg.faltan.push('«' + LISTA.param + ' / ' + PARAM_UMBRAL + '» con un número entre 0 y 1 en la columna Número');
   if (!cfg.conceptoMensual) cfg.faltan.push('«' + LISTA.param + ' / ' + PARAM_CONCEPTO_MENSUAL + '» con el concepto en la columna Nota');
   else if (cfg.conceptos.map(norm_).indexOf(norm_(cfg.conceptoMensual)) < 0)
@@ -464,37 +515,68 @@ function enLista_(valor, lista) {
 //  INSTALACIÓN Y COMPROBACIÓN
 // ═════════════════════════════════════════════════════════════════════════════
 
-/** Crea las pestañas que falten con sus títulos. No toca las que existen. */
-function instalar() {
+/** Nombre anterior del menú; hace lo mismo. */
+function instalar() { return actualizarEstructura(); }
+
+/**
+ * Crea lo que falte y NO toca datos. Se puede correr las veces que haga falta:
+ *   · pestañas que falten, con sus títulos en la fila 5;
+ *   · en pestañas que ya existen, los títulos que falten, AGREGADOS A LA
+ *     DERECHA de la última columna usada (nunca se mueve ni se pisa una
+ *     columna existente);
+ *   · en Config, las filas iniciales de cada lista que no tenga ninguna fila
+ *     (y de cada parámetro que no exista). Una lista que Vida en Arte ya
+ *     editó no se toca.
+ * Termina con comprobar().
+ */
+function actualizarEstructura() {
   var ss = libro_(), informe = [];
-  Object.keys(HOJAS).forEach(function (clave) {
-    var h = ss.getSheetByName(HOJAS[clave]);
-    if (h) { informe.push('Ya existía: ' + HOJAS[clave]); return; }
-    h = ss.insertSheet(HOJAS[clave]);
-    var cols = COLUMNAS[clave];
-    h.getRange(FILA_TITULOS, COL_INICIO, 1, cols.length).setValues([cols]).setFontWeight('bold');
-    h.setFrozenRows(FILA_TITULOS);
-    h.setColumnWidth(1, 24);
-    var formato = function (lista, fmt) {
-      (lista[clave] || []).forEach(function (t) {
-        var c = COL_INICIO + cols.indexOf(t);
-        h.getRange(FILA_DATOS, c, h.getMaxRows() - FILA_DATOS + 1, 1).setNumberFormat(fmt);
+  var formatear = function (h, clave, columnas, colDe) {
+    [[COLUMNAS_TEXTO, '@'], [COLUMNAS_FECHA, 'dd/mm/yyyy'], [COLUMNAS_FECHA_HORA, 'dd/mm/yyyy hh:mm']].forEach(function (par) {
+      (par[0][clave] || []).forEach(function (t) {
+        if (columnas.indexOf(t) < 0) return;
+        h.getRange(FILA_DATOS, colDe(t), Math.max(h.getMaxRows() - FILA_DATOS + 1, 1), 1).setNumberFormat(par[1]);
       });
-    };
-    formato(COLUMNAS_TEXTO, '@');
-    formato(COLUMNAS_FECHA, 'dd/mm/yyyy');
-    formato(COLUMNAS_FECHA_HORA, 'dd/mm/yyyy hh:mm');
-    h.getRange(2, COL_INICIO).setValue(HOJAS[clave]).setFontWeight('bold').setFontSize(13);
-    informe.push('Creada: ' + HOJAS[clave]);
+    });
+  };
+  Object.keys(HOJAS).forEach(function (clave) {
+    var cols = COLUMNAS[clave];
+    var h = ss.getSheetByName(HOJAS[clave]);
+    if (!h) {
+      h = ss.insertSheet(HOJAS[clave]);
+      h.getRange(FILA_TITULOS, COL_INICIO, 1, cols.length).setValues([cols]).setFontWeight('bold');
+      h.setFrozenRows(FILA_TITULOS);
+      h.setColumnWidth(1, 24);
+      formatear(h, clave, cols, function (t) { return COL_INICIO + cols.indexOf(t); });
+      h.getRange(2, COL_INICIO).setValue(HOJAS[clave]).setFontWeight('bold').setFontSize(13);
+      informe.push('Creada: ' + HOJAS[clave]);
+      return;
+    }
+    var ultima = Math.max(h.getLastColumn(), COL_INICIO);
+    var fila = h.getRange(FILA_TITULOS, 1, 1, ultima).getValues()[0].map(function (v) { return String(v || '').trim(); });
+    var faltan = cols.filter(function (t) { return fila.indexOf(t) < 0; });
+    if (!faltan.length) { informe.push('Ya existía, completa: ' + HOJAS[clave]); return; }
+    var desde = ultima + 1;
+    h.getRange(FILA_TITULOS, desde, 1, faltan.length).setValues([faltan]).setFontWeight('bold');
+    formatear(h, clave, faltan, function (t) { return desde + faltan.indexOf(t); });
+    informe.push('Columnas agregadas al final de ' + HOJAS[clave] + ': ' + faltan.join(', '));
   });
-  var cfg = hoja_('config');
-  if (cfg.getLastRow() < FILA_DATOS) {
-    var t = leerTabla_('config');
-    agregarFilas_(t, 'config', INS_CONFIG.map(function (r) {
-      return { 'Lista': r[0], 'Valor': r[1], 'Número': r[2], 'Nota': r[3] };
-    }));
-    informe.push('Config: escritos ' + INS_CONFIG.length + ' valores iniciales');
-  } else informe.push('Config: ya tenía datos, no se tocó');
+
+  var t = leerTabla_('config');
+  var listas = {}, params = {};
+  t.filas.forEach(function (f) {
+    listas[norm_(f['Lista'])] = true;
+    if (norm_(f['Lista']) === norm_(LISTA.param)) params[norm_(f['Valor'])] = true;
+  });
+  var nuevas = INS_CONFIG.filter(function (r) {
+    return norm_(r[0]) === norm_(LISTA.param) ? !params[norm_(r[1])] : !listas[norm_(r[0])];
+  });
+  if (nuevas.length) {
+    agregarFilas_(t, 'config', nuevas.map(function (r) { return { 'Lista': r[0], 'Valor': r[1], 'Número': r[2], 'Nota': r[3] }; }));
+    var porLista = {};
+    nuevas.forEach(function (r) { porLista[r[0]] = (porLista[r[0]] || 0) + 1; });
+    informe.push('Config: agregadas ' + Object.keys(porLista).map(function (k) { return k + ' (' + porLista[k] + ')'; }).join(', '));
+  } else informe.push('Config: completa, no se tocó');
   informe.push('');
   informe.push(comprobar());
   return informe.join('\n');
@@ -519,6 +601,8 @@ function comprobar() {
     l.push('Config: ' + cfg.motivos.length + ' motivos, ' + cfg.planes.length + ' planes, ' +
       cfg.conceptos.length + ' conceptos, ' + cfg.formas.length + ' formas de pago, umbral ' +
       (cfg.umbral === null ? '—' : Math.round(cfg.umbral * 100) + ' %'));
+    l.push('Config (pruebas): ' + cfg.motivosNoInscripcion.length + ' motivos de no inscripción, ' +
+      cfg.comoConocio.length + ' opciones de «cómo nos conoció», ' + cfg.intereses.length + ' servicios de interés');
     cfg.faltan.forEach(function (f) { l.push('⚠ Config: falta ' + f); });
   } catch (e) { l.push('⚠ ' + e.message); }
   return l.join('\n');
@@ -799,12 +883,15 @@ var ACCIONES = {
   crearNino: { escribe: true, fn: accCrearNino_ },
   editarNino: { escribe: true, fn: accEditarNino_ },
   inscribir: { escribe: true, fn: accInscribir_ },
+  inscribirVarias: { escribe: true, fn: accInscribirVarias_ },
   mover: { escribe: true, fn: accMover_ },
   bajaClase: { escribe: true, fn: accBajaClase_ },
   bajaTotal: { escribe: true, fn: accBajaTotal_ },
   registrarPago: { escribe: true, fn: accRegistrarPago_ },
   revisar: { escribe: true, fn: accRevisar_ },
-  notaInscripcion: { escribe: true, fn: accNotaInscripcion_ }
+  notaInscripcion: { escribe: true, fn: accNotaInscripcion_ },
+  agendarPrueba: { escribe: true, fn: accAgendarPrueba_ },
+  resultadoPrueba: { escribe: true, fn: accResultadoPrueba_ }
 };
 
 function atender_(p) {
@@ -842,9 +929,91 @@ function atender_(p) {
   }
 }
 
-function historial_(usuario, accion, id, detalle) {
-  var t = tablaParaAgregar_('historial');
-  agregarFilas_(t, 'historial', [{ 'Fecha': new Date(), 'Usuario': usuario, 'Acción': accion, 'ID': id, 'Detalle': detalle }]);
+/** Una fila de Historial. */
+function historial_(usuario, accion, id, detalle) { historialVarios_(usuario, [[accion, id, detalle]]); }
+
+/** Varias filas de Historial en una sola escritura: [[acción, ID, detalle], …]. */
+function historialVarios_(usuario, filas) {
+  if (!filas.length) return;
+  var ahora = new Date();
+  agregarFilas_(tablaParaAgregar_('historial'), 'historial', filas.map(function (r) {
+    return { 'Fecha': ahora, 'Usuario': usuario, 'Acción': r[0], 'ID': r[1], 'Detalle': r[2] };
+  }));
+}
+
+
+// ─── Fechas y ocupación ──────────────────────────────────────────────────────
+
+/** 'yyyy-MM-dd' → 'dd/mm/yyyy', para los mensajes. */
+function fechaCorta_(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : ''; }
+
+/** Día de la semana de una fecha 'yyyy-MM-dd', en el vocabulario de Clases. No depende de zonas. */
+function diaSemana_(iso) {
+  var p = iso.split('-');
+  return DIAS_ORDEN[(new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay() + 6) % 7];
+}
+
+/** ¿La inscripción ocupa cupo ese día? Alta <= día y (sin baja o baja > día). */
+function inscripcionEnFecha_(f, iso) {
+  var alta = aISO_(f['Fecha alta']), baja = aISO_(f['Fecha baja']);
+  return (!alta || alta <= iso) && (!baja || baja > iso);
+}
+
+function pruebaOcupa_(f) { return PRUEBA_OCUPA.indexOf(texto_(f['Estado'])) >= 0; }
+
+/**
+ * Ocupación de una clase en una fecha = inscripciones activas ese día +
+ * pruebas Agendadas o Asistió de esa clase ese día. excluirNino deja fuera
+ * las pruebas de ese niño (para que su propia prueba no le cierre el cupo).
+ * La página calcula lo mismo con los datos de leer().
+ */
+function ocupacionEn_(codigo, iso, ins, pruebas, excluirNino) {
+  var i = ins.filas.filter(function (f) {
+    return texto_(f['Código clase']) === codigo && inscripcionEnFecha_(f, iso);
+  }).length;
+  var p = pruebas.filas.filter(function (f) {
+    return texto_(f['Clase ID']) === codigo && pruebaOcupa_(f) && aISO_(f['Fecha']) === iso &&
+      !(excluirNino && texto_(f['Niño ID']) === excluirNino);
+  }).length;
+  return { inscritos: i, pruebas: p, total: i + p };
+}
+
+function textoOcupacion_(o, cupo) {
+  return o.inscritos + (o.pruebas ? ' + ' + o.pruebas + (o.pruebas === 1 ? ' prueba' : ' pruebas') : '') + ' de ' + cupo + ' cupos';
+}
+
+/** La clase existe, está activa y tiene un cupo válido. Devuelve { fila, cupo }. */
+function claseUsable_(clases, codigo) {
+  var c = buscarClase_(clases, codigo);
+  if (norm_(c['Activa']) !== norm_(SI)) throw new ErrorUsuario_('La clase ' + codigo + ' no está activa.');
+  var cupo = numeroDe_(c['Cupo']);
+  if (!(cupo > 0)) throw new ErrorUsuario_('La clase ' + codigo + ' no tiene un cupo válido en la pestaña Clases.');
+  return { fila: c, cupo: cupo };
+}
+
+/**
+ * Cupo para una inscripción FIJA de idNino en codigo:
+ *   1) los inscritos sin baja no llenan la clase (la regla de siempre);
+ *   2) en cada fecha de hoy en adelante con pruebas que ocupan cupo, los
+ *      inscritos de ese día + las pruebas + este niño no pasan del cupo.
+ * Las pruebas del propio niño no cuentan contra él.
+ */
+function exigirCupoFijo_(clases, ins, pruebas, codigo, idNino) {
+  var c = claseUsable_(clases, codigo);
+  var res = ins.filas.filter(function (f) { return inscripcionActiva_(f) && texto_(f['Código clase']) === codigo; }).length;
+  if (res >= c.cupo) throw new ErrorUsuario_('La clase ' + codigo + ' está llena: ' + res + ' de ' + c.cupo + ' cupos.', 'llena');
+  var hoy = hoyISO_(), fechas = {};
+  pruebas.filas.forEach(function (f) {
+    if (texto_(f['Clase ID']) !== codigo || !pruebaOcupa_(f) || texto_(f['Niño ID']) === idNino) return;
+    var d = aISO_(f['Fecha']);
+    if (d >= hoy) fechas[d] = true;
+  });
+  Object.keys(fechas).sort().forEach(function (d) {
+    var o = ocupacionEn_(codigo, d, ins, pruebas, idNino);
+    if (o.total + 1 > c.cupo) throw new ErrorUsuario_('La clase ' + codigo + ' no tiene cupo el ' + fechaCorta_(d) +
+      ' por las pruebas agendadas ese día (' + textoOcupacion_(o, c.cupo) + ').', 'llena');
+  });
+  return c.fila;
 }
 
 
@@ -857,7 +1026,11 @@ function ninoPublico_(f) {
     responsable: texto_(f['Nombre responsable']), telefono: texto_(f['Teléfono']),
     telefono2: texto_(f['Teléfono 2']), correo: texto_(f['Correo']),
     cabeza: texto_(f['Cabeza de familia']), estado: texto_(f['Estado']),
-    ingreso: aISO_(f['Fecha ingreso']), notas: texto_(f['Notas'])
+    ingreso: aISO_(f['Fecha ingreso']), notas: texto_(f['Notas']),
+    colegio: texto_(f['Colegio']), comoConocio: texto_(f['Cómo nos conoció']),
+    referido: texto_(f['Familia que lo refirió']), hermanos: texto_(f['Hermanos (edades)']),
+    interes: texto_(f['Interés en otros servicios']), responsable2: texto_(f['Responsable 2']),
+    telefonoResp2: texto_(f['Teléfono responsable 2'])
   };
 }
 
@@ -881,12 +1054,29 @@ function pagoPublico_(f) {
   };
 }
 
+function pruebaPublica_(f) {
+  return {
+    id: texto_(f['ID prueba']), fecha: aISO_(f['Fecha']), codigo: texto_(f['Clase ID']), idNino: texto_(f['Niño ID']),
+    estado: texto_(f['Estado']), seInscribio: texto_(f['Se inscribió']), motivo: texto_(f['Motivo no inscripción']),
+    nota: texto_(f['Nota']), registradoPor: texto_(f['Registrado por'])
+  };
+}
+
+/**
+ * Todo lo que la página necesita en una sola llamada. Las inscripciones van
+ * en dos listas: las activas (con todo lo que usan Registrar y Pagos) y las
+ * cerradas (solo clase, alta y baja), que la página usa para la ocupación de
+ * fechas pasadas.
+ */
 function accLeer_(datos, usuario) {
   var clases = leerTabla_('clases').filas.map(clasePublica_);
   var ninos = leerTabla_('ninos').filas.map(ninoPublico_);
-  var ins = leerTabla_('inscripciones').filas.filter(inscripcionActiva_).map(function (f) {
-    return { id: texto_(f['ID inscripción']), idNino: texto_(f['ID niño']),
-             codigo: texto_(f['Código clase']), alta: aISO_(f['Fecha alta']), nota: texto_(f['Notas']) };
+  var ins = [], cerradas = [];
+  leerTabla_('inscripciones').filas.forEach(function (f) {
+    if (inscripcionActiva_(f)) ins.push({ id: texto_(f['ID inscripción']), idNino: texto_(f['ID niño']),
+      codigo: texto_(f['Código clase']), alta: aISO_(f['Fecha alta']), nota: texto_(f['Notas']) });
+    else cerradas.push({ idNino: texto_(f['ID niño']), codigo: texto_(f['Código clase']),
+      alta: aISO_(f['Fecha alta']), baja: aISO_(f['Fecha baja']) });
   });
   var cuenta = {};
   ins.forEach(function (i) { cuenta[i.codigo] = (cuenta[i.codigo] || 0) + 1; });
@@ -895,9 +1085,11 @@ function accLeer_(datos, usuario) {
   var pagos = leerTabla_('pagos').filas.map(pagoPublico_).filter(function (p) { return p.mes === mes; });
   return {
     archivo: libro_().getName(), usuario: usuario, hoy: hoyISO_(), mes: mes,
-    config: leerConfig_(), clases: clases, ninos: ninos, inscripciones: ins, pagosMes: pagos,
-    estados: [ESTADO.activo, ESTADO.revisar, ESTADO.retirado], motivoCambio: MOTIVO_CAMBIO_CLASE,
-    dias: DIAS_ORDEN
+    config: leerConfig_(), clases: clases, ninos: ninos, inscripciones: ins, inscripcionesCerradas: cerradas,
+    pruebas: leerTabla_('pruebas').filas.map(pruebaPublica_), pagosMes: pagos,
+    estados: [ESTADO.activo, ESTADO.revisar, ESTADO.prospecto, ESTADO.retirado], motivoCambio: MOTIVO_CAMBIO_CLASE,
+    estadosPrueba: [ESTADO_PRUEBA.agendada, ESTADO_PRUEBA.asistio, ESTADO_PRUEBA.noAsistio, ESTADO_PRUEBA.cancelada],
+    pruebaOcupa: PRUEBA_OCUPA, dias: DIAS_ORDEN
   };
 }
 
@@ -935,29 +1127,33 @@ function buscarClase_(tabla, codigo) {
   throw new ErrorUsuario_('No existe la clase ' + (codigo || '(sin código)') + '.');
 }
 
-function nombreDe_(f) { return (texto_(f['Nombre']) + ' ' + texto_(f['Apellidos'])).trim(); }
-
-/** Comprueba que la clase admita a un niño más. Devuelve la fila de la clase. */
-function exigirCupo_(clases, ins, codigo) {
-  var c = buscarClase_(clases, codigo);
-  if (norm_(c['Activa']) !== norm_(SI)) throw new ErrorUsuario_('La clase ' + codigo + ' no está activa.');
-  var cupo = numeroDe_(c['Cupo']);
-  if (!(cupo > 0)) throw new ErrorUsuario_('La clase ' + codigo + ' no tiene un cupo válido en la pestaña Clases.');
-  var res = ins.filas.filter(function (f) { return inscripcionActiva_(f) && texto_(f['Código clase']) === codigo; }).length;
-  if (res >= cupo) throw new ErrorUsuario_('La clase ' + codigo + ' está llena: ' + res + ' de ' + cupo + ' cupos. No se inscribió.', 'llena');
-  return c;
+function buscarPrueba_(tabla, id) {
+  id = texto_(id);
+  for (var i = 0; i < tabla.filas.length; i++) if (texto_(tabla.filas[i]['ID prueba']) === id) return tabla.filas[i];
+  throw new ErrorUsuario_('No existe la prueba ' + (id || '(sin ID)') + '.');
 }
+
+function nombreDe_(f) { return (texto_(f['Nombre']) + ' ' + texto_(f['Apellidos'])).trim(); }
 
 var CAMPOS_NINO = {
   socio: 'Número socio Poliwin', nombre: 'Nombre', apellidos: 'Apellidos', nacimiento: 'Fecha nacimiento',
   sexo: 'Sexo', responsable: 'Nombre responsable', telefono: 'Teléfono', telefono2: 'Teléfono 2',
-  correo: 'Correo', cabeza: 'Cabeza de familia', ingreso: 'Fecha ingreso', notas: 'Notas'
+  correo: 'Correo', cabeza: 'Cabeza de familia', ingreso: 'Fecha ingreso', notas: 'Notas',
+  colegio: 'Colegio', comoConocio: 'Cómo nos conoció', referido: 'Familia que lo refirió',
+  hermanos: 'Hermanos (edades)', interes: 'Interés en otros servicios', responsable2: 'Responsable 2',
+  telefonoResp2: 'Teléfono responsable 2'
 };
+var SEPARADOR_INTERES = ', ';
 
 function valoresNino_(entrada, parcial) {
   var out = {};
   Object.keys(CAMPOS_NINO).forEach(function (k) {
     if (!(k in entrada)) { if (!parcial) out[CAMPOS_NINO[k]] = ''; return; }
+    if (k === 'interes') {
+      var lista = Object.prototype.toString.call(entrada[k]) === '[object Array]' ? entrada[k] : texto_(entrada[k]).split(',');
+      out[CAMPOS_NINO[k]] = lista.map(texto_).filter(function (x) { return x; }).join(SEPARADOR_INTERES);
+      return;
+    }
     var v = texto_(entrada[k]);
     if (k === 'nacimiento' || k === 'ingreso') {
       if (v === '') { out[CAMPOS_NINO[k]] = ''; return; }
@@ -969,26 +1165,59 @@ function valoresNino_(entrada, parcial) {
   return out;
 }
 
+/**
+ * «Cómo nos conoció» y «Interés en otros servicios» tienen que venir de las
+ * listas de Config. Se valida solo lo que cambia: un valor viejo que Vida en
+ * Arte haya sacado de la lista no impide editar otro dato del niño. Devuelve
+ * los valores con la grafía de Config.
+ */
+function validarListasNino_(valores, cfg) {
+  var col = CAMPOS_NINO.comoConocio;
+  if (col in valores && valores[col]) {
+    var v = enLista_(valores[col], cfg.comoConocio);
+    if (!v) throw new ErrorUsuario_('«' + valores[col] + '» no está en la lista «' + LISTA.comoConocio + '» de Config.');
+    valores[col] = v;
+  }
+  col = CAMPOS_NINO.interes;
+  if (col in valores && valores[col]) {
+    valores[col] = valores[col].split(SEPARADOR_INTERES).map(function (x) {
+      var v = enLista_(x, cfg.intereses);
+      if (!v) throw new ErrorUsuario_('«' + x + '» no está en la lista «' + LISTA.interes + '» de Config.');
+      return v;
+    }).join(SEPARADOR_INTERES);
+  }
+}
+
+/** Avisa si ya hay un niño con el mismo nombre y apellidos (salvo que se confirme). */
+function exigirNoDuplicado_(t, valores, confirmado) {
+  if (confirmado) return;
+  var nuevo = norm_(valores['Nombre'] + ' ' + valores['Apellidos']);
+  var igual = t.filas.filter(function (f) { return norm_(nombreDe_(f)) === nuevo; });
+  if (igual.length) throw new ErrorUsuario_('Ya existe ' + igual.map(function (f) {
+    return texto_(f['ID']) + ' ' + nombreDe_(f) + ' (' + texto_(f['Estado']) + ')'; }).join(', ') +
+    '. Si es otro niño con el mismo nombre, confirma para crearlo igual.', 'duplicado');
+}
+
+/** Escribe un niño nuevo con el siguiente AS-xxxx. No valida: eso va antes. */
+function agregarNino_(t, valores, estado) {
+  var id = siguienteId_(t.filas, 'ID', PREFIJO.nino)();
+  valores['ID'] = id;
+  valores['Estado'] = estado;
+  agregarFilas_(t, 'ninos', [valores]);
+  return id;
+}
+
 
 // ─── Escrituras ──────────────────────────────────────────────────────────────
 
 function accCrearNino_(datos, usuario) {
-  var n = datos.nino || {};
-  var valores = valoresNino_(n, false);
+  var valores = valoresNino_(datos.nino || {}, false);
   if (!valores['Nombre']) throw new ErrorUsuario_('El nombre es obligatorio.');
+  validarListasNino_(valores, leerConfig_());
   var t = leerTabla_('ninos');
-  if (!datos.confirmarDuplicado) {
-    var nuevo = norm_(valores['Nombre'] + ' ' + valores['Apellidos']);
-    var igual = t.filas.filter(function (f) { return norm_(nombreDe_(f)) === nuevo; });
-    if (igual.length) throw new ErrorUsuario_('Ya existe ' + igual.map(function (f) {
-      return texto_(f['ID']) + ' ' + nombreDe_(f) + ' (' + texto_(f['Estado']) + ')'; }).join(', ') +
-      '. Si es otro niño con el mismo nombre, confirma para crearlo igual.', 'duplicado');
-  }
+  exigirNoDuplicado_(t, valores, datos.confirmarDuplicado);
   if (!valores['Fecha ingreso']) valores['Fecha ingreso'] = fechaDeTexto_(hoyISO_());
-  var id = siguienteId_(t.filas, 'ID', PREFIJO.nino)();
-  valores['ID'] = id;
-  valores['Estado'] = ESTADO.activo;
-  agregarFilas_(t, 'ninos', [valores]);
+  var id = agregarNino_(t, valores, ESTADO.activo);
   historial_(usuario, 'Crear niño', id, nombreDe_(valores));
   return { id: id };
 }
@@ -1004,6 +1233,7 @@ function accEditarNino_(datos, usuario) {
     var despues = COLUMNAS_FECHA.ninos.indexOf(col) >= 0 ? aISO_(cambios[col]) : texto_(cambios[col]);
     if (antes === despues) delete cambios[col]; else detalle.push(col);
   });
+  if (detalle.length) validarListasNino_(cambios, leerConfig_());
   if (datos.reactivar) {
     if (texto_(f['Estado']) !== ESTADO.retirado) throw new ErrorUsuario_('Solo se reactiva a un niño Retirado.');
     cambios['Estado'] = ESTADO.activo;
@@ -1015,23 +1245,65 @@ function accEditarNino_(datos, usuario) {
   return { id: texto_(f['ID']) };
 }
 
-function accInscribir_(datos, usuario) {
-  var ninos = leerTabla_('ninos'), clases = leerTabla_('clases'), ins = leerTabla_('inscripciones');
-  var n = buscarNino_(ninos, datos.idNino);
+/**
+ * Inscribe a un niño en una o varias clases. TODO O NADA: primero se valida
+ * cada clase (que exista, esté activa, el niño no esté ya, haya cupo hoy y en
+ * las fechas con pruebas) y, si alguna falla, no se escribe ninguna y el
+ * error dice cuál y por qué. Todo ocurre bajo el lock de atender_().
+ * La fecha de alta no puede ser futura. Un Prospecto pasa a Activo.
+ */
+function inscribirEn_(datos, codigos, usuario) {
+  var ninos = leerTabla_('ninos'), clases = leerTabla_('clases'), ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas');
+  var n = buscarNino_(ninos, datos.idNino), idNino = texto_(n['ID']);
   if (texto_(n['Estado']) === ESTADO.retirado)
     throw new ErrorUsuario_(nombreDe_(n) + ' está Retirado. Reactívalo antes de inscribirlo.');
-  var codigo = texto_(datos.codigo);
-  var ya = ins.filas.some(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === texto_(n['ID']) && texto_(f['Código clase']) === codigo; });
-  if (ya) throw new ErrorUsuario_(nombreDe_(n) + ' ya está inscrito en ' + codigo + '.');
-  exigirCupo_(clases, ins, codigo);
+  var lista = [];
+  (codigos || []).forEach(function (c) { c = texto_(c); if (c && lista.indexOf(c) < 0) lista.push(c); });
+  if (!lista.length) throw new ErrorUsuario_('Elige al menos una clase.');
   var alta = datos.fechaAlta ? exigirFecha_(datos.fechaAlta, 'la fecha de alta') : fechaDeTexto_(hoyISO_());
-  var id = siguienteId_(ins.filas, 'ID inscripción', PREFIJO.inscripcion)();
-  agregarFilas_(ins, 'inscripciones', [{
-    'ID inscripción': id, 'ID niño': texto_(n['ID']), 'Código clase': codigo, 'Fecha alta': alta,
-    'Fecha baja': '', 'Motivo baja': '', 'Detalle motivo': '', 'Registrado por': usuario, 'Fecha registro': new Date()
-  }]);
-  historial_(usuario, 'Inscribir', id, texto_(n['ID']) + ' en ' + codigo);
-  return { id: id };
+  exigirNoFutura_(alta, 'de alta');
+
+  var errores = [], codigoError = '';
+  lista.forEach(function (codigo) {
+    try {
+      var ya = ins.filas.some(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === idNino && texto_(f['Código clase']) === codigo; });
+      if (ya) throw new ErrorUsuario_(nombreDe_(n) + ' ya está inscrito en ' + codigo + '.');
+      exigirCupoFijo_(clases, ins, pruebas, codigo, idNino);
+    } catch (e) {
+      if (!(e instanceof ErrorUsuario_)) throw e;
+      errores.push(e.message);
+      codigoError = codigoError || e.codigo;
+    }
+  });
+  if (errores.length) {
+    if (lista.length === 1) throw new ErrorUsuario_(errores[0] + ' No se inscribió.', codigoError);
+    throw new ErrorUsuario_('No se inscribió en ninguna de las ' + lista.length + ' clases. ' + errores.join(' · '), codigoError || 'varias');
+  }
+
+  // Todo validado: ahora se escribe, en una sola escritura.
+  var sig = siguienteId_(ins.filas, 'ID inscripción', PREFIJO.inscripcion), ahora = new Date();
+  var nuevas = lista.map(function (codigo) {
+    return { 'ID inscripción': sig(), 'ID niño': idNino, 'Código clase': codigo, 'Fecha alta': alta,
+             'Fecha baja': '', 'Motivo baja': '', 'Detalle motivo': '', 'Registrado por': usuario, 'Fecha registro': ahora };
+  });
+  agregarFilas_(ins, 'inscripciones', nuevas);
+  var hist = nuevas.map(function (f) { return ['Inscribir', f['ID inscripción'], idNino + ' en ' + f['Código clase']]; });
+  if (texto_(n['Estado']) === ESTADO.prospecto) {
+    var cambios = { 'Estado': ESTADO.activo };
+    if (!aISO_(n['Fecha ingreso'])) cambios['Fecha ingreso'] = alta;
+    ponerCeldas_(ninos, n, cambios);
+    hist.push(['Prospecto → Activo', idNino, 'al inscribirse en ' + lista.join(', ')]);
+  }
+  historialVarios_(usuario, hist);
+  return { ids: nuevas.map(function (f) { return f['ID inscripción']; }) };
+}
+
+function accInscribir_(datos, usuario) {
+  return { id: inscribirEn_(datos, [datos.codigo], usuario).ids[0] };
+}
+
+function accInscribirVarias_(datos, usuario) {
+  return inscribirEn_(datos, datos.codigos, usuario);
 }
 
 function buscarInscripcionActiva_(ins, id) {
@@ -1047,9 +1319,10 @@ function buscarInscripcionActiva_(ins, id) {
 }
 
 /**
- * Una baja no puede ser futura: una inscripción con fecha de baja ya no
- * cuenta como activa, así que una baja «a fin de mes» liberaría el cupo hoy.
- * Se registra el día que ocurre.
+ * Ni las bajas ni las altas pueden ser futuras. Una inscripción con fecha de
+ * baja deja de contar al momento, así que una baja «a fin de mes» liberaría
+ * el cupo hoy; y un alta futura se registra el día que el niño empieza (o se
+ * agenda como prueba).
  */
 function exigirNoFutura_(fecha, que) {
   if (Utilities.formatDate(fecha, zona_(), 'yyyy-MM-dd') > hoyISO_())
@@ -1064,7 +1337,7 @@ function exigirBajaNoAntesDeAlta_(f, fecha) {
 }
 
 function accMover_(datos, usuario) {
-  var clases = leerTabla_('clases'), ins = leerTabla_('inscripciones'), ninos = leerTabla_('ninos');
+  var clases = leerTabla_('clases'), ins = leerTabla_('inscripciones'), ninos = leerTabla_('ninos'), pruebas = leerTabla_('pruebas');
   var vieja = buscarInscripcionActiva_(ins, datos.idInscripcion);
   var nueva = texto_(datos.codigoNuevo);
   if (nueva === texto_(vieja['Código clase'])) throw new ErrorUsuario_('La clase nueva es la misma que la actual.');
@@ -1072,8 +1345,9 @@ function accMover_(datos, usuario) {
   buscarNino_(ninos, idNino);
   var ya = ins.filas.some(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === idNino && texto_(f['Código clase']) === nueva; });
   if (ya) throw new ErrorUsuario_('El niño ya está inscrito en ' + nueva + '.');
-  exigirCupo_(clases, ins, nueva);
   var fecha = exigirFecha_(datos.fecha, 'la fecha del cambio');
+  exigirNoFutura_(fecha, 'del cambio');
+  exigirCupoFijo_(clases, ins, pruebas, nueva, idNino);
   exigirBajaNoAntesDeAlta_(vieja, fecha);
   var id = siguienteId_(ins.filas, 'ID inscripción', PREFIJO.inscripcion)();
   // Todo validado: ahora se escribe.
@@ -1183,4 +1457,111 @@ function accNotaInscripcion_(datos, usuario) {
   historial_(usuario, despues ? 'Nota de inscripción' : 'Quitar nota de inscripción', texto_(f['ID niño']),
     texto_(f['ID inscripción']) + ' · ' + texto_(f['Código clase']) + ' · antes: «' + antes + '»' + (despues ? ' · ahora: «' + despues + '»' : ''));
   return { id: texto_(f['ID inscripción']) };
+}
+
+
+// ─── Clases de prueba ────────────────────────────────────────────────────────
+
+/* Datos obligatorios para crear un Prospecto desde una prueba. */
+var OBLIGATORIOS_PROSPECTO = ['nombre', 'apellidos', 'nacimiento', 'responsable', 'telefono'];
+
+/**
+ * Agenda una clase de prueba. La prueba ocupa un cupo de esa clase ESE día.
+ *   · fecha de hoy en adelante, y que caiga el día de la semana de la clase;
+ *   · la clase activa y con cupo ese día (inscritos + pruebas);
+ *   · el niño: uno existente (idNino) o uno nuevo, que se crea como Prospecto.
+ * Todo se valida antes de escribir. Sin costo por ahora: si se cobra, se
+ * agrega una columna al final de Pruebas y un campo aquí.
+ */
+function accAgendarPrueba_(datos, usuario) {
+  var cfg = leerConfig_(), ninos = leerTabla_('ninos'), clases = leerTabla_('clases');
+  var ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas');
+  var fecha = exigirFecha_(datos.fecha, 'la fecha de la prueba');
+  var iso = Utilities.formatDate(fecha, zona_(), 'yyyy-MM-dd');
+  if (iso < hoyISO_()) throw new ErrorUsuario_('La prueba no puede ser en una fecha pasada.');
+  var codigo = texto_(datos.codigo);
+  var c = claseUsable_(clases, codigo);
+  var dia = enLista_(c.fila['Día'], DIAS_ORDEN);
+  if (diaSemana_(iso) !== dia) {
+    var d = (dia || texto_(c.fila['Día'])).toLowerCase();
+    throw new ErrorUsuario_('La clase ' + codigo + ' es los ' + (/s$/.test(d) ? d : d + 's') +
+      ' y el ' + fechaCorta_(iso) + ' es ' + diaSemana_(iso).toLowerCase() + '.');
+  }
+
+  var n = null, valores = null;
+  if (texto_(datos.idNino)) {
+    n = buscarNino_(ninos, datos.idNino);
+    var idN = texto_(n['ID']);
+    if (ins.filas.some(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === idN && texto_(f['Código clase']) === codigo; }))
+      throw new ErrorUsuario_(nombreDe_(n) + ' ya está inscrito en ' + codigo + '.');
+    if (pruebas.filas.some(function (f) { return texto_(f['Niño ID']) === idN && texto_(f['Clase ID']) === codigo && aISO_(f['Fecha']) === iso && pruebaOcupa_(f); }))
+      throw new ErrorUsuario_(nombreDe_(n) + ' ya tiene una prueba en ' + codigo + ' el ' + fechaCorta_(iso) + '.');
+  } else {
+    var entrada = datos.nino || {};
+    var faltan = OBLIGATORIOS_PROSPECTO.filter(function (k) { return !texto_(entrada[k]); });
+    if (faltan.length) throw new ErrorUsuario_('Faltan datos obligatorios del niño: ' +
+      faltan.map(function (k) { return CAMPOS_NINO[k].toLowerCase(); }).join(', ') + '.');
+    valores = valoresNino_(entrada, false);
+    validarListasNino_(valores, cfg);
+    exigirNoDuplicado_(ninos, valores, datos.confirmarDuplicado);
+  }
+
+  var o = ocupacionEn_(codigo, iso, ins, pruebas);
+  if (o.total >= c.cupo) throw new ErrorUsuario_('La clase ' + codigo + ' está llena el ' + fechaCorta_(iso) + ': ' +
+    textoOcupacion_(o, c.cupo) + '. No se agendó.', 'llena');
+
+  // Todo validado: ahora se escribe.
+  var hist = [], idNino;
+  if (n) idNino = texto_(n['ID']);
+  else {
+    idNino = agregarNino_(ninos, valores, ESTADO.prospecto);
+    hist.push(['Crear prospecto', idNino, nombreDe_(valores)]);
+  }
+  var id = siguienteId_(pruebas.filas, 'ID prueba', PREFIJO.prueba)();
+  agregarFilas_(pruebas, 'pruebas', [{
+    'ID prueba': id, 'Fecha': fecha, 'Clase ID': codigo, 'Niño ID': idNino, 'Estado': ESTADO_PRUEBA.agendada,
+    'Se inscribió': '', 'Motivo no inscripción': '', 'Nota': texto_(datos.nota),
+    'Registrado por': usuario, 'Fecha de registro': new Date()
+  }]);
+  hist.push(['Agendar prueba', id, idNino + ' · ' + codigo + ' · ' + fechaCorta_(iso)]);
+  historialVarios_(usuario, hist);
+  return { id: id, idNino: idNino };
+}
+
+/**
+ * Resultado de una prueba: Asistió / No asistió (solo desde el día de la
+ * prueba) / Cancelada (cuando sea). Se inscribió: Sí, No o vacío; si es No,
+ * el motivo de la lista de Config es obligatorio. No inscribe a nadie: eso lo
+ * hace Inscribir, que pasa al Prospecto a Activo.
+ */
+function accResultadoPrueba_(datos, usuario) {
+  var cfg = leerConfig_(), pruebas = leerTabla_('pruebas');
+  var f = buscarPrueba_(pruebas, datos.idPrueba);
+  var iso = aISO_(f['Fecha']), hoy = hoyISO_(), codigo = texto_(f['Clase ID']);
+  var estado = enLista_(datos.estado, [ESTADO_PRUEBA.asistio, ESTADO_PRUEBA.noAsistio, ESTADO_PRUEBA.cancelada]);
+  if (!estado) throw new ErrorUsuario_('El resultado tiene que ser Asistió, No asistió o Cancelada.');
+  if (estado !== ESTADO_PRUEBA.cancelada && iso > hoy)
+    throw new ErrorUsuario_('«' + estado + '» se marca desde el día de la prueba (' + fechaCorta_(iso) + ').');
+  // Una prueba cancelada que vuelve a ocupar cupo hoy tiene que caber.
+  if (PRUEBA_OCUPA.indexOf(estado) >= 0 && !pruebaOcupa_(f) && iso >= hoy) {
+    var c = claseUsable_(leerTabla_('clases'), codigo);
+    var o = ocupacionEn_(codigo, iso, leerTabla_('inscripciones'), pruebas);
+    if (o.total >= c.cupo) throw new ErrorUsuario_('La clase ' + codigo + ' ya no tiene cupo el ' + fechaCorta_(iso) + ': ' + textoOcupacion_(o, c.cupo) + '.', 'llena');
+  }
+  var se = texto_(datos.seInscribio);
+  if (se && se !== SI && se !== NO) throw new ErrorUsuario_('«Se inscribió» tiene que ser Sí, No o vacío.');
+  var motivo = '';
+  if (se === NO) {
+    if (!texto_(datos.motivo)) throw new ErrorUsuario_('Si no se inscribió, el motivo es obligatorio.');
+    motivo = enLista_(datos.motivo, cfg.motivosNoInscripcion);
+    if (!motivo) throw new ErrorUsuario_('El motivo «' + texto_(datos.motivo) + '» no está en la lista «' + LISTA.motivoNoInscripcion + '» de Config.');
+  }
+  var cambios = { 'Estado': estado, 'Se inscribió': se, 'Motivo no inscripción': motivo };
+  if ('nota' in datos) cambios['Nota'] = texto_(datos.nota);
+  Object.keys(cambios).forEach(function (k) { if (texto_(f[k]) === texto_(cambios[k])) delete cambios[k]; });
+  if (!Object.keys(cambios).length) return { id: texto_(f['ID prueba']), sinCambios: true };
+  ponerCeldas_(pruebas, f, cambios);
+  historial_(usuario, 'Resultado de prueba', texto_(f['ID prueba']), texto_(f['Niño ID']) + ' · ' + codigo + ' · ' + fechaCorta_(iso) +
+    ' · ' + estado + (se ? ' · se inscribió: ' + se : '') + (motivo ? ' · ' + motivo : ''));
+  return { id: texto_(f['ID prueba']) };
 }
