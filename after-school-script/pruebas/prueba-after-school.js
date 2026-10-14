@@ -537,6 +537,77 @@ seccion('ocupación en una fecha');
   ok(ins.filas.length === 4, '(control)');
 }
 
+seccion('baja total cancela las pruebas agendadas');
+{
+  const g = entornoCargado();
+  const lunes = proximo('Lunes', true), otroLunes = (() => { const d = new Date(lunes + 'T12:00:00'); d.setDate(d.getDate() + 7); return iso(d); })();
+  claseDeHoy(g, 'HOY-2000-TELAS', 5);
+  // Dani (AS-0004): una prueba hoy, una el lunes (con nota), una el otro lunes ya Cancelada,
+  // y una de hoy marcada Asistió (de otro niño, para controlar que no se toque).
+  const pHoy = g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, idNino: 'AS-0004' }).resultado.id;
+  const pLun = g.llamar('agendarPrueba', { codigo: 'MAR-1630-PARKIDS', fecha: proximo('Martes', true), idNino: 'AS-0004', nota: 'trae ropa cómoda' }).resultado.id;
+  const pCan = g.llamar('agendarPrueba', { codigo: 'LUN-1630-TELAS', fecha: otroLunes, idNino: 'AS-0004' }).resultado.id;
+  g.llamar('resultadoPrueba', { idPrueba: pCan, estado: 'Cancelada' });
+  const pOtro = g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, idNino: 'AS-0005' }).resultado.id;
+  g.llamar('resultadoPrueba', { idPrueba: pOtro, estado: 'Asistió' });
+  // Una prueba PASADA y Agendada de Dani, escrita a mano (no se puede agendar en pasado).
+  const P = g._libro.getSheetByName('Pruebas'), fp = P.getLastRow() + 1;
+  ['', 'PRU-0090', new Date(2026, 8, 1), 'LUN-1630-PARKOUR', 'AS-0004', 'Agendada', '', '', '', 'x', new Date()].forEach((v, i) => { if (i) { P.formatos[fp + ',' + (i + 1)] = (i === 1 || i === 3 || i === 4) ? '@' : undefined; P.poner(fp, i + 1, v); } });
+
+  const ocupAntes = g.llamar('leer').resultado;
+  const cHoy = ocupAntes.clases.find(c => c.codigo === 'HOY-2000-TELAS');
+  ok(cHoy && g.ocupacionEn_('HOY-2000-TELAS', HOY, g.leerTabla_('inscripciones'), g.leerTabla_('pruebas')).pruebas === 2, '(control) 2 pruebas hoy en la clase');
+
+  // bajaClase NO cancela pruebas.
+  const insDani = ocupAntes.inscripciones.find(i => i.idNino === 'AS-0004');
+  let r = g.llamar('bajaClase', { idInscripcion: insDani.id, fecha: HOY, motivo: 'Horario' });
+  ok(r.ok && r.estado.pruebas.filter(p => p.idNino === 'AS-0004' && p.estado === 'Agendada').length === 3, 'la baja de una clase no cancela pruebas');
+
+  r = g.llamar('bajaTotal', { idNino: 'AS-0004', fecha: HOY, motivo: 'Precio' });
+  ok(r.ok && r.resultado.pruebasCanceladas === 2, 'baja total: cancela las 2 pruebas Agendadas de hoy en adelante');
+  const pr = id => r.estado.pruebas.find(p => p.id === id);
+  ok(pr(pHoy).estado === 'Cancelada' && pr(pHoy).nota === 'Cancelada por baja total', 'la de hoy queda Cancelada con la nota');
+  ok(pr(pLun).estado === 'Cancelada' && pr(pLun).nota === 'trae ropa cómoda · Cancelada por baja total', 'la próxima queda Cancelada y conserva su nota');
+  ok(pr('PRU-0090').estado === 'Agendada', 'la pasada sin resultado no se toca');
+  ok(pr(pCan).estado === 'Cancelada' && pr(pCan).nota === '', 'la que ya estaba Cancelada no se toca');
+  ok(pr(pOtro).estado === 'Asistió', 'las pruebas de otro niño no se tocan');
+  ok(g.ocupacionEn_('HOY-2000-TELAS', HOY, g.leerTabla_('inscripciones'), g.leerTabla_('pruebas')).pruebas === 1, 'libera el cupo de ese día');
+  const H = g._libro.getSheetByName('Historial'), u = H.getLastRow();
+  ok(H.celda(u - 2, 4) === 'Baja total' && /2 prueba\(s\) canceladas/.test(H.celda(u - 2, 6)) &&
+     H.celda(u - 1, 4) === 'Cancelar prueba' && H.celda(u, 4) === 'Cancelar prueba' && /Cancelada por baja total/.test(H.celda(u, 6)), 'Historial: la baja y una fila por prueba cancelada');
+  ok(r.estado.ninos.find(n => n.id === 'AS-0004').estado === 'Retirado', 'y el niño queda Retirado');
+
+  // Un rechazo de la baja total no cancela nada (todo o nada).
+  const g2 = entornoCargado();
+  const p2 = g2.llamar('agendarPrueba', { codigo: 'MAR-1630-PARKIDS', fecha: proximo('Martes', true), idNino: 'AS-0004' }).resultado.id;
+  ok(!g2.llamar('bajaTotal', { idNino: 'AS-0004', fecha: HOY, motivo: 'Inventado' }).ok, 'baja total con motivo inválido → rechazo');
+  ok(g2.llamar('leer').resultado.pruebas.find(p => p.id === p2).estado === 'Agendada', 'el rechazo no cancela la prueba');
+  // Por revisar → Retirado también es una baja total.
+  const p3 = g2.llamar('agendarPrueba', { codigo: 'MAR-1630-PARKIDS', fecha: proximo('Martes', true), idNino: 'AS-0002' }).resultado.id;
+  r = g2.llamar('revisar', { idNino: 'AS-0002', estado: 'Retirado', fecha: HOY, motivo: 'Se mudó' });
+  ok(r.ok && r.estado.pruebas.find(p => p.id === p3).estado === 'Cancelada', '«Por revisar → Retirado» también cancela sus pruebas agendadas');
+}
+
+seccion('comas en la lista «Interés en servicios»');
+{
+  const g = entornoCargado();
+  const C = g._libro.getSheetByName('Config'), f = C.getLastRow() + 1;
+  ['', 'Interés en servicios', 'Teatro, danza', '', ''].forEach((v, i) => { if (i) C.poner(f, i + 1, v); });
+  const cfg = g.llamar('leer').resultado.config;
+  ok(cfg.intereses.indexOf('Teatro, danza') < 0 && cfg.intereses.length === 8, 'el valor con coma no se ofrece');
+  ok(cfg.avisos.length === 1 && /«Teatro, danza».*tiene una coma/.test(cfg.avisos[0]) && cfg.faltan.length === 0, 'leer lo avisa (sin contarlo como faltante)');
+  ok(/⚠ Config: el valor «Teatro, danza» de la lista «Interés en servicios» tiene una coma/.test(g.comprobar()), 'Comprobar estructura lo marca con ⚠');
+  let r = g.llamar('agendarPrueba', { codigo: 'LUN-1630-TELAS', fecha: proximo('Lunes', true), nino: Object.assign({ interes: ['Parkour', 'Teatro, danza'] }, NINO_NUEVO) });
+  ok(!r.ok && /«Teatro, danza» tiene una coma/.test(r.error), 'al guardar, un interés con coma se rechaza con mensaje claro');
+  ok(g._libro.getSheetByName('Niños').getLastRow() === 10, 'y no crea al niño');
+  r = g.llamar('editarNino', { id: 'AS-0001', cambios: { interes: ['Teatro, danza'] } });
+  ok(!r.ok && /tiene una coma/.test(r.error), 'editar con un interés con coma → rechazo');
+  ok(g.llamar('editarNino', { id: 'AS-0001', cambios: { interes: ['Parkour', 'Telas'] } }).ok, 'los valores sin coma se guardan');
+  // Una coma en otra lista (motivo de baja) no molesta: esos valores van uno por celda.
+  ['', 'Motivo baja', 'Precio, horario', '', ''].forEach((v, i) => { if (i) C.poner(f + 1, i + 1, v); });
+  ok(g.llamar('leer').resultado.config.motivos.indexOf('Precio, horario') >= 0, 'otras listas aceptan comas (se guardan un valor por celda)');
+}
+
 seccion('filas más allá de la 1000');
 {
   const g = entornoCargado();

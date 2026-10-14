@@ -591,6 +591,7 @@ function pintarAvisos() {
     avisoEscritura.html + '</div><button class="cerrar" type="button" id="cerrarAvisoEscritura" aria-label="Cerrar aviso">×</button></div>');
   if (!E.clases.length) a.push('<div class="aviso mal">La pestaña <b>Clases</b> no tiene ninguna clase. La ocupación sale vacía porque no hay clases, no porque no haya niños.</div>');
   (E.config.faltan || []).forEach(f => a.push('<div class="aviso mal">Falta en la pestaña <b>Config</b>: ' + esc(f) + '.</div>'));
+  (E.config.avisos || []).forEach(f => a.push('<div class="aviso ojo">En la pestaña <b>Config</b>, ' + esc(f) + '.</div>'));
   const huerf = E.inscripciones.filter(i => !IDX.clases[i.codigo] || !IDX.ninos[i.idNino]);
   if (huerf.length) a.push('<div class="aviso ojo">' + huerf.length + ' inscripción(es) apuntan a una clase o un niño que no existe: ' +
     esc(huerf.slice(0, 5).map(i => i.id).join(', ')) + (huerf.length > 5 ? '…' : '') + '. No se cuentan en la ocupación.</div>');
@@ -1027,8 +1028,10 @@ function abrirBaja(op) {
     tit = 'Baja de una clase'; sub = (n ? nombre(n) : '') + ' · ' + (i ? etiquetaClase(IDX.clases[i.codigo]) : '');
   } else {
     const n = IDX.ninos[op.idNino], k = (IDX.insNino[op.idNino] || []).length;
+    const pr = (IDX.pruebasNino[op.idNino] || []).filter(p => p.estado === 'Agendada' && p.fecha >= E.hoy).length;
     tit = op.tipo === 'revisar' ? 'Marcar como Retirado' : 'Dar de baja del todo';
-    sub = (n ? nombre(n) : '') + ' · se cierran sus ' + k + (k === 1 ? ' clase' : ' clases') + ' y queda Retirado';
+    sub = (n ? nombre(n) : '') + ' · se cierran sus ' + k + (k === 1 ? ' clase' : ' clases') +
+      (pr ? ', se cancela' + (pr === 1 ? ' su prueba agendada' : 'n sus ' + pr + ' pruebas agendadas') : '') + ' y queda Retirado';
   }
   $('#dbTit').textContent = tit; $('#dbSub').textContent = sub;
   $('#dbFecha').value = E.hoy; $('#dbFecha').max = E.hoy;

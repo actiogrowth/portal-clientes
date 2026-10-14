@@ -468,14 +468,20 @@ function numeroDe_(v) {
 function leerConfig_() {
   var t = leerTabla_('config');
   var cfg = { motivos: [], planes: [], conceptos: [], formas: [], umbral: null, conceptoMensual: '',
-              motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [] };
+              motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [], avisos: [] };
   t.filas.forEach(function (f) {
     var lista = norm_(f['Lista']), valor = texto_(f['Valor']);
     if (!valor) return;
     if (lista === norm_(LISTA.motivo)) cfg.motivos.push(valor);
     else if (lista === norm_(LISTA.motivoNoInscripcion)) cfg.motivosNoInscripcion.push(valor);
     else if (lista === norm_(LISTA.comoConocio)) cfg.comoConocio.push(valor);
-    else if (lista === norm_(LISTA.interes)) cfg.intereses.push(valor);
+    else if (lista === norm_(LISTA.interes)) {
+      // Los intereses de un niño se guardan en UNA celda separados por coma:
+      // un valor con coma se partiría en dos al leerlo. No se ofrece y se avisa.
+      if (valor.indexOf(',') >= 0) cfg.avisos.push('el valor «' + valor + '» de la lista «' + LISTA.interes +
+        '» tiene una coma y no se ofrece: quitar la coma en Config');
+      else cfg.intereses.push(valor);
+    }
     else if (lista === norm_(LISTA.plan)) cfg.planes.push({ nombre: valor, precio: numeroDe_(f['Número']) });
     else if (lista === norm_(LISTA.concepto)) cfg.conceptos.push(valor);
     else if (lista === norm_(LISTA.forma)) cfg.formas.push(valor);
@@ -604,6 +610,7 @@ function comprobar() {
     l.push('Config (pruebas): ' + cfg.motivosNoInscripcion.length + ' motivos de no inscripción, ' +
       cfg.comoConocio.length + ' opciones de «cómo nos conoció», ' + cfg.intereses.length + ' servicios de interés');
     cfg.faltan.forEach(function (f) { l.push('⚠ Config: falta ' + f); });
+    cfg.avisos.forEach(function (f) { l.push('⚠ Config: ' + f); });
   } catch (e) { l.push('⚠ ' + e.message); }
   return l.join('\n');
 }
@@ -1150,7 +1157,12 @@ function valoresNino_(entrada, parcial) {
   Object.keys(CAMPOS_NINO).forEach(function (k) {
     if (!(k in entrada)) { if (!parcial) out[CAMPOS_NINO[k]] = ''; return; }
     if (k === 'interes') {
-      var lista = Object.prototype.toString.call(entrada[k]) === '[object Array]' ? entrada[k] : texto_(entrada[k]).split(',');
+      var esLista = Object.prototype.toString.call(entrada[k]) === '[object Array]';
+      if (esLista) entrada[k].forEach(function (x) {
+        if (texto_(x).indexOf(',') >= 0) throw new ErrorUsuario_('El servicio de interés «' + texto_(x) +
+          '» tiene una coma, y los intereses se guardan separados por coma. Quita la coma de ese valor en la lista «' + LISTA.interes + '» de Config.');
+      });
+      var lista = esLista ? entrada[k] : texto_(entrada[k]).split(',');
       out[CAMPOS_NINO[k]] = lista.map(texto_).filter(function (x) { return x; }).join(SEPARADOR_INTERES);
       return;
     }
@@ -1372,22 +1384,42 @@ function accBajaClase_(datos, usuario) {
   return { id: texto_(f['ID inscripción']) };
 }
 
-/** Retira al niño del todo: cierra sus inscripciones, Estado Retirado y fila en Bajas. */
+var NOTA_CANCELADA_POR_BAJA = 'Cancelada por baja total';
+
+/**
+ * Retira al niño del todo: cierra sus inscripciones, Estado Retirado, fila en
+ * Bajas, y CANCELA sus pruebas Agendadas de hoy en adelante (liberan el cupo
+ * de ese día). Las pruebas pasadas y las que ya tienen resultado no se tocan.
+ * Todo en la misma llamada, bajo el lock de atender_(). Lo usan la baja total
+ * y «Por revisar → Retirado». La baja de UNA clase no cancela pruebas.
+ */
 function retirar_(idNino, fechaTxt, motivoTxt, detalle, usuario, accion) {
-  var cfg = leerConfig_(), ninos = leerTabla_('ninos'), ins = leerTabla_('inscripciones');
-  var n = buscarNino_(ninos, idNino);
+  var cfg = leerConfig_(), ninos = leerTabla_('ninos'), ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas');
+  var n = buscarNino_(ninos, idNino), id = texto_(n['ID']);
   if (texto_(n['Estado']) === ESTADO.retirado) throw new ErrorUsuario_(nombreDe_(n) + ' ya está Retirado.');
   var fecha = exigirFecha_(fechaTxt, 'la fecha de baja');
   var motivo = exigirMotivo_(motivoTxt, cfg);
-  var activas = ins.filas.filter(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === texto_(n['ID']); });
+  var activas = ins.filas.filter(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === id; });
   activas.forEach(function (f) { exigirBajaNoAntesDeAlta_(f, fecha); });
+  var hoy = hoyISO_();
+  var aCancelar = pruebas.filas.filter(function (f) {
+    return texto_(f['Niño ID']) === id && texto_(f['Estado']) === ESTADO_PRUEBA.agendada && aISO_(f['Fecha']) >= hoy;
+  });
+  // Todo validado: ahora se escribe.
   activas.forEach(function (f) {
     ponerCeldas_(ins, f, { 'Fecha baja': fecha, 'Motivo baja': motivo, 'Detalle motivo': texto_(detalle) });
   });
+  var hist = [];
+  aCancelar.forEach(function (f) {
+    var nota = texto_(f['Nota']);
+    ponerCeldas_(pruebas, f, { 'Estado': ESTADO_PRUEBA.cancelada, 'Nota': nota ? nota + ' · ' + NOTA_CANCELADA_POR_BAJA : NOTA_CANCELADA_POR_BAJA });
+    hist.push(['Cancelar prueba', texto_(f['ID prueba']), id + ' · ' + texto_(f['Clase ID']) + ' · ' + fechaCorta_(aISO_(f['Fecha'])) + ' · ' + NOTA_CANCELADA_POR_BAJA]);
+  });
   ponerCeldas_(ninos, n, { 'Estado': ESTADO.retirado });
-  agregarFilas_(tablaParaAgregar_('bajas'), 'bajas', [{ 'ID niño': texto_(n['ID']), 'Fecha baja': fecha, 'Motivo': motivo, 'Detalle': texto_(detalle), 'Registrado por': usuario }]);
-  historial_(usuario, accion, texto_(n['ID']), motivo + ' · ' + activas.length + ' clase(s) cerradas');
-  return { id: texto_(n['ID']), clasesCerradas: activas.length };
+  agregarFilas_(tablaParaAgregar_('bajas'), 'bajas', [{ 'ID niño': id, 'Fecha baja': fecha, 'Motivo': motivo, 'Detalle': texto_(detalle), 'Registrado por': usuario }]);
+  hist.unshift([accion, id, motivo + ' · ' + activas.length + ' clase(s) cerradas' + (aCancelar.length ? ' · ' + aCancelar.length + ' prueba(s) canceladas' : '')]);
+  historialVarios_(usuario, hist);
+  return { id: id, clasesCerradas: activas.length, pruebasCanceladas: aCancelar.length };
 }
 
 function accBajaTotal_(datos, usuario) {

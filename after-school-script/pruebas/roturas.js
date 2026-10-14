@@ -51,6 +51,15 @@ const ROTURAS = [
   ['estructura pisa la última columna', "    var desde = ultima + 1;", "    var desde = ultima;"],
   ['estructura repite listas de Config', "!listas[norm_(r[0])];", "true;"],
   ['no valida «cómo nos conoció»', "if (!v) throw new ErrorUsuario_('«' + valores[col] + '» no está en la lista", "if (false) throw new ErrorUsuario_('«' + valores[col] + '» no está en la lista"],
+  // Ajustes previos a publicar: baja total y comas
+  ['la baja total no cancela las pruebas', "  aCancelar.forEach(function (f) {\n    var nota", "  [].forEach(function (f) {\n    var nota"],
+  ['la baja total cancela también las pruebas pasadas', "texto_(f['Estado']) === ESTADO_PRUEBA.agendada && aISO_(f['Fecha']) >= hoy;", "texto_(f['Estado']) === ESTADO_PRUEBA.agendada;"],
+  ['la baja total cancela pruebas con resultado', "texto_(f['Estado']) === ESTADO_PRUEBA.agendada && aISO_(f['Fecha']) >= hoy;", "aISO_(f['Fecha']) >= hoy;"],
+  ['la baja total pisa la nota de la prueba', "Nota': nota ? nota + ' · ' + NOTA_CANCELADA_POR_BAJA : NOTA_CANCELADA_POR_BAJA", "Nota': NOTA_CANCELADA_POR_BAJA"],
+  ['la cancelación no queda en Historial', "    hist.push(['Cancelar prueba',", "    [].push(['Cancelar prueba',"],
+  ['ofrece intereses con coma', "      if (valor.indexOf(',') >= 0) cfg.avisos.push(", "      if (false) cfg.avisos.push("],
+  ['comprobar no avisa de las comas', "    cfg.avisos.forEach(function (f) { l.push('⚠ Config: ' + f); });", ""],
+  ['acepta al guardar un interés con coma', "        if (texto_(x).indexOf(',') >= 0) throw", "        if (false) throw"],
   ['fecha con la zona del script', "var f = Utilities.parseDate(txt, zona_(), 'yyyy-MM-dd');", "var f = Utilities.parseDate(txt, 'UTC', 'yyyy-MM-dd');"]
 ];
 
