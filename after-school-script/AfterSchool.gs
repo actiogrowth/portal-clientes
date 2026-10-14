@@ -189,8 +189,25 @@ function mostrar_(titulo, texto) {
 //  AYUDAS DE HOJA
 // ═════════════════════════════════════════════════════════════════════════════
 
-function libro_() { return SpreadsheetApp.getActiveSpreadsheet(); }
-function zona_() { return libro_().getSpreadsheetTimeZone(); }
+/*
+ * CACHÉ DE UNA EJECUCIÓN. Cada llamada al Sheet es un viaje al servicio y es
+ * lo que hace lenta una escritura: medido en el simulador el 14-oct, una
+ * escritura hacía ~1.180 llamadas, casi todas pidiendo la zona horaria una
+ * vez por fecha. Ahora el libro y la zona se piden una vez, y las tablas que
+ * ya se leyeron dentro de una llamada al puente se reutilizan: las escrituras
+ * actualizan la copia en memoria, y el estado que se devuelve sale de ella
+ * en vez de releer las pestañas. Es seguro porque todo ocurre bajo el lock;
+ * prueba-after-school.js compara ese estado con una lectura nueva tras cada
+ * escritura.
+ *
+ * Las variables globales de Apps Script nacen vacías en cada ejecución, pero
+ * atender_() la vacía igual al empezar y al terminar.
+ */
+var CACHE_ = { libro: null, zona: null, tablas: null };
+function reiniciarCache_(conTablas) { CACHE_ = { libro: null, zona: null, tablas: conTablas ? {} : null }; }
+
+function libro_() { return CACHE_.libro || (CACHE_.libro = SpreadsheetApp.getActiveSpreadsheet()); }
+function zona_() { return CACHE_.zona || (CACHE_.zona = libro_().getSpreadsheetTimeZone()); }
 
 function hoja_(clave) {
   var h = libro_().getSheetByName(HOJAS[clave]);
@@ -198,10 +215,8 @@ function hoja_(clave) {
   return h;
 }
 
-/** Mapa título → número de columna (1-based), leído de la fila 5. */
-function titulos_(hoja, clave) {
-  var ultima = Math.max(hoja.getLastColumn(), COL_INICIO);
-  var fila = hoja.getRange(FILA_TITULOS, 1, 1, ultima).getValues()[0];
+/** Mapa título → número de columna (1-based) a partir de la fila 5 ya leída. */
+function mapaTitulos_(fila, clave) {
   var mapa = {};
   for (var c = 0; c < fila.length; c++) {
     var t = String(fila[c] || '').trim();
@@ -213,48 +228,62 @@ function titulos_(hoja, clave) {
   return mapa;
 }
 
+/** Lee solo la fila de títulos. */
+function titulos_(hoja, clave) {
+  var ultima = Math.max(hoja.getLastColumn(), COL_INICIO);
+  return { mapa: mapaTitulos_(hoja.getRange(FILA_TITULOS, 1, 1, ultima).getValues()[0], clave), ancho: ultima };
+}
+
 /**
- * Lee una tabla entera hasta la última fila con datos. Devuelve objetos con
- * los títulos como claves y _fila con la fila real. Salta las filas cuya
+ * Lee una tabla entera hasta la última fila con datos, en UNA lectura
+ * (getDataRange: de la fila 1 a la última con contenido). Devuelve objetos
+ * con los títulos como claves y _fila con la fila real. Salta las filas cuya
  * primera columna del esquema está vacía.
  */
 function leerTabla_(clave) {
+  if (CACHE_.tablas && CACHE_.tablas[clave]) return CACHE_.tablas[clave];
   var hoja = hoja_(clave);
-  var mapa = titulos_(hoja, clave);
-  var ultimaFila = hoja.getLastRow();
-  if (ultimaFila < FILA_DATOS) return { hoja: hoja, mapa: mapa, filas: [] };
-  var ancho = hoja.getLastColumn();
-  var datos = hoja.getRange(FILA_DATOS, 1, ultimaFila - FILA_DATOS + 1, ancho).getValues();
+  var todo = hoja.getDataRange().getValues();
+  if (todo.length < FILA_TITULOS) mapaTitulos_([], clave);   // lanza el error de títulos
+  var ancho = todo[0].length;
+  var mapa = mapaTitulos_(todo[FILA_TITULOS - 1], clave);
   var llave = COLUMNAS[clave][0];
   var filas = [];
-  for (var i = 0; i < datos.length; i++) {
-    var o = { _fila: FILA_DATOS + i };
-    COLUMNAS[clave].forEach(function (t) { o[t] = datos[i][mapa[t] - 1]; });
+  for (var i = FILA_DATOS - 1; i < todo.length; i++) {
+    var o = { _fila: i + 1 };
+    COLUMNAS[clave].forEach(function (t) { o[t] = todo[i][mapa[t] - 1]; });
     if (String(o[llave] === null || o[llave] === undefined ? '' : o[llave]).trim() === '') continue;
     filas.push(o);
   }
-  return { hoja: hoja, mapa: mapa, filas: filas };
+  var tabla = { hoja: hoja, mapa: mapa, filas: filas, ultimaFila: todo.length, ancho: ancho };
+  if (CACHE_.tablas) CACHE_.tablas[clave] = tabla;
+  return tabla;
 }
 
-/** Hoja y títulos, sin leer los datos: para agregar filas a tablas largas. */
+/** Hoja y títulos, sin leer los datos: para agregar filas a tablas largas (Historial, Bajas). */
 function tablaParaAgregar_(clave) {
+  if (CACHE_.tablas && CACHE_.tablas[clave]) return CACHE_.tablas[clave];
   var hoja = hoja_(clave);
-  return { hoja: hoja, mapa: titulos_(hoja, clave), filas: null };
+  var t = titulos_(hoja, clave);
+  return { hoja: hoja, mapa: t.mapa, filas: null, ultimaFila: null, ancho: t.ancho };
 }
+
+function letraCol_(n) { var s = ''; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
 
 /**
  * Escribe filas nuevas debajo de la última con contenido. Antes de escribir
  * pone el formato de texto y de fecha en esas filas: el que dejó instalar()
  * llega solo hasta la fila 1000, y sin él Sheets convierte «2026-10» en fecha.
+ * Una llamada por tipo de formato (RangeList), no una por columna.
  */
 function agregarFilas_(tabla, clave, objetos) {
   if (!objetos.length) return;
-  var ancho = tabla.hoja.getLastColumn();
-  var desde = Math.max(tabla.hoja.getLastRow() + 1, FILA_DATOS);
+  var ancho = Math.max(tabla.ancho || tabla.hoja.getLastColumn(), COL_INICIO);
+  var ultima = tabla.ultimaFila !== null && tabla.ultimaFila !== undefined ? tabla.ultimaFila : tabla.hoja.getLastRow();
+  var desde = Math.max(ultima + 1, FILA_DATOS), hasta = desde + objetos.length - 1;
   [[COLUMNAS_TEXTO, '@'], [COLUMNAS_FECHA, 'dd/mm/yyyy'], [COLUMNAS_FECHA_HORA, 'dd/mm/yyyy hh:mm']].forEach(function (par) {
-    (par[0][clave] || []).forEach(function (t) {
-      tabla.hoja.getRange(desde, tabla.mapa[t], objetos.length, 1).setNumberFormat(par[1]);
-    });
+    var a1 = (par[0][clave] || []).map(function (t) { var l = letraCol_(tabla.mapa[t]); return l + desde + ':' + l + hasta; });
+    if (a1.length) tabla.hoja.getRangeList(a1).setNumberFormat(par[1]);
   });
   var matriz = objetos.map(function (o) {
     var fila = [];
@@ -266,23 +295,35 @@ function agregarFilas_(tabla, clave, objetos) {
     return fila;
   });
   tabla.hoja.getRange(desde, 1, matriz.length, ancho).setValues(matriz);
+  tabla.ultimaFila = hasta;
+  if (tabla.filas) objetos.forEach(function (o, i) {
+    var copia = { _fila: desde + i };
+    COLUMNAS[clave].forEach(function (t) { copia[t] = (o[t] === undefined || o[t] === null) ? '' : o[t]; });
+    tabla.filas.push(copia);
+  });
 }
 
-/** Cambia celdas sueltas de una fila ya leída. */
+/**
+ * Cambia celdas de una fila ya leída. Si las columnas son contiguas (Fecha
+ * baja, Motivo baja, Detalle motivo) va en una sola escritura.
+ */
 function ponerCeldas_(tabla, fila, cambios) {
-  Object.keys(cambios).forEach(function (t) {
+  var cols = Object.keys(cambios).map(function (t) {
     if (!(t in tabla.mapa)) throw new Error('columna desconocida ' + t);
-    var v = cambios[t];
-    tabla.hoja.getRange(fila._fila, tabla.mapa[t]).setValue(v === undefined || v === null ? '' : v);
-    fila[t] = v;
-  });
+    return { t: t, c: tabla.mapa[t], v: (cambios[t] === undefined || cambios[t] === null) ? '' : cambios[t] };
+  }).sort(function (a, b) { return a.c - b.c; });
+  if (!cols.length) return;
+  var contiguas = cols[cols.length - 1].c - cols[0].c + 1 === cols.length;
+  if (contiguas) tabla.hoja.getRange(fila._fila, cols[0].c, 1, cols.length).setValues([cols.map(function (x) { return x.v; })]);
+  else cols.forEach(function (x) { tabla.hoja.getRange(fila._fila, x.c).setValue(x.v); });
+  cols.forEach(function (x) { fila[x.t] = x.v; });
 }
 
 function texto_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
 
 /** Normaliza para comparar: sin mayúsculas, acentos ni espacios dobles. */
 function norm_(v) {
-  return texto_(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+  return texto_(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
 }
 
 function siguienteId_(filas, columna, prefijo) {
@@ -777,6 +818,7 @@ function atender_(p) {
 
   var lock = null;
   try {
+    reiniciarCache_(true);
     if (acc.escribe) {
       lock = LockService.getScriptLock();
       if (!lock.tryLock(20000)) return { ok: false, error: 'Otra persona está guardando en este momento. Espera unos segundos y vuelve a intentarlo.', codigo: 'ocupado' };
@@ -784,14 +826,18 @@ function atender_(p) {
     var datos = p.datos || {};
     var resultado = acc.fn(datos, usuario);
     if (acc.escribe) {
+      // El estado sale de las tablas en memoria (ya actualizadas por la
+      // escritura); solo se leen las pestañas que la escritura no tocó.
+      var estado = accLeer_({}, usuario);
       SpreadsheetApp.flush();
-      return { ok: true, resultado: resultado, estado: accLeer_({}, usuario) };
+      return { ok: true, resultado: resultado, estado: estado };
     }
     return { ok: true, resultado: resultado };
   } catch (err) {
     if (err instanceof ErrorUsuario_) return { ok: false, error: err.message, codigo: err.codigo };
     return { ok: false, error: 'Error interno: ' + (err && err.message ? err.message : String(err)) };
   } finally {
+    reiniciarCache_(false);
     if (lock) lock.releaseLock();
   }
 }

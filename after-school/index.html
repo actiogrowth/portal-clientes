@@ -341,12 +341,18 @@ async function api(accion, datos) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ accion, datos: datos || {} }) });
   } catch (e) {
-    throw new ErrorApi('No hay conexión con el servidor del portal. Revisa internet y vuelve a intentarlo.', 'red');
+    throw new ErrorApi('No hay conexión con el servidor del portal.', 'red');
   }
   const tipo = r.headers.get('content-type') || '';
-  const txt = await r.text();
+  let txt;
+  try { txt = await r.text(); } catch (e) { throw new ErrorApi('Se cortó la respuesta del servidor del portal.', 'red'); }
+  const esHtml = /text\/html/i.test(tipo) || /^\s*</.test(txt);
+  // Un 5xx en HTML es el servidor (p. ej. un 504 por tiempo), no la sesión:
+  // la petición pudo llegar al Sheet, así que cuenta como respuesta perdida.
+  if (r.status >= 500 && esHtml)
+    throw new ErrorApi('El servidor del portal no respondió bien (código ' + r.status + ').', 'incierto');
   // La sesión del portal caducada responde con la página de login (HTML) o 401.
-  if (r.status === 401 || /text\/html/i.test(tipo) || /^\s*</.test(txt))
+  if (r.status === 401 || esHtml)
     throw new ErrorApi('La sesión del portal caducó.', 'sesion');
   let j;
   try { j = JSON.parse(txt); } catch (e) { throw new ErrorApi('El servidor respondió algo que no se entiende (código ' + r.status + ').', 'ilegible'); }
@@ -364,7 +370,7 @@ let ocupado = false;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const nombre = n => (n.nombre + ' ' + n.apellidos).trim();
 const fecha = iso => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—';
 const dinero = v => (typeof v === 'number' && !isNaN(v)) ? '$' + v.toFixed(2) : '—';
@@ -443,12 +449,16 @@ function aplicar(estado) {
 
 function pintarAvisos() {
   const a = [];
+  if (avisoEscritura) a.push('<div class="aviso ' + avisoEscritura.tipo + '" style="display:flex;gap:10px;align-items:start"><div style="flex:1">' +
+    avisoEscritura.html + '</div><button class="cerrar" type="button" id="cerrarAvisoEscritura" aria-label="Cerrar aviso">×</button></div>');
   if (!E.clases.length) a.push('<div class="aviso mal">La pestaña <b>Clases</b> no tiene ninguna clase. La ocupación sale vacía porque no hay clases, no porque no haya niños.</div>');
   (E.config.faltan || []).forEach(f => a.push('<div class="aviso mal">Falta en la pestaña <b>Config</b>: ' + esc(f) + '.</div>'));
   const huerf = E.inscripciones.filter(i => !IDX.clases[i.codigo] || !IDX.ninos[i.idNino]);
   if (huerf.length) a.push('<div class="aviso ojo">' + huerf.length + ' inscripción(es) apuntan a una clase o un niño que no existe: ' +
     esc(huerf.slice(0, 5).map(i => i.id).join(', ')) + (huerf.length > 5 ? '…' : '') + '. No se cuentan en la ocupación.</div>');
   $('#avisos').innerHTML = a.join('');
+  const x = $('#cerrarAvisoEscritura');
+  if (x) x.onclick = () => { avisoEscritura = null; pintarAvisos(); };
 }
 
 function pintarTodo() {
@@ -471,10 +481,63 @@ document.querySelectorAll('#pestanas button').forEach(b => b.onclick = () => mos
 $('#btnActualizar').onclick = cargar;
 
 /* Escritura: bloquea la pantalla mientras guarda y repinta con lo releído. */
+/* Errores en los que la escritura PUDO haberse hecho: la petición salió pero
+   la respuesta no llegó. Tras uno de estos no se dice «error» a secas: se
+   vuelve a leer la base y se comprueba si el cambio quedó, para que nadie lo
+   repita a ciegas (14-oct: una inscripción dio error y sí se había guardado). */
+const INCIERTOS = new Set(['red', 'ilegible', 'incierto']);
+const QUE_ES = {
+  crearNino: 'la creación del niño', editarNino: 'los cambios del niño', inscribir: 'la inscripción',
+  mover: 'el cambio de clase', bajaClase: 'la baja de la clase', bajaTotal: 'la baja del niño',
+  revisar: 'la revisión', registrarPago: 'el pago', notaInscripcion: 'el cambio de la nota'
+};
+
+/* Lo que una escritura cambia, medido sobre E. Si cambió entre antes y
+   después de volver a leer, la escritura se hizo. null = no se puede saber. */
+function huella(accion, d) {
+  if (!E) return null;
+  switch (accion) {
+    case 'crearNino': {
+      const k = norm(((d.nino || {}).nombre || '') + ' ' + ((d.nino || {}).apellidos || '')).replace(/\s+/g, ' ');
+      return E.ninos.filter(n => norm(nombre(n)).replace(/\s+/g, ' ') === k).length;
+    }
+    case 'editarNino': { const n = IDX.ninos[d.id]; return n ? JSON.stringify(n) : null; }
+    case 'inscribir': return E.inscripciones.some(i => i.idNino === d.idNino && i.codigo === d.codigo);
+    case 'mover': case 'bajaClase': return E.inscripciones.some(i => i.id === d.idInscripcion);
+    case 'bajaTotal': case 'revisar': { const n = IDX.ninos[d.idNino]; return n ? n.estado : null; }
+    case 'registrarPago':
+      return d.mes === E.mes ? E.pagosMes.filter(p => p.idNino === d.idNino && norm(p.concepto) === norm(d.concepto)).length : null;
+    case 'notaInscripcion': { const i = E.inscripciones.find(x => x.id === d.idInscripcion); return i ? i.nota : null; }
+  }
+  return null;
+}
+
+let avisoEscritura = null;   // aviso persistente arriba de todo, hasta que se cierre o haya otra escritura
+
+async function comprobarTrasFallo(accion, datos, antes, opciones) {
+  const que = QUE_ES[accion] || 'el cambio';
+  const deQue = ('de ' + que).replace(/^de el /, 'del ');
+  let leido = true;
+  try { aplicar((await api('leer')).resultado); }
+  catch (e2) { if (e2.codigo === 'sesion') { pantallaError(e2); return; } leido = false; }
+  const despues = leido ? huella(accion, datos) : null;
+  let tipo = 'ojo', html;
+  if (!leido) html = '<b>No llegó la confirmación ' + deQue + ', y tampoco se pudo volver a leer la base.</b> No lo repitas todavía: espera un minuto, pulsa «Actualizar» y revisa si quedó.';
+  else if (antes === null || despues === null) html = '<b>No llegó la confirmación ' + deQue + '. Puede que se haya guardado.</b> Ya volví a leer los datos: revisa en pantalla si quedó antes de repetirlo.';
+  else if (despues !== antes) { tipo = 'bien'; html = '<b>Sí se guardó ' + que + '.</b> La confirmación se perdió en el camino, pero al volver a leer la base el cambio ya está. No hace falta repetirlo.'; }
+  else html = '<b>No llegó la confirmación ' + deQue + ' y el cambio todavía no aparece.</b> Ya volví a leer los datos. Espera unos segundos y pulsa «Actualizar» antes de repetirlo: puede estar terminando de guardarse.';
+  avisoEscritura = { tipo, html };
+  pintarAvisos();
+  if (tipo === 'bien') cerrarDialogos();
+  else if (opciones && opciones.donde && document.contains(opciones.donde)) opciones.donde.innerHTML = '<div class="aviso ojo">' + html + '</div>';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 async function escribir(accion, datos, mensajeOk, opciones) {
   if (ocupado) return null;
   ocupado = true; document.body.style.cursor = 'progress';
   document.querySelectorAll('button').forEach(b => { if (!b.disabled) { b.dataset.reactivar = '1'; b.disabled = true; } });
+  const antes = huella(accion, datos);
   try {
     let r;
     try { r = await api(accion, datos); }
@@ -483,11 +546,14 @@ async function escribir(accion, datos, mensajeOk, opciones) {
       if (!confirm(e.message)) return null;   // canceló: no hay nada que avisar
       r = await api(accion, Object.assign({}, datos, { confirmarDuplicado: true }));
     }
+    if (!r.estado) throw new ErrorApi('La respuesta no trae el estado.', 'ilegible');
+    avisoEscritura = null;
     aplicar(r.estado);
     if (mensajeOk) toast(mensajeOk);
     return r.resultado;
   } catch (e) {
     if (e.codigo === 'sesion') { pantallaError(e); return null; }
+    if (INCIERTOS.has(e.codigo)) { await comprobarTrasFallo(accion, datos, antes, opciones); return null; }
     if (opciones && opciones.donde) opciones.donde.innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>';
     else alert(e.message);
     return null;

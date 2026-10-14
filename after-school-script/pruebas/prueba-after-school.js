@@ -5,7 +5,27 @@
  *
  * Sale con 1 si falla cualquier comprobación.
  */
-const { crearEntorno, Libro } = require('./simulador');
+const sim = require('./simulador');
+const { Libro } = sim;
+
+/* Tras CADA escritura que sale bien, el estado que devuelve el puente (armado
+   desde las tablas en memoria) tiene que ser idéntico a una lectura nueva del
+   Sheet. Si la copia en memoria se desvía de la hoja, esto lo atrapa. */
+let estadosComparados = 0;
+function crearEntorno(opciones) {
+  const g = sim.crearEntorno(opciones);
+  const llamar = g.llamar;
+  g.llamar = function (accion, datos, extra) {
+    const r = llamar(accion, datos, extra);
+    if (r.ok && r.estado) {
+      const fresco = llamar('leer').resultado;
+      estadosComparados++;
+      ok(JSON.stringify(r.estado) === JSON.stringify(fresco), 'el estado tras «' + accion + '» coincide con una lectura nueva');
+    }
+    return r;
+  };
+  return g;
+}
 
 let fallos = 0, total = 0;
 function ok(cond, que) {
@@ -328,6 +348,7 @@ seccion('filas más allá de la 1000');
   ok(P.celda(1201, 4) === MES, 'en la fila 1201 el mes sigue siendo texto');
 }
 
+console.log('  (' + estadosComparados + ' escrituras comparadas contra una lectura nueva)');
 console.log('');
 console.log(fallos ? '✗ ' + fallos + ' de ' + total + ' comprobaciones fallaron' : '✓ ' + total + ' comprobaciones pasan');
 process.exit(fallos ? 1 : 0);

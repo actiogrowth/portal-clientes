@@ -107,24 +107,100 @@ $envio = json_encode([
     'datos'   => is_array($datos['datos'] ?? null) ? $datos['datos'] : new stdClass(),
 ], JSON_UNESCAPED_UNICODE);
 
-$ch = curl_init($cfg['as_exec']);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true,   // /exec redirige a googleusercontent
-    CURLOPT_MAXREDIRS      => 5,
-    CURLOPT_TIMEOUT        => 90,
-    CURLOPT_CONNECTTIMEOUT => 20,
-    CURLOPT_POST           => true,
-    CURLOPT_POSTFIELDS     => $envio,
-    CURLOPT_HTTPHEADER     => ['Content-Type: text/plain;charset=utf-8'],
-]);
-$respuesta = curl_exec($ch);
-$error     = curl_error($ch);
-$codigo    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+/* ── Transporte ────────────────────────────────────────────────────────────
+ * Apps Script contesta un POST a /exec con un 302 hacia
+ * script.googleusercontent.com/macros/echo?…, donde espera la respuesta ya
+ * calculada. Ese salto se hace A MANO: con CURLOPT_FOLLOWLOCATION, un 302 que
+ * apuntara otra vez a /exec terminaba en un GET a /exec (doGet), y la página
+ * mostraba «solo responde a POST» aunque la escritura SÍ se había hecho
+ * (14-oct, INS-0220).
+ *
+ * Reglas:
+ *   · El POST a /exec se manda UNA vez y nunca se repite: no es idempotente.
+ *   · Solo se sigue un Location que apunte a *.googleusercontent.com, con GET.
+ *     Jamás se pide /exec con GET.
+ *   · El GET al echo sí se puede repetir (solo lee la respuesta guardada): si
+ *     da 404 o 5xx se reintenta dos veces.
+ *   · Si el POST salió pero la respuesta no llega, el error lleva el código
+ *     «incierto»: la página vuelve a leer y comprueba si el cambio quedó.
+ *     «sin_conexion» es solo cuando seguro no salió (no hubo conexión).
+ *   · Cada «incierto» deja una línea en el error_log de PHP con lo que pasó
+ *     (código, destino sin parámetros), para poder diagnosticarlo.
+ */
+function pedir(string $url, ?string $cuerpo): array {
+    $ch = curl_init($url);
+    $op = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_TIMEOUT        => 90,
+        CURLOPT_CONNECTTIMEOUT => 20,
+    ];
+    if ($cuerpo !== null) {
+        $op[CURLOPT_POST]       = true;
+        $op[CURLOPT_POSTFIELDS] = $cuerpo;
+        $op[CURLOPT_HTTPHEADER] = ['Content-Type: text/plain;charset=utf-8'];
+    } else {
+        $op[CURLOPT_HTTPGET] = true;
+    }
+    curl_setopt_array($ch, $op);
+    $cuerpoResp = curl_exec($ch);
+    $r = [
+        'codigo'   => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE),
+        'location' => (string) (curl_getinfo($ch, CURLINFO_REDIRECT_URL) ?: ''),
+        'errno'    => curl_errno($ch),
+        'error'    => curl_error($ch),
+        'cuerpo'   => $cuerpoResp,
+    ];
+    curl_close($ch);
+    return $r;
+}
 
-if ($respuesta === false) fallo('sin conexión con el Sheet: ' . $error, 502);
-if ($codigo >= 400)       fallo('el Sheet respondió con el código ' . $codigo, 502);
-if (!is_array(json_decode($respuesta, true))) fallo('el Sheet no respondió JSON (¿la implementación está publicada?)', 502);
+/** Destino sin parámetros, para el registro (los parámetros del echo no se guardan). */
+function destino(string $url): string {
+    $p = parse_url($url);
+    return ($p['host'] ?? '?') . ($p['path'] ?? '');
+}
 
-echo $respuesta;
+function incierto(string $accion, string $que): void {
+    error_log('after-school api.php [' . $accion . '] respuesta perdida: ' . $que);
+    $lectura = in_array($accion, ['leer', 'listarPagos'], true);
+    fallo('No llegó la respuesta del Sheet.' . ($lectura ? '' : ' Puede que el cambio se haya guardado.'), 502, 'incierto');
+}
+
+function json_valido($texto): bool {
+    return is_string($texto) && is_array(json_decode($texto, true));
+}
+
+$accion = $datos['accion'];
+$r = pedir($cfg['as_exec'], $envio);
+
+if ($r['cuerpo'] === false) {
+    // 6/7/35: no se pudo resolver, conectar o negociar TLS → el POST no salió.
+    if (in_array($r['errno'], [5, 6, 7, 35], true)) fallo('Sin conexión con el Sheet: ' . $r['error'] . '. No se guardó nada.', 502, 'sin_conexion');
+    incierto($accion, 'POST sin respuesta (curl ' . $r['errno'] . ': ' . $r['error'] . ')');
+}
+
+$rastro = 'POST ' . $r['codigo'];
+$saltos = 0;
+while (in_array($r['codigo'], [301, 302, 303, 307, 308], true)) {
+    $loc  = $r['location'];
+    $host = (string) parse_url($loc, PHP_URL_HOST);
+    $rastro .= ' → ' . destino($loc);
+    if ($loc === '' || !preg_match('/(^|\.)googleusercontent\.com$/i', $host) || ++$saltos > 3) {
+        incierto($accion, $rastro . ' (redirección no seguida: no es googleusercontent)');
+    }
+    for ($intento = 1; $intento <= 3; $intento++) {
+        $r = pedir($loc, null);
+        $rastro .= ' GET ' . ($r['cuerpo'] === false ? 'sin respuesta' : $r['codigo']);
+        $repetible = $r['cuerpo'] === false || $r['codigo'] === 404 || $r['codigo'] >= 500;
+        if (!$repetible || $intento === 3) break;
+        usleep(800000);
+    }
+    if ($r['cuerpo'] === false) incierto($accion, $rastro);
+}
+
+if ($r['codigo'] !== 200 || !json_valido($r['cuerpo'])) {
+    incierto($accion, $rastro . ($r['codigo'] === 200 ? ' (cuerpo no es JSON)' : ''));
+}
+
+echo $r['cuerpo'];

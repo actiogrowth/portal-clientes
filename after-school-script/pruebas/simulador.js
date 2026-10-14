@@ -80,14 +80,27 @@ class Hoja {
     if (conv === '') delete this.datos[f + ',' + c]; else this.datos[f + ',' + c] = esFecha(conv) ? new Date(conv.getTime()) : conv;
     if (f > this.maxFilas) this.maxFilas = f;
   }
-  getLastRow() { let m = 0; for (const k in this.datos) { const f = +k.split(',')[0]; if (f > m) m = f; } return m; }
-  getLastColumn() { let m = 0; for (const k in this.datos) { const c = +k.split(',')[1]; if (c > m) m = c; } return m; }
+  _ultimaFila() { let m = 0; for (const k in this.datos) { const f = +k.split(',')[0]; if (f > m) m = f; } return m; }
+  _ultimaColumna() { let m = 0; for (const k in this.datos) { const c = +k.split(',')[1]; if (c > m) m = c; } return m; }
+  getLastRow() { return this._ultimaFila(); }
+  getLastColumn() { return this._ultimaColumna(); }
   getMaxRows() { return this.maxFilas; }
   getRange(f, c, nf, nc) {
     if (!(f >= 1 && c >= 1)) throw new Error('getRange fuera de la hoja: ' + f + ',' + c);
     return new Rango(this, f, c, nf || 1, nc || 1);
   }
-  getDataRange() { return new Rango(this, 1, 1, Math.max(this.getLastRow(), 1), Math.max(this.getLastColumn(), 1)); }
+  getDataRange() { return new Rango(this, 1, 1, Math.max(this._ultimaFila(), 1), Math.max(this._ultimaColumna(), 1)); }
+  /* Solo lo que usa el script: rangos A1 de una columna («D10» o «D10:D12») para dar formato. */
+  getRangeList(a1s) {
+    const rangos = a1s.map(a1 => {
+      const m = /^([A-Z]+)([0-9]+)(?::([A-Z]+)([0-9]+))?$/.exec(a1);
+      if (!m) throw new Error('A1 no soportado: ' + a1);
+      const col = l => l.split('').reduce((x, ch) => x * 26 + ch.charCodeAt(0) - 64, 0);
+      const f1 = +m[2], c1 = col(m[1]), f2 = m[4] ? +m[4] : f1, c2 = m[3] ? col(m[3]) : c1;
+      return new Rango(this, f1, c1, f2 - f1 + 1, c2 - c1 + 1);
+    });
+    return { setNumberFormat: fmt => { rangos.forEach(r => { for (let i = 0; i < r.nf; i++) for (let j = 0; j < r.nc; j++) this.formatos[(r.f + i) + ',' + (r.c + j)] = fmt; }); } };
+  }
   setFrozenRows() {}
   setColumnWidth() {}
   /* Para las pruebas: la fila como texto plano. */
@@ -115,6 +128,21 @@ class Libro {
   }
 }
 
+/* Cuenta las llamadas al Sheet, que es lo que hace lenta una ejecución de
+   Apps Script (cada una es un viaje al servicio). No cuenta las ayudas
+   internas del simulador. */
+const LLAMADAS = { n: 0 };
+function contar(Clase, excluir) {
+  Object.getOwnPropertyNames(Clase.prototype).forEach(k => {
+    if (k === 'constructor' || k.charAt(0) === '_' || excluir.indexOf(k) >= 0) return;
+    const fn = Clase.prototype[k];
+    Clase.prototype[k] = function () { LLAMADAS.n++; return fn.apply(this, arguments); };
+  });
+}
+contar(Rango, []);
+contar(Hoja, ['celda', 'poner', 'fila']);
+contar(Libro, ['hojaDesdeFilas']);
+
 function dos(n) { return ('0' + n).slice(-2); }
 
 function crearEntorno(opciones) {
@@ -132,9 +160,9 @@ function crearEntorno(opciones) {
   const ctx = {
     console,
     SpreadsheetApp: {
-      getActiveSpreadsheet: () => activo,
+      getActiveSpreadsheet: () => { LLAMADAS.n++; return activo; },
       openById: id => { if (!porId[id]) throw new Error('No se encontró el archivo ' + id); return porId[id]; },
-      flush: () => {},
+      flush: () => { LLAMADAS.n++; },
       getUi: () => { throw new Error('sin interfaz'); }
     },
     Utilities: {
@@ -188,4 +216,4 @@ function crearEntorno(opciones) {
   return ctx;
 }
 
-module.exports = { crearEntorno, Libro, Hoja, ZONA };
+module.exports = { crearEntorno, Libro, Hoja, ZONA, LLAMADAS };

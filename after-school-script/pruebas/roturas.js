@@ -31,6 +31,9 @@ const ROTURAS = [
   ['sin lock al escribir', "if (!lock.tryLock(20000)) return", "if (false) return"],
   ['la carga no marca la clase de adultos', "'Notas': adultos ? NOTA_CLASE_ADULTOS : ''", "'Notas': ''"],
   ['leer no devuelve la nota', "nota: texto_(f['Notas']) };", "nota: '' };"],
+  ['la copia en memoria no recibe las filas nuevas', "  if (tabla.filas) objetos.forEach(", "  if (false) objetos.forEach("],
+  ['la copia en memoria no recibe los cambios de celda', "  cols.forEach(function (x) { fila[x.t] = x.v; });", ""],
+  ['escribe las filas nuevas encima de la última', "var desde = Math.max(ultima + 1, FILA_DATOS)", "var desde = Math.max(ultima, FILA_DATOS)"],
   ['fecha con la zona del script', "var f = Utilities.parseDate(txt, zona_(), 'yyyy-MM-dd');", "var f = Utilities.parseDate(txt, 'UTC', 'yyyy-MM-dd');"]
 ];
 
