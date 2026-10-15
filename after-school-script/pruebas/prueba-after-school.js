@@ -56,7 +56,7 @@ function libroCarga() {
     'Estado (Poliwin)', 'Fecha de alta', 'Próximo cobro (Poliwin)', 'Clases esta semana', 'Móvil', 'Móvil 2',
     'Teléfono', 'E-mail', 'Cabeza de familia', 'Observaciones', 'Revisar'];
   l.hojaDesdeFilas('Niños', [T,
-    ['90001', 'Ana', 'Prueba Uno', '15/03/2016', 'Mujer', 'PARKOUR', 'ALTA', '01/02/2025', '', 1, '+50760000001', '', '+50760000001', 'a@ejemplo.test', '90001', '', ''],
+    ['90001', 'Alma', 'Prueba Uno', '15/03/2016', 'Mujer', 'PARKOUR', 'ALTA', '01/02/2025', '', 1, '+50760000001', '', '+50760000001', 'a@ejemplo.test', '90001', '', ''],
     ['90002', 'Beto', 'Prueba Dos', '31/12/2015', 'Hombre', 'TELAS', 'BAJA', '10/05/2024', '', 1, '60000002', '60000099', '2000002', '', '90001', 'Alergia ficticia', 'Con clase pero no en ALTA'],
     ['90003', 'Caro', 'Prueba Tres', '31/02/2019', 'Mujer', 'PARKOUR', 'ALTA', '05/06/2025', '', 0, '60000003', '', '', '', '90003', '', 'En ALTA sin clase reservada'],
     ['90001', 'Duplicado', 'Prueba', '01/01/2010', 'Hombre', 'PARKOUR', 'ALTA', '01/01/2025', '', 0, '', '', '', '', '90001', '', ''],
@@ -121,7 +121,7 @@ seccion('actualizar estructura sobre una base de la versión 3 (con datos)');
     cols.forEach((t, i) => h.poner(5, 2 + i, t));
   });
   const N = L.getSheetByName('Niños');
-  const filaVieja = ['AS-0001', '90001', 'Ana', 'Prueba Uno', new Date(2016, 2, 15), 'Mujer', '', '+50760000001', '', 'a@ejemplo.test', '90001', 'Activo', new Date(2025, 1, 1), 'nota vieja'];
+  const filaVieja = ['AS-0001', '90001', 'Alma', 'Prueba Uno', new Date(2016, 2, 15), 'Mujer', '', '+50760000001', '', 'a@ejemplo.test', '90001', 'Activo', new Date(2025, 1, 1), 'nota vieja'];
   N.formatos['6,9'] = '@'; N.formatos['6,3'] = '@'; N.formatos['6,2'] = '@'; N.formatos['6,12'] = '@';
   filaVieja.forEach((v, i) => N.poner(6, 2 + i, v));
   const C = L.getSheetByName('Config');
@@ -526,7 +526,7 @@ seccion('ocupación en una fecha');
   const g = entornoCargado();
   const ins = g.leerTabla_('inscripciones'), pr = g.leerTabla_('pruebas');
   const I = g._libro.getSheetByName('Inscripciones');
-  // Ana (alta 01/09/2026) se da de baja con fecha 2026-09-10 (escrita a mano para la prueba).
+  // Alma (alta 01/09/2026) se da de baja con fecha 2026-09-10 (escrita a mano para la prueba).
   I.poner(6, 6, new Date(2026, 8, 10));
   const ins2 = g.leerTabla_('inscripciones');
   ok(g.ocupacionEn_('LUN-1630-PARKOUR', '2026-08-31', ins2, pr).inscritos === 0, 'antes del alta no cuenta');

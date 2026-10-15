@@ -1,0 +1,47 @@
+# Pruebas de la herramienta After School (Vida en Arte).
+# Corren aquí y no en el equipo de desarrollo: allí el antivirus retiene las
+# pruebas de PHP. Solo usan datos inventados de las pruebas; ningún secreto.
+name: Pruebas After School
+
+on:
+  push:
+    branches: [after-school-registro]
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: PHP 8.3 con curl (el que trae la imagen)
+        run: |
+          php -v
+          php -r 'exit(PHP_VERSION_ID >= 80300 && PHP_VERSION_ID < 80400 && function_exists("curl_init") ? 0 : 1);'
+
+      - name: Pruebas de JavaScript (AfterSchool.gs en el simulador)
+        env:
+          TZ: America/Bogota
+        run: node after-school-script/pruebas/prueba-after-school.js
+
+      - name: Roturas de AfterSchool.gs
+        env:
+          TZ: America/Bogota
+        run: node after-school-script/pruebas/roturas.js
+
+      - name: Prueba del transporte de api.php
+        env:
+          PHP: php
+        run: node after-school-script/pruebas/correr-prueba-transporte.js
+
+      - name: Roturas de api.php
+        env:
+          PHP: php
+        run: node after-school-script/pruebas/roturas-api.js

@@ -310,7 +310,7 @@ tr.cancelada td{color:var(--gris2)}
               <div><label for="ag_colegio">Colegio</label><input type="text" id="ag_colegio"></div>
               <div><label for="ag_comoConocio">Cómo nos conoció</label><select id="ag_comoConocio"></select></div>
               <div><label for="ag_referido">Familia que lo refirió</label><input type="text" id="ag_referido"></div>
-              <div><label for="ag_hermanos">Hermanos y sus edades</label><input type="text" id="ag_hermanos" placeholder="p. ej. Ana 9, Luis 4"></div>
+              <div><label for="ag_hermanos">Hermanos y sus edades</label><input type="text" id="ag_hermanos" placeholder="p. ej. 9 y 4 años"></div>
               <div class="ancho"><span class="etiqueta">Interés en otros servicios de VEA</span><div class="casillas" id="ag_interes"></div></div>
             </div>
           </div>
@@ -564,11 +564,18 @@ function pantallaError(e) {
 }
 
 async function cargar() {
-  pantalla('<h2>Cargando…</h2><p>Leyendo la base de After School.</p>');
+  pantalla('<h2>Cargando…</h2><p id="cargaTexto">Leyendo la base de After School.</p>');
+  // Una lectura normal tarda ~5 s. Si pasa de 9, es que se perdió una
+  // respuesta y el servidor está reintentando solo (api.php, hasta 2 veces).
+  const aviso = setTimeout(() => {
+    const t = document.getElementById('cargaTexto');
+    if (t) t.textContent = 'Reintentando… Google tardó en responder y el servidor vuelve a pedir los datos solo. No hace falta recargar.';
+  }, 9000);
   try {
     const r = await api('leer');
     aplicar(r.resultado);
   } catch (e) { pantallaError(e); }
+  finally { clearTimeout(aviso); }
 }
 
 function aplicar(estado) {

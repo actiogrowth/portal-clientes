@@ -25,14 +25,13 @@
  * valor, contesta 404 como si no existiera. Se enciende un momento para
  * ajustar as_campo_sesion y se borra la línea: olvidarla o borrarla deja el
  * sistema del lado seguro.
+ *
+ * PRUEBAS. Las funciones van primero y el flujo principal al final, dentro de
+ * «if (!defined('AS_SOLO_FUNCIONES'))». En el servidor esa constante no existe
+ * y el archivo hace exactamente lo de siempre; las pruebas
+ * (after-school-script/pruebas/prueba-api-transporte.php) la definen para cargar
+ * solo las funciones y simular a Google.
  */
-
-require dirname(__DIR__) . '/auth.php';
-requerir_sesion();
-
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: private, no-store');
-header('X-Content-Type-Options: nosniff');
 
 function salir(int $codigo, array $cuerpo): void {
     http_response_code($codigo);
@@ -42,14 +41,6 @@ function salir(int $codigo, array $cuerpo): void {
 function fallo(string $msg, int $codigo = 500, string $tipo = ''): void {
     salir($codigo, ['ok' => false, 'error' => $msg, 'codigo' => $tipo]);
 }
-
-$rutaConfig = dirname(__DIR__, 2) . '/portal_config.php';
-if (!is_file($rutaConfig)) fallo('falta portal_config.php en el servidor');
-$cfg = require $rutaConfig;
-if (!is_array($cfg) || empty($cfg['as_exec']) || empty($cfg['as_clave']))
-    fallo('portal_config.php no tiene as_exec y as_clave para After School');
-
-if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
 
 /* El usuario de la sesión. Si portal_config.php dice qué clave usar, se usa
    solo esa. Si no, se prueban los nombres habituales, sin adivinar más allá:
@@ -77,36 +68,6 @@ function autorizado(string $usuario, array $cfg): bool {
     return false;
 }
 
-$usuario = usuario_del_portal($cfg);
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['diagnostico'])) {
-    if (($cfg['as_diagnostico'] ?? null) !== true) fallo('no encontrado', 404);
-    $claves = [];
-    foreach (($_SESSION ?? []) as $k => $v) {
-        $claves[] = is_array($v) ? $k . ' → [' . implode(', ', array_map('strval', array_keys($v))) . ']' : (string)$k;
-    }
-    salir(200, ['ok' => true, 'diagnostico' => [
-        'claves_de_sesion' => $claves,
-        'usuario_encontrado' => $usuario !== '',
-        'autorizado' => autorizado($usuario, $cfg),
-        'lista_configurada' => is_array($cfg['as_usuarios'] ?? null) && count($cfg['as_usuarios']) > 0,
-    ]]);
-}
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') fallo('solo POST', 405);
-if ($usuario === '') fallo('No se pudo leer el usuario de la sesión del portal. Encender as_diagnostico en portal_config.php, abrir api.php?diagnostico=1, fijar as_campo_sesion y volver a apagarlo.', 403, 'sin_usuario');
-if (!autorizado($usuario, $cfg)) fallo('El usuario «' . $usuario . '» no tiene acceso a After School.', 403, 'no_autorizado');
-
-$datos = json_decode(file_get_contents('php://input'), true);
-if (!is_array($datos) || empty($datos['accion']) || !is_string($datos['accion'])) fallo('cuerpo ilegible', 400);
-
-$envio = json_encode([
-    'key'     => $cfg['as_clave'],
-    'usuario' => $usuario,
-    'accion'  => $datos['accion'],
-    'datos'   => is_array($datos['datos'] ?? null) ? $datos['datos'] : new stdClass(),
-], JSON_UNESCAPED_UNICODE);
-
 /* ── Transporte ────────────────────────────────────────────────────────────
  * Apps Script contesta un POST a /exec con un 302 hacia
  * script.googleusercontent.com/macros/echo?…, donde espera la respuesta ya
@@ -116,17 +77,30 @@ $envio = json_encode([
  * (14-oct, INS-0220).
  *
  * Reglas:
- *   · El POST a /exec se manda UNA vez y nunca se repite: no es idempotente.
  *   · Solo se sigue un Location que apunte a *.googleusercontent.com, con GET.
  *     Jamás se pide /exec con GET.
  *   · El GET al echo sí se puede repetir (solo lee la respuesta guardada): si
  *     da 404 o 5xx se reintenta dos veces.
- *   · Si el POST salió pero la respuesta no llega, el error lleva el código
- *     «incierto»: la página vuelve a leer y comprueba si el cambio quedó.
- *     «sin_conexion» es solo cuando seguro no salió (no hubo conexión).
- *   · Cada «incierto» deja una línea en el error_log de PHP con lo que pasó
- *     (código, destino sin parámetros), para poder diagnosticarlo.
+ *   · ESCRITURAS: el POST a /exec se manda UNA vez y nunca se repite: no es
+ *     idempotente (duplicaría inscripciones, pagos o pruebas). Si salió pero
+ *     la respuesta no llega, el error lleva el código «incierto»: la página
+ *     vuelve a leer y comprueba si el cambio quedó.
+ *   · LECTURAS (las de ACCIONES_LECTURA, las mismas que en AfterSchool.gs
+ *     tienen escribe:false): si la respuesta se pierde, se repite el ciclo
+ *     COMPLETO —POST nuevo + echo— hasta 2 veces más, con pausas de 1 s y
+ *     2 s, y sin empezar un intento nuevo pasados LECTURA_PRESUPUESTO_S.
+ *     (15-oct: el echo a veces da 404 o redirige a /exec aunque el script
+ *     corrió bien; un POST nuevo trae un echo nuevo.)
+ *   · «sin_conexion» es solo cuando seguro no salió (no hubo conexión).
+ *   · Cada respuesta perdida deja una línea en el error_log de PHP con el
+ *     intento, lo que pasó (códigos, destino sin parámetros, IP de cada salto)
+ *     y, en las lecturas, si el reintento lo resolvió.
  */
+const ACCIONES_LECTURA = ['leer', 'listarPagos'];
+const LECTURA_INTENTOS = 3;                 // 1 + 2 reintentos
+const LECTURA_PAUSAS_S = [1, 2];            // antes del 2.º y del 3.º intento
+const LECTURA_PRESUPUESTO_S = 25;           // no se empieza un intento nuevo pasado esto
+
 function pedir(string $url, ?string $cuerpo): array {
     $ch = curl_init($url);
     $op = [
@@ -147,6 +121,7 @@ function pedir(string $url, ?string $cuerpo): array {
     $r = [
         'codigo'   => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE),
         'location' => (string) (curl_getinfo($ch, CURLINFO_REDIRECT_URL) ?: ''),
+        'ip'       => (string) (curl_getinfo($ch, CURLINFO_PRIMARY_IP) ?: ''),
         'errno'    => curl_errno($ch),
         'error'    => curl_error($ch),
         'cuerpo'   => $cuerpoResp,
@@ -161,46 +136,135 @@ function destino(string $url): string {
     return ($p['host'] ?? '?') . ($p['path'] ?? '');
 }
 
-function incierto(string $accion, string $que): void {
-    error_log('after-school api.php [' . $accion . '] respuesta perdida: ' . $que);
-    $lectura = in_array($accion, ['leer', 'listarPagos'], true);
-    fallo('No llegó la respuesta del Sheet.' . ($lectura ? '' : ' Puede que el cambio se haya guardado.'), 502, 'incierto');
-}
-
 function json_valido($texto): bool {
     return is_string($texto) && is_array(json_decode($texto, true));
 }
 
-$accion = $datos['accion'];
-$r = pedir($cfg['as_exec'], $envio);
-
-if ($r['cuerpo'] === false) {
-    // 6/7/35: no se pudo resolver, conectar o negociar TLS → el POST no salió.
-    if (in_array($r['errno'], [5, 6, 7, 35], true)) fallo('Sin conexión con el Sheet: ' . $r['error'] . '. No se guardó nada.', 502, 'sin_conexion');
-    incierto($accion, 'POST sin respuesta (curl ' . $r['errno'] . ': ' . $r['error'] . ')');
+/** «[ip]» para el rastro, si curl la informó. */
+function ip_de(array $r): string {
+    return !empty($r['ip']) ? ' [' . $r['ip'] . ']' : '';
 }
 
-$rastro = 'POST ' . $r['codigo'];
-$saltos = 0;
-while (in_array($r['codigo'], [301, 302, 303, 307, 308], true)) {
-    $loc  = $r['location'];
-    $host = (string) parse_url($loc, PHP_URL_HOST);
-    $rastro .= ' → ' . destino($loc);
-    if ($loc === '' || !preg_match('/(^|\.)googleusercontent\.com$/i', $host) || ++$saltos > 3) {
-        incierto($accion, $rastro . ' (redirección no seguida: no es googleusercontent)');
+/**
+ * UN ciclo: POST a /exec y, si redirige, GET al echo. Devuelve
+ *   ['estado' => 'ok' | 'sin_conexion' | 'perdida', 'cuerpo' => …, 'rastro' => …, 'error' => …]
+ * $pedir es pedir() en producción; las pruebas la cambian por una simulada.
+ */
+function ciclo(string $exec, string $envio, callable $pedir, callable $dormir): array {
+    $r = $pedir($exec, $envio);
+    if ($r['cuerpo'] === false) {
+        // 6/7/35: no se pudo resolver, conectar o negociar TLS → el POST no salió.
+        if (in_array($r['errno'], [5, 6, 7, 35], true)) return ['estado' => 'sin_conexion', 'error' => $r['error'], 'rastro' => ''];
+        return ['estado' => 'perdida', 'rastro' => 'POST sin respuesta (curl ' . $r['errno'] . ': ' . $r['error'] . ')'];
     }
-    for ($intento = 1; $intento <= 3; $intento++) {
-        $r = pedir($loc, null);
-        $rastro .= ' GET ' . ($r['cuerpo'] === false ? 'sin respuesta' : $r['codigo']);
-        $repetible = $r['cuerpo'] === false || $r['codigo'] === 404 || $r['codigo'] >= 500;
-        if (!$repetible || $intento === 3) break;
-        usleep(800000);
+    $rastro = 'POST ' . $r['codigo'] . ip_de($r);
+    $saltos = 0;
+    while (in_array($r['codigo'], [301, 302, 303, 307, 308], true)) {
+        $loc  = $r['location'];
+        $host = (string) parse_url($loc, PHP_URL_HOST);
+        $rastro .= ' → ' . destino($loc);
+        if ($loc === '' || !preg_match('/(^|\.)googleusercontent\.com$/i', $host) || ++$saltos > 3) {
+            return ['estado' => 'perdida', 'rastro' => $rastro . ' (redirección no seguida: no es googleusercontent)'];
+        }
+        for ($intento = 1; $intento <= 3; $intento++) {
+            $r = $pedir($loc, null);
+            $rastro .= ' GET ' . ($r['cuerpo'] === false ? 'sin respuesta' : $r['codigo']) . ip_de($r);
+            $repetible = $r['cuerpo'] === false || $r['codigo'] === 404 || $r['codigo'] >= 500;
+            if (!$repetible || $intento === 3) break;
+            $dormir(0.8);
+        }
+        if ($r['cuerpo'] === false) return ['estado' => 'perdida', 'rastro' => $rastro];
     }
-    if ($r['cuerpo'] === false) incierto($accion, $rastro);
+    if ($r['codigo'] !== 200 || !json_valido($r['cuerpo'])) {
+        return ['estado' => 'perdida', 'rastro' => $rastro . ($r['codigo'] === 200 ? ' (cuerpo no es JSON)' : '')];
+    }
+    return ['estado' => 'ok', 'cuerpo' => $r['cuerpo'], 'rastro' => $rastro];
 }
 
-if ($r['codigo'] !== 200 || !json_valido($r['cuerpo'])) {
-    incierto($accion, $rastro . ($r['codigo'] === 200 ? ' (cuerpo no es JSON)' : ''));
+/**
+ * La llamada entera, con la política de reintentos. Devuelve
+ *   ['http' => código, 'cuerpo' => JSON a devolver al navegador].
+ * $registrar escribe en el error_log; $reloj da los segundos transcurridos.
+ */
+function llamar_apps_script(string $accion, string $exec, string $envio, callable $pedir, callable $dormir, callable $registrar, callable $reloj): array {
+    $lectura = in_array($accion, ACCIONES_LECTURA, true);
+    $maximo  = $lectura ? LECTURA_INTENTOS : 1;
+    $inicio  = $reloj();
+    for ($intento = 1; ; $intento++) {
+        $c = ciclo($exec, $envio, $pedir, $dormir);
+        if ($c['estado'] === 'ok') {
+            if ($intento > 1) $registrar('after-school api.php [' . $accion . '] respuesta recuperada en el intento ' . $intento . ' de ' . $maximo . ': ' . $c['rastro']);
+            return ['http' => 200, 'cuerpo' => $c['cuerpo']];
+        }
+        if ($c['estado'] === 'sin_conexion' && !$lectura) {
+            return ['http' => 502, 'cuerpo' => json_encode(['ok' => false, 'error' => 'Sin conexión con el Sheet: ' . $c['error'] . '. No se guardó nada.', 'codigo' => 'sin_conexion'], JSON_UNESCAPED_UNICODE)];
+        }
+        $que = $c['estado'] === 'sin_conexion' ? 'sin conexión (' . $c['error'] . ')' : $c['rastro'];
+        $pausa = LECTURA_PAUSAS_S[$intento - 1] ?? 0;
+        $otro = $intento < $maximo && ($reloj() - $inicio) + $pausa < LECTURA_PRESUPUESTO_S;
+        $registrar('after-school api.php [' . $accion . '] respuesta perdida (intento ' . $intento . ' de ' . $maximo .
+            ($lectura ? '' : ', las escrituras no se repiten') . '): ' . $que . ($lectura ? ($otro ? ' · se reintenta' : ' · sin recuperar') : ''));
+        if (!$otro) {
+            if ($c['estado'] === 'sin_conexion') {
+                return ['http' => 502, 'cuerpo' => json_encode(['ok' => false, 'error' => 'Sin conexión con el Sheet: ' . $c['error'] . '. No se guardó nada.', 'codigo' => 'sin_conexion'], JSON_UNESCAPED_UNICODE)];
+            }
+            return ['http' => 502, 'cuerpo' => json_encode(['ok' => false,
+                'error' => 'No llegó la respuesta del Sheet.' . ($lectura ? '' : ' Puede que el cambio se haya guardado.'), 'codigo' => 'incierto'], JSON_UNESCAPED_UNICODE)];
+        }
+        $dormir($pausa);
+    }
 }
 
-echo $r['cuerpo'];
+if (!defined('AS_SOLO_FUNCIONES')) {
+    require dirname(__DIR__) . '/auth.php';
+    requerir_sesion();
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+
+    $rutaConfig = dirname(__DIR__, 2) . '/portal_config.php';
+    if (!is_file($rutaConfig)) fallo('falta portal_config.php en el servidor');
+    $cfg = require $rutaConfig;
+    if (!is_array($cfg) || empty($cfg['as_exec']) || empty($cfg['as_clave']))
+        fallo('portal_config.php no tiene as_exec y as_clave para After School');
+
+    if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
+
+    $usuario = usuario_del_portal($cfg);
+
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['diagnostico'])) {
+        if (($cfg['as_diagnostico'] ?? null) !== true) fallo('no encontrado', 404);
+        $claves = [];
+        foreach (($_SESSION ?? []) as $k => $v) {
+            $claves[] = is_array($v) ? $k . ' → [' . implode(', ', array_map('strval', array_keys($v))) . ']' : (string)$k;
+        }
+        salir(200, ['ok' => true, 'diagnostico' => [
+            'claves_de_sesion' => $claves,
+            'usuario_encontrado' => $usuario !== '',
+            'autorizado' => autorizado($usuario, $cfg),
+            'lista_configurada' => is_array($cfg['as_usuarios'] ?? null) && count($cfg['as_usuarios']) > 0,
+        ]]);
+    }
+
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') fallo('solo POST', 405);
+    if ($usuario === '') fallo('No se pudo leer el usuario de la sesión del portal. Encender as_diagnostico en portal_config.php, abrir api.php?diagnostico=1, fijar as_campo_sesion y volver a apagarlo.', 403, 'sin_usuario');
+    if (!autorizado($usuario, $cfg)) fallo('El usuario «' . $usuario . '» no tiene acceso a After School.', 403, 'no_autorizado');
+
+    $datos = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($datos) || empty($datos['accion']) || !is_string($datos['accion'])) fallo('cuerpo ilegible', 400);
+
+    $envio = json_encode([
+        'key'     => $cfg['as_clave'],
+        'usuario' => $usuario,
+        'accion'  => $datos['accion'],
+        'datos'   => is_array($datos['datos'] ?? null) ? $datos['datos'] : new stdClass(),
+    ], JSON_UNESCAPED_UNICODE);
+
+    $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio, 'pedir',
+        function ($s) { usleep((int) ($s * 1000000)); },
+        function ($linea) { error_log($linea); },
+        function () { return microtime(true); });
+    http_response_code($res['http']);
+    echo $res['cuerpo'];
+}
