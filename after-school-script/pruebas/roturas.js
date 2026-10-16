@@ -69,6 +69,15 @@ const ROTURAS = [
   ['acepta un ID de formato inválido', "  if (idSol && !ID_SOLICITUD_VALIDO.test(idSol)) return", "  if (false) return"],
   ['busca en toda la pestaña en vez de la ventana', "Math.max(FILA_DATOS, ultima - VENTANA_SOLICITUDES + 1)", "FILA_DATOS"],
   ['las lecturas también usan el ID', "  var idSol = acc.escribe ? texto_(p.idSolicitud) : '';", "  var idSol = texto_(p.idSolicitud);"],
+  // 16-oct: pago de la clase de prueba
+  ['Pagó Sí sin exigir monto', "    if (!(monto > 0)) throw new ErrorUsuario_('Si pagó, el monto es obligatorio", "    if (false) throw new ErrorUsuario_('Si pagó, el monto es obligatorio"],
+  ['acepta cualquier valor en «Pagó»', "  if (pago && pago !== SI && pago !== NO) throw", "  if (false) throw"],
+  ['Pagó No conserva el monto', "  var monto = '';\n  if (pago === SI) {", "  var monto = numeroDe_(datos.monto) || '';\n  if (pago === SI) {"],
+  ['no redondea el monto a centavos', "    monto = Math.round(monto * 100) / 100;\n  }\n  return { 'Pagó'", "  }\n  return { 'Pagó'"],
+  ['el resultado ignora el pago', "  var pago = 'pago' in datos ? valoresPagoPrueba_(datos) : null;", "  var pago = null;"],
+  ['el resultado borra el pago si no viene', "  var pago = 'pago' in datos ? valoresPagoPrueba_(datos) : null;", "  var pago = valoresPagoPrueba_(datos);"],
+  ['el pago no deja Historial', "  historial_(usuario, 'Pago de prueba',", "  if (false) historial_(usuario, 'Pago de prueba',"],
+  ['leer no devuelve el monto', "monto: texto_(f['Monto pagado']) === '' ? null : numeroDe_(f['Monto pagado'])", "monto: null"],
   ['fecha con la zona del script', "var f = Utilities.parseDate(txt, zona_(), 'yyyy-MM-dd');", "var f = Utilities.parseDate(txt, 'UTC', 'yyyy-MM-dd');"]
 ];
 

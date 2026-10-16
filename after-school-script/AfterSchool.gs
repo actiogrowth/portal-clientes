@@ -68,7 +68,9 @@ var COLUMNAS = {
           'Colegio', 'Cómo nos conoció', 'Familia que lo refirió', 'Hermanos (edades)',
           'Interés en otros servicios', 'Responsable 2', 'Teléfono responsable 2'],
   pruebas: ['ID prueba', 'Fecha', 'Clase ID', 'Niño ID', 'Estado', 'Se inscribió',
-            'Motivo no inscripción', 'Nota', 'Registrado por', 'Fecha de registro'],
+            'Motivo no inscripción', 'Nota', 'Registrado por', 'Fecha de registro',
+            // 16-oct: la prueba tiene costo y se paga el día de la clase
+            'Pagó', 'Monto pagado'],
   // 16-oct: escrituras idempotentes (ver «Solicitudes» más abajo). Solo la
   // huella de los datos, nunca los datos: aquí no queda ningún dato de niños.
   solicitudes: ['ID solicitud', 'Acción', 'Huella', 'Resultado', 'Usuario', 'Fecha'],
@@ -904,7 +906,8 @@ var ACCIONES = {
   revisar: { escribe: true, fn: accRevisar_ },
   notaInscripcion: { escribe: true, fn: accNotaInscripcion_ },
   agendarPrueba: { escribe: true, fn: accAgendarPrueba_ },
-  resultadoPrueba: { escribe: true, fn: accResultadoPrueba_ }
+  resultadoPrueba: { escribe: true, fn: accResultadoPrueba_ },
+  pagoPrueba: { escribe: true, fn: accPagoPrueba_ }
 };
 
 function atender_(p) {
@@ -1164,7 +1167,8 @@ function pruebaPublica_(f) {
   return {
     id: texto_(f['ID prueba']), fecha: aISO_(f['Fecha']), codigo: texto_(f['Clase ID']), idNino: texto_(f['Niño ID']),
     estado: texto_(f['Estado']), seInscribio: texto_(f['Se inscribió']), motivo: texto_(f['Motivo no inscripción']),
-    nota: texto_(f['Nota']), registradoPor: texto_(f['Registrado por'])
+    nota: texto_(f['Nota']), registradoPor: texto_(f['Registrado por']),
+    pago: texto_(f['Pagó']), monto: texto_(f['Monto pagado']) === '' ? null : numeroDe_(f['Monto pagado'])
   };
 }
 
@@ -1689,10 +1693,50 @@ function accResultadoPrueba_(datos, usuario) {
   }
   var cambios = { 'Estado': estado, 'Se inscribió': se, 'Motivo no inscripción': motivo };
   if ('nota' in datos) cambios['Nota'] = texto_(datos.nota);
+  // El pago puede venir en el mismo diálogo; si no viene, no se toca.
+  var pago = 'pago' in datos ? valoresPagoPrueba_(datos) : null;
+  if (pago) { cambios['Pagó'] = pago['Pagó']; cambios['Monto pagado'] = pago['Monto pagado']; }
   Object.keys(cambios).forEach(function (k) { if (texto_(f[k]) === texto_(cambios[k])) delete cambios[k]; });
   if (!Object.keys(cambios).length) return { id: texto_(f['ID prueba']), sinCambios: true };
   ponerCeldas_(pruebas, f, cambios);
   historial_(usuario, 'Resultado de prueba', texto_(f['ID prueba']), texto_(f['Niño ID']) + ' · ' + codigo + ' · ' + fechaCorta_(iso) +
-    ' · ' + estado + (se ? ' · se inscribió: ' + se : '') + (motivo ? ' · ' + motivo : ''));
+    ' · ' + estado + (se ? ' · se inscribió: ' + se : '') + (motivo ? ' · ' + motivo : '') + (pago ? textoPagoPrueba_(pago) : ''));
+  return { id: texto_(f['ID prueba']) };
+}
+
+/**
+ * Pago de la clase de prueba. No hay precio fijo: el monto se escribe a mano.
+ *   Pagó «Sí» → monto obligatorio, número mayor que cero (se guarda a 2 decimales).
+ *   Pagó «No» o vacío → el monto queda vacío.
+ * Devuelve las dos celdas a escribir.
+ */
+function valoresPagoPrueba_(datos) {
+  var pago = texto_(datos.pago);
+  if (pago && pago !== SI && pago !== NO) throw new ErrorUsuario_('«Pagó» tiene que ser Sí, No o vacío.');
+  var monto = '';
+  if (pago === SI) {
+    monto = numeroDe_(datos.monto);
+    if (!(monto > 0)) throw new ErrorUsuario_('Si pagó, el monto es obligatorio y tiene que ser un número mayor que cero.');
+    monto = Math.round(monto * 100) / 100;
+  }
+  return { 'Pagó': pago, 'Monto pagado': monto };
+}
+
+function textoPagoPrueba_(v) {
+  return ' · pagó: ' + (v['Pagó'] || '—') + (v['Pagó'] === SI ? ' (' + v['Monto pagado'] + ')' : '');
+}
+
+/** Registra o corrige el pago de una prueba: antes, durante o después de la clase. */
+function accPagoPrueba_(datos, usuario) {
+  var pruebas = leerTabla_('pruebas');
+  var f = buscarPrueba_(pruebas, datos.idPrueba);
+  var cambios = valoresPagoPrueba_(datos);
+  Object.keys(cambios).forEach(function (k) { if (texto_(f[k]) === texto_(cambios[k])) delete cambios[k]; });
+  if (!Object.keys(cambios).length) return { id: texto_(f['ID prueba']), sinCambios: true };
+  var antes = { 'Pagó': texto_(f['Pagó']), 'Monto pagado': texto_(f['Monto pagado']) };
+  ponerCeldas_(pruebas, f, cambios);
+  historial_(usuario, 'Pago de prueba', texto_(f['ID prueba']), texto_(f['Niño ID']) + ' · ' + texto_(f['Clase ID']) + ' · ' +
+    fechaCorta_(aISO_(f['Fecha'])) + textoPagoPrueba_({ 'Pagó': texto_(f['Pagó']), 'Monto pagado': f['Monto pagado'] }) +
+    (antes['Pagó'] ? ' · antes:' + textoPagoPrueba_(antes).replace(' · ', ' ') : ''));
   return { id: texto_(f['ID prueba']) };
 }

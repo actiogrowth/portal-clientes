@@ -731,6 +731,78 @@ seccion('escrituras idempotentes: el mismo ID de solicitud se ejecuta una sola v
   ok(/⚠ Falta la pestaña «Solicitudes»/.test(g.comprobar()), 'Comprobar estructura avisa que falta');
 }
 
+seccion('pago de la clase de prueba');
+{
+  const g = entornoCargado();
+  const P = g._libro.getSheetByName('Pruebas'), H = g._libro.getSheetByName('Historial');
+  ok(P.celda(5, 12) === 'Pagó' && P.celda(5, 13) === 'Monto pagado', 'Pruebas tiene «Pagó» y «Monto pagado» al final');
+  const martes = proximo('Martes', true);
+  const pr = g.llamar('agendarPrueba', { codigo: 'MAR-1630-PARKIDS', fecha: martes, idNino: 'AS-0003' }).resultado.id;
+  let p = g.llamar('leer').resultado.pruebas.find(x => x.id === pr);
+  ok(p.pago === '' && p.monto === null, 'una prueba nueva: sin pago registrado (se puede agendar sin pagar)');
+
+  ok(/el monto es obligatorio/.test(g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí' }).error), 'Pagó Sí sin monto → rechazo');
+  ok(!g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: '0' }).ok, 'monto cero → rechazo');
+  ok(!g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: '-5' }).ok, 'monto negativo → rechazo');
+  ok(!g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: 'diez' }).ok, 'monto ilegible → rechazo');
+  ok(!g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Quizás', monto: '10' }).ok, '«Pagó» inválido → rechazo');
+  ok(!g.llamar('pagoPrueba', { idPrueba: 'PRU-9999', pago: 'Sí', monto: '10' }).ok, 'prueba inexistente → rechazo');
+  ok(P.celda(6, 12) === '' && P.celda(6, 13) === '', 'los rechazos no escriben');
+
+  let r = g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: '25,50' });
+  p = r.estado.pruebas.find(x => x.id === pr);
+  ok(r.ok && p.pago === 'Sí' && p.monto === 25.5 && P.celda(6, 13) === 25.5, 'se registra ANTES de la clase, con coma decimal → 25,5');
+  ok(p.estado === 'Agendada', 'registrar el pago no cambia el estado de la prueba');
+  ok(H.celda(H.getLastRow(), 4) === 'Pago de prueba' && /AS-0003 · MAR-1630-PARKIDS · .* · pagó: Sí \(25\.5\)/.test(H.celda(H.getLastRow(), 6)), 'deja fila en Historial');
+  const hTras = H.getLastRow();
+  ok(g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: 25.5 }).resultado.sinCambios && H.getLastRow() === hTras, 'sin cambios no escribe ni deja Historial');
+  r = g.llamar('pagoPrueba', { idPrueba: pr, pago: 'No', monto: '40' });
+  p = r.estado.pruebas.find(x => x.id === pr);
+  ok(r.ok && p.pago === 'No' && p.monto === null && P.celda(6, 13) === '', 'Pagó No: el monto queda vacío');
+  ok(/pagó: No · antes: pagó: Sí \(25\.5\)/.test(H.celda(H.getLastRow(), 6)), 'el Historial guarda el valor anterior');
+  r = g.llamar('pagoPrueba', { idPrueba: pr, pago: '' });
+  ok(r.ok && r.estado.pruebas.find(x => x.id === pr).pago === '', 'se puede volver a «sin registrar»');
+  r = g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: '12,3456' });
+  ok(r.ok && r.estado.pruebas.find(x => x.id === pr).monto === 12.35, 'el monto se guarda redondeado a centavos');
+  g.llamar('pagoPrueba', { idPrueba: pr, pago: '' });
+
+  // Idempotente con ID de solicitud.
+  const ID = 'c9d0e1f2-0000-4000-8000-000000000009';
+  g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: 30 }, { idSolicitud: ID });
+  const h1 = H.getLastRow();
+  r = g.llamar('pagoPrueba', { idPrueba: pr, pago: 'Sí', monto: 30 }, { idSolicitud: ID });
+  ok(r.ok && r.repetida && H.getLastRow() === h1, 'con el mismo ID: no se repite y el Historial queda una vez');
+
+  // En el diálogo Resultado, junto con el resultado.
+  claseDeHoy(g, 'HOY-2000-TELAS', 5);
+  const prHoy = g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, idNino: 'AS-0005' }).resultado.id;
+  ok(!g.llamar('resultadoPrueba', { idPrueba: prHoy, estado: 'Asistió', pago: 'Sí', monto: '' }).ok, 'resultado con Pagó Sí sin monto → rechazo (no guarda el resultado tampoco)');
+  ok(g.llamar('leer').resultado.pruebas.find(x => x.id === prHoy).estado === 'Agendada', '(control) el rechazo no cambió el estado');
+  r = g.llamar('resultadoPrueba', { idPrueba: prHoy, estado: 'Asistió', seInscribio: 'Sí', pago: 'Sí', monto: '18' });
+  p = r.estado.pruebas.find(x => x.id === prHoy);
+  ok(r.ok && p.estado === 'Asistió' && p.pago === 'Sí' && p.monto === 18, 'el resultado guarda también el pago');
+  ok(/Asistió · se inscribió: Sí · pagó: Sí \(18\)/.test(H.celda(H.getLastRow(), 6)), 'en una sola fila de Historial');
+  r = g.llamar('resultadoPrueba', { idPrueba: prHoy, estado: 'Asistió', seInscribio: 'Sí', nota: 'vuelve el jueves' });
+  ok(r.ok && r.estado.pruebas.find(x => x.id === prHoy).monto === 18, 'un resultado sin campos de pago no toca el pago');
+}
+{
+  // Actualizar estructura sobre una pestaña Pruebas de la versión 5 (sin las columnas de pago), con datos.
+  const L = new Libro('VEA_AfterSchool_BD');
+  const g0 = crearEntorno({ libro: L, propiedades: { AS_CLAVE_API: CLAVE } });
+  g0.instalar();
+  const P = L.getSheetByName('Pruebas');
+  P.poner(5, 12, ''); P.poner(5, 13, '');           // como estaba antes del 16-oct
+  ['PRU-0001', new Date(2026, 9, 20), 'LUN-1630-TELAS', 'AS-0001', 'Agendada', '', '', 'nota', 'recepcion', new Date()].forEach((v, i) => {
+    P.formatos['6,' + (2 + i)] = [0, 2, 3].includes(i) ? '@' : undefined; P.poner(6, 2 + i, v); });
+  const antes = JSON.stringify(P.fila(6));
+  ok(/⚠ A la pestaña «Pruebas» le faltan los títulos: Pagó, Monto pagado/.test(g0.comprobar()), 'Comprobar estructura avisa si faltan las columnas de pago');
+  const inf = g0.actualizarEstructura();
+  ok(P.celda(5, 12) === 'Pagó' && P.celda(5, 13) === 'Monto pagado' && /Columnas agregadas al final de Pruebas: Pagó, Monto pagado/.test(inf), 'Actualizar estructura agrega las dos columnas al final');
+  ok(JSON.stringify(P.fila(6).slice(0, 11)) === JSON.stringify(JSON.parse(antes).slice(0, 11)), 'sin tocar los datos de la prueba existente');
+  ok(!/⚠ A la pestaña/.test(g0.comprobar()), 'y Comprobar queda sin avisos de títulos');
+  ok(/Ya existía, completa: Pruebas/.test(g0.actualizarEstructura()), 'correrla otra vez no cambia nada');
+}
+
 seccion('filas más allá de la 1000');
 {
   const g = entornoCargado();

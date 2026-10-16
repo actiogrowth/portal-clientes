@@ -196,6 +196,9 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
 .pie-inscribir{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px}
 .pie-inscribir > div{width:170px}
 tr.pendiente td{background:var(--amarillo-fondo)}
+tr.sinpago td{background:var(--neg-fondo)}
+.chip.sinpago{background:var(--neg-fondo);color:var(--rojo-texto);border:1px solid var(--neg-borde)}
+.chip.pagada{background:var(--pos-fondo);color:var(--verde-texto)}
 tr.cancelada td{color:var(--gris2)}
 
 @media (max-width:1100px){ .grillas{grid-template-columns:1fr} }
@@ -409,6 +412,23 @@ tr.cancelada td{color:var(--gris2)}
   </form>
 </dialog>
 
+<!-- Diálogo: pago de una prueba -->
+<dialog id="dlgPago">
+  <form method="dialog" id="formPagoPrueba">
+    <div class="dlg-cab"><div><h2>Pago de la clase de prueba</h2><p class="ayuda" id="dpSub"></p></div><button class="cerrar" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo">
+      <p class="ayuda" style="margin-bottom:10px">Se puede registrar antes, durante o después de la clase. El monto se escribe a mano.</p>
+      <div class="campos">
+        <div><label for="dpPago">¿Pagó?</label>
+          <select id="dpPago"><option value="">— sin registrar —</option><option>Sí</option><option>No</option></select></div>
+        <div id="dpMontoCaja" class="oculto"><label for="dpMonto">Monto pagado (USD) *</label><input type="text" id="dpMonto" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <div id="dpError"></div>
+    </div>
+    <div class="dlg-pie"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar pago</button></div>
+  </form>
+</dialog>
+
 <!-- Diálogo: resultado de una prueba -->
 <dialog id="dlgResultado">
   <form method="dialog" id="formResultado">
@@ -419,6 +439,11 @@ tr.cancelada td{color:var(--gris2)}
       <div class="campo"><label for="drSe">¿Se inscribió?</label>
         <select id="drSe"><option value="">— todavía no se sabe —</option><option>Sí</option><option>No</option></select></div>
       <div class="campo oculto" id="drMotivoCaja"><label for="drMotivo">Motivo de no inscripción *</label><select id="drMotivo"></select></div>
+      <div class="campos">
+        <div><label for="drPago">¿Pagó la clase de prueba?</label>
+          <select id="drPago"><option value="">— sin registrar —</option><option>Sí</option><option>No</option></select></div>
+        <div id="drMontoCaja" class="oculto"><label for="drMonto">Monto pagado (USD) *</label><input type="text" id="drMonto" inputmode="decimal" placeholder="0.00"></div>
+      </div>
       <div class="campo"><label for="drNota">Nota</label><textarea id="drNota"></textarea></div>
       <div id="drError"></div>
     </div>
@@ -641,7 +666,8 @@ const QUE_ES = {
   crearNino: 'la creación del niño', editarNino: 'los cambios del niño', inscribir: 'la inscripción',
   mover: 'el cambio de clase', bajaClase: 'la baja de la clase', bajaTotal: 'la baja del niño',
   revisar: 'la revisión', registrarPago: 'el pago', notaInscripcion: 'el cambio de la nota',
-  inscribirVarias: 'la inscripción', agendarPrueba: 'la prueba', resultadoPrueba: 'el resultado de la prueba'
+  inscribirVarias: 'la inscripción', agendarPrueba: 'la prueba', resultadoPrueba: 'el resultado de la prueba',
+  pagoPrueba: 'el pago de la prueba'
 };
 
 /* Lo que una escritura cambia, medido sobre E. Si cambió entre antes y
@@ -665,7 +691,11 @@ function huella(accion, d) {
     case 'agendarPrueba': return (E.pruebas || []).filter(p => p.codigo === d.codigo && p.fecha === d.fecha).length;
     case 'resultadoPrueba': {
       const p = (E.pruebas || []).find(x => x.id === d.idPrueba);
-      return p ? [p.estado, p.seInscribio, p.motivo, p.nota].join('|') : null;
+      return p ? [p.estado, p.seInscribio, p.motivo, p.nota, p.pago, p.monto].join('|') : null;
+    }
+    case 'pagoPrueba': {
+      const p = (E.pruebas || []).find(x => x.id === d.idPrueba);
+      return p ? [p.pago, p.monto].join('|') : null;
     }
   }
   return null;
@@ -877,6 +907,7 @@ function enganchar(raiz) {
   raiz.querySelectorAll('[data-mover]').forEach(b => b.onclick = () => abrirMover(b.dataset.mover));
   raiz.querySelectorAll('[data-baja]').forEach(b => b.onclick = () => abrirBaja({ tipo: 'clase', idInscripcion: b.dataset.baja }));
   raiz.querySelectorAll('[data-resultado]').forEach(b => b.onclick = () => abrirResultado(b.dataset.resultado));
+  raiz.querySelectorAll('[data-pago]').forEach(b => b.onclick = () => abrirPago(b.dataset.pago));
   raiz.querySelectorAll('[data-inscribir]').forEach(b => b.onclick = () => {
     const p = (E.pruebas || []).find(x => x.id === b.dataset.inscribir);
     if (p) { cerrarDialogos(); abrirFicha(p.idNino, { marcar: [p.codigo] }); }
@@ -1124,14 +1155,26 @@ const chipPrueba = e => '<span class="chip ' + (CLASE_PRUEBA[e] || 'pr-ca') + '"
 const pruebasPendientes = () => (E.pruebas || []).filter(p => p.estado === 'Agendada' && p.fecha < E.hoy);
 
 /* Las pruebas de un niño, para su ficha. */
+/* El pago de una prueba en pocas palabras: «Pagó $25.50», «No pagó», o la
+   etiqueta «Sin pago» si asistió y no hay pago registrado. */
+const sinPagoPrueba = p => p.estado === 'Asistió' && p.pago !== 'Sí';
+function pagoPruebaHtml(p) {
+  if (p.pago === 'Sí') return '<span class="chip pagada">Pagó ' + esc(dinero(p.monto)) + '</span>';
+  if (sinPagoPrueba(p)) return '<span class="chip sinpago">Sin pago</span>';
+  if (p.pago === 'No') return '<span class="ayuda">No pagó</span>';
+  return '';
+}
+
 function pruebasDeNino(n) {
   const l = (IDX.pruebasNino[n.id] || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
   if (!l.length) return '';
   return '<h3>Clases de prueba</h3>' + l.map(p => {
     const c = IDX.clases[p.codigo];
     return '<div class="fila-ins"><span><span class="chip clase">' + esc(c ? etiquetaClase(c) : p.codigo) + '</span> <span class="ayuda">' + fecha(p.fecha) + '</span> ' +
-      chipPrueba(p.estado) + (p.seInscribio ? ' <span class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' (' + esc(p.motivo) + ')' : '') + '</span>' : '') + '</span>' +
-      '<span><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button></span></div>';
+      chipPrueba(p.estado) + ' ' + pagoPruebaHtml(p) +
+      (p.seInscribio ? ' <span class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' (' + esc(p.motivo) + ')' : '') + '</span>' : '') + '</span>' +
+      '<span><button class="btn sec chico" data-pago="' + esc(p.id) + '" type="button">Pago</button> ' +
+      '<button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button></span></div>';
   }).join('');
 }
 
@@ -1141,14 +1184,15 @@ function tablaPruebas(lista, vacio, resaltar) {
     const c = IDX.clases[p.codigo], n = IDX.ninos[p.idNino];
     const yaInscrito = (IDX.insNino[p.idNino] || []).some(i => i.codigo === p.codigo);
     const puedeInscribir = p.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado';
-    return '<tr class="' + (resaltar ? 'pendiente' : (p.estado === 'Cancelada' ? 'cancelada' : '')) + '">' +
+    return '<tr class="' + (resaltar ? 'pendiente' : sinPagoPrueba(p) ? 'sinpago' : (p.estado === 'Cancelada' ? 'cancelada' : '')) + '">' +
       '<td class="num"><b>' + fechaCorta(p.fecha) + '</b><div class="ayuda">' + esc(DIA_CORTO[diaDeIso(p.fecha)] || '') + (p.fecha === E.hoy ? ' · hoy' : '') + '</div></td>' +
       '<td>' + esc(c ? c.servicio + ' ' + c.hora : p.codigo) + '<div class="ayuda">' + esc(c ? c.edades : '') + '</div></td>' +
       '<td><b>' + esc(n ? nombre(n) : p.idNino) + '</b><div class="ayuda">' + esc(n ? [n.id, edad(n), n.telefono].filter(Boolean).join(' · ') : '') + '</div>' +
       (p.nota ? '<div class="ayuda">' + esc(p.nota) + '</div>' : '') + '</td>' +
-      '<td>' + chipPrueba(p.estado) + (p.seInscribio ? '<div class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' · ' + esc(p.motivo) : '') + '</div>' : '') +
+      '<td>' + chipPrueba(p.estado) + ' ' + pagoPruebaHtml(p) + (p.seInscribio ? '<div class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' · ' + esc(p.motivo) : '') + '</div>' : '') +
       (yaInscrito ? '<div class="ayuda">ya inscrito en esa clase</div>' : '') + '</td>' +
       '<td class="der"><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button> ' +
+      '<button class="btn sec chico" data-pago="' + esc(p.id) + '" type="button">Pago</button> ' +
       (puedeInscribir ? '<button class="btn chico" data-inscribir="' + esc(p.id) + '" type="button">Inscribir</button> ' : '') +
       '<button class="btn sec chico" data-ficha="' + esc(p.idNino) + '" type="button">Ficha</button></td></tr>';
   }).join('') + '</tbody></table>';
@@ -1267,18 +1311,33 @@ function abrirResultado(id) {
   $('#drSe').value = p.seInscribio || '';
   $('#drMotivo').innerHTML = '<option value="">Elige el motivo…</option>' + (E.config.motivosNoInscripcion || []).map(m => '<option' + (m === p.motivo ? ' selected' : '') + '>' + esc(m) + '</option>').join('');
   $('#drNota').value = p.nota || '';
+  $('#drPago').value = p.pago || '';
+  $('#drMonto').value = p.monto != null ? String(p.monto) : '';
   $('#drError').innerHTML = '';
-  mostrarMotivo();
+  mostrarMotivo(); mostrarMonto('#drPago', '#drMontoCaja');
   $('#dlgResultado').showModal();
 }
 function mostrarMotivo() { $('#drMotivoCaja').classList.toggle('oculto', $('#drSe').value !== 'No'); }
+function mostrarMonto(sel, caja) { $(caja).classList.toggle('oculto', $(sel).value !== 'Sí'); }
 $('#drSe').onchange = mostrarMotivo;
+$('#drPago').onchange = () => mostrarMonto('#drPago', '#drMontoCaja');
+
+/* Pagó Sí exige un monto mayor que cero (el servidor lo valida igual). */
+function leerPagoPrueba(sel, inp) {
+  const pago = $(sel).value, monto = pago === 'Sí' ? $(inp).value.trim() : '';
+  if (pago === 'Sí' && !(parseFloat(monto.replace(',', '.')) > 0)) return { error: 'Si pagó, escribe el monto (mayor que cero).' };
+  return { pago, monto };
+}
+
 $('#formResultado').onsubmit = async ev => {
   ev.preventDefault();
   const p = resultadoActual, marcado = document.querySelector('input[name=drEstado]:checked');
   const err = m => { $('#drError').innerHTML = '<div class="aviso mal">' + esc(m) + '</div>'; };
   if (!marcado) return err('Elige Asistió, No asistió o Cancelada.');
-  const datos = { idPrueba: p.id, estado: marcado.value, seInscribio: $('#drSe').value, motivo: $('#drSe').value === 'No' ? $('#drMotivo').value : '', nota: $('#drNota').value.trim() };
+  const pg = leerPagoPrueba('#drPago', '#drMonto');
+  if (pg.error) return err(pg.error);
+  const datos = { idPrueba: p.id, estado: marcado.value, seInscribio: $('#drSe').value, motivo: $('#drSe').value === 'No' ? $('#drMotivo').value : '', nota: $('#drNota').value.trim(),
+                  pago: pg.pago, monto: pg.monto };
   if (datos.seInscribio === 'No' && !datos.motivo) return err('Si no se inscribió, elige el motivo.');
   const r = await escribir('resultadoPrueba', datos, 'Resultado guardado', { donde: $('#drError') });
   if (!r) return;
@@ -1287,6 +1346,29 @@ $('#formResultado').onsubmit = async ev => {
   const yaInscrito = (IDX.insNino[p.idNino] || []).some(i => i.codigo === p.codigo);
   if (datos.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado' &&
       confirm('¿Inscribir ahora a ' + nombre(n) + '? Se abre su ficha con la clase de la prueba marcada.')) abrirFicha(n.id, { marcar: [p.codigo] });
+};
+
+/* Diálogo de pago de una prueba (acción aparte, antes o después del resultado). */
+let pagoActual = null;
+function abrirPago(id) {
+  const p = (E.pruebas || []).find(x => x.id === id);
+  if (!p) return;
+  pagoActual = p;
+  const c = IDX.clases[p.codigo], n = IDX.ninos[p.idNino];
+  $('#dpSub').textContent = (n ? nombre(n) : p.idNino) + ' · ' + (c ? etiquetaClase(c) : p.codigo) + ' · ' + fecha(p.fecha) + ' · ' + p.estado;
+  $('#dpPago').value = p.pago || '';
+  $('#dpMonto').value = p.monto != null ? String(p.monto) : '';
+  $('#dpError').innerHTML = '';
+  mostrarMonto('#dpPago', '#dpMontoCaja');
+  $('#dlgPago').showModal();
+}
+$('#dpPago').onchange = () => mostrarMonto('#dpPago', '#dpMontoCaja');
+$('#formPagoPrueba').onsubmit = async ev => {
+  ev.preventDefault();
+  const pg = leerPagoPrueba('#dpPago', '#dpMonto');
+  if (pg.error) { $('#dpError').innerHTML = '<div class="aviso mal">' + esc(pg.error) + '</div>'; return; }
+  const r = await escribir('pagoPrueba', { idPrueba: pagoActual.id, pago: pg.pago, monto: pg.monto }, 'Pago de la prueba guardado', { donde: $('#dpError') });
+  if (r) cerrarDialogos();
 };
 
 let pagosIniciados = false;
