@@ -15,11 +15,19 @@ const API = path.join(__dirname, '..', '..', 'after-school', 'api.php');
 const original = fs.readFileSync(API, 'utf8').replace(/\r\n/g, '\n');
 
 const ROTURAS = [
-  ['las lecturas no se reintentan', "$maximo  = $lectura ? LECTURA_INTENTOS : 1;", "$maximo  = 1;"],
-  ['las escrituras se repiten', "$maximo  = $lectura ? LECTURA_INTENTOS : 1;", "$maximo  = LECTURA_INTENTOS;"],
+  ['las lecturas no se reintentan', "$reintentable = $lectura || $conId;", "$reintentable = $conId;"],
+  ['las escrituras sin ID se repiten', "$reintentable = $lectura || $conId;", "$reintentable = true;"],
+  // 16-oct: escrituras con ID de solicitud
+  ['las escrituras con ID no se reintentan', "$reintentable = $lectura || $conId;", "$reintentable = $lectura;"],
+  ['no reenvía el ID al Apps Script', "    if ($conId) $cuerpo['idSolicitud'] = $id;\n", "\n"],
+  ['acepta cualquier ID', "preg_match(ID_SOLICITUD_VALIDO, $id) === 1", "true"],
+  ['el navegador puede poner la clave', "        'key'     => $clave,", "        'key'     => $datos['key'] ?? $clave,"],
+  ['no registra que el script reconoció la repetida', "($repetida ? ' · el script reconoció la solicitud repetida y no la volvió a ejecutar' : '')", "('')"],
+  ['no registra la repetida reenviada por la página', "            } elseif ($repetida) {", "            } elseif (false) {"],
+  ['sin conexión con ID no se reintenta', "if ($c['estado'] === 'sin_conexion' && !$reintentable) {", "if ($c['estado'] === 'sin_conexion' && !$lectura) {"],
   ['sigue cualquier redirección', "!preg_match('/(^|\\.)googleusercontent\\.com$/i', $host)", "false"],
   ['acepta hosts parecidos', "'/(^|\\.)googleusercontent\\.com$/i'", "'/googleusercontent\\.com/i'"],
-  ['no registra que el reintento lo resolvió', "if ($intento > 1) $registrar(", "if (false) $registrar("],
+  ['no registra que el reintento lo resolvió', "            if ($intento > 1) {\n", "            if (false) {\n"],
   ['reintenta sin pausa', "        $dormir($pausa);\n", "\n"],
   ['ignora el presupuesto de tiempo', "($reloj() - $inicio) + $pausa < LECTURA_PRESUPUESTO_S", "true"],
   ['curl sigue las redirecciones solo', "CURLOPT_FOLLOWLOCATION => false,", "CURLOPT_FOLLOWLOCATION => true,"],

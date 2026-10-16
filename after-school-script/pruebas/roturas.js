@@ -60,6 +60,15 @@ const ROTURAS = [
   ['ofrece intereses con coma', "      if (valor.indexOf(',') >= 0) cfg.avisos.push(", "      if (false) cfg.avisos.push("],
   ['comprobar no avisa de las comas', "    cfg.avisos.forEach(function (f) { l.push('⚠ Config: ' + f); });", ""],
   ['acepta al guardar un interés con coma', "        if (texto_(x).indexOf(',') >= 0) throw", "        if (false) throw"],
+  // 16-oct: escrituras idempotentes
+  ['no busca el ID: el reintento se ejecuta otra vez', "      var previa = buscarSolicitud_(sol, idSol);", "      var previa = null;"],
+  ['no compara la huella: otro dato con el mismo ID pasa', "        if (texto_(previa['Huella']) !== huella || texto_(previa['Acción']) !== p.accion)", "        if (false)"],
+  ['no registra el ID tras ejecutar', "    if (idSol) registrarSolicitud_(sol, idSol, p.accion, huella, resultado, usuario);", ""],
+  ['registra el ID antes de ejecutar (y aunque falle)', "    var resultado = acc.fn(datos, usuario);\n    if (idSol) registrarSolicitud_(sol, idSol, p.accion, huella, resultado, usuario);", "    if (idSol) registrarSolicitud_(sol, idSol, p.accion, huella, null, usuario);\n    var resultado = acc.fn(datos, usuario);"],
+  ['la huella depende del orden de las claves', "Object.keys(v).sort().map(", "Object.keys(v).map("],
+  ['acepta un ID de formato inválido', "  if (idSol && !ID_SOLICITUD_VALIDO.test(idSol)) return", "  if (false) return"],
+  ['busca en toda la pestaña en vez de la ventana', "Math.max(FILA_DATOS, ultima - VENTANA_SOLICITUDES + 1)", "FILA_DATOS"],
+  ['las lecturas también usan el ID', "  var idSol = acc.escribe ? texto_(p.idSolicitud) : '';", "  var idSol = texto_(p.idSolicitud);"],
   ['fecha con la zona del script', "var f = Utilities.parseDate(txt, zona_(), 'yyyy-MM-dd');", "var f = Utilities.parseDate(txt, 'UTC', 'yyyy-MM-dd');"]
 ];
 

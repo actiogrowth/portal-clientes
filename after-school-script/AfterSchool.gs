@@ -52,7 +52,8 @@ var HOJAS = {
   bajas:         'Bajas',
   config:        'Config',
   historial:     'Historial',
-  pruebas:       'Pruebas'
+  pruebas:       'Pruebas',
+  solicitudes:   'Solicitudes'
 };
 
 /* Las columnas que se agregan después de la carga inicial van SIEMPRE al
@@ -68,6 +69,9 @@ var COLUMNAS = {
           'Interés en otros servicios', 'Responsable 2', 'Teléfono responsable 2'],
   pruebas: ['ID prueba', 'Fecha', 'Clase ID', 'Niño ID', 'Estado', 'Se inscribió',
             'Motivo no inscripción', 'Nota', 'Registrado por', 'Fecha de registro'],
+  // 16-oct: escrituras idempotentes (ver «Solicitudes» más abajo). Solo la
+  // huella de los datos, nunca los datos: aquí no queda ningún dato de niños.
+  solicitudes: ['ID solicitud', 'Acción', 'Huella', 'Resultado', 'Usuario', 'Fecha'],
   clases: ['Código clase', 'Servicio', 'Modalidad', 'Día', 'Hora inicio', 'Cupo',
            'Edades', 'Activa'],
   inscripciones: ['ID inscripción', 'ID niño', 'Código clase', 'Fecha alta',
@@ -89,7 +93,8 @@ var COLUMNAS_TEXTO = {
   pagos: ['ID pago', 'ID niño', 'Mes que cubre'],
   bajas: ['ID niño'],
   historial: ['ID'],
-  pruebas: ['ID prueba', 'Clase ID', 'Niño ID']
+  pruebas: ['ID prueba', 'Clase ID', 'Niño ID'],
+  solicitudes: ['ID solicitud', 'Huella', 'Resultado']
 };
 var COLUMNAS_FECHA = {
   ninos: ['Fecha nacimiento', 'Fecha ingreso'],
@@ -101,7 +106,8 @@ var COLUMNAS_FECHA = {
 var COLUMNAS_FECHA_HORA = {
   inscripciones: ['Fecha registro'],
   historial: ['Fecha'],
-  pruebas: ['Fecha de registro']
+  pruebas: ['Fecha de registro'],
+  solicitudes: ['Fecha']
 };
 
 /* Prefijos de los ID que genera el script. */
@@ -910,6 +916,10 @@ function atender_(p) {
   var acc = ACCIONES[p.accion];
   if (!acc) return { ok: false, error: 'acción desconocida: ' + texto_(p.accion) };
 
+  // Solo las escrituras usan el ID de solicitud; sin ID, todo como antes.
+  var idSol = acc.escribe ? texto_(p.idSolicitud) : '';
+  if (idSol && !ID_SOLICITUD_VALIDO.test(idSol)) return { ok: false, error: 'El ID de solicitud no es válido.', codigo: 'id_invalido' };
+
   var lock = null;
   try {
     reiniciarCache_(true);
@@ -918,7 +928,21 @@ function atender_(p) {
       if (!lock.tryLock(20000)) return { ok: false, error: 'Otra persona está guardando en este momento. Espera unos segundos y vuelve a intentarlo.', codigo: 'ocupado' };
     }
     var datos = p.datos || {};
+    // Idempotencia, DENTRO del lock: si este ID ya se procesó, no se ejecuta
+    // nada y se devuelve lo que devolvió la primera vez.
+    var sol = null, huella = '';
+    if (idSol) {
+      huella = huellaSolicitud_(p.accion, datos);
+      sol = leerSolicitudesRecientes_();
+      var previa = buscarSolicitud_(sol, idSol);
+      if (previa) {
+        if (texto_(previa['Huella']) !== huella || texto_(previa['Acción']) !== p.accion)
+          throw new ErrorUsuario_('Esta solicitud ya se usó para otra operación distinta y no se volvió a ejecutar. Recarga la página y repite la acción.', 'id_repetido');
+        return { ok: true, resultado: resultadoGuardado_(previa), estado: accLeer_({}, usuario), repetida: true };
+      }
+    }
     var resultado = acc.fn(datos, usuario);
+    if (idSol) registrarSolicitud_(sol, idSol, p.accion, huella, resultado, usuario);
     if (acc.escribe) {
       // El estado sale de las tablas en memoria (ya actualizadas por la
       // escritura); solo se leen las pestañas que la escritura no tocó.
@@ -934,6 +958,81 @@ function atender_(p) {
     reiniciarCache_(false);
     if (lock) lock.releaseLock();
   }
+}
+
+// ─── Solicitudes: escrituras idempotentes ────────────────────────────────────
+//
+// La página manda en cada escritura un ID de solicitud único (el mismo si la
+// misma acción se repite) y api.php, si se pierde la respuesta, repite el
+// POST con ese ID. Aquí, dentro del lock, se mira si el ID ya se procesó:
+// si sí, no se ejecuta nada y se devuelve el resultado guardado.
+//
+// DÓNDE: pestaña «Solicitudes» del mismo Sheet, una fila por escritura con ID:
+// ID, acción, huella SHA-256 de (acción + datos), resultado (JSON corto),
+// usuario y fecha. No se guardan los datos, solo su huella.
+//   · No CacheService: puede olvidar una clave antes de tiempo, y un olvido
+//     es justo un duplicado.
+//   · No PropertiesService: tope de 500 KB, habría que podar, y sus
+//     escrituras no van en el mismo orden que las del Sheet.
+//   · En el Sheet, la fila del ID se escribe en la MISMA ejecución y bajo el
+//     MISMO lock, inmediatamente DESPUÉS de las escrituras de la acción y
+//     antes del flush. Sheets no tiene transacciones: si Google cortara la
+//     ejecución justo entre las dos (milisegundos), quedaría la escritura sin
+//     su ID y un reintento podría repetirla. Al revés (ID primero) el corte
+//     dejaría un ID sin escritura, y el reintento diría «guardado» sin haber
+//     guardado nada: es peor, por eso el ID va después.
+//   · Si la acción falla con un error de negocio (clase llena, motivo
+//     inválido…) no se escribe nada y el ID NO se registra: el reintento
+//     vuelve a validar.
+//
+// CUÁNTO: la búsqueda mira las últimas VENTANA_SOLICITUDES filas (unos días
+// de trabajo); un reintento llega en segundos. Las filas se quedan como
+// registro técnico; la pestaña crece una fila por escritura (pocos KB al mes).
+var VENTANA_SOLICITUDES = 500;
+var MAX_RESULTADO = 2000;                          // caracteres del JSON guardado
+var ID_SOLICITUD_VALIDO = /^[A-Za-z0-9-]{8,64}$/;
+
+/** JSON con las claves ordenadas: los mismos datos dan siempre el mismo texto. */
+function jsonEstable_(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+  if (Object.prototype.toString.call(v) === '[object Array]') return '[' + v.map(jsonEstable_).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ':' + jsonEstable_(v[k]); }).join(',') + '}';
+}
+
+function huellaSolicitud_(accion, datos) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, accion + '\n' + jsonEstable_(datos), Utilities.Charset.UTF_8);
+  return bytes.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+}
+
+/** Las últimas VENTANA_SOLICITUDES filas de Solicitudes, en una lectura. */
+function leerSolicitudesRecientes_() {
+  var hoja = hoja_('solicitudes');
+  var t = titulos_(hoja, 'solicitudes');
+  var ultima = hoja.getLastRow(), filas = [];
+  if (ultima >= FILA_DATOS) {
+    var desde = Math.max(FILA_DATOS, ultima - VENTANA_SOLICITUDES + 1);
+    hoja.getRange(desde, 1, ultima - desde + 1, t.ancho).getValues().forEach(function (r, i) {
+      var o = { _fila: desde + i };
+      COLUMNAS.solicitudes.forEach(function (c) { o[c] = r[t.mapa[c] - 1]; });
+      filas.push(o);
+    });
+  }
+  return { hoja: hoja, mapa: t.mapa, filas: filas, ultimaFila: Math.max(ultima, FILA_TITULOS), ancho: t.ancho };
+}
+
+function buscarSolicitud_(sol, id) {
+  for (var i = sol.filas.length - 1; i >= 0; i--) if (texto_(sol.filas[i]['ID solicitud']) === id) return sol.filas[i];
+  return null;
+}
+
+function registrarSolicitud_(sol, id, accion, huella, resultado, usuario) {
+  var json = JSON.stringify(resultado === undefined ? null : resultado);
+  if (json.length > MAX_RESULTADO) json = JSON.stringify({ guardado: true, resultadoRecortado: true });
+  agregarFilas_(sol, 'solicitudes', [{ 'ID solicitud': id, 'Acción': accion, 'Huella': huella, 'Resultado': json, 'Usuario': usuario, 'Fecha': new Date() }]);
+}
+
+function resultadoGuardado_(f) {
+  try { return JSON.parse(texto_(f['Resultado']) || 'null'); } catch (e) { return { guardado: true }; }
 }
 
 /** Una fila de Historial. */

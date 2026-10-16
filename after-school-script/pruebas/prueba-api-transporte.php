@@ -46,7 +46,7 @@ function rSinConexion(): array { return ['codigo' => 0, 'location' => '', 'ip' =
  * Corre llamar_apps_script() con un guion: lista de respuestas que se van
  * entregando en orden, una por llamada a pedir(). Devuelve lo que pasó.
  */
-function correr(string $accion, array $guion, array $relojes = []): array {
+function correr(string $accion, array $guion, array $relojes = [], bool $conId = false): array {
     $llamadas = []; $pausas = []; $log = []; $i = 0; $t = 0;
     $pedir = function (string $url, ?string $cuerpo) use (&$llamadas, &$i, $guion) {
         $llamadas[] = [$cuerpo === null ? 'GET' : 'POST', $url];
@@ -56,7 +56,7 @@ function correr(string $accion, array $guion, array $relojes = []): array {
     $dormir = function ($s) use (&$pausas) { $pausas[] = $s; };
     $registrar = function ($l) use (&$log) { $log[] = $l; };
     $reloj = function () use (&$t, $relojes) { $v = $relojes[$t] ?? ($relojes ? $relojes[count($relojes) - 1] : 0); $t++; return $v; };
-    $res = llamar_apps_script($accion, EXEC, '{"key":"x"}', $pedir, $dormir, $registrar, $reloj);
+    $res = llamar_apps_script($accion, EXEC, '{"key":"x"}', $pedir, $dormir, $registrar, $reloj, $conId);
     $posts = count(array_filter($llamadas, fn($c) => $c[0] === 'POST'));
     $getsAExec = count(array_filter($llamadas, fn($c) => $c[0] === 'GET' && strpos($c[1], 'script.google.com') !== false));
     $getsFuera = count(array_filter($llamadas, fn($c) => $c[0] === 'GET' && !preg_match('#^https://[a-z0-9.-]*\.googleusercontent\.com/#', $c[1])));
@@ -165,6 +165,74 @@ seccion('escritura: sin conexión y camino normal');
     ok($x['json']['error'] === 'Sin conexión con el Sheet: Failed to connect. No se guardó nada.', 'con el mensaje de siempre');
     $x = correr('inscribir', [r302(ECHO_URL), r200('{"ok":false,"error":"La clase está llena","codigo":"llena"}')]);
     ok($x['res']['http'] === 200 && $x['json']['codigo'] === 'llena' && $x['log'] === [], 'una respuesta de negocio pasa tal cual y no deja log');
+}
+
+const JSON_REPETIDA = '{"ok":true,"repetida":true,"resultado":{"id":"INS-0001"},"estado":{}}';
+
+seccion('escritura CON ID de solicitud: el echo redirige a /exec — se reintenta y se recupera');
+{
+    $x = correr('inscribir', [r302(ECHO_URL), r302(EXEC), r302(ECHO_URL), r200(JSON_REPETIDA)], [], true);
+    ok($x['res']['http'] === 200 && $x['json']['ok'] === true && $x['json']['repetida'] === true, 'se recupera en el segundo intento');
+    ok($x['posts'] === 2 && $x['getsAExec'] === 0 && $x['pausas'] === [1], '2 POST, ningún GET a /exec, pausa de 1 s');
+    ok(count($x['log']) === 2 && strpos($x['log'][0], '[inscribir] respuesta perdida (intento 1 de 3, escritura con ID de solicitud)') !== false && strpos($x['log'][0], '· se reintenta') !== false,
+       'el log registra el intento perdido como escritura con ID');
+    ok(strpos($x['log'][1], 'respuesta recuperada en el intento 2 de 3 · el script reconoció la solicitud repetida y no la volvió a ejecutar') !== false,
+       'y que se recuperó, con el ID repetido reconocido por el script');
+}
+
+seccion('escritura CON ID: el echo da 404 y redirige; y sin conexión');
+{
+    $x = correr('registrarPago', [r302(ECHO_URL), r404(), r302(EXEC), r302(ECHO_URL), r200()], [], true);
+    ok($x['res']['http'] === 200 && $x['posts'] === 2 && $x['pausas'] === [0.8, 1], 'se recupera tras el 404');
+    ok(strpos($x['log'][1], 'recuperada en el intento 2 de 3: ') !== false && strpos($x['log'][1], 'reconoció') === false,
+       'si la primera nunca corrió, el reintento la ejecuta y el log no dice «repetida»');
+    $x = correr('agendarPrueba', [rSinConexion(), r302(ECHO_URL), r200()], [], true);
+    ok($x['res']['http'] === 200 && $x['posts'] === 2, 'con ID, sin conexión también se reintenta');
+}
+
+seccion('escritura CON ID: se pierde tres veces');
+{
+    $g = [r302(ECHO_URL), r302(EXEC)];
+    $x = correr('bajaTotal', array_merge($g, $g, $g), [], true);
+    ok($x['res']['http'] === 502 && $x['json']['codigo'] === 'incierto' && $x['posts'] === 3 && $x['pausas'] === [1, 2], '3 POST y «incierto»');
+    ok($x['json']['error'] === 'No llegó la respuesta del Sheet. Puede que el cambio se haya guardado.', 'con el mensaje de escritura');
+    ok(strpos($x['log'][2], '(intento 3 de 3, escritura con ID de solicitud)') !== false && strpos($x['log'][2], 'sin recuperar') !== false, 'el log dice que no se recuperó');
+}
+
+seccion('escritura CON ID que la página reenvía: el script la reconoce al primer intento');
+{
+    $x = correr('resultadoPrueba', [r302(ECHO_URL), r200(JSON_REPETIDA)], [], true);
+    ok($x['res']['http'] === 200 && $x['posts'] === 1, 'un POST');
+    ok(count($x['log']) === 1 && strpos($x['log'][0], 'solicitud repetida reconocida por el script') !== false, 'y queda en el log');
+}
+
+seccion('escrituras CON ID: todas se reintentan; SIN ID: ninguna');
+{
+    $gs = file_get_contents(__DIR__ . '/../AfterSchool.gs');
+    preg_match_all('/^\s+(\w+): \{ escribe: true/m', $gs, $m);
+    $malConId = []; $malSinId = [];
+    foreach ($m[1] as $acc) {
+        $guion = [r302(ECHO_URL), r302(EXEC), r302(ECHO_URL), r200(JSON_REPETIDA), r302(ECHO_URL), r200()];
+        if (correr($acc, $guion, [], true)['posts'] !== 2) $malConId[] = $acc;
+        if (correr($acc, $guion, [], false)['posts'] !== 1) $malSinId[] = $acc;
+    }
+    ok(!$malConId, 'con ID se recuperan todas al segundo POST' . ($malConId ? ': ' . implode(', ', $malConId) : ''));
+    ok(!$malSinId, 'sin ID ninguna manda más de un POST' . ($malSinId ? ': ' . implode(', ', $malSinId) : ''));
+}
+
+seccion('envio_para: qué se le manda al Apps Script');
+{
+    $e = envio_para('CLAVE-DEL-SERVIDOR', 'recepcion', ['accion' => 'inscribir', 'datos' => ['idNino' => 'AS-0001'], 'idSolicitud' => 'a1b2c3d4-0000-4000-8000-000000000001', 'key' => 'falsa', 'usuario' => 'otro']);
+    $j = json_decode($e['json'], true);
+    ok($e['conId'] === true && $j['idSolicitud'] === 'a1b2c3d4-0000-4000-8000-000000000001', 'un ID válido se reenvía');
+    ok($j['key'] === 'CLAVE-DEL-SERVIDOR' && $j['usuario'] === 'recepcion', 'la clave y el usuario los pone el servidor, no el navegador');
+    foreach (['corto', '<script>alert(1)</script>', str_repeat('a', 65), 123, ['x']] as $malo) {
+        $e = envio_para('C', 'u', ['accion' => 'inscribir', 'datos' => [], 'idSolicitud' => $malo]);
+        if ($e['conId'] !== false || array_key_exists('idSolicitud', json_decode($e['json'], true))) { ok(false, 'un ID inválido no se reenvía: ' . json_encode($malo)); }
+    }
+    ok(true, 'un ID inválido no se reenvía (la escritura va sin ID y no se repite)');
+    $e = envio_para('C', 'u', ['accion' => 'leer']);
+    ok($e['conId'] === false && json_decode($e['json'], true)['datos'] === [], 'sin ID ni datos: cuerpo como antes');
 }
 
 seccion('solo se siguen redirecciones a googleusercontent');

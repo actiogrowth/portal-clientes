@@ -91,7 +91,7 @@ seccion('instalar');
   const g = crearEntorno({ propiedades: {} });
   const inf = g.instalar();
   const L = g._libro;
-  ['Niños', 'Clases', 'Inscripciones', 'Pagos', 'Bajas', 'Config', 'Historial', 'Pruebas'].forEach(n => ok(!!L.getSheetByName(n), 'crea la pestaña ' + n));
+  ['Niños', 'Clases', 'Inscripciones', 'Pagos', 'Bajas', 'Config', 'Historial', 'Pruebas', 'Solicitudes'].forEach(n => ok(!!L.getSheetByName(n), 'crea la pestaña ' + n));
   const n = L.getSheetByName('Niños');
   ok(n.celda(5, 1) === '' && n.celda(5, 2) === 'ID' && n.celda(5, 15) === 'Notas', 'títulos de Niños en la fila 5 desde la B, A vacía');
   ok(n.celda(5, 16) === 'Colegio' && n.celda(5, 22) === 'Teléfono responsable 2', 'las columnas nuevas de Niños van después de Notas');
@@ -115,7 +115,7 @@ seccion('actualizar estructura sobre una base de la versión 3 (con datos)');
   const L = new Libro('VEA_AfterSchool_BD');
   const g0 = crearEntorno({ libro: L, propiedades: { AS_CLAVE_API: CLAVE } });
   const NUEVAS = ['Colegio', 'Cómo nos conoció', 'Familia que lo refirió', 'Hermanos (edades)', 'Interés en otros servicios', 'Responsable 2', 'Teléfono responsable 2'];
-  Object.keys(g0.HOJAS).filter(k => k !== 'pruebas').forEach(k => {
+  Object.keys(g0.HOJAS).filter(k => k !== 'pruebas' && k !== 'solicitudes').forEach(k => {
     const h = L.insertSheet(g0.HOJAS[k]);
     const cols = g0.COLUMNAS[k].filter(t => NUEVAS.indexOf(t) < 0);
     cols.forEach((t, i) => h.poner(5, 2 + i, t));
@@ -131,6 +131,7 @@ seccion('actualizar estructura sobre una base de la versión 3 (con datos)');
 
   const inf = g0.actualizarEstructura();
   ok(!!L.getSheetByName('Pruebas') && L.getSheetByName('Pruebas').celda(5, 2) === 'ID prueba', 'crea la pestaña Pruebas');
+  ok(!!L.getSheetByName('Solicitudes') && L.getSheetByName('Solicitudes').celda(5, 2) === 'ID solicitud' && /Creada: Solicitudes/.test(inf), 'crea la pestaña Solicitudes');
   ok(N.celda(5, 16) === 'Colegio' && N.celda(5, 22) === 'Teléfono responsable 2', 'agrega las 7 columnas de Niños a la derecha de Notas');
   ok(JSON.stringify(N.fila(6).slice(0, 15)) === JSON.stringify(JSON.parse(antesNinos).slice(0, 15)), 'no toca los datos del niño existente');
   ok(N.formatos['6,22'] === '@', 'la columna nueva de teléfono queda como texto');
@@ -606,6 +607,128 @@ seccion('comas en la lista «Interés en servicios»');
   // Una coma en otra lista (motivo de baja) no molesta: esos valores van uno por celda.
   ['', 'Motivo baja', 'Precio, horario', '', ''].forEach((v, i) => { if (i) C.poner(f + 1, i + 1, v); });
   ok(g.llamar('leer').resultado.config.motivos.indexOf('Precio, horario') >= 0, 'otras listas aceptan comas (se guardan un valor por celda)');
+}
+
+seccion('escrituras idempotentes: el mismo ID de solicitud se ejecuta una sola vez');
+{
+  const g = entornoCargado();
+  const L = g._libro, I = L.getSheetByName('Inscripciones'), H = L.getSheetByName('Historial'), S = L.getSheetByName('Solicitudes');
+  const ID = 'a1b2c3d4-0000-4000-8000-000000000001';
+  const datos = { idNino: 'AS-0003', codigo: 'LUN-1630-PARKOUR' };
+  const insAntes = I.getLastRow(), hAntes = H.getLastRow();
+  const r1 = g.llamar('inscribir', datos, { idSolicitud: ID });
+  ok(r1.ok && !r1.repetida, 'primera vez: se ejecuta');
+  ok(I.getLastRow() === insAntes + 1 && H.getLastRow() === hAntes + 1, 'una inscripción y una fila de Historial');
+  ok(S.getLastRow() === 6 && S.celda(6, 2) === ID && S.celda(6, 3) === 'inscribir' && /^[0-9a-f]{64}$/.test(S.celda(6, 4)) &&
+     JSON.parse(S.celda(6, 5)).id === r1.resultado.id && S.celda(6, 6) === 'prueba' && Object.prototype.toString.call(S.celda(6, 7)) === '[object Date]',
+     'Solicitudes guarda ID, acción, huella, resultado, usuario y fecha');
+  ok(JSON.stringify(S.fila(6)).indexOf('AS-0003') < 0 && JSON.stringify(S.fila(6)).indexOf('LUN-1630') < 0, 'Solicitudes no guarda los datos, solo su huella');
+
+  // Reintento con el mismo ID (respuesta perdida, o doble clic que llegó).
+  const r2 = g.llamar('inscribir', datos, { idSolicitud: ID });
+  ok(r2.ok && r2.repetida === true && r2.resultado.id === r1.resultado.id, 'el reintento devuelve el resultado guardado y avisa que es repetida');
+  ok(I.getLastRow() === insAntes + 1 && H.getLastRow() === hAntes + 1 && S.getLastRow() === 6, 'y no ejecuta nada: ni inscripción, ni Historial, ni otra fila de Solicitudes');
+  ok(r2.estado.clases.find(c => c.codigo === 'LUN-1630-PARKOUR').reservados === 3, 'trae el estado actual para la página');
+  const r2b = g.llamar('inscribir', { codigo: 'LUN-1630-PARKOUR', idNino: 'AS-0003' }, { idSolicitud: ID });
+  ok(r2b.ok && r2b.repetida === true, 'los mismos datos en otro orden son la misma solicitud');
+
+  // Mismo ID con otros datos u otra acción: se rechaza sin escribir.
+  const r3 = g.llamar('inscribir', { idNino: 'AS-0003', codigo: 'MAR-1630-PARKIDS' }, { idSolicitud: ID });
+  ok(!r3.ok && r3.codigo === 'id_repetido' && /otra operación distinta/.test(r3.error), 'mismo ID con datos distintos → rechazo con mensaje claro');
+  const r4 = g.llamar('notaInscripcion', { idInscripcion: r1.resultado.id, nota: 'x' }, { idSolicitud: ID });
+  ok(!r4.ok && r4.codigo === 'id_repetido', 'mismo ID en otra acción → rechazo');
+  ok(I.getLastRow() === insAntes + 1 && H.getLastRow() === hAntes + 1, 'los rechazos no escriben');
+  ok(g.llamar('inscribir', datos, { idSolicitud: 'corto' }).codigo === 'id_invalido', 'ID con formato inválido → rechazo');
+  ok(g.llamar('leer', {}, { idSolicitud: 'no-importa-en-lecturas' }).ok && g.llamar('listarPagos', { mes: MES }, { idSolicitud: 'no-importa-en-lecturas' }).ok &&
+     S.getLastRow() === 6, 'las lecturas ignoran el ID (no registran nada en Solicitudes)');
+}
+{
+  // Sin ID: exactamente como antes (dos llamadas = dos escrituras).
+  const g = entornoCargado();
+  const N = g._libro.getSheetByName('Niños'), S = g._libro.getSheetByName('Solicitudes');
+  const nino = { nino: { nombre: 'Gemelo', apellidos: 'Ficticio' }, confirmarDuplicado: true };
+  g.llamar('crearNino', nino); g.llamar('crearNino', nino);
+  ok(N.getLastRow() === 12 && S.getLastRow() === 5, 'sin ID: dos llamadas crean dos niños y no tocan Solicitudes');
+  const ID = 'b2c3d4e5-0000-4000-8000-000000000002';
+  g.llamar('crearNino', nino, { idSolicitud: ID }); g.llamar('crearNino', nino, { idSolicitud: ID });
+  ok(N.getLastRow() === 13 && S.getLastRow() === 6, 'con ID: dos llamadas crean un solo niño');
+}
+{
+  // La primera ejecución todavía corre cuando llega el reintento: el reintento
+  // espera el lock; si no lo consigue, no escribe nada; cuando lo consigue,
+  // encuentra el ID.
+  const g = entornoCargado();
+  const P = g._libro.getSheetByName('Pagos'), H = g._libro.getSheetByName('Historial');
+  const ID = 'c3d4e5f6-0000-4000-8000-000000000003';
+  const pago = { idNino: 'AS-0001', mes: MES, concepto: 'Mensualidad', plan: '8 clases', monto: 128.4, fechaPago: HOY, forma: 'Yappy' };
+  const r1 = g.llamar('registrarPago', pago, { idSolicitud: ID });
+  const hTras = H.getLastRow();
+  g._lock.ocupado = true;
+  const rOcupado = g.llamar('registrarPago', pago, { idSolicitud: ID });
+  ok(!rOcupado.ok && rOcupado.codigo === 'ocupado' && P.getLastRow() === 6, 'con el lock tomado, el reintento no escribe nada');
+  g._lock.ocupado = false;
+  const r2 = g.llamar('registrarPago', pago, { idSolicitud: ID });
+  ok(r2.ok && r2.repetida && r2.resultado.id === r1.resultado.id && P.getLastRow() === 6 && H.getLastRow() === hTras, 'con el lock libre, encuentra el ID: un solo pago y una sola fila de Historial');
+}
+{
+  // La primera nunca llegó a correr: el reintento la ejecuta una vez.
+  const g = entornoCargado();
+  const ID = 'd4e5f6a7-0000-4000-8000-000000000004';
+  const B = g._libro.getSheetByName('Bajas'), S = g._libro.getSheetByName('Solicitudes');
+  const lunes = proximo('Martes', true);
+  const pr = g.llamar('agendarPrueba', { codigo: 'MAR-1630-PARKIDS', fecha: lunes, idNino: 'AS-0004' }).resultado.id;
+  const baja = { idNino: 'AS-0004', fecha: HOY, motivo: 'Precio' };
+  const r1 = g.llamar('bajaTotal', baja, { idSolicitud: ID });
+  ok(r1.ok && !r1.repetida && B.getLastRow() === 6 && S.getLastRow() === 6, 'el «reintento» de una que nunca corrió se ejecuta una vez');
+  const H = g._libro.getSheetByName('Historial'), hTras = H.getLastRow();
+  const r2 = g.llamar('bajaTotal', baja, { idSolicitud: ID });
+  ok(r2.ok && r2.repetida && r2.resultado.pruebasCanceladas === 1 && B.getLastRow() === 6 && H.getLastRow() === hTras, 'repetida: ni otra baja, ni otra cancelación, ni Historial');
+  ok(r2.estado.pruebas.find(p => p.id === pr).estado === 'Cancelada', '(control) la prueba quedó cancelada una vez');
+}
+{
+  // Un error de negocio no registra el ID: el reintento vuelve a validar.
+  const g = entornoCargado();
+  const S = g._libro.getSheetByName('Solicitudes');
+  const ID = 'e5f6a7b8-0000-4000-8000-000000000005';
+  g.llamar('inscribir', { idNino: 'AS-0003', codigo: 'LUN-1630-PARKOUR' });            // 3/3: llena
+  const r1 = g.llamar('inscribir', { idNino: 'AS-0005', codigo: 'LUN-1630-PARKOUR' }, { idSolicitud: ID });
+  ok(!r1.ok && r1.codigo === 'llena' && S.getLastRow() === 5, 'clase llena: no escribe y no registra el ID');
+  const ins = g.llamar('leer').resultado.inscripciones.find(i => i.idNino === 'AS-0001');
+  g.llamar('bajaClase', { idInscripcion: ins.id, fecha: HOY, motivo: 'Horario' });
+  const r2 = g.llamar('inscribir', { idNino: 'AS-0005', codigo: 'LUN-1630-PARKOUR' }, { idSolicitud: ID });
+  ok(r2.ok && !r2.repetida && S.getLastRow() === 6, 'con cupo libre, el mismo ID se ejecuta (una vez)');
+}
+{
+  // resultadoPrueba repetido: Historial una sola vez.
+  const g = entornoCargado();
+  const H = g._libro.getSheetByName('Historial');
+  const pr = g.llamar('agendarPrueba', { codigo: 'MAR-1630-PARKIDS', fecha: proximo('Martes', true), idNino: 'AS-0003' }).resultado.id;
+  const ID = 'f6a7b8c9-0000-4000-8000-000000000006';
+  g.llamar('resultadoPrueba', { idPrueba: pr, estado: 'Cancelada' }, { idSolicitud: ID });
+  const h1 = H.getLastRow();
+  const r2 = g.llamar('resultadoPrueba', { idPrueba: pr, estado: 'Cancelada' }, { idSolicitud: ID });
+  ok(r2.ok && r2.repetida && H.getLastRow() === h1, 'resultado de prueba repetido: una sola fila de Historial');
+}
+{
+  // Ventana: solo se miran las últimas 500 solicitudes.
+  const g = entornoCargado();
+  const S = g._libro.getSheetByName('Solicitudes');
+  const ID = 'a7b8c9d0-0000-4000-8000-000000000007';
+  const nota = n => ({ idInscripcion: g.llamar('leer').resultado.inscripciones[0].id, nota: n });
+  g.llamar('notaInscripcion', nota('vieja'), { idSolicitud: ID });
+  for (let f = 7; f < 7 + 500; f++) { S.formatos[f + ',2'] = '@'; S.poner(f, 2, 'relleno-' + f); }
+  const r = g.llamar('notaInscripcion', nota('vieja'), { idSolicitud: ID });
+  ok(r.ok && !r.repetida, 'un ID más viejo que las últimas 500 solicitudes ya no se reconoce (un reintento llega en segundos)');
+}
+{
+  // Sin la pestaña Solicitudes (estructura sin actualizar): con ID falla claro; sin ID funciona.
+  const g = entornoCargado();
+  g._libro.hojas = g._libro.hojas.filter(h => h.nombre !== 'Solicitudes');
+  const r = g.llamar('inscribir', { idNino: 'AS-0003', codigo: 'MAR-1630-PARKIDS' }, { idSolicitud: 'b8c9d0e1-0000-4000-8000-000000000008' });
+  ok(!r.ok && /Falta la pestaña «Solicitudes»/.test(r.error), 'con ID y sin pestaña: error que dice qué falta');
+  ok(g._libro.getSheetByName('Inscripciones').getLastRow() === 9, 'y no escribe nada');
+  ok(g.llamar('inscribir', { idNino: 'AS-0003', codigo: 'MAR-1630-PARKIDS' }).ok, 'sin ID funciona como siempre');
+  ok(/⚠ Falta la pestaña «Solicitudes»/.test(g.comprobar()), 'Comprobar estructura avisa que falta');
 }
 
 seccion('filas más allá de la 1000');

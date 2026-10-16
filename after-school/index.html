@@ -440,12 +440,14 @@ class ErrorApi extends Error {
   constructor(mensaje, codigo) { super(mensaje); this.codigo = codigo || ''; }
 }
 
-async function api(accion, datos) {
+async function api(accion, datos, idSolicitud) {
   let r;
+  const cuerpo = { accion, datos: datos || {} };
+  if (idSolicitud) cuerpo.idSolicitud = idSolicitud;
   try {
     r = await fetch(API, { method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ accion, datos: datos || {} }) });
+      body: JSON.stringify(cuerpo) });
   } catch (e) {
     throw new ErrorApi('No hay conexión con el servidor del portal.', 'red');
   }
@@ -690,25 +692,54 @@ async function comprobarTrasFallo(accion, datos, antes, opciones) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/* ID de solicitud: cada escritura lleva uno (api.php puede reintentarla y
+   AfterSchool.gs no la ejecuta dos veces). Repetir LA MISMA acción con los
+   mismos datos —un segundo clic tras «puede que se haya guardado», o tras
+   «otra persona está guardando»— reutiliza el mismo ID. Se olvida cuando la
+   acción termina de forma clara (bien, o con un error de negocio). */
+const pendientes = new Map();   // acción + datos → ID
+function jsonEstable(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+  if (Array.isArray(v)) return '[' + v.map(jsonEstable).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + jsonEstable(v[k])).join(',') + '}';
+}
+function nuevoIdSolicitud() {
+  if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  return [...b].map(x => x.toString(16).padStart(2, '0')).join('').replace(/^(.{8})(.{4})(.{4})(.{4})/, '$1-$2-$3-$4-');
+}
+function idPara(accion, datos) {
+  const clave = accion + '|' + jsonEstable(datos);
+  if (!pendientes.has(clave)) pendientes.set(clave, nuevoIdSolicitud());
+  return { clave, id: pendientes.get(clave) };
+}
+const SIGUEN_PENDIENTES = new Set(['red', 'ilegible', 'incierto', 'ocupado', 'sesion']);
+
 async function escribir(accion, datos, mensajeOk, opciones) {
-  if (ocupado) return null;
+  if (ocupado) return null;   // un segundo clic mientras guarda no manda nada
   ocupado = true; document.body.style.cursor = 'progress';
   document.querySelectorAll('button').forEach(b => { if (!b.disabled) { b.dataset.reactivar = '1'; b.disabled = true; } });
   const antes = huella(accion, datos);
+  let sol = idPara(accion, datos);
   try {
     let r;
-    try { r = await api(accion, datos); }
+    try { r = await api(accion, datos, sol.id); }
     catch (e) {
       if (e.codigo !== 'duplicado') throw e;
+      pendientes.delete(sol.clave);
       if (!confirm(e.message)) return null;   // canceló: no hay nada que avisar
-      r = await api(accion, Object.assign({}, datos, { confirmarDuplicado: true }));
+      const confirmado = Object.assign({}, datos, { confirmarDuplicado: true });
+      sol = idPara(accion, confirmado);
+      r = await api(accion, confirmado, sol.id);
     }
     if (!r.estado) throw new ErrorApi('La respuesta no trae el estado.', 'ilegible');
+    pendientes.delete(sol.clave);
     avisoEscritura = null;
     aplicar(r.estado);
-    if (mensajeOk) toast(mensajeOk);
+    if (mensajeOk) toast(mensajeOk + (r.repetida ? ' (ya estaba guardado)' : ''));
     return r.resultado;
   } catch (e) {
+    if (!SIGUEN_PENDIENTES.has(e.codigo)) pendientes.delete(sol.clave);
     if (e.codigo === 'sesion') { pantallaError(e); return null; }
     if (INCIERTOS.has(e.codigo)) { await comprobarTrasFallo(accion, datos, antes, opciones); return null; }
     if (opciones && opciones.donde) opciones.donde.innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>';

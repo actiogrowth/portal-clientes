@@ -81,10 +81,15 @@ function autorizado(string $usuario, array $cfg): bool {
  *     Jamás se pide /exec con GET.
  *   · El GET al echo sí se puede repetir (solo lee la respuesta guardada): si
  *     da 404 o 5xx se reintenta dos veces.
- *   · ESCRITURAS: el POST a /exec se manda UNA vez y nunca se repite: no es
- *     idempotente (duplicaría inscripciones, pagos o pruebas). Si salió pero
- *     la respuesta no llega, el error lleva el código «incierto»: la página
- *     vuelve a leer y comprueba si el cambio quedó.
+ *   · ESCRITURAS SIN ID DE SOLICITUD (página vieja): el POST a /exec se manda
+ *     UNA vez y nunca se repite: no es idempotente (duplicaría inscripciones,
+ *     pagos o pruebas). Si salió pero la respuesta no llega, el error lleva el
+ *     código «incierto»: la página vuelve a leer y comprueba si el cambio quedó.
+ *   · ESCRITURAS CON ID DE SOLICITUD (16-oct): se reintentan igual que las
+ *     lecturas. Es seguro porque AfterSchool.gs, dentro del lock, reconoce el
+ *     ID ya procesado y devuelve el resultado guardado sin ejecutar nada
+ *     (responde «repetida»: true). El ID lo genera la página; aquí solo se
+ *     reenvía si tiene un formato válido.
  *   · LECTURAS (las de ACCIONES_LECTURA, las mismas que en AfterSchool.gs
  *     tienen escribe:false): si la respuesta se pierde, se repite el ciclo
  *     COMPLETO —POST nuevo + echo— hasta 2 veces más, con pausas de 1 s y
@@ -182,28 +187,60 @@ function ciclo(string $exec, string $envio, callable $pedir, callable $dormir): 
 }
 
 /**
+ * El cuerpo que va al Apps Script. La clave y el usuario los pone el
+ * servidor; del navegador solo se toman la acción, los datos y el ID de
+ * solicitud, y este último solo si tiene un formato válido (si no, la
+ * escritura va sin ID y se comporta como antes: nunca se repite).
+ * Devuelve ['json' => …, 'conId' => bool].
+ */
+const ID_SOLICITUD_VALIDO = '/^[A-Za-z0-9-]{8,64}$/';
+function envio_para(string $clave, string $usuario, array $datos): array {
+    $cuerpo = [
+        'key'     => $clave,
+        'usuario' => $usuario,
+        'accion'  => $datos['accion'],
+        'datos'   => is_array($datos['datos'] ?? null) ? $datos['datos'] : new stdClass(),
+    ];
+    $id = $datos['idSolicitud'] ?? '';
+    $conId = is_string($id) && preg_match(ID_SOLICITUD_VALIDO, $id) === 1;
+    if ($conId) $cuerpo['idSolicitud'] = $id;
+    return ['json' => json_encode($cuerpo, JSON_UNESCAPED_UNICODE), 'conId' => $conId];
+}
+
+/**
  * La llamada entera, con la política de reintentos. Devuelve
  *   ['http' => código, 'cuerpo' => JSON a devolver al navegador].
  * $registrar escribe en el error_log; $reloj da los segundos transcurridos.
  */
-function llamar_apps_script(string $accion, string $exec, string $envio, callable $pedir, callable $dormir, callable $registrar, callable $reloj): array {
+function llamar_apps_script(string $accion, string $exec, string $envio, callable $pedir, callable $dormir, callable $registrar, callable $reloj, bool $conId = false): array {
     $lectura = in_array($accion, ACCIONES_LECTURA, true);
-    $maximo  = $lectura ? LECTURA_INTENTOS : 1;
+    // Se repite el ciclo en las lecturas y en las escrituras con ID de
+    // solicitud (el .gs no las ejecuta dos veces). Sin ID, nunca.
+    $reintentable = $lectura || $conId;
+    $maximo  = $reintentable ? LECTURA_INTENTOS : 1;
+    $tipo    = $lectura ? '' : ($conId ? ', escritura con ID de solicitud' : ', las escrituras no se repiten');
     $inicio  = $reloj();
     for ($intento = 1; ; $intento++) {
         $c = ciclo($exec, $envio, $pedir, $dormir);
         if ($c['estado'] === 'ok') {
-            if ($intento > 1) $registrar('after-school api.php [' . $accion . '] respuesta recuperada en el intento ' . $intento . ' de ' . $maximo . ': ' . $c['rastro']);
+            $resp = json_decode($c['cuerpo'], true);
+            $repetida = is_array($resp) && ($resp['repetida'] ?? false) === true;
+            if ($intento > 1) {
+                $registrar('after-school api.php [' . $accion . '] respuesta recuperada en el intento ' . $intento . ' de ' . $maximo .
+                    ($repetida ? ' · el script reconoció la solicitud repetida y no la volvió a ejecutar' : '') . ': ' . $c['rastro']);
+            } elseif ($repetida) {
+                $registrar('after-school api.php [' . $accion . '] solicitud repetida reconocida por el script (la página la volvió a enviar): no se ejecutó otra vez');
+            }
             return ['http' => 200, 'cuerpo' => $c['cuerpo']];
         }
-        if ($c['estado'] === 'sin_conexion' && !$lectura) {
+        if ($c['estado'] === 'sin_conexion' && !$reintentable) {
             return ['http' => 502, 'cuerpo' => json_encode(['ok' => false, 'error' => 'Sin conexión con el Sheet: ' . $c['error'] . '. No se guardó nada.', 'codigo' => 'sin_conexion'], JSON_UNESCAPED_UNICODE)];
         }
         $que = $c['estado'] === 'sin_conexion' ? 'sin conexión (' . $c['error'] . ')' : $c['rastro'];
         $pausa = LECTURA_PAUSAS_S[$intento - 1] ?? 0;
         $otro = $intento < $maximo && ($reloj() - $inicio) + $pausa < LECTURA_PRESUPUESTO_S;
         $registrar('after-school api.php [' . $accion . '] respuesta perdida (intento ' . $intento . ' de ' . $maximo .
-            ($lectura ? '' : ', las escrituras no se repiten') . '): ' . $que . ($lectura ? ($otro ? ' · se reintenta' : ' · sin recuperar') : ''));
+            $tipo . '): ' . $que . ($reintentable ? ($otro ? ' · se reintenta' : ' · sin recuperar') : ''));
         if (!$otro) {
             if ($c['estado'] === 'sin_conexion') {
                 return ['http' => 502, 'cuerpo' => json_encode(['ok' => false, 'error' => 'Sin conexión con el Sheet: ' . $c['error'] . '. No se guardó nada.', 'codigo' => 'sin_conexion'], JSON_UNESCAPED_UNICODE)];
@@ -254,17 +291,13 @@ if (!defined('AS_SOLO_FUNCIONES')) {
     $datos = json_decode(file_get_contents('php://input'), true);
     if (!is_array($datos) || empty($datos['accion']) || !is_string($datos['accion'])) fallo('cuerpo ilegible', 400);
 
-    $envio = json_encode([
-        'key'     => $cfg['as_clave'],
-        'usuario' => $usuario,
-        'accion'  => $datos['accion'],
-        'datos'   => is_array($datos['datos'] ?? null) ? $datos['datos'] : new stdClass(),
-    ], JSON_UNESCAPED_UNICODE);
+    $envio = envio_para($cfg['as_clave'], $usuario, $datos);
 
-    $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio, 'pedir',
+    $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio['json'], 'pedir',
         function ($s) { usleep((int) ($s * 1000000)); },
         function ($linea) { error_log($linea); },
-        function () { return microtime(true); });
+        function () { return microtime(true); },
+        $envio['conId']);
     http_response_code($res['http']);
     echo $res['cuerpo'];
 }
