@@ -9,6 +9,7 @@
  *
  *   POST /exec  → 302 a /echo?k=1      (como Apps Script)
  *   GET  /echo  → 200 {"ok":true}
+ *   GET  /echo-colgado → lo mismo, pero a los 12 s (pedir() corta a los 10)
  *   lo demás    → 405
  */
 const http = require('http');
@@ -24,6 +25,11 @@ function servidorEco() {
       if (req.method === 'POST' && req.url === '/exec') {
         req.resume();
         req.on('end', () => { res.writeHead(302, { Location: 'http://127.0.0.1:' + s.address().port + '/echo?k=1' }); res.end('movido'); });
+        return;
+      }
+      if (req.method === 'GET' && req.url === '/echo-colgado') {
+        // Contesta a los 12 s: pedir() debe cortar antes, a los 10 s.
+        setTimeout(() => { if (!res.destroyed) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); } }, 12000).unref();
         return;
       }
       if (req.method === 'GET' && req.url.indexOf('/echo') === 0) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); return; }

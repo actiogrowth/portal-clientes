@@ -100,24 +100,48 @@ function autorizado(string $usuario, array $cfg): bool {
  *     TOPE_TERCER_INTENTO_S desde el principio. Antes el tope de 25 s contaba
  *     también el primer ciclo, y un primer ciclo lento (≥ 24 s) dejaba sin
  *     ningún reintento: «intento 1 de 3 … sin recuperar» del 16-oct.
+ *   · ESPERAS DE CURL (17-oct), una por paso y no una sola de 90 s:
+ *       POST a /exec: 5 s para conectar, 40 s en total. El doPost espera el
+ *         lock hasta 20 s y luego trabaja unos segundos; pasar de 40 ya es
+ *         anómalo. Cortarlo es seguro: lecturas y escrituras con ID se
+ *         reintentan (el .gs reconoce el ID cuando el primero termina), y una
+ *         escritura sin ID responde «incierto» como siempre.
+ *       GET al echo: 5 s para conectar, 10 s en total. El echo solo devuelve
+ *         la respuesta que el script ya calculó (normalmente < 1 s); si se
+ *         cuelga, mejor cortarlo y reintentar que esperar 90 s.
+ *     Peor caso de una llamada: 40 + 3 × 10 + 2 × 0,8 = 71,6 s por ciclo, y
+ *     como mucho dos ciclos más 1 s de pausa (el 3.º no empieza pasados 60 s,
+ *     y si empieza es porque los dos primeros fueron cortos): ≈ 144 s. Antes,
+ *     con 90 s por paso, ≈ 725 s.
+ *     Ojo: un corte al conectar también da curl 28 (no 7), así que cuenta como
+ *     «perdida» y no como «sin_conexion»: lo prudente, por si llegó a salir.
  *   · «sin_conexion» es solo cuando seguro no salió (no hubo conexión).
  *   · Cada respuesta perdida deja una línea en el error_log de PHP con el
  *     intento, cuánto tardó, lo que pasó (códigos, destino sin parámetros, IP
- *     de cada salto) y, si no se reintenta, el motivo concreto.
+ *     y duración de cada paso) y, si no se reintenta, el motivo concreto.
  */
 const ACCIONES_LECTURA = ['leer', 'listarPagos'];
 const LECTURA_INTENTOS = 3;                 // 1 + 2 reintentos
 const LECTURA_PAUSAS_S = [1, 2];            // antes del 2.º y del 3.º intento
 const TOPE_TERCER_INTENTO_S = 60;           // el 3.er intento no empieza pasado esto (desde el principio)
+const POST_CONEXION_S = 5;                  // POST a /exec: espera para conectar
+const POST_TOTAL_S    = 40;                 //   y en total (lock de 20 s + trabajo)
+const ECHO_CONEXION_S = 5;                  // GET al echo: espera para conectar
+const ECHO_TOTAL_S    = 10;                 //   y en total (solo lee lo ya calculado)
+
+/** Opciones de curl de un paso: POST a /exec ($post) o GET al echo. */
+function opciones_curl(bool $post): array {
+    return [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_CONNECTTIMEOUT => $post ? POST_CONEXION_S : ECHO_CONEXION_S,
+        CURLOPT_TIMEOUT        => $post ? POST_TOTAL_S : ECHO_TOTAL_S,
+    ];
+}
 
 function pedir(string $url, ?string $cuerpo): array {
     $ch = curl_init($url);
-    $op = [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_TIMEOUT        => 90,
-        CURLOPT_CONNECTTIMEOUT => 20,
-    ];
+    $op = opciones_curl($cuerpo !== null);
     if ($cuerpo !== null) {
         $op[CURLOPT_POST]       = true;
         $op[CURLOPT_POSTFIELDS] = $cuerpo;
@@ -158,15 +182,18 @@ function ip_de(array $r): string {
  * UN ciclo: POST a /exec y, si redirige, GET al echo. Devuelve
  *   ['estado' => 'ok' | 'sin_conexion' | 'perdida', 'cuerpo' => …, 'rastro' => …, 'error' => …]
  * $pedir es pedir() en producción; las pruebas la cambian por una simulada.
+ * Cada paso del rastro lleva su duración, «(34,2 s)», para saber qué tardó.
  */
-function ciclo(string $exec, string $envio, callable $pedir, callable $dormir): array {
+function ciclo(string $exec, string $envio, callable $pedir, callable $dormir, callable $reloj): array {
+    $t = $reloj();
     $r = $pedir($exec, $envio);
+    $dura = ' (' . segundos($reloj() - $t) . ')';
     if ($r['cuerpo'] === false) {
         // 6/7/35: no se pudo resolver, conectar o negociar TLS → el POST no salió.
         if (in_array($r['errno'], [5, 6, 7, 35], true)) return ['estado' => 'sin_conexion', 'error' => $r['error'], 'rastro' => ''];
-        return ['estado' => 'perdida', 'rastro' => 'POST sin respuesta (curl ' . $r['errno'] . ': ' . $r['error'] . ')'];
+        return ['estado' => 'perdida', 'rastro' => 'POST sin respuesta (curl ' . $r['errno'] . ': ' . $r['error'] . ')' . $dura];
     }
-    $rastro = 'POST ' . $r['codigo'] . ip_de($r);
+    $rastro = 'POST ' . $r['codigo'] . ip_de($r) . $dura;
     $saltos = 0;
     while (in_array($r['codigo'], [301, 302, 303, 307, 308], true)) {
         $loc  = $r['location'];
@@ -176,8 +203,9 @@ function ciclo(string $exec, string $envio, callable $pedir, callable $dormir): 
             return ['estado' => 'perdida', 'rastro' => $rastro . ' (redirección no seguida: no es googleusercontent)'];
         }
         for ($intento = 1; $intento <= 3; $intento++) {
+            $t = $reloj();
             $r = $pedir($loc, null);
-            $rastro .= ' GET ' . ($r['cuerpo'] === false ? 'sin respuesta' : $r['codigo']) . ip_de($r);
+            $rastro .= ' GET ' . ($r['cuerpo'] === false ? 'sin respuesta (curl ' . $r['errno'] . ')' : $r['codigo']) . ip_de($r) . ' (' . segundos($reloj() - $t) . ')';
             $repetible = $r['cuerpo'] === false || $r['codigo'] === 404 || $r['codigo'] >= 500;
             if (!$repetible || $intento === 3) break;
             $dormir(0.8);
@@ -231,7 +259,7 @@ function llamar_apps_script(string $accion, string $exec, string $envio, callabl
     $inicio  = $reloj();
     for ($intento = 1; ; $intento++) {
         $t0 = $reloj();
-        $c = ciclo($exec, $envio, $pedir, $dormir);
+        $c = ciclo($exec, $envio, $pedir, $dormir, $reloj);
         $dura = segundos($reloj() - $t0);
         if ($c['estado'] === 'ok') {
             $resp = json_decode($c['cuerpo'], true);

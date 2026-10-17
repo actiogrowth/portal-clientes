@@ -35,6 +35,12 @@ const ROTURAS = [
   ['no hace el intento 3', "const LECTURA_INTENTOS = 3;", "const LECTURA_INTENTOS = 2;"],
   ['el registro no dice por qué no reintenta', "' · no se reintenta: ' . $motivo", "' · sin recuperar'"],
   ['el registro no dice cuánto tardó el intento', "$tipo . ', ' . $dura . '): '", "$tipo . '): '"],
+  // 17-oct: esperas de curl por paso y duración de cada paso en el rastro
+  ['el POST espera 90 s', "const POST_TOTAL_S    = 40;", "const POST_TOTAL_S    = 90;"],
+  ['el GET al echo espera 90 s', "CURLOPT_TIMEOUT        => $post ? POST_TOTAL_S : ECHO_TOTAL_S,", "CURLOPT_TIMEOUT        => 90,"],
+  ['pedir() usa la espera del POST también en el echo', "    $op = opciones_curl($cuerpo !== null);", "    $op = opciones_curl(true);"],
+  ['el rastro no dice cuánto tardó el POST', "$rastro = 'POST ' . $r['codigo'] . ip_de($r) . $dura;", "$rastro = 'POST ' . $r['codigo'] . ip_de($r);"],
+  ['el rastro no dice cuánto tardó cada GET', " . ip_de($r) . ' (' . segundos($reloj() - $t) . ')';", " . ip_de($r);"],
   ['curl sigue las redirecciones solo', "CURLOPT_FOLLOWLOCATION => false,", "CURLOPT_FOLLOWLOCATION => true,"],
   ['el log guarda los parámetros del echo', "return ($p['host'] ?? '?') . ($p['path'] ?? '');", "return $url;"],
   ['la lectura dice «puede que se haya guardado»', "($lectura ? '' : ' Puede que el cambio se haya guardado.')", "(' Puede que el cambio se haya guardado.')"],

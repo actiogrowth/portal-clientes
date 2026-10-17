@@ -103,15 +103,15 @@ foreach ([['leer', false, 'lectura'], ['agendarPrueba', true, 'escritura con ID'
     ok($x['pausas'] === [0.8, 1, 0.8, 2], 'pausas: 0,8 s (echo 404), 1 s, 0,8 s, 2 s');
     ok(count($x['log']) === 3, 'tres líneas en el registro: dos perdidas y la recuperación');
     $tipo = $conId ? ', escritura con ID de solicitud' : '';
-    ok(contiene($x['log'][0], "respuesta perdida (intento 1 de 3$tipo, 37,0 s): POST 302 [192.178.50.46] → script.googleusercontent.com/macros/echo GET 404 [142.250.176.65] GET 302 [192.178.50.46] → script.google.com/macros/s/IMPLEMENTACION/exec (redirección no seguida: no es googleusercontent) · se reintenta"),
-       'intento 1: la secuencia del log, con su duración, y «se reintenta»');
+    ok(contiene($x['log'][0], "respuesta perdida (intento 1 de 3$tipo, 37,0 s): POST 302 [192.178.50.46] (34,2 s) → script.googleusercontent.com/macros/echo GET 404 [142.250.176.65] (1,0 s) GET 302 [192.178.50.46] (1,0 s) → script.google.com/macros/s/IMPLEMENTACION/exec (redirección no seguida: no es googleusercontent) · se reintenta"),
+       'intento 1: la secuencia del log, con la duración de cada paso y del intento, y «se reintenta»');
     ok(contiene($x['log'][1], "respuesta perdida (intento 2 de 3$tipo, ") && contiene($x['log'][1], '· se reintenta'), 'intento 2: perdido y se reintenta');
     ok(contiene($x['log'][2], 'respuesta recuperada en el intento 3 de 3 ('), 'intento 3: recuperada, con el tiempo total');
 
     seccion("16-oct, $quien: echo 302 a /exec, con un primer ciclo de 37 s → intento 2 recupera");
     $x = correr($acc, array_merge(ciclo_echo302_a_exec(36), ciclo_bien(5)), $conId);
     ok($x['posts'] === 2 && $x['res']['http'] === 200 && $x['pausas'] === [1], 'se recupera en el intento 2 tras una pausa de 1 s');
-    ok(contiene($x['log'][0], "(intento 1 de 3$tipo, 37,0 s): POST 302 [192.178.50.46] → script.googleusercontent.com/macros/echo GET 302 [192.178.50.46] → script.google.com/macros/s/IMPLEMENTACION/exec") &&
+    ok(contiene($x['log'][0], "(intento 1 de 3$tipo, 37,0 s): POST 302 [192.178.50.46] (36,0 s) → script.googleusercontent.com/macros/echo GET 302 [192.178.50.46] (1,0 s) → script.google.com/macros/s/IMPLEMENTACION/exec") &&
        contiene($x['log'][0], '· se reintenta'), 'intento 1: la secuencia exacta del log y «se reintenta»');
     ok(contiene($x['log'][1], 'respuesta recuperada en el intento 2 de 3 (6,0 s; 44,0 s en total)'), 'intento 2: recuperada, con duración y total');
 }
@@ -126,9 +126,31 @@ seccion('tope de tiempo: solo el intento 3; el motivo queda en el registro');
     // 1.º 40 s + 1 + 2.º 10 s = 51 s + 2 s de pausa < 60 → sí hace el 3.º.
     $x = correr('leer', array_merge(ciclo_echo302_a_exec(39), ciclo_echo302_a_exec(9), ciclo_bien()));
     ok($x['posts'] === 3 && $x['res']['http'] === 200, 'con 51 s gastados sí hace el intento 3');
-    // Aunque el primero tarde 90 s (el máximo de curl), el intento 2 se hace.
-    $x = correr('leer', array_merge(ciclo_echo302_a_exec(89), ciclo_bien()));
-    ok($x['posts'] === 2 && $x['res']['http'] === 200, 'el intento 2 se hace aunque el primero tarde 90 s');
+    // Aunque el POST llegue al máximo de curl (40 s) y se corte, el intento 2 se hace.
+    $cortado = ['codigo' => 0, 'location' => '', 'ip' => '192.178.50.46', 'errno' => 28, 'error' => 'Operation timed out after 40001 milliseconds', 'cuerpo' => false, 'dur' => 40];
+    $x = correr('agendarPrueba', array_merge([$cortado], [r302(ECHO_URL), r200(JSON_REPETIDA)]), true);
+    ok($x['posts'] === 2 && $x['res']['http'] === 200, 'un POST cortado a los 40 s cuenta como perdido (no «sin conexión») y se reintenta');
+    ok(contiene($x['log'][0], 'POST sin respuesta (curl 28: Operation timed out after 40001 milliseconds) (40,0 s)'), 'el registro dice que curl cortó y a los cuántos segundos');
+    // Un echo colgado: tres GET cortados a los 10 s y un ciclo nuevo.
+    $colgado = ['codigo' => 0, 'location' => '', 'ip' => '142.250.176.65', 'errno' => 28, 'error' => 'timeout', 'cuerpo' => false, 'dur' => 10];
+    $x = correr('leer', [r302(ECHO_URL, 5), $colgado, $colgado, $colgado, r302(ECHO_URL, 5), r200(JSON_OK, 1)]);
+    ok($x['posts'] === 2 && $x['res']['http'] === 200 && $x['pausas'] === [0.8, 0.8, 1], 'un echo colgado: 3 GET, ciclo nuevo y se recupera');
+    ok(contiene($x['log'][0], 'GET sin respuesta (curl 28) [142.250.176.65] (10,0 s)') && contiene($x['log'][0], '36,6 s)'), 'el registro muestra cada GET cortado a los 10 s');
+}
+
+seccion('esperas de curl por paso (17-oct)');
+{
+    $p = opciones_curl(true); $g = opciones_curl(false);
+    ok($p[CURLOPT_CONNECTTIMEOUT] === 5 && $p[CURLOPT_TIMEOUT] === 40, 'POST a /exec: 5 s para conectar, 40 s en total');
+    ok($g[CURLOPT_CONNECTTIMEOUT] === 5 && $g[CURLOPT_TIMEOUT] === 10, 'GET al echo: 5 s para conectar, 10 s en total');
+    ok($p[CURLOPT_FOLLOWLOCATION] === false && $g[CURLOPT_FOLLOWLOCATION] === false, 'ninguno sigue redirecciones solo');
+    // Peor caso de una llamada: dos ciclos completos al máximo + 1 s (el 3.º no empieza pasados 60 s).
+    $ciclo = POST_TOTAL_S + 3 * ECHO_TOTAL_S + 2 * 0.8;
+    ok(2 * $ciclo + LECTURA_PAUSAS_S[0] < 150 && 2 * $ciclo > TOPE_TERCER_INTENTO_S, 'peor caso ≈ ' . (2 * $ciclo + LECTURA_PAUSAS_S[0]) . ' s (< 150 s)');
+    // Y simulado: todo al máximo.
+    $postMax = ['codigo' => 0, 'location' => '', 'ip' => '', 'errno' => 28, 'error' => 'timeout', 'cuerpo' => false, 'dur' => POST_TOTAL_S];
+    $x = correr('leer', [$postMax, $postMax, $postMax]);
+    ok($x['posts'] === 2 && $x['tiempo'] < 150, 'con todo al máximo: 2 intentos y ' . segundos($x['tiempo']) . ' en total');
 }
 
 /* ── Casos de antes (15-oct), con el formato de registro nuevo ──────────────── */
@@ -138,7 +160,7 @@ seccion('lectura: el echo redirige a /exec (15-oct)');
     $x = correr('leer', [r302(ECHO_URL), r302(EXEC), r302(ECHO_URL), r200()]);
     ok($x['res']['http'] === 200 && $x['json']['ok'] === true, 'se recupera en el segundo intento');
     ok($x['posts'] === 2 && $x['getsAExec'] === 0 && $x['getsFuera'] === 0 && $x['pausas'] === [1], '2 POST, ningún GET a /exec, pausa de 1 s');
-    ok(count($x['log']) === 2 && contiene($x['log'][0], '[leer] respuesta perdida (intento 1 de 3, 0,0 s): POST 302 [192.178.50.46] → script.googleusercontent.com/macros/echo GET 302') && contiene($x['log'][0], '· se reintenta'),
+    ok(count($x['log']) === 2 && contiene($x['log'][0], '[leer] respuesta perdida (intento 1 de 3, 0,0 s): POST 302 [192.178.50.46] (0,0 s) → script.googleusercontent.com/macros/echo GET 302') && contiene($x['log'][0], '· se reintenta'),
        'el log registra el intento perdido, con la duración, el rastro y la IP');
     ok(isset($x['log'][1]) && contiene($x['log'][1], '[leer] respuesta recuperada en el intento 2 de 3'), 'y que el reintento lo resolvió');
     ok(!contiene(implode("\n", $x['log']), 'user_content_key'), 'el log no guarda los parámetros del echo');
@@ -264,6 +286,10 @@ if (!function_exists('curl_init')) {
     ok($g['codigo'] === 200 && json_valido($g['cuerpo']), 'pedir() con GET trae el cuerpo');
     $e = pedir('http://127.0.0.1:1/exec', '{}');
     ok($e['cuerpo'] === false && $e['errno'] === 7, 'sin servidor: errno 7 (no se pudo conectar)');
+    $t0 = microtime(true);
+    $c = pedir($base . '/echo-colgado', null);
+    $dura = microtime(true) - $t0;
+    ok($c['cuerpo'] === false && $c['errno'] === 28 && $dura >= 9.5 && $dura < 11.5, 'pedir() corta un echo colgado a los 10 s (curl 28, ' . segundos($dura) . ')');
 }
 
 echo "\n" . ($fallos ? "✗ $fallos de $total comprobaciones fallaron" : "✓ $total comprobaciones pasan") . "\n";
