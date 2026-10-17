@@ -93,18 +93,22 @@ function autorizado(string $usuario, array $cfg): bool {
  *   · LECTURAS (las de ACCIONES_LECTURA, las mismas que en AfterSchool.gs
  *     tienen escribe:false): si la respuesta se pierde, se repite el ciclo
  *     COMPLETO —POST nuevo + echo— hasta 2 veces más, con pausas de 1 s y
- *     2 s, y sin empezar un intento nuevo pasados LECTURA_PRESUPUESTO_S.
- *     (15-oct: el echo a veces da 404 o redirige a /exec aunque el script
+ *     2 s. (15-oct: el echo a veces da 404 o redirige a /exec aunque el script
  *     corrió bien; un POST nuevo trae un echo nuevo.)
+ *   · TIEMPO (corregido el 16-oct): el intento 2 se hace SIEMPRE, tarde lo que
+ *     tarde el primero. Solo el intento 3 tiene tope: no empieza si ya pasaron
+ *     TOPE_TERCER_INTENTO_S desde el principio. Antes el tope de 25 s contaba
+ *     también el primer ciclo, y un primer ciclo lento (≥ 24 s) dejaba sin
+ *     ningún reintento: «intento 1 de 3 … sin recuperar» del 16-oct.
  *   · «sin_conexion» es solo cuando seguro no salió (no hubo conexión).
  *   · Cada respuesta perdida deja una línea en el error_log de PHP con el
- *     intento, lo que pasó (códigos, destino sin parámetros, IP de cada salto)
- *     y, en las lecturas, si el reintento lo resolvió.
+ *     intento, cuánto tardó, lo que pasó (códigos, destino sin parámetros, IP
+ *     de cada salto) y, si no se reintenta, el motivo concreto.
  */
 const ACCIONES_LECTURA = ['leer', 'listarPagos'];
 const LECTURA_INTENTOS = 3;                 // 1 + 2 reintentos
 const LECTURA_PAUSAS_S = [1, 2];            // antes del 2.º y del 3.º intento
-const LECTURA_PRESUPUESTO_S = 25;           // no se empieza un intento nuevo pasado esto
+const TOPE_TERCER_INTENTO_S = 60;           // el 3.er intento no empieza pasado esto (desde el principio)
 
 function pedir(string $url, ?string $cuerpo): array {
     $ch = curl_init($url);
@@ -207,6 +211,11 @@ function envio_para(string $clave, string $usuario, array $datos): array {
     return ['json' => json_encode($cuerpo, JSON_UNESCAPED_UNICODE), 'conId' => $conId];
 }
 
+/** «37,2 s», para el registro. */
+function segundos(float $s): string {
+    return number_format($s, 1, ',', '') . ' s';
+}
+
 /**
  * La llamada entera, con la política de reintentos. Devuelve
  *   ['http' => código, 'cuerpo' => JSON a devolver al navegador].
@@ -221,26 +230,38 @@ function llamar_apps_script(string $accion, string $exec, string $envio, callabl
     $tipo    = $lectura ? '' : ($conId ? ', escritura con ID de solicitud' : ', las escrituras no se repiten');
     $inicio  = $reloj();
     for ($intento = 1; ; $intento++) {
+        $t0 = $reloj();
         $c = ciclo($exec, $envio, $pedir, $dormir);
+        $dura = segundos($reloj() - $t0);
         if ($c['estado'] === 'ok') {
             $resp = json_decode($c['cuerpo'], true);
             $repetida = is_array($resp) && ($resp['repetida'] ?? false) === true;
             if ($intento > 1) {
                 $registrar('after-school api.php [' . $accion . '] respuesta recuperada en el intento ' . $intento . ' de ' . $maximo .
+                    ' (' . $dura . '; ' . segundos($reloj() - $inicio) . ' en total)' .
                     ($repetida ? ' · el script reconoció la solicitud repetida y no la volvió a ejecutar' : '') . ': ' . $c['rastro']);
             } elseif ($repetida) {
                 $registrar('after-school api.php [' . $accion . '] solicitud repetida reconocida por el script (la página la volvió a enviar): no se ejecutó otra vez');
             }
             return ['http' => 200, 'cuerpo' => $c['cuerpo']];
         }
-        if ($c['estado'] === 'sin_conexion' && !$reintentable) {
-            return ['http' => 502, 'cuerpo' => json_encode(['ok' => false, 'error' => 'Sin conexión con el Sheet: ' . $c['error'] . '. No se guardó nada.', 'codigo' => 'sin_conexion'], JSON_UNESCAPED_UNICODE)];
-        }
         $que = $c['estado'] === 'sin_conexion' ? 'sin conexión (' . $c['error'] . ')' : $c['rastro'];
         $pausa = LECTURA_PAUSAS_S[$intento - 1] ?? 0;
-        $otro = $intento < $maximo && ($reloj() - $inicio) + $pausa < LECTURA_PRESUPUESTO_S;
+        $transcurrido = $reloj() - $inicio;
+        // Por qué NO se sigue (vacío = se reintenta). El intento 2 no tiene
+        // tope de tiempo; el 3 no empieza pasados TOPE_TERCER_INTENTO_S.
+        if (!$reintentable) {
+            $motivo = $c['estado'] === 'sin_conexion' ? 'escritura sin ID de solicitud (no llegó a salir: no se guardó nada)' : 'escritura sin ID de solicitud: repetirla podría duplicarla';
+        } elseif ($intento >= $maximo) {
+            $motivo = 'ya se hicieron los ' . $maximo . ' intentos';
+        } elseif ($intento >= 2 && $transcurrido + $pausa >= TOPE_TERCER_INTENTO_S) {
+            $motivo = 'tope de tiempo alcanzado tras ' . segundos($transcurrido) . ' (el intento ' . ($intento + 1) . ' no empieza pasados ' . TOPE_TERCER_INTENTO_S . ' s)';
+        } else {
+            $motivo = '';
+        }
+        $otro = $motivo === '';
         $registrar('after-school api.php [' . $accion . '] respuesta perdida (intento ' . $intento . ' de ' . $maximo .
-            $tipo . '): ' . $que . ($reintentable ? ($otro ? ' · se reintenta' : ' · sin recuperar') : ''));
+            $tipo . ', ' . $dura . '): ' . $que . ($otro ? ' · se reintenta' : ' · no se reintenta: ' . $motivo));
         if (!$otro) {
             if ($c['estado'] === 'sin_conexion') {
                 return ['http' => 502, 'cuerpo' => json_encode(['ok' => false, 'error' => 'Sin conexión con el Sheet: ' . $c['error'] . '. No se guardó nada.', 'codigo' => 'sin_conexion'], JSON_UNESCAPED_UNICODE)];
