@@ -5,7 +5,7 @@ name: Pruebas After School
 
 on:
   push:
-    branches: [after-school-registro]
+    branches: [after-school-registro, roles-usuarios]
 
 permissions:
   contents: read
@@ -45,3 +45,28 @@ jobs:
         env:
           PHP: php
         run: node after-school-script/pruebas/roturas-api.js
+
+  portal:
+    # Roles y usuarios del portal: un servidor PHP de verdad (php -S) con las
+    # reglas de htaccess.txt, usuarios inventados y un Apps Script falso.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sintaxis de los PHP
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php; do php -l "$f" || exit 1; done
+
+      - name: Roles y usuarios, de punta a punta
+        env:
+          PHP: php
+        run: node pruebas-portal/prueba-portal.js
+
+      - name: Roturas de roles y usuarios
+        env:
+          PHP: php
+        run: node pruebas-portal/roturas-portal.js

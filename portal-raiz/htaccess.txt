@@ -1,0 +1,28 @@
+# Portal Vida en Arte 360 — renombrar este archivo a .htaccess en el servidor
+Options -Indexes
+DirectoryIndex index.html
+
+RewriteEngine On
+
+# Validación del certificado SSL (AutoSSL): debe quedar libre
+RewriteRule ^\.well-known/ - [L]
+
+# 1. Siempre por HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 2. Archivos internos: nunca accesibles desde el navegador
+RewriteRule ^(auth\.php|permisos\.php|cuentas\.php|usuarios\.php|php\.ini|htaccess\.txt)$ - [F,L]
+RewriteRule (^|/)\. - [F,L]
+
+# 3. Páginas que se abren directo (las que piden sesión la comprueban por dentro)
+RewriteRule ^(login\.php|logout\.php|cambiar-clave\.php|acceso\.php|gate\.php|robots\.txt)$ - [L]
+
+# 3b. Los puentes de datos: comprueban sesión y permisos por dentro (requerir_sesion)
+RewriteRule ^[a-z0-9-]+/(api|csv|config)\.php$ - [L]
+
+# 4. Todo lo demás pasa por el control de sesión y de permisos (gate.php).
+#    .well-known no llega aquí (regla de arriba); cgi-bin sí: como no está
+#    asignada a ningún rol, solo la abren Administrador y Dirección.
+RewriteRule ^(.*)$ gate.php?f=$1 [L,QSA]

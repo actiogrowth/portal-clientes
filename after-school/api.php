@@ -1,18 +1,31 @@
 <?php
 /* Puente entre la página de After School y su Apps Script (VEA_AfterSchool_BD).
  *
- * Mismo patrón que basededatos/api.php, con dos cerrojos más:
- *   1. Exige sesión del portal (requerir_sesion, de auth.php).
- *   2. El usuario de esa sesión tiene que estar en la lista 'as_usuarios'
- *      de portal_config.php. Si la lista falta o está vacía, no entra nadie:
- *      un permiso de Kínder no abre After School.
+ * Mismo patrón que basededatos/api.php, con estos cerrojos:
+ *   1. Exige sesión del portal y el área After School (requerir_sesion, de
+ *      auth.php: con los roles, un usuario sin area:afterschool no pasa).
+ *   2. ROLES (19-oct): cada acción exige su permiso (permiso_de_accion_as, en
+ *      permisos.php): leer → as.ver, listarPagos → as.pagos.ver,
+ *      registrarPago → as.pagos.registrar, agendarPrueba →
+ *      as.pruebas.agendar, pagoPrueba → as.pruebas.pago y todas las demás →
+ *      as.completo. Sin permiso: 403 «sin_permiso» y la petición NO llega al
+ *      Apps Script, aunque se fuerce la llamada a mano.
+ *      Además, la respuesta se recorta según el rol: los contactos de las
+ *      familias (teléfonos y correo) solo los ve quien tiene
+ *      as.contactos.todos; con as.contactos.prospectos (Comercial), solo los
+ *      de los niños en Prospecto; los demás, ninguno. Y se le agrega
+ *      'permisos' (lo de After School que el rol puede hacer) para que la
+ *      página muestre solo sus pestañas y botones.
+ *      COMPATIBLE: si auth.php todavía es el anterior (sin roles), se usa la
+ *      lista 'as_usuarios' de portal_config.php como antes. Con el auth.php
+ *      de roles, 'as_usuarios' ya no se usa y se puede borrar.
  *   3. La clave y el usuario los pone ESTE archivo. Lo que mande el navegador
  *      en esos campos se descarta: el navegador solo elige acción y datos.
  *
  * portal_config.php vive fuera de la carpeta pública y lleva, para esta área:
  *     'as_exec'         => 'https://script.google.com/macros/s/…/exec',
  *     'as_clave'        => 'la misma que AS_CLAVE_API en el Apps Script',
- *     'as_usuarios'     => ['usuario1', 'usuario2'],
+ *     'as_usuarios'     => ['usuario1', 'usuario2'],   // solo sin roles (auth.php anterior)
  *     'as_campo_sesion' => 'usuario',   // opcional: la clave de $_SESSION con el usuario
  *
  * Diagnóstico: GET api.php?diagnostico=1 (con sesión) dice qué claves trae la
@@ -301,6 +314,26 @@ function llamar_apps_script(string $accion, string $exec, string $envio, callabl
     }
 }
 
+/**
+ * La respuesta del Apps Script recortada para estos roles: sin los contactos
+ * que no le tocan (filtrar_contactos, en permisos.php) y con 'permisos', lo
+ * que la página puede mostrar. Se decodifica a objetos para no convertir {} en [].
+ */
+function respuesta_para_roles(string $cuerpo, array $roles): string {
+    $j = json_decode($cuerpo);
+    if (!is_object($j)) return $cuerpo;
+    $j = filtrar_contactos($j, politica_contactos($roles));
+    // Los pagos del mes van dentro de la lectura (y del estado que devuelven
+    // las escrituras): quien no ve Pagos no los recibe.
+    if (!roles_permiten($roles, 'as.pagos.ver')) {
+        foreach (['resultado', 'estado'] as $k) {
+            if (isset($j->$k) && is_object($j->$k) && property_exists($j->$k, 'pagosMes')) $j->$k->pagosMes = [];
+        }
+    }
+    $j->permisos = permisos_as($roles);
+    return json_encode($j, JSON_UNESCAPED_UNICODE);
+}
+
 if (!defined('AS_SOLO_FUNCIONES')) {
     require dirname(__DIR__) . '/auth.php';
     requerir_sesion();
@@ -318,6 +351,9 @@ if (!defined('AS_SOLO_FUNCIONES')) {
     if (session_status() !== PHP_SESSION_ACTIVE) @session_start();
 
     $usuario = usuario_del_portal($cfg);
+    // Con el auth.php de roles, los permisos salen de los roles; si no, de as_usuarios.
+    $conRoles = function_exists('roles_actuales') && function_exists('permiso_de_accion_as');
+    $roles = $conRoles ? roles_actuales() : [];
 
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && isset($_GET['diagnostico'])) {
         if (($cfg['as_diagnostico'] ?? null) !== true) fallo('no encontrado', 404);
@@ -328,17 +364,21 @@ if (!defined('AS_SOLO_FUNCIONES')) {
         salir(200, ['ok' => true, 'diagnostico' => [
             'claves_de_sesion' => $claves,
             'usuario_encontrado' => $usuario !== '',
-            'autorizado' => autorizado($usuario, $cfg),
+            'autorizado' => $conRoles ? roles_permiten($roles, 'as.ver') : autorizado($usuario, $cfg),
+            'con_roles' => $conRoles,
             'lista_configurada' => is_array($cfg['as_usuarios'] ?? null) && count($cfg['as_usuarios']) > 0,
         ]]);
     }
 
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') fallo('solo POST', 405);
     if ($usuario === '') fallo('No se pudo leer el usuario de la sesión del portal. Encender as_diagnostico en portal_config.php, abrir api.php?diagnostico=1, fijar as_campo_sesion y volver a apagarlo.', 403, 'sin_usuario');
-    if (!autorizado($usuario, $cfg)) fallo('El usuario «' . $usuario . '» no tiene acceso a After School.', 403, 'no_autorizado');
+    if (!$conRoles && !autorizado($usuario, $cfg)) fallo('El usuario «' . $usuario . '» no tiene acceso a After School.', 403, 'no_autorizado');
 
     $datos = json_decode(file_get_contents('php://input'), true);
     if (!is_array($datos) || empty($datos['accion']) || !is_string($datos['accion'])) fallo('cuerpo ilegible', 400);
+    if ($conRoles && !roles_permiten($roles, permiso_de_accion_as($datos['accion']))) {
+        fallo('Tu rol no permite hacer esto en After School (' . $datos['accion'] . ').', 403, 'sin_permiso');
+    }
 
     $envio = envio_para($cfg['as_clave'], $usuario, $datos);
 
@@ -347,6 +387,7 @@ if (!defined('AS_SOLO_FUNCIONES')) {
         function ($linea) { error_log($linea); },
         function () { return microtime(true); },
         $envio['conId']);
+    if ($conRoles && $res['http'] === 200) $res['cuerpo'] = respuesta_para_roles($res['cuerpo'], $roles);
     http_response_code($res['http']);
     echo $res['cuerpo'];
 }
