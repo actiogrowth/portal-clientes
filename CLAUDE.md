@@ -20,3 +20,17 @@ Los nombres de usuario de acceso (los logins de `as_usuarios`) son
 identificadores técnicos y van solo en la configuración del servidor, no en
 textos ni comentarios. En datos de prueba se usan nombres inventados que no
 coincidan con los de personas del cliente.
+
+## Documentación (`docs/`)
+
+`docs/` describe el sistema: arquitectura, modelo de datos, catálogo de
+acciones (el contrato), reglas de negocio con su prueba, decisiones y la
+preparación para migrar a Supabase.
+
+**Toda entrega actualiza `docs/` en el mismo commit.** Si cambia una acción,
+una tabla (pestaña o columna), una regla, un rol o la forma de publicar, su
+documento cambia con ella. Una decisión nueva se agrega a `DECISIONES.md`. Una
+acción nueva se documenta en `ACCIONES_API.md` antes de implementarla.
+
+`docs/` sigue las mismas reglas del repo: sin claves, sin direcciones
+`/exec`, sin datos de niños y sin nombres de personas del cliente.
