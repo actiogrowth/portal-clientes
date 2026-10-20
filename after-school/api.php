@@ -137,7 +137,7 @@ function autorizado(string $usuario, array $cfg): bool {
  *     intento, cuánto tardó, lo que pasó (códigos, destino sin parámetros, IP
  *     y duración de cada paso) y, si no se reintenta, el motivo concreto.
  */
-const ACCIONES_LECTURA = ['leer', 'listarPagos'];
+const ACCIONES_LECTURA = ['leer', 'listarPagos', 'ocupacion', 'leerLista', 'seguimiento', 'asistenciaNino'];   // las escribe:false del .gs (la prueba lo compara)
 const LECTURA_INTENTOS = 3;                 // 1 + 2 reintentos
 const LECTURA_PAUSAS_S = [1, 2];            // antes del 2.º y del 3.º intento
 const TOPE_TERCER_INTENTO_S = 60;           // el 3.er intento no empieza pasado esto (desde el principio)
