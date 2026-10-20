@@ -105,6 +105,37 @@ foreach ($reglas as $r) {
 http_response_code(404); echo 'Sin regla'; return true;
 `;
 
+/* El .htaccess que había en producción antes de los roles (sin cambiar-clave.php
+   ni acceso.php en la regla 3). El 20-oct seguía publicado y el login con
+   contraseña temporal entraba en bucle: el recorrido se prueba con los dos. */
+const HTACCESS_ANTERIOR = String.raw`# Portal Vida en Arte 360 — renombrar este archivo a .htaccess en el servidor
+Options -Indexes
+DirectoryIndex index.html
+
+RewriteEngine On
+
+# Validación del certificado SSL (AutoSSL): debe quedar libre
+RewriteRule ^\.well-known/ - [L]
+
+# 1. Siempre por HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 2. Archivos internos: nunca accesibles desde el navegador
+RewriteRule ^(auth\.php|usuarios\.php|php\.ini|htaccess\.txt)$ - [F,L]
+RewriteRule (^|/)\. - [F,L]
+
+# 3. Páginas que se abren sin sesión
+RewriteRule ^(login\.php|logout\.php|generar-clave\.php|gate\.php|robots\.txt)$ - [L]
+
+# 3b. Los puentes de datos: comprueban la sesión por dentro
+RewriteRule ^[a-z0-9-]+/(api|csv|config)\.php$ - [L]
+
+# 4. Todo lo demás pasa por el control de sesión
+RewriteRule ^(.*)$ gate.php?f=$1 [L,QSA]
+`;
+
 /* Áreas de mentira: una página por carpeta y puentes que solo llaman a requerir_sesion(). */
 function areasDeMentira(web) {
   const pagina = t => '<!doctype html><title>' + t + '</title><p>' + t + '</p>';
@@ -193,6 +224,18 @@ class Nav {
     return this.post('/configuracion/api.php', { json: Object.assign({ accion }, datos || {}), headers: { 'X-CSRF': csrf || '' } });
   }
   as(accion, datos) { return this.post('/after-school/api.php', { json: { accion, datos: datos || {} } }); }
+  /* Como un navegador: sigue las redirecciones. Más de 8 seguidas = bucle. */
+  async seguir(r) {
+    const saltos = [];
+    while (r.status >= 300 && r.status < 400 && r.location) {
+      if (saltos.length >= 8) return Object.assign(r, { bucle: true, saltos });
+      const destino = r.location.replace(/^https?:\/\/[^/]+/, '');
+      saltos.push(destino);
+      r = await this.get(destino);
+    }
+    return Object.assign(r, { bucle: false, saltos });
+  }
+  async entrarSiguiendo(usuario, clave) { return this.seguir(await this.entrar(usuario, clave)); }
 }
 
 /* ── La prueba ───────────────────────────────────────────────────────────── */
@@ -206,6 +249,10 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'configuracion'), path.join(web, 'configuracion'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
+  // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
+  const htActivo = path.join(tmp, 'htaccess-activo');
+  const htNuevo = fs.readFileSync(path.join(web, 'htaccess.txt'), 'utf8');
+  fs.writeFileSync(htActivo, htNuevo);
 
   const claves = {};                       // todas las contraseñas usadas: ninguna puede aparecer en registros
   for (const u of Object.keys(HEREDADOS)) claves[u] = clave();
@@ -223,7 +270,7 @@ async function correr(fuente) {
   const puerto = 20000 + Math.floor(Math.random() * 20000);
   let salidaPhp = '';
   const srv = spawn(PHP, ['-S', '127.0.0.1:' + puerto, '-t', web, path.join(tmp, 'enrutador.php')], {
-    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: path.join(web, 'htaccess.txt') }) });
+    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo }) });
   srv.stdout.on('data', d => { salidaPhp += d; });
   srv.stderr.on('data', d => { salidaPhp += d; });
   const base = 'http://127.0.0.1:' + puerto;
@@ -348,6 +395,33 @@ async function correr(fuente) {
       limpiarIntentos();
     }
     for (const [u] of Object.entries(HEREDADOS)) n[u] = nav[u];
+
+    for (const [nombreHt, contenido, u] of [['el .htaccess nuevo', htNuevo, 'prueba-recorrido'], ['el .htaccess ANTERIOR (publicación a medias)', HTACCESS_ANTERIOR, 'prueba-recorrido-viejo']]) {
+      seccion('recorrido real con contraseña temporal, como un navegador, con ' + nombreHt);
+      const c = await nav['admin-uno'].config('crear', { usuario: u, roles: ['recepcion'] });
+      const temporal = c.j && c.j.temporal; temporales.push(temporal);
+      fs.writeFileSync(htActivo, contenido);
+      try {
+        const x = new Nav(base);
+        const e = await x.entrarSiguiendo(u, temporal);
+        ok(!e.bucle && e.status === 200 && /Crea tu contraseña/.test(e.texto), 'login con la temporal → carga cambiar-clave.php (' + e.status + ', ' + e.saltos.length + ' saltos' + (e.bucle ? ', BUCLE: ' + e.saltos[2] : '') + ')');
+        const p = await x.seguir(await x.get('/'));
+        ok(!p.bucle && p.status === 200 && /Crea tu contraseña/.test(p.texto), 'la portada lo devuelve a cambiar-clave.php, sin bucle');
+        const k = await x.seguir(await x.get('/after-school/'));
+        ok(!k.bucle && /Crea tu contraseña/.test(k.texto), 'After School también, sin bucle');
+        const s = await x.seguir(await x.get('/logout.php'));
+        ok(!s.bucle && s.status === 200 && /Cerraste sesión/.test(s.texto), 'Cerrar sesión funciona con la temporal');
+        await x.entrarSiguiendo(u, temporal);
+        const nueva = clave();
+        const csrf = await x.csrfDe('/cambiar-clave.php');
+        const f = await x.seguir(await x.post('/cambiar-clave.php', { form: { actual: temporal, nueva, repetir: nueva, csrf, r: '/' } }));
+        ok(!f.bucle && f.status === 200 && /UNIDADES DE NEGOCIO/.test(f.texto), 'tras cambiarla, termina en la portada');
+        ok(leerCuentas().usuarios[u].cambiar_clave === false, 'y la cuenta ya no tiene cambio obligatorio');
+        claves[u] = nueva;
+      } finally {
+        fs.writeFileSync(htActivo, htNuevo);
+      }
+    }
 
     seccion('áreas: cada rol abre solo lo suyo (y la URL directa responde sin permiso)');
     {

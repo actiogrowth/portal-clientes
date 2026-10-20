@@ -1,6 +1,19 @@
 <?php
 /* Entrega los archivos del portal solo a quien inició sesión y tiene un rol
    que abre esa carpeta (permisos.php). */
+
+/* Páginas PHP de la raíz que se abren DIRECTO (regla 3 del .htaccess). Si el
+   .htaccess del servidor es uno anterior que no las nombra, llegan aquí: se
+   ejecutan tal cual, ANTES de pedir sesión, en vez de dar 404 o —con una
+   contraseña temporal— redirigir a cambiar-clave.php sin fin (20-oct: el
+   .htaccess de producción no tenía cambiar-clave.php y el login con temporal
+   daba ERR_TOO_MANY_REDIRECTS). Cada una comprueba la sesión por dentro. */
+$directa = (string) ($_GET['f'] ?? '');
+if (in_array($directa, ['login.php', 'logout.php', 'cambiar-clave.php', 'acceso.php'], true)) {
+    require __DIR__ . '/' . $directa;
+    exit;
+}
+
 require __DIR__ . '/auth.php';
 requerir_sesion('');   // sesión (y contraseña temporal ya cambiada); el área se mira abajo
 

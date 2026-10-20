@@ -29,6 +29,7 @@ const ROTURAS = [
   ['la sesión de una cuenta desactivada sigue', 'portal-raiz/auth.php', "    if (!$c || empty($c['activo'])) return null;", "    if (!$c) return null;"],
   ['la contraseña temporal no obliga a cambiarla', 'portal-raiz/auth.php', "    if (!empty($c['cambiar_clave'])) {", "    if (false) {"],
   // gate.php
+  ['gate.php no corre directo las páginas de la raíz (bucle con el .htaccess anterior, 20-oct)', 'portal-raiz/gate.php', "if (in_array($directa, ['login.php', 'logout.php', 'cambiar-clave.php', 'acceso.php'], true)) {", "if (false) {"],
   ['gate.php entrega sin mirar el área', 'portal-raiz/gate.php', "requerir_sesion(substr($ruta, strlen($base) + 1));", ''],
   // acceso.php
   ['la portada muestra todas las tarjetas a todos', 'portal-raiz/acceso.php', "json_encode(areas_visibles($roles))", "json_encode('*')"],
