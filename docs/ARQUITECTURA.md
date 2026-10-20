@@ -54,7 +54,7 @@ datos de niños ni nombres de personas del cliente.
 
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
-| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`) | Commit → Marco sube los archivos al cPanel |
+| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`) | Commit → Actio sube los archivos al cPanel |
 | Raíz del portal en el servidor | `/home/…/portal.vidaenarte.com/` | Se sube desde `portal-raiz/` (el `.htaccess` es `htaccess.txt` renombrado) |
 | `portal_config.php` | `/home/…/` (una carpeta arriba, fuera de la web) | A mano en el cPanel. Lleva `as_exec`, `as_clave` y la configuración de los tableros. **No está en el repo.** |
 | Cuentas del portal | `/home/…/portal_usuarios.json` (fuera de la web) | Solo desde Configuración › Usuarios |

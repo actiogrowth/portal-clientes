@@ -32,7 +32,7 @@ revierte no se borra: se agrega otra que la reemplaza y se anota «reemplazada p
 ## Pendientes de decidir (encargo de visitas, Pasar lista y seguimiento)
 
 Propuestas escritas en `MODELO_DATOS.md` y `ACCIONES_API.md`. Se anotan como
-decisiones cuando Marco las apruebe.
+decisiones cuando Actio las apruebe.
 
 - P-01 Visitas en la misma pestaña Pruebas con columnas Tipo, Repone asistencia y Resultado por lista (sin renombrar la pestaña ni el prefijo `PRU-`).
 - P-02 Acción separada `agendarVisita` (Reposición, Eventual) para que el permiso se decida por acción, como hoy.
