@@ -12,7 +12,7 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
@@ -55,6 +55,19 @@ const ROTURAS = [
   ['api.php de After School no valida la acción por rol', 'after-school/api.php', "    if ($conRoles && !roles_permiten($roles, permiso_de_accion_as($datos['accion']))) {", "    if (false) {"],
   ['api.php no recorta la respuesta', 'after-school/api.php', "    if ($conRoles && $res['http'] === 200) $res['cuerpo'] = respuesta_para_roles($res['cuerpo'], $roles);\n", ''],
   ['api.php manda los pagos a quien no ve Pagos', 'after-school/api.php', "    if (!roles_permiten($roles, 'as.pagos.ver')) {\n        foreach", "    if (false) {\n        foreach"],
+  // 21-oct: Pasar lista, permisos nuevos e inactividad
+  ['pasar-lista respeta el soloHoy del navegador', 'pasar-lista/api.php', "$datos['datos']['soloHoy'] = !roles_permiten($roles, 'as.lista.corregir');", "$datos['datos']['soloHoy'] = ($datos['datos']['soloHoy'] ?? false) === true;"],
+  ['pasar-lista deja pasar otras acciones', 'pasar-lista/api.php', "if (!in_array($datos['accion'], ACCIONES_LISTA, true)) fallo(", "if (false) fallo("],
+  ['pasar-lista no recorta la respuesta', 'pasar-lista/api.php', "if ($res['http'] === 200) $res['cuerpo'] = lista_recortada($res['cuerpo']);", ""],
+  ['la lista blanca deja pasar contactos', 'pasar-lista/api.php', "return $toma($n, ['idNino', 'nombre', 'edad', 'presencia', 'idVisita', 'estado', 'nota']);", "return $n;"],
+  ['after-school/api.php acepta Pasar lista', 'after-school/api.php', "    if (in_array($datos['accion'], ['leerLista', 'guardarLista'], true)) {", "    if (false) {"],
+  ['el Profesor no tiene tope de inactividad', 'portal-raiz/permisos.php', "        'inactividad_max' => 7200,\n", ""],
+  ['el tope de inactividad no se mira', 'portal-raiz/auth.php', "    if ($max !== null && isset($_SESSION['ultimo']) && time() - (int) $_SESSION['ultimo'] > $max) return null;", ""],
+  ['el uso no renueva el plazo', 'portal-raiz/auth.php', "    $_SESSION['ultimo'] = time();   // última actividad (para el tope de inactividad)\n", ""],
+  ['Recepción pasa lista', 'portal-raiz/permisos.php', "'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',\n                       'as.seguimiento'],", "'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',\n                       'as.seguimiento', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar'],"],
+  ['Recepción resuelve fuera de lista', 'portal-raiz/permisos.php', "    'resolverFueraDeLista' => 'as.lista.corregir',", "    'resolverFueraDeLista' => 'as.seguimiento',"],
+  ['Comercial agenda reposiciones', 'portal-raiz/permisos.php', "    'agendarVisita'        => 'as.visitas.agendar',", "    'agendarVisita'        => 'as.pruebas.agendar',"],
+  ['la carpeta pasar-lista no tiene área', 'portal-raiz/permisos.php', "    'pasar-lista'   => 'pasarlista',\n", ""],
   // htaccess.txt
   ['cuentas.php se puede pedir desde el navegador', 'portal-raiz/htaccess.txt', "auth\\.php|permisos\\.php|cuentas\\.php|", "auth\\.php|permisos\\.php|"],
   ['generar-clave.php sigue abierto sin sesión', 'portal-raiz/htaccess.txt', "login\\.php|logout\\.php|cambiar-clave", "login\\.php|logout\\.php|generar-clave\\.php|cambiar-clave"]

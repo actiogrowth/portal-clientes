@@ -31,7 +31,7 @@ Leyenda: **Oblig.** = el script la exige al escribir. Tipos: `texto`, `fecha`
 | Teléfono 2 | texto | | **Contacto**. |
 | Correo | texto | | **Contacto**. |
 | Cabeza de familia | texto | | |
-| Estado | texto | sí | `Activo`, `Prospecto`, `Por revisar`, `Retirado`. |
+| Estado | texto | sí | `Activo`, `Prospecto`, `Por revisar`, `Eventual`, `Retirado`. |
 | Fecha ingreso | fecha | | Se pone al crear (hoy) o al pasar de Prospecto a Activo. |
 | Notas | texto | | |
 | Colegio | texto | | 15-oct. |
@@ -50,6 +50,8 @@ Estados del niño:
  crear niño ──────────────────────────────────────────────▶ Activo
  carga Poliwin con «Revisar» ─▶ Por revisar ─(revisar)─▶ Activo | Retirado
  Activo / Prospecto / Por revisar ─(baja total)─▶ Retirado ─(reactivar)─▶ Activo
+ visita Eventual (niño nuevo, Prospecto o Retirado) ─▶ Eventual ─(inscribir)─▶ Activo
+ «fuera de lista» que la coordinación crea ─▶ Eventual
 ```
 
 ## Clases
@@ -111,9 +113,9 @@ Registro de **bajas totales** (además de cerrar las inscripciones y poner el ni
 | Detalle | texto | |
 | Registrado por | texto | |
 
-## Pruebas (clases de prueba)
+## Pruebas (visitas de un día)
 
-Un niño en una clase en una fecha puntual. **Ocupa cupo ese día** mientras su estado sea `Agendada` o `Asistió`.
+Un niño en una clase en una fecha puntual: **Prueba**, **Reposición** o **Eventual**. **Ocupa cupo ese día** mientras su estado sea `Agendada` o `Asistió`, sea del tipo que sea. La pestaña conserva el nombre «Pruebas» y el prefijo `PRU-` para los tres tipos (decisión D-023); la página la llama «Visitas del día».
 
 | Columna | Tipo | Oblig. | Notas |
 |---|---|---|---|
@@ -128,7 +130,10 @@ Un niño en una clase en una fecha puntual. **Ocupa cupo ese día** mientras su 
 | Registrado por | texto | sí | |
 | Fecha de registro | fechahora | sí | |
 | Pagó | Sí/No/vacío | | 16-oct. |
-| Monto pagado | número | si Pagó = Sí | > 0, 2 decimales. |
+| Monto pagado | número | si Pagó = Sí | > 0, 2 decimales. Prueba y Eventual; la Reposición no se cobra. |
+| Tipo | texto | sí | 21-oct. `Prueba`, `Reposición`, `Eventual`. *Actualizar estructura* pone `Prueba` en las filas que lo tengan vacío; vacío se lee como Prueba. |
+| Repone asistencia | texto | si Reposición | → Asistencia.ID asistencia (la falta). Una falta tiene a lo sumo una reposición en pie (no Cancelada ni No asistió). |
+| Resultado por lista | Sí/vacío | | `Sí` = el Estado lo puso Pasar lista y una lista posterior puede corregirlo. Vacío = lo puso una persona (o sigue Agendada): la lista no lo pisa. |
 
 ## Config
 
@@ -142,7 +147,39 @@ Listas y parámetros en una sola tabla. Ver hallazgo H8.
 | Nota | Texto libre; en `Concepto de mensualidad` guarda **el concepto** (no es una nota). |
 
 Parámetros actuales: `Umbral amarillo` (Número: fracción de ocupación), `Concepto de mensualidad` (Nota: el concepto que cuenta como «pagó el mes»).
+21-oct: `Faltas seguidas` (Número, 2), `Días para reponer` (Número, 30), `Duración de clase (min)` (Número, 60) y `Asistencia desde` (Nota: fecha; *Actualizar estructura* pone el día en que se corre).
 Los valores iniciales están en `INS_CONFIG` y solo se escriben si la lista no existe; después manda la hoja.
+
+## Asistencia (21-oct)
+
+Una fila por niño, clase y fecha (los «fuera de lista», una por nombre escrito). Corregir = actualizar la fila; el cambio de estado queda en Historial.
+
+| Columna | Tipo | Oblig. | Notas |
+|---|---|---|---|
+| ID asistencia | texto | sí | `ASI-0001`… |
+| Fecha | fecha | sí | Nunca futura. |
+| Código clase | texto | sí | → Clases |
+| ID niño | texto | salvo fuera de lista sin resolver | → Niños |
+| Presencia | texto | sí | `Inscrito`, `Prueba`, `Reposición`, `Eventual`, `Fuera de lista` |
+| ID visita | texto | si es visita | → Pruebas.ID prueba |
+| Estado | texto | sí | `Presente`, `Llegó tarde`, `Ausente`, `Falta justificada` |
+| Nombre fuera de lista | texto | si fuera de lista | Lo que escribió el profesor. |
+| Marcado por | texto | sí | Usuario del último guardado. |
+| Hora | fechahora | sí | Último guardado. |
+| Nota | texto | | |
+| Resolución | texto | | Fuera de lista: vacío (pendiente), `Vinculado`, `Creado`, `Descartado`. |
+
+## Clases sin dictar (21-oct)
+
+«No hubo clase» (feriado, suspensión): esa clase ese día no se avisa como «sin lista» y no admite lista.
+
+| Columna | Notas |
+|---|---|
+| Fecha | fecha |
+| Código clase | → Clases |
+| Nota | El motivo. |
+| Registrado por | |
+| Fecha registro | fechahora |
 
 ## Historial
 
@@ -183,7 +220,7 @@ documentos, el Historial y las personas los usan); la llave interna es `id`
 dinero `numeric(10,2)`. Catálogos de Config en tablas propias.
 
 ```sql
-create type estado_nino   as enum ('Activo','Prospecto','Por revisar','Retirado');   -- + 'Eventual' (propuesto)
+create type estado_nino   as enum ('Activo','Prospecto','Por revisar','Eventual','Retirado');
 create type estado_prueba as enum ('Agendada','Asistió','No asistió','Cancelada');
 
 create table ninos (
@@ -224,13 +261,30 @@ create table pagos (
   forma_pago_id bigint not null references cat_forma_pago, registrado_por text not null, notas text
 );
 
-create table pruebas (          -- en la propuesta nueva: «visitas» con columna tipo
+create type tipo_visita as enum ('Prueba','Reposición','Eventual');
+create table visitas (          -- la pestaña «Pruebas»
   id bigint generated always as identity primary key, codigo text unique not null,   -- PRU-0001
+  tipo tipo_visita not null default 'Prueba',
   fecha date not null, clase_id bigint not null references clases, nino_id bigint not null references ninos,
   estado estado_prueba not null, se_inscribio boolean, motivo_no_inscripcion_id bigint references cat_motivo_no_inscripcion,
   nota text, registrado_por text not null, registrado_en timestamptz not null,
-  pago boolean, monto_pagado numeric(10,2), check ((pago is true) = (monto_pagado is not null))
+  pago boolean, monto_pagado numeric(10,2), check ((pago is true) = (monto_pagado is not null)),
+  repone_asistencia_id bigint references asistencia, resultado_por_lista boolean not null default false,
+  check (tipo <> 'Reposición' or (repone_asistencia_id is not null and pago is null))
 );
+-- una falta, una reposición en pie:
+create unique index una_reposicion on visitas (repone_asistencia_id) where estado not in ('Cancelada','No asistió');
+
+create type estado_asistencia as enum ('Presente','Llegó tarde','Ausente','Falta justificada');
+create table asistencia (
+  id bigint generated always as identity primary key, codigo text unique not null,   -- ASI-0001
+  fecha date not null, clase_id bigint not null references clases, nino_id bigint references ninos,
+  presencia text not null, visita_id bigint references visitas, estado estado_asistencia not null,
+  nombre_fuera_lista text, marcado_por text not null, marcado_en timestamptz not null, nota text, resolucion text,
+  unique (fecha, clase_id, nino_id)
+);
+create table clases_sin_dictar (fecha date, clase_id bigint references clases, nota text, registrado_por text,
+  registrado_en timestamptz, primary key (fecha, clase_id));
 
 create table bajas_totales (nino_id bigint references ninos, fecha date, motivo_id bigint references cat_motivo_baja,
                             detalle text, registrado_por text);       -- o vista sobre auditoria
@@ -250,39 +304,3 @@ Las reglas que hoy aplica el `.gs` bajo el lock (cupo, no futuras, una
 inscripción activa por clase…) pasan a funciones de Postgres con
 transacción (`security definer`) o a una Edge Function; ver `MIGRACION_SUPABASE.md`.
 
----
-
-## Tablas nuevas — PROPUESTA para Asistencia y visitas (pendiente de aprobar)
-
-Diseñadas para Supabase desde el inicio: IDs estables, relaciones explícitas,
-sin fórmulas. Detalle y preguntas abiertas en `DECISIONES.md` (D-020 en adelante).
-
-### Pruebas → visitas de un día (misma pestaña, columnas nuevas al final)
-
-| Columna nueva | Tipo | Notas |
-|---|---|---|
-| Tipo | texto | `Prueba`, `Reposición`, `Eventual`. *Actualizar estructura* rellena `Prueba` en las filas existentes que la tengan vacía (idempotente). |
-| Repone asistencia | texto | Solo Reposición: → Asistencia.ID asistencia de la falta que repone. Única entre visitas no canceladas. |
-| Resultado por lista | Sí/vacío | `Sí` = el Estado lo puso la lista; una lista posterior puede corregirlo. Vacío = lo puso una persona: la lista no lo pisa. |
-
-Postgres: `visitas (…, tipo tipo_visita not null, repone_asistencia_id bigint unique references asistencia, resultado_por_lista boolean)`.
-
-### Asistencia (pestaña nueva)
-
-Una fila por niño, clase y fecha. Corregir = actualizar la fila (el cambio queda en Historial).
-
-| Columna | Tipo | Oblig. | Notas |
-|---|---|---|---|
-| ID asistencia | texto | sí | `ASI-0001`… |
-| Fecha | fecha | sí | |
-| Código clase | texto | sí | → Clases |
-| ID niño | texto | si no es fuera de lista | → Niños |
-| Presencia | texto | sí | `Inscrito`, `Prueba`, `Reposición`, `Eventual`, `Fuera de lista` |
-| ID visita | texto | si es visita | → Pruebas.ID prueba |
-| Estado | texto | sí | `Presente`, `Ausente`, `Llegó tarde`, `Falta justificada` |
-| Nombre fuera de lista | texto | si fuera de lista | Lo que escribió el profesor. |
-| Marcado por | texto | sí | Usuario. |
-| Hora | fechahora | sí | Último guardado. |
-| Nota | texto | | |
-
-Postgres: `asistencia (id, codigo unique, fecha date, clase_id, nino_id null, presencia, visita_id null, estado, nombre_fuera_lista, marcado_por, marcado_en, nota, unique (fecha, clase_id, nino_id))`.

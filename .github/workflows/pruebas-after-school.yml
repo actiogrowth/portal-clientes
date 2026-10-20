@@ -59,7 +59,7 @@ jobs:
           node-version: '20'
 
       - name: Sintaxis de los PHP
-        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php; do php -l "$f" || exit 1; done
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php; do php -l "$f" || exit 1; done
 
       - name: Roles y usuarios, de punta a punta
         env:

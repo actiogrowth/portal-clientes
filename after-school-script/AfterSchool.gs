@@ -53,7 +53,10 @@ var HOJAS = {
   config:        'Config',
   historial:     'Historial',
   pruebas:       'Pruebas',
-  solicitudes:   'Solicitudes'
+  solicitudes:   'Solicitudes',
+  // 21-oct: Pasar lista
+  asistencia:    'Asistencia',
+  sinClase:      'Clases sin dictar'
 };
 
 /* Las columnas que se agregan después de la carga inicial van SIEMPRE al
@@ -70,7 +73,15 @@ var COLUMNAS = {
   pruebas: ['ID prueba', 'Fecha', 'Clase ID', 'Niño ID', 'Estado', 'Se inscribió',
             'Motivo no inscripción', 'Nota', 'Registrado por', 'Fecha de registro',
             // 16-oct: la prueba tiene costo y se paga el día de la clase
-            'Pagó', 'Monto pagado'],
+            'Pagó', 'Monto pagado',
+            // 21-oct: las pruebas pasan a ser «visitas de un día» de tres tipos
+            // (Prueba, Reposición, Eventual). Vacío = Prueba (las anteriores).
+            'Tipo', 'Repone asistencia', 'Resultado por lista'],
+  // 21-oct: una fila por niño, clase y fecha. Corregir = actualizar la fila.
+  asistencia: ['ID asistencia', 'Fecha', 'Código clase', 'ID niño', 'Presencia', 'ID visita', 'Estado',
+               'Nombre fuera de lista', 'Marcado por', 'Hora', 'Nota', 'Resolución'],
+  // 21-oct: clases que no se dictaron (feriado…): no se avisan como «sin lista».
+  sinClase: ['Fecha', 'Código clase', 'Nota', 'Registrado por', 'Fecha registro'],
   // 16-oct: escrituras idempotentes (ver «Solicitudes» más abajo). Solo la
   // huella de los datos, nunca los datos: aquí no queda ningún dato de niños.
   solicitudes: ['ID solicitud', 'Acción', 'Huella', 'Resultado', 'Usuario', 'Fecha'],
@@ -95,32 +106,47 @@ var COLUMNAS_TEXTO = {
   pagos: ['ID pago', 'ID niño', 'Mes que cubre'],
   bajas: ['ID niño'],
   historial: ['ID'],
-  pruebas: ['ID prueba', 'Clase ID', 'Niño ID'],
-  solicitudes: ['ID solicitud', 'Huella', 'Resultado']
+  pruebas: ['ID prueba', 'Clase ID', 'Niño ID', 'Repone asistencia'],
+  solicitudes: ['ID solicitud', 'Huella', 'Resultado'],
+  asistencia: ['ID asistencia', 'Código clase', 'ID niño', 'ID visita'],
+  sinClase: ['Código clase']
 };
 var COLUMNAS_FECHA = {
   ninos: ['Fecha nacimiento', 'Fecha ingreso'],
   inscripciones: ['Fecha alta', 'Fecha baja'],
   pagos: ['Fecha pago'],
   bajas: ['Fecha baja'],
-  pruebas: ['Fecha']
+  pruebas: ['Fecha'],
+  asistencia: ['Fecha'],
+  sinClase: ['Fecha']
 };
 var COLUMNAS_FECHA_HORA = {
   inscripciones: ['Fecha registro'],
   historial: ['Fecha'],
   pruebas: ['Fecha de registro'],
-  solicitudes: ['Fecha']
+  solicitudes: ['Fecha'],
+  asistencia: ['Hora'],
+  sinClase: ['Fecha registro']
 };
 
 /* Prefijos de los ID que genera el script. */
-var PREFIJO = { nino: 'AS-', inscripcion: 'INS-', pago: 'PAG-', prueba: 'PRU-' };
+var PREFIJO = { nino: 'AS-', inscripcion: 'INS-', pago: 'PAG-', prueba: 'PRU-', asistencia: 'ASI-' };
 
 /* Vocabulario fijo del sistema (no son reglas de negocio: son los estados
    que el propio sistema sabe tratar). */
-var ESTADO = { activo: 'Activo', retirado: 'Retirado', revisar: 'Por revisar', prospecto: 'Prospecto' };
+var ESTADO = { activo: 'Activo', retirado: 'Retirado', revisar: 'Por revisar', prospecto: 'Prospecto', eventual: 'Eventual' };
 var ESTADO_PRUEBA = { agendada: 'Agendada', asistio: 'Asistió', noAsistio: 'No asistió', cancelada: 'Cancelada' };
 /* Las pruebas en estos estados ocupan un cupo de la clase ese día. */
 var PRUEBA_OCUPA = [ESTADO_PRUEBA.agendada, ESTADO_PRUEBA.asistio];
+/* 21-oct: tipos de visita de un día. Las tres ocupan cupo igual. */
+var TIPO_VISITA = { prueba: 'Prueba', reposicion: 'Reposición', eventual: 'Eventual' };
+var TIPOS_VISITA = [TIPO_VISITA.prueba, TIPO_VISITA.reposicion, TIPO_VISITA.eventual];
+/* 21-oct: Pasar lista. */
+var ESTADO_ASIS = { presente: 'Presente', ausente: 'Ausente', tarde: 'Llegó tarde', justificada: 'Falta justificada' };
+var ESTADOS_ASIS = [ESTADO_ASIS.presente, ESTADO_ASIS.ausente, ESTADO_ASIS.tarde, ESTADO_ASIS.justificada];
+var FALTAS = [ESTADO_ASIS.ausente, ESTADO_ASIS.justificada];          // las que se pueden reponer
+var PRESENCIA = { inscrito: 'Inscrito', fuera: 'Fuera de lista' };    // o el tipo de la visita
+var RESOLUCION = { vinculado: 'Vinculado', creado: 'Creado', descartado: 'Descartado' };
 var SI = 'Sí', NO = 'No';
 var MOTIVO_CAMBIO_CLASE = 'Cambio de clase';   // mover no es una deserción
 var DIAS_ORDEN = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -138,6 +164,11 @@ var LISTA = {
 };
 var PARAM_UMBRAL = 'Umbral amarillo';   // fracción: 0,8 = 80 %
 var PARAM_CONCEPTO_MENSUAL = 'Concepto de mensualidad';  // cuál concepto cuenta como «pagó el mes»
+// 21-oct: seguimiento de asistencia
+var PARAM_FALTAS_SEGUIDAS = 'Faltas seguidas';           // Número: ausencias seguidas que encienden la alerta
+var PARAM_DIAS_REPONER = 'Días para reponer';            // Número: días hacia atrás de «faltas por reponer»
+var PARAM_DURACION = 'Duración de clase (min)';          // Número: cuándo termina una clase (aviso «sin lista»)
+var PARAM_ASIS_DESDE = 'Asistencia desde';               // Nota: fecha desde la que se avisa «sin lista»
 
 /* Valores iniciales de Config. ÚNICO sitio del código con valores de negocio.
    actualizarEstructura() escribe las filas de una lista SOLO si esa lista no
@@ -188,7 +219,13 @@ var INS_CONFIG = [
   [LISTA.interes, 'Parkour', '', ''],
   [LISTA.interes, 'Telas', '', ''],
   [LISTA.interes, 'Parkids', '', ''],
-  [LISTA.interes, 'Baby & Me', '', '']
+  [LISTA.interes, 'Baby & Me', '', ''],
+  // 21-oct: seguimiento de asistencia. «Asistencia desde» se escribe con la
+  // fecha del día en que se corre Actualizar estructura (ver actualizarEstructura).
+  [LISTA.param, PARAM_FALTAS_SEGUIDAS, 2, 'Ausencias seguidas (las justificadas no cuentan) que encienden la alerta'],
+  [LISTA.param, PARAM_DIAS_REPONER, 30, 'La lista «faltas por reponer» mira estos días hacia atrás'],
+  [LISTA.param, PARAM_DURACION, 60, 'Una clase sin lista se avisa cuando termina'],
+  [LISTA.param, PARAM_ASIS_DESDE, '', '']
 ];
 
 /* Propiedades del script. */
@@ -429,8 +466,18 @@ function fechaDeTexto_(s) {
   return f;
 }
 
-function hoyISO_() { return Utilities.formatDate(new Date(), zona_(), 'yyyy-MM-dd'); }
-function mesISO_() { return Utilities.formatDate(new Date(), zona_(), 'yyyy-MM'); }
+/* El momento actual. Una sola función para que las pruebas puedan fijar la hora
+   (clases que ya terminaron, lista del mismo día). */
+function ahora_() { return new Date(); }
+function hoyISO_() { return Utilities.formatDate(ahora_(), zona_(), 'yyyy-MM-dd'); }
+function mesISO_() { return Utilities.formatDate(ahora_(), zona_(), 'yyyy-MM'); }
+function horaAhora_() { return Utilities.formatDate(ahora_(), zona_(), 'HH:mm'); }
+/* 'yyyy-MM-dd' ± n días, sin zonas (mediodía UTC). */
+function sumarDiasISO_(iso, n) {
+  var p = iso.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12));
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+}
 
 /** Hora de clase → 'HH:mm'. Sheets puede haberla convertido en hora. */
 function aHora_(v) {
@@ -476,7 +523,9 @@ function numeroDe_(v) {
 function leerConfig_() {
   var t = leerTabla_('config');
   var cfg = { motivos: [], planes: [], conceptos: [], formas: [], umbral: null, conceptoMensual: '',
-              motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [], avisos: [] };
+              motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [], avisos: [],
+              faltasSeguidas: null, diasReponer: null, duracionClase: null, asistenciaDesde: '' };
+  var entero = function (v) { var n = numeroDe_(v); return n >= 1 && Math.floor(n) === n ? n : null; };
   t.filas.forEach(function (f) {
     var lista = norm_(f['Lista']), valor = texto_(f['Valor']);
     if (!valor) return;
@@ -500,7 +549,10 @@ function leerConfig_() {
         if (u > 0 && u <= 1) cfg.umbral = u;
       } else if (norm_(valor) === norm_(PARAM_CONCEPTO_MENSUAL)) {
         cfg.conceptoMensual = texto_(f['Nota']);
-      }
+      } else if (norm_(valor) === norm_(PARAM_FALTAS_SEGUIDAS)) cfg.faltasSeguidas = entero(f['Número']);
+      else if (norm_(valor) === norm_(PARAM_DIAS_REPONER)) cfg.diasReponer = entero(f['Número']);
+      else if (norm_(valor) === norm_(PARAM_DURACION)) cfg.duracionClase = entero(f['Número']);
+      else if (norm_(valor) === norm_(PARAM_ASIS_DESDE)) cfg.asistenciaDesde = aISO_(f['Nota']);
     }
   });
   cfg.planes.forEach(function (p) { if (isNaN(p.precio)) p.precio = null; });
@@ -515,6 +567,10 @@ function leerConfig_() {
   if (!cfg.conceptoMensual) cfg.faltan.push('«' + LISTA.param + ' / ' + PARAM_CONCEPTO_MENSUAL + '» con el concepto en la columna Nota');
   else if (cfg.conceptos.map(norm_).indexOf(norm_(cfg.conceptoMensual)) < 0)
     cfg.faltan.push('el concepto de mensualidad «' + cfg.conceptoMensual + '» no está en la lista «' + LISTA.concepto + '»');
+  [[PARAM_FALTAS_SEGUIDAS, cfg.faltasSeguidas], [PARAM_DIAS_REPONER, cfg.diasReponer], [PARAM_DURACION, cfg.duracionClase]].forEach(function (p) {
+    if (p[1] === null) cfg.faltan.push('«' + LISTA.param + ' / ' + p[0] + '» con un número entero (1 o más) en la columna Número');
+  });
+  if (!cfg.asistenciaDesde) cfg.faltan.push('«' + LISTA.param + ' / ' + PARAM_ASIS_DESDE + '» con una fecha en la columna Nota');
   return cfg;
 }
 
@@ -586,11 +642,26 @@ function actualizarEstructura() {
     return norm_(r[0]) === norm_(LISTA.param) ? !params[norm_(r[1])] : !listas[norm_(r[0])];
   });
   if (nuevas.length) {
-    agregarFilas_(t, 'config', nuevas.map(function (r) { return { 'Lista': r[0], 'Valor': r[1], 'Número': r[2], 'Nota': r[3] }; }));
+    agregarFilas_(t, 'config', nuevas.map(function (r) {
+      // «Asistencia desde» arranca el día en que se instala: las clases de antes no se avisan como «sin lista».
+      var nota = r[1] === PARAM_ASIS_DESDE ? fechaDeTexto_(hoyISO_()) : r[3];
+      return { 'Lista': r[0], 'Valor': r[1], 'Número': r[2], 'Nota': nota };
+    }));
     var porLista = {};
     nuevas.forEach(function (r) { porLista[r[0]] = (porLista[r[0]] || 0) + 1; });
     informe.push('Config: agregadas ' + Object.keys(porLista).map(function (k) { return k + ' (' + porLista[k] + ')'; }).join(', '));
   } else informe.push('Config: completa, no se tocó');
+
+  // 21-oct: las pruebas anteriores a las visitas quedan como tipo «Prueba».
+  // Una sola escritura de la columna; solo las filas con ID y Tipo vacío.
+  var pr = leerTabla_('pruebas'), sinTipo = pr.filas.filter(function (f) { return texto_(f['Tipo']) === ''; });
+  if (sinTipo.length) {
+    var colTipo = pr.mapa['Tipo'], desdeF = FILA_DATOS, n = pr.ultimaFila - FILA_DATOS + 1;
+    var rango = pr.hoja.getRange(desdeF, colTipo, n, 1), vals = rango.getValues();
+    sinTipo.forEach(function (f) { vals[f._fila - desdeF][0] = TIPO_VISITA.prueba; f['Tipo'] = TIPO_VISITA.prueba; });
+    rango.setValues(vals);
+    informe.push('Pruebas: ' + sinTipo.length + ' fila(s) sin Tipo quedaron como «' + TIPO_VISITA.prueba + '»');
+  }
   informe.push('');
   informe.push(comprobar());
   return informe.join('\n');
@@ -907,7 +978,18 @@ var ACCIONES = {
   notaInscripcion: { escribe: true, fn: accNotaInscripcion_ },
   agendarPrueba: { escribe: true, fn: accAgendarPrueba_ },
   resultadoPrueba: { escribe: true, fn: accResultadoPrueba_ },
-  pagoPrueba: { escribe: true, fn: accPagoPrueba_ }
+  pagoPrueba: { escribe: true, fn: accPagoPrueba_ },
+  // 21-oct: visitas de un día, Pasar lista y seguimiento
+  agendarVisita: { escribe: true, fn: accAgendarVisita_ },
+  ocupacion: { escribe: false, fn: accOcupacion_ },
+  leerLista: { escribe: false, fn: accLeerLista_ },
+  // sinEstado: no devuelve el estado completo de After School (lo usa el rol
+  // Profesor, que no debe recibir nada más que su lista).
+  guardarLista: { escribe: true, sinEstado: true, fn: accGuardarLista_ },
+  noHuboClase: { escribe: true, fn: accNoHuboClase_ },
+  resolverFueraDeLista: { escribe: true, fn: accResolverFueraDeLista_ },
+  seguimiento: { escribe: false, fn: accSeguimiento_ },
+  asistenciaNino: { escribe: false, fn: accAsistenciaNino_ }
 };
 
 function atender_(p) {
@@ -941,18 +1023,20 @@ function atender_(p) {
       if (previa) {
         if (texto_(previa['Huella']) !== huella || texto_(previa['Acción']) !== p.accion)
           throw new ErrorUsuario_('Esta solicitud ya se usó para otra operación distinta y no se volvió a ejecutar. Recarga la página y repite la acción.', 'id_repetido');
+        if (acc.sinEstado) return { ok: true, resultado: resultadoGuardado_(previa), repetida: true };
         return { ok: true, resultado: resultadoGuardado_(previa), estado: accLeer_({}, usuario), repetida: true };
       }
     }
     var resultado = acc.fn(datos, usuario);
     if (idSol) registrarSolicitud_(sol, idSol, p.accion, huella, resultado, usuario);
-    if (acc.escribe) {
+    if (acc.escribe && !acc.sinEstado) {
       // El estado sale de las tablas en memoria (ya actualizadas por la
       // escritura); solo se leen las pestañas que la escritura no tocó.
       var estado = accLeer_({}, usuario);
       SpreadsheetApp.flush();
       return { ok: true, resultado: resultado, estado: estado };
     }
+    if (acc.escribe) SpreadsheetApp.flush();
     return { ok: true, resultado: resultado };
   } catch (err) {
     if (err instanceof ErrorUsuario_) return { ok: false, error: err.message, codigo: err.codigo };
@@ -1070,25 +1154,91 @@ function inscripcionEnFecha_(f, iso) {
 
 function pruebaOcupa_(f) { return PRUEBA_OCUPA.indexOf(texto_(f['Estado'])) >= 0; }
 
+/** Tipo de una visita de un día. Vacío (las anteriores al 21-oct) = Prueba. */
+function tipoVisita_(f) { return enLista_(f['Tipo'], TIPOS_VISITA) || TIPO_VISITA.prueba; }
+
 /**
  * Ocupación de una clase en una fecha = inscripciones activas ese día +
- * pruebas Agendadas o Asistió de esa clase ese día. excluirNino deja fuera
- * las pruebas de ese niño (para que su propia prueba no le cierre el cupo).
- * La página calcula lo mismo con los datos de leer().
+ * visitas de un día (Prueba, Reposición, Eventual) Agendadas o Asistió de esa
+ * clase ese día. excluirNino deja fuera las visitas de ese niño (para que su
+ * propia visita no le cierre el cupo).
+ * La página NO la recalcula: leer() la devuelve hecha (ocupacionVentana_).
+ * «pruebas» es el total de visitas (nombre anterior, se conserva).
  */
 function ocupacionEn_(codigo, iso, ins, pruebas, excluirNino) {
-  var i = ins.filas.filter(function (f) {
-    return texto_(f['Código clase']) === codigo && inscripcionEnFecha_(f, iso);
-  }).length;
-  var p = pruebas.filas.filter(function (f) {
-    return texto_(f['Clase ID']) === codigo && pruebaOcupa_(f) && aISO_(f['Fecha']) === iso &&
-      !(excluirNino && texto_(f['Niño ID']) === excluirNino);
-  }).length;
-  return { inscritos: i, pruebas: p, total: i + p };
+  var ids = [];
+  ins.filas.forEach(function (f) {
+    if (texto_(f['Código clase']) === codigo && inscripcionEnFecha_(f, iso)) ids.push(texto_(f['ID niño']));
+  });
+  var visitas = [], porTipo = {};
+  pruebas.filas.forEach(function (f) {
+    if (texto_(f['Clase ID']) === codigo && pruebaOcupa_(f) && aISO_(f['Fecha']) === iso &&
+        !(excluirNino && texto_(f['Niño ID']) === excluirNino)) {
+      visitas.push(texto_(f['ID prueba']));
+      var t = tipoVisita_(f);
+      porTipo[t] = (porTipo[t] || 0) + 1;
+    }
+  });
+  return { inscritos: ids.length, pruebas: visitas.length, visitas: visitas.length, porTipo: porTipo,
+           total: ids.length + visitas.length, idsInscritos: ids, idsVisitas: visitas };
 }
 
+/** «18 + 1 prueba de 20 cupos»; con reposiciones o eventuales, «18 + 3 visitas…». */
 function textoOcupacion_(o, cupo) {
-  return o.inscritos + (o.pruebas ? ' + ' + o.pruebas + (o.pruebas === 1 ? ' prueba' : ' pruebas') : '') + ' de ' + cupo + ' cupos';
+  var soloPruebas = (o.porTipo || {})[TIPO_VISITA.prueba] === o.pruebas;
+  var palabra = soloPruebas ? (o.pruebas === 1 ? ' prueba' : ' pruebas') : (o.pruebas === 1 ? ' visita' : ' visitas');
+  return o.inscritos + (o.pruebas ? ' + ' + o.pruebas + palabra : '') + ' de ' + cupo + ' cupos';
+}
+
+/* Días de ocupación que leer() devuelve ya calculados: dos semanas atrás y
+   seis adelante, más cualquier fecha futura con visitas que ocupan. Fuera
+   de eso la página pide la acción «ocupacion». */
+var OCUPACION_ATRAS = 14, OCUPACION_ADELANTE = 41, OCUPACION_MAX_DIAS = 62;
+
+/**
+ * Ocupación por fecha y clase, calculada aquí (la página solo la pinta):
+ *   { 'yyyy-MM-dd': { codigo: { i, v, tipos: {Prueba: n…}, ninos: [ID niño…], visitas: [ID prueba…] } } }
+ * Solo las clases activas, cada una en los días de su semana.
+ */
+function ocupacionFechas_(fechas, clases, ins, pruebas) {
+  // Las fechas de cada fila se convierten UNA vez (son cientos de días × clases).
+  // Misma regla que ocupacionEn_; la prueba compara las dos.
+  var insPorClase = {}, visPorClaseFecha = {};
+  ins.filas.forEach(function (f) {
+    var k = texto_(f['Código clase']);
+    (insPorClase[k] = insPorClase[k] || []).push({ nino: texto_(f['ID niño']), alta: aISO_(f['Fecha alta']), baja: aISO_(f['Fecha baja']) });
+  });
+  pruebas.filas.forEach(function (f) {
+    if (!pruebaOcupa_(f)) return;
+    var k = texto_(f['Clase ID']) + '|' + aISO_(f['Fecha']);
+    (visPorClaseFecha[k] = visPorClaseFecha[k] || []).push({ id: texto_(f['ID prueba']), tipo: tipoVisita_(f) });
+  });
+  var porDia = {};
+  clases.filas.forEach(function (c) {
+    if (norm_(c['Activa']) !== norm_(SI)) return;
+    var d = enLista_(c['Día'], DIAS_ORDEN);
+    if (d) (porDia[d] = porDia[d] || []).push(texto_(c['Código clase']));
+  });
+  var out = {};
+  fechas.forEach(function (iso) {
+    var delDia = {};
+    (porDia[diaSemana_(iso)] || []).forEach(function (codigo) {
+      var ninos = (insPorClase[codigo] || []).filter(function (x) { return (!x.alta || x.alta <= iso) && (!x.baja || x.baja > iso); })
+        .map(function (x) { return x.nino; });
+      var vis = visPorClaseFecha[codigo + '|' + iso] || [], tipos = {};
+      vis.forEach(function (x) { tipos[x.tipo] = (tipos[x.tipo] || 0) + 1; });
+      delDia[codigo] = { i: ninos.length, v: vis.length, tipos: tipos, ninos: ninos, visitas: vis.map(function (x) { return x.id; }) };
+    });
+    out[iso] = delDia;
+  });
+  return out;
+}
+
+function ocupacionVentana_(clases, ins, pruebas) {
+  var hoy = hoyISO_(), fechas = {}, hasta = sumarDiasISO_(hoy, OCUPACION_ADELANTE);
+  for (var d = sumarDiasISO_(hoy, -OCUPACION_ATRAS); d <= hasta; d = sumarDiasISO_(d, 1)) fechas[d] = true;
+  pruebas.filas.forEach(function (f) { var d = aISO_(f['Fecha']); if (d > hasta && pruebaOcupa_(f)) fechas[d] = true; });
+  return ocupacionFechas_(Object.keys(fechas).sort(), clases, ins, pruebas);
 }
 
 /** La clase existe, está activa y tiene un cupo válido. Devuelve { fila, cupo }. */
@@ -1168,7 +1318,8 @@ function pruebaPublica_(f) {
     id: texto_(f['ID prueba']), fecha: aISO_(f['Fecha']), codigo: texto_(f['Clase ID']), idNino: texto_(f['Niño ID']),
     estado: texto_(f['Estado']), seInscribio: texto_(f['Se inscribió']), motivo: texto_(f['Motivo no inscripción']),
     nota: texto_(f['Nota']), registradoPor: texto_(f['Registrado por']),
-    pago: texto_(f['Pagó']), monto: texto_(f['Monto pagado']) === '' ? null : numeroDe_(f['Monto pagado'])
+    pago: texto_(f['Pagó']), monto: texto_(f['Monto pagado']) === '' ? null : numeroDe_(f['Monto pagado']),
+    tipo: tipoVisita_(f), repone: texto_(f['Repone asistencia']), porLista: texto_(f['Resultado por lista']) === SI
   };
 }
 
@@ -1197,10 +1348,24 @@ function accLeer_(datos, usuario) {
     archivo: libro_().getName(), usuario: usuario, hoy: hoyISO_(), mes: mes,
     config: leerConfig_(), clases: clases, ninos: ninos, inscripciones: ins, inscripcionesCerradas: cerradas,
     pruebas: leerTabla_('pruebas').filas.map(pruebaPublica_), pagosMes: pagos,
-    estados: [ESTADO.activo, ESTADO.revisar, ESTADO.prospecto, ESTADO.retirado], motivoCambio: MOTIVO_CAMBIO_CLASE,
+    // 21-oct: la ocupación la calcula el servidor; la página solo la pinta.
+    ocupacion: ocupacionVentana_(leerTabla_('clases'), leerTabla_('inscripciones'), leerTabla_('pruebas')),
+    estados: [ESTADO.activo, ESTADO.revisar, ESTADO.prospecto, ESTADO.eventual, ESTADO.retirado], motivoCambio: MOTIVO_CAMBIO_CLASE,
     estadosPrueba: [ESTADO_PRUEBA.agendada, ESTADO_PRUEBA.asistio, ESTADO_PRUEBA.noAsistio, ESTADO_PRUEBA.cancelada],
-    pruebaOcupa: PRUEBA_OCUPA, dias: DIAS_ORDEN
+    pruebaOcupa: PRUEBA_OCUPA, dias: DIAS_ORDEN, tiposVisita: TIPOS_VISITA, estadosAsistencia: ESTADOS_ASIS
   };
+}
+
+/** Ocupación de otras fechas (la página navega semanas fuera de la ventana de leer). */
+function accOcupacion_(datos) {
+  var desde = aISO_(exigirFecha_(datos.desde, 'la fecha desde')), hasta = aISO_(exigirFecha_(datos.hasta, 'la fecha hasta'));
+  if (hasta < desde) throw new ErrorUsuario_('La fecha hasta es anterior a la fecha desde.');
+  var fechas = [];
+  for (var d = desde; d <= hasta; d = sumarDiasISO_(d, 1)) {
+    fechas.push(d);
+    if (fechas.length > OCUPACION_MAX_DIAS) throw new ErrorUsuario_('Se piden como mucho ' + OCUPACION_MAX_DIAS + ' días de ocupación.');
+  }
+  return { ocupacion: ocupacionFechas_(fechas, leerTabla_('clases'), leerTabla_('inscripciones'), leerTabla_('pruebas')) };
 }
 
 function accListarPagos_(datos) {
@@ -1403,11 +1568,12 @@ function inscribirEn_(datos, codigos, usuario) {
   });
   agregarFilas_(ins, 'inscripciones', nuevas);
   var hist = nuevas.map(function (f) { return ['Inscribir', f['ID inscripción'], idNino + ' en ' + f['Código clase']]; });
-  if (texto_(n['Estado']) === ESTADO.prospecto) {
+  var estadoAntes = texto_(n['Estado']);
+  if (estadoAntes === ESTADO.prospecto || estadoAntes === ESTADO.eventual) {
     var cambios = { 'Estado': ESTADO.activo };
     if (!aISO_(n['Fecha ingreso'])) cambios['Fecha ingreso'] = alta;
     ponerCeldas_(ninos, n, cambios);
-    hist.push(['Prospecto → Activo', idNino, 'al inscribirse en ' + lista.join(', ')]);
+    hist.push([estadoAntes + ' → Activo', idNino, 'al inscribirse en ' + lista.join(', ')]);
   }
   historialVarios_(usuario, hist);
   return { ids: nuevas.map(function (f) { return f['ID inscripción']; }) };
@@ -1601,19 +1767,15 @@ function accNotaInscripcion_(datos, usuario) {
 var OBLIGATORIOS_PROSPECTO = ['nombre', 'apellidos', 'nacimiento', 'responsable', 'telefono'];
 
 /**
- * Agenda una clase de prueba. La prueba ocupa un cupo de esa clase ESE día.
+ * Lo común a toda visita de un día (Prueba, Reposición, Eventual):
  *   · fecha de hoy en adelante, y que caiga el día de la semana de la clase;
- *   · la clase activa y con cupo ese día (inscritos + pruebas);
- *   · el niño: uno existente (idNino) o uno nuevo, que se crea como Prospecto.
- * Todo se valida antes de escribir. Sin costo por ahora: si se cobra, se
- * agrega una columna al final de Pruebas y un campo aquí.
+ *   · la clase activa (el cupo se mira después, con exigirCupoVisita_).
+ * «palabra» va en el mensaje: «La prueba…», «La visita…».
  */
-function accAgendarPrueba_(datos, usuario) {
-  var cfg = leerConfig_(), ninos = leerTabla_('ninos'), clases = leerTabla_('clases');
-  var ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas');
-  var fecha = exigirFecha_(datos.fecha, 'la fecha de la prueba');
+function validarFechaVisita_(datos, clases, palabra) {
+  var fecha = exigirFecha_(datos.fecha, 'la fecha de la ' + palabra.toLowerCase());
   var iso = Utilities.formatDate(fecha, zona_(), 'yyyy-MM-dd');
-  if (iso < hoyISO_()) throw new ErrorUsuario_('La prueba no puede ser en una fecha pasada.');
+  if (iso < hoyISO_()) throw new ErrorUsuario_('La ' + palabra.toLowerCase() + ' no puede ser en una fecha pasada.');
   var codigo = texto_(datos.codigo);
   var c = claseUsable_(clases, codigo);
   var dia = enLista_(c.fila['Día'], DIAS_ORDEN);
@@ -1622,28 +1784,65 @@ function accAgendarPrueba_(datos, usuario) {
     throw new ErrorUsuario_('La clase ' + codigo + ' es los ' + (/s$/.test(d) ? d : d + 's') +
       ' y el ' + fechaCorta_(iso) + ' es ' + diaSemana_(iso).toLowerCase() + '.');
   }
+  return { fecha: fecha, iso: iso, codigo: codigo, c: c };
+}
 
+/** El niño no está inscrito en esa clase ni tiene otra visita que ocupa ese día en ella. */
+function exigirNinoLibreEn_(n, codigo, iso, ins, pruebas, palabra) {
+  var idN = texto_(n['ID']);
+  if (ins.filas.some(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === idN && texto_(f['Código clase']) === codigo; }))
+    throw new ErrorUsuario_(nombreDe_(n) + ' ya está inscrito en ' + codigo + '.');
+  if (pruebas.filas.some(function (f) { return texto_(f['Niño ID']) === idN && texto_(f['Clase ID']) === codigo && aISO_(f['Fecha']) === iso && pruebaOcupa_(f); }))
+    throw new ErrorUsuario_(nombreDe_(n) + ' ya tiene una ' + palabra + ' en ' + codigo + ' el ' + fechaCorta_(iso) + '.');
+}
+
+/** Cupo de ese día: inscritos + visitas que ocupan < cupo. */
+function exigirCupoVisita_(v, ins, pruebas) {
+  var o = ocupacionEn_(v.codigo, v.iso, ins, pruebas);
+  if (o.total >= v.c.cupo) throw new ErrorUsuario_('La clase ' + v.codigo + ' está llena el ' + fechaCorta_(v.iso) + ': ' +
+    textoOcupacion_(o, v.c.cupo) + '. No se agendó.', 'llena');
+}
+
+/** Datos de un niño nuevo de una visita (Prueba o Eventual): los mismos obligatorios. */
+function valoresNinoVisita_(datos, cfg, ninos) {
+  var entrada = datos.nino || {};
+  var faltan = OBLIGATORIOS_PROSPECTO.filter(function (k) { return !texto_(entrada[k]); });
+  if (faltan.length) throw new ErrorUsuario_('Faltan datos obligatorios del niño: ' +
+    faltan.map(function (k) { return CAMPOS_NINO[k].toLowerCase(); }).join(', ') + '.');
+  var valores = valoresNino_(entrada, false);
+  validarListasNino_(valores, cfg);
+  exigirNoDuplicado_(ninos, valores, datos.confirmarDuplicado);
+  return valores;
+}
+
+/** Escribe la fila de la visita y devuelve su ID (PRU-xxxx para los tres tipos). */
+function escribirVisita_(pruebas, v, idNino, tipo, extra, nota, usuario) {
+  var id = siguienteId_(pruebas.filas, 'ID prueba', PREFIJO.prueba)();
+  var fila = {
+    'ID prueba': id, 'Fecha': v.fecha, 'Clase ID': v.codigo, 'Niño ID': idNino, 'Estado': ESTADO_PRUEBA.agendada,
+    'Se inscribió': '', 'Motivo no inscripción': '', 'Nota': texto_(nota),
+    'Registrado por': usuario, 'Fecha de registro': new Date(), 'Tipo': tipo, 'Repone asistencia': '', 'Resultado por lista': ''
+  };
+  Object.keys(extra || {}).forEach(function (k) { fila[k] = extra[k]; });
+  agregarFilas_(pruebas, 'pruebas', [fila]);
+  return id;
+}
+
+/**
+ * Agenda una clase de prueba (visita de tipo Prueba). Ocupa un cupo de esa
+ * clase ESE día. El niño: uno existente (idNino) o uno nuevo, que se crea
+ * como Prospecto. Todo se valida antes de escribir.
+ */
+function accAgendarPrueba_(datos, usuario) {
+  var cfg = leerConfig_(), ninos = leerTabla_('ninos'), clases = leerTabla_('clases');
+  var ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas');
+  var v = validarFechaVisita_(datos, clases, 'Prueba');
   var n = null, valores = null;
   if (texto_(datos.idNino)) {
     n = buscarNino_(ninos, datos.idNino);
-    var idN = texto_(n['ID']);
-    if (ins.filas.some(function (f) { return inscripcionActiva_(f) && texto_(f['ID niño']) === idN && texto_(f['Código clase']) === codigo; }))
-      throw new ErrorUsuario_(nombreDe_(n) + ' ya está inscrito en ' + codigo + '.');
-    if (pruebas.filas.some(function (f) { return texto_(f['Niño ID']) === idN && texto_(f['Clase ID']) === codigo && aISO_(f['Fecha']) === iso && pruebaOcupa_(f); }))
-      throw new ErrorUsuario_(nombreDe_(n) + ' ya tiene una prueba en ' + codigo + ' el ' + fechaCorta_(iso) + '.');
-  } else {
-    var entrada = datos.nino || {};
-    var faltan = OBLIGATORIOS_PROSPECTO.filter(function (k) { return !texto_(entrada[k]); });
-    if (faltan.length) throw new ErrorUsuario_('Faltan datos obligatorios del niño: ' +
-      faltan.map(function (k) { return CAMPOS_NINO[k].toLowerCase(); }).join(', ') + '.');
-    valores = valoresNino_(entrada, false);
-    validarListasNino_(valores, cfg);
-    exigirNoDuplicado_(ninos, valores, datos.confirmarDuplicado);
-  }
-
-  var o = ocupacionEn_(codigo, iso, ins, pruebas);
-  if (o.total >= c.cupo) throw new ErrorUsuario_('La clase ' + codigo + ' está llena el ' + fechaCorta_(iso) + ': ' +
-    textoOcupacion_(o, c.cupo) + '. No se agendó.', 'llena');
+    exigirNinoLibreEn_(n, v.codigo, v.iso, ins, pruebas, 'prueba');
+  } else valores = valoresNinoVisita_(datos, cfg, ninos);
+  exigirCupoVisita_(v, ins, pruebas);
 
   // Todo validado: ahora se escribe.
   var hist = [], idNino;
@@ -1652,13 +1851,93 @@ function accAgendarPrueba_(datos, usuario) {
     idNino = agregarNino_(ninos, valores, ESTADO.prospecto);
     hist.push(['Crear prospecto', idNino, nombreDe_(valores)]);
   }
-  var id = siguienteId_(pruebas.filas, 'ID prueba', PREFIJO.prueba)();
-  agregarFilas_(pruebas, 'pruebas', [{
-    'ID prueba': id, 'Fecha': fecha, 'Clase ID': codigo, 'Niño ID': idNino, 'Estado': ESTADO_PRUEBA.agendada,
-    'Se inscribió': '', 'Motivo no inscripción': '', 'Nota': texto_(datos.nota),
-    'Registrado por': usuario, 'Fecha de registro': new Date()
-  }]);
-  hist.push(['Agendar prueba', id, idNino + ' · ' + codigo + ' · ' + fechaCorta_(iso)]);
+  var id = escribirVisita_(pruebas, v, idNino, TIPO_VISITA.prueba, null, datos.nota, usuario);
+  hist.push(['Agendar prueba', id, idNino + ' · ' + v.codigo + ' · ' + fechaCorta_(v.iso)]);
+  historialVarios_(usuario, hist);
+  return { id: id, idNino: idNino };
+}
+
+/** Visitas que reponen una falta y siguen en pie: ID asistencia → ID prueba. Cancelada o No asistió liberan la falta. */
+function faltasRepuestas_(pruebas) {
+  var r = {};
+  pruebas.filas.forEach(function (f) {
+    var a = texto_(f['Repone asistencia']), e = texto_(f['Estado']);
+    if (a && e !== ESTADO_PRUEBA.cancelada && e !== ESTADO_PRUEBA.noAsistio) r[a] = texto_(f['ID prueba']);
+  });
+  return r;
+}
+
+/**
+ * La falta que se repone: del mismo niño, de una clase fija (no de otra
+ * visita), Ausente o Falta justificada, del mismo SERVICIO que la clase donde
+ * se repone, y sin otra reposición en pie. Sin plazo.
+ */
+function exigirFaltaReponible_(falta, n, pruebas, clases, claseDestino) {
+  var id = texto_(falta['ID asistencia']);
+  if (texto_(falta['ID niño']) !== texto_(n['ID'])) throw new ErrorUsuario_('La falta ' + id + ' es de otro niño.');
+  if (texto_(falta['Presencia']) !== PRESENCIA.inscrito) throw new ErrorUsuario_('Solo se reponen faltas de una clase fija (' + id + ' es de una visita).');
+  if (FALTAS.indexOf(texto_(falta['Estado'])) < 0) throw new ErrorUsuario_('La asistencia ' + id + ' está «' + texto_(falta['Estado']) + '»: no es una falta.');
+  var origen = buscarClase_(clases, falta['Código clase']);
+  if (norm_(origen['Servicio']) !== norm_(claseDestino['Servicio']))
+    throw new ErrorUsuario_('La falta es de ' + texto_(origen['Servicio']) + ': se repone en una clase de ' + texto_(origen['Servicio']) + '.');
+  var ya = faltasRepuestas_(pruebas)[id];
+  if (ya) throw new ErrorUsuario_('Esa falta ya se repone con ' + ya + '.');
+}
+
+/**
+ * Agenda una visita de tipo Reposición o Eventual (las pruebas van por
+ * agendarPrueba, que también puede usar Comercial).
+ *   Reposición: niño Activo; reponeAsistencia = la falta (ver exigirFaltaReponible_). Sin pago.
+ *   Eventual: niño que NO está Activo (nuevo, Prospecto, Retirado o ya Eventual;
+ *     «Por revisar» no). Su estado pasa a Eventual. Pagó/Monto como la prueba.
+ */
+function accAgendarVisita_(datos, usuario) {
+  var tipo = enLista_(datos.tipo, [TIPO_VISITA.reposicion, TIPO_VISITA.eventual]);
+  if (!tipo) throw new ErrorUsuario_('El tipo de visita tiene que ser Reposición o Eventual (las pruebas se agendan aparte).');
+  var cfg = leerConfig_(), ninos = leerTabla_('ninos'), clases = leerTabla_('clases');
+  var ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas');
+  var v = validarFechaVisita_(datos, clases, 'Visita');
+  var n = null, valores = null, extra = {}, pago = null;
+  if (tipo === TIPO_VISITA.reposicion) {
+    if (!texto_(datos.idNino)) throw new ErrorUsuario_('La reposición es para un niño que ya está en la base: elige al niño.');
+    n = buscarNino_(ninos, datos.idNino);
+    if (texto_(n['Estado']) !== ESTADO.activo)
+      throw new ErrorUsuario_(nombreDe_(n) + ' está ' + texto_(n['Estado']) + ': la reposición es para niños Activos.');
+    if (!texto_(datos.reponeAsistencia)) throw new ErrorUsuario_('Elige la falta que se repone.');
+    var falta = buscarAsistencia_(leerTabla_('asistencia'), datos.reponeAsistencia);
+    exigirFaltaReponible_(falta, n, pruebas, clases, v.c.fila);
+    if (texto_(datos.pago)) throw new ErrorUsuario_('La reposición no se cobra.');
+    extra['Repone asistencia'] = texto_(falta['ID asistencia']);
+  } else {
+    if (texto_(datos.idNino)) {
+      n = buscarNino_(ninos, datos.idNino);
+      var est = texto_(n['Estado']);
+      if (est === ESTADO.activo) throw new ErrorUsuario_(nombreDe_(n) + ' está Activo: viene a su clase o a una reposición, no como eventual.');
+      if (est === ESTADO.revisar) throw new ErrorUsuario_(nombreDe_(n) + ' está «Por revisar»: revísalo antes de agendarlo como eventual.');
+    } else valores = valoresNinoVisita_(datos, cfg, ninos);
+    if ('pago' in datos) {
+      pago = valoresPagoPrueba_(datos);
+      extra['Pagó'] = pago['Pagó']; extra['Monto pagado'] = pago['Monto pagado'];
+    }
+  }
+  if (n) exigirNinoLibreEn_(n, v.codigo, v.iso, ins, pruebas, 'visita');
+  exigirCupoVisita_(v, ins, pruebas);
+
+  // Todo validado: ahora se escribe.
+  var hist = [], idNino;
+  if (n) {
+    idNino = texto_(n['ID']);
+    if (tipo === TIPO_VISITA.eventual && texto_(n['Estado']) !== ESTADO.eventual) {
+      hist.push([texto_(n['Estado']) + ' → ' + ESTADO.eventual, idNino, 'visita eventual en ' + v.codigo + ' el ' + fechaCorta_(v.iso)]);
+      ponerCeldas_(ninos, n, { 'Estado': ESTADO.eventual });
+    }
+  } else {
+    idNino = agregarNino_(ninos, valores, ESTADO.eventual);
+    hist.push(['Crear eventual', idNino, nombreDe_(valores)]);
+  }
+  var id = escribirVisita_(pruebas, v, idNino, tipo, extra, datos.nota, usuario);
+  hist.push(['Agendar ' + tipo.toLowerCase(), id, idNino + ' · ' + v.codigo + ' · ' + fechaCorta_(v.iso) +
+    (extra['Repone asistencia'] ? ' · repone ' + extra['Repone asistencia'] : '') + (pago ? textoPagoPrueba_(pago) : '')]);
   historialVarios_(usuario, hist);
   return { id: id, idNino: idNino };
 }
@@ -1673,6 +1952,8 @@ function accResultadoPrueba_(datos, usuario) {
   var cfg = leerConfig_(), pruebas = leerTabla_('pruebas');
   var f = buscarPrueba_(pruebas, datos.idPrueba);
   var iso = aISO_(f['Fecha']), hoy = hoyISO_(), codigo = texto_(f['Clase ID']);
+  if (tipoVisita_(f) === TIPO_VISITA.reposicion && (texto_(datos.seInscribio) || texto_(datos.pago)))
+    throw new ErrorUsuario_('«Se inscribió» y el pago no aplican a una reposición.');
   var estado = enLista_(datos.estado, [ESTADO_PRUEBA.asistio, ESTADO_PRUEBA.noAsistio, ESTADO_PRUEBA.cancelada]);
   if (!estado) throw new ErrorUsuario_('El resultado tiene que ser Asistió, No asistió o Cancelada.');
   if (estado !== ESTADO_PRUEBA.cancelada && iso > hoy)
@@ -1696,6 +1977,8 @@ function accResultadoPrueba_(datos, usuario) {
   // El pago puede venir en el mismo diálogo; si no viene, no se toca.
   var pago = 'pago' in datos ? valoresPagoPrueba_(datos) : null;
   if (pago) { cambios['Pagó'] = pago['Pagó']; cambios['Monto pagado'] = pago['Monto pagado']; }
+  // Lo decide una persona: la lista ya no lo vuelve a cambiar.
+  cambios['Resultado por lista'] = '';
   Object.keys(cambios).forEach(function (k) { if (texto_(f[k]) === texto_(cambios[k])) delete cambios[k]; });
   if (!Object.keys(cambios).length) return { id: texto_(f['ID prueba']), sinCambios: true };
   ponerCeldas_(pruebas, f, cambios);
@@ -1730,6 +2013,7 @@ function textoPagoPrueba_(v) {
 function accPagoPrueba_(datos, usuario) {
   var pruebas = leerTabla_('pruebas');
   var f = buscarPrueba_(pruebas, datos.idPrueba);
+  if (tipoVisita_(f) === TIPO_VISITA.reposicion) throw new ErrorUsuario_('La reposición no se cobra.');
   var cambios = valoresPagoPrueba_(datos);
   Object.keys(cambios).forEach(function (k) { if (texto_(f[k]) === texto_(cambios[k])) delete cambios[k]; });
   if (!Object.keys(cambios).length) return { id: texto_(f['ID prueba']), sinCambios: true };
@@ -1739,4 +2023,347 @@ function accPagoPrueba_(datos, usuario) {
     fechaCorta_(aISO_(f['Fecha'])) + textoPagoPrueba_({ 'Pagó': texto_(f['Pagó']), 'Monto pagado': f['Monto pagado'] }) +
     (antes['Pagó'] ? ' · antes:' + textoPagoPrueba_(antes).replace(' · ', ' ') : ''));
   return { id: texto_(f['ID prueba']) };
+}
+
+
+// ─── Pasar lista y seguimiento (21-oct) ──────────────────────────────────────
+//
+// Asistencia: una fila por niño, clase y fecha (las de «fuera de lista», una
+// por nombre escrito). Corregir = actualizar la fila; el cambio de estado
+// queda en Historial. Quién puede qué día lo decide el puente: api.php manda
+// soloHoy = true para quien no puede corregir otros días (Profesor), y aquí
+// se respeta. Nunca se pasa lista de un día futuro.
+
+function buscarAsistencia_(t, id) {
+  id = texto_(id);
+  for (var i = 0; i < t.filas.length; i++) if (texto_(t.filas[i]['ID asistencia']) === id) return t.filas[i];
+  throw new ErrorUsuario_('No existe la asistencia ' + (id || '(sin ID)') + '.');
+}
+
+/** Edad el día iso: «18 meses» hasta los 2 años, después «7 años». */
+function edadEn_(nac, iso) {
+  var n = aISO_(nac);
+  if (!n) return '';
+  var meses = (+iso.slice(0, 4) - +n.slice(0, 4)) * 12 + (+iso.slice(5, 7) - +n.slice(5, 7)) - (+iso.slice(8, 10) < +n.slice(8, 10) ? 1 : 0);
+  if (meses < 0) return '';
+  return meses < 24 ? meses + ' meses' : Math.floor(meses / 12) + ' años';
+}
+
+/** La fecha de una lista: hoy si no viene; nunca futura; con soloHoy, solo hoy. */
+function fechaLista_(datos) {
+  var hoy = hoyISO_();
+  var iso = texto_(datos.fecha) ? Utilities.formatDate(exigirFecha_(datos.fecha, 'la fecha de la lista'), zona_(), 'yyyy-MM-dd') : hoy;
+  if (iso > hoy) throw new ErrorUsuario_('No se pasa lista de un día que todavía no llega.');
+  if (datos.soloHoy === true && iso !== hoy)
+    throw new ErrorUsuario_('Solo se puede pasar y corregir la lista de hoy. Las correcciones de otros días las hace la coordinación.', 'solo_hoy');
+  return iso;
+}
+
+function exigirDiaDeClase_(c, iso) {
+  var dia = enLista_(c['Día'], DIAS_ORDEN);
+  if (dia !== diaSemana_(iso)) throw new ErrorUsuario_('La clase ' + texto_(c['Código clase']) + ' es los ' +
+    String(dia || texto_(c['Día'])).toLowerCase() + ' y el ' + fechaCorta_(iso) + ' es ' + diaSemana_(iso).toLowerCase() + '.');
+}
+
+/**
+ * Quién va en la lista de una clase en una fecha: los inscritos ese día y
+ * las visitas no canceladas (con su tipo), una vez por niño. Más lo ya
+ * marcado (por ID de niño) y los «fuera de lista».
+ */
+function armarLista_(codigo, iso, ins, pruebas, asis) {
+  var marcas = {}, fuera = [];
+  asis.filas.forEach(function (a) {
+    if (texto_(a['Código clase']) !== codigo || aISO_(a['Fecha']) !== iso) return;
+    if (texto_(a['Presencia']) === PRESENCIA.fuera) fuera.push(a);
+    else marcas[texto_(a['ID niño'])] = a;
+  });
+  var lista = [], vistos = {};
+  ins.filas.forEach(function (f) {
+    if (texto_(f['Código clase']) !== codigo || !inscripcionEnFecha_(f, iso)) return;
+    var id = texto_(f['ID niño']);
+    if (vistos[id]) return;
+    vistos[id] = true;
+    lista.push({ idNino: id, presencia: PRESENCIA.inscrito, idVisita: '', visita: null });
+  });
+  pruebas.filas.forEach(function (f) {
+    if (texto_(f['Clase ID']) !== codigo || aISO_(f['Fecha']) !== iso || texto_(f['Estado']) === ESTADO_PRUEBA.cancelada) return;
+    var id = texto_(f['Niño ID']);
+    if (vistos[id]) return;
+    vistos[id] = true;
+    lista.push({ idNino: id, presencia: tipoVisita_(f), idVisita: texto_(f['ID prueba']), visita: f });
+  });
+  return { lista: lista, marcas: marcas, fuera: fuera };
+}
+
+/**
+ * Las clases de un día con su lista. Por niño SOLO nombre, edad, la marca de
+ * visita y lo ya marcado: es lo que ve el profesor (api.php además recorta).
+ */
+function accLeerLista_(datos) {
+  var iso = fechaLista_(datos), dia = diaSemana_(iso);
+  var ninos = leerTabla_('ninos'), clases = leerTabla_('clases'), ins = leerTabla_('inscripciones');
+  var pruebas = leerTabla_('pruebas'), asis = leerTabla_('asistencia'), sin = leerTabla_('sinClase');
+  var porId = {};
+  ninos.filas.forEach(function (n) { porId[texto_(n['ID'])] = n; });
+  var lista = clases.filas.filter(function (c) {
+    return norm_(c['Activa']) === norm_(SI) && enLista_(c['Día'], DIAS_ORDEN) === dia;
+  }).map(function (c) {
+    var codigo = texto_(c['Código clase']), L = armarLista_(codigo, iso, ins, pruebas, asis);
+    var chicos = L.lista.map(function (x) {
+      var n = porId[x.idNino], a = L.marcas[x.idNino];
+      return { idNino: x.idNino, nombre: n ? nombreDe_(n) : x.idNino, edad: n ? edadEn_(n['Fecha nacimiento'], iso) : '',
+               presencia: x.presencia, idVisita: x.idVisita, estado: a ? texto_(a['Estado']) : '', nota: a ? texto_(a['Nota']) : '' };
+    }).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+    var fuera = L.fuera.map(function (a) {
+      return { idAsistencia: texto_(a['ID asistencia']), nombre: texto_(a['Nombre fuera de lista']), estado: texto_(a['Estado']), nota: texto_(a['Nota']) };
+    });
+    return { codigo: codigo, servicio: texto_(c['Servicio']), hora: aHora_(c['Hora inicio']),
+             guardada: Object.keys(L.marcas).length + L.fuera.length > 0,
+             sinClase: sin.filas.some(function (s) { return texto_(s['Código clase']) === codigo && aISO_(s['Fecha']) === iso; }),
+             ninos: chicos, fueraDeLista: fuera };
+  }).sort(function (a, b) { return (a.hora + a.servicio).localeCompare(b.hora + b.servicio); });
+  return { fecha: iso, hoy: hoyISO_(), dia: dia, otroDia: datos.soloHoy !== true, estados: ESTADOS_ASIS, clases: lista };
+}
+
+/**
+ * Guarda la lista de UNA clase en una fecha (todo lo de la clase en una
+ * llamada, con ID de solicitud). Solo niños de esa lista; un niño una vez;
+ * estados de ESTADOS_ASIS. Las visitas se marcan solas: Presente o Llegó
+ * tarde → Asistió; Ausente o Falta justificada → No asistió. No toca «Se
+ * inscribió» ni pisa un resultado que puso una persona (solo cambia las
+ * Agendadas o las que ya marcó la lista).
+ */
+function accGuardarLista_(datos, usuario) {
+  var iso = fechaLista_(datos);
+  var codigo = texto_(datos.codigo);
+  var clases = leerTabla_('clases'), c = buscarClase_(clases, codigo);
+  exigirDiaDeClase_(c, iso);
+  var sin = leerTabla_('sinClase');
+  if (sin.filas.some(function (s) { return texto_(s['Código clase']) === codigo && aISO_(s['Fecha']) === iso; }))
+    throw new ErrorUsuario_('La clase ' + codigo + ' del ' + fechaCorta_(iso) + ' está marcada «No hubo clase».');
+  var ins = leerTabla_('inscripciones'), pruebas = leerTabla_('pruebas'), asis = leerTabla_('asistencia');
+  var L = armarLista_(codigo, iso, ins, pruebas, asis);
+  var esperados = {};
+  L.lista.forEach(function (x) { esperados[x.idNino] = x; });
+  var marcas = Object.prototype.toString.call(datos.marcas) === '[object Array]' ? datos.marcas : [];
+  var fuera = Object.prototype.toString.call(datos.fueraDeLista) === '[object Array]' ? datos.fueraDeLista : [];
+  if (!marcas.length && !fuera.length) throw new ErrorUsuario_('La lista está vacía: marca al menos un niño.');
+  var estadoDe = function (v) {
+    var e = enLista_(v, ESTADOS_ASIS);
+    if (!e) throw new ErrorUsuario_('Estado de asistencia inválido: «' + texto_(v) + '».');
+    return e;
+  };
+  var vistos = {};
+  var plan = marcas.map(function (m) {
+    var id = texto_(m && m.idNino), e = esperados[id];
+    if (!e) throw new ErrorUsuario_('El niño ' + (id || '(sin ID)') + ' no está en la lista de ' + codigo + ' del ' + fechaCorta_(iso) + '.');
+    if (vistos[id]) throw new ErrorUsuario_('El niño ' + id + ' viene dos veces en la lista.');
+    vistos[id] = true;
+    return { e: e, estado: estadoDe(m.estado), nota: texto_(m.nota) };
+  });
+  var planFuera = fuera.map(function (x) {
+    var a = null;
+    if (texto_(x && x.idAsistencia)) {
+      a = L.fuera.filter(function (f) { return texto_(f['ID asistencia']) === texto_(x.idAsistencia); })[0];
+      if (!a) throw new ErrorUsuario_('La asistencia ' + texto_(x.idAsistencia) + ' no es de esta lista.');
+    } else if (!texto_(x && x.nombre)) throw new ErrorUsuario_('Escribe el nombre del niño que no está en la lista.');
+    return { a: a, nombre: texto_(x.nombre), estado: estadoDe(x.estado), nota: texto_(x.nota) };
+  });
+
+  // Todo validado: ahora se escribe.
+  var ahora = ahora_(), fecha = fechaDeTexto_(iso), sig = siguienteId_(asis.filas, 'ID asistencia', PREFIJO.asistencia);
+  var nuevas = [], hist = [], corregidas = 0, visitasMarcadas = 0;
+  var fila = function (o) {
+    return { 'ID asistencia': sig(), 'Fecha': fecha, 'Código clase': codigo, 'ID niño': o.idNino || '', 'Presencia': o.presencia,
+             'ID visita': o.idVisita || '', 'Estado': o.estado, 'Nombre fuera de lista': o.nombre || '', 'Marcado por': usuario,
+             'Hora': ahora, 'Nota': o.nota, 'Resolución': '' };
+  };
+  var actualizar = function (a, estado, nota, quien, extra) {
+    if (texto_(a['Estado']) === estado && texto_(a['Nota']) === nota && !extra) return;
+    var antes = texto_(a['Estado']), cambios = { 'Estado': estado, 'Nota': nota, 'Marcado por': usuario, 'Hora': ahora };
+    Object.keys(extra || {}).forEach(function (k) { cambios[k] = extra[k]; });
+    ponerCeldas_(asis, a, cambios);
+    if (antes !== estado) {
+      corregidas++;
+      hist.push(['Corregir asistencia', texto_(a['ID asistencia']), quien + ' · ' + codigo + ' · ' + fechaCorta_(iso) + ' · ' + antes + ' → ' + estado]);
+    }
+  };
+  plan.forEach(function (p) {
+    var a = L.marcas[p.e.idNino];
+    if (a) actualizar(a, p.estado, p.nota, p.e.idNino);
+    else nuevas.push(fila({ idNino: p.e.idNino, presencia: p.e.presencia, idVisita: p.e.idVisita, estado: p.estado, nota: p.nota }));
+    var v = p.e.visita;
+    if (!v) return;
+    var est = texto_(v['Estado']), porLista = texto_(v['Resultado por lista']) === SI;
+    if (est !== ESTADO_PRUEBA.agendada && !(porLista && est !== ESTADO_PRUEBA.cancelada)) return;   // la puso una persona
+    var nuevo = (p.estado === ESTADO_ASIS.presente || p.estado === ESTADO_ASIS.tarde) ? ESTADO_PRUEBA.asistio : ESTADO_PRUEBA.noAsistio;
+    if (nuevo === est && porLista) return;
+    ponerCeldas_(pruebas, v, { 'Estado': nuevo, 'Resultado por lista': SI });
+    visitasMarcadas++;
+    hist.push(['Resultado por lista', texto_(v['ID prueba']), p.e.idNino + ' · ' + codigo + ' · ' + fechaCorta_(iso) + ' · ' + nuevo]);
+  });
+  planFuera.forEach(function (p) {
+    if (p.a) actualizar(p.a, p.estado, p.nota, 'fuera de lista', p.nombre && p.nombre !== texto_(p.a['Nombre fuera de lista']) ? { 'Nombre fuera de lista': p.nombre } : null);
+    else nuevas.push(fila({ presencia: PRESENCIA.fuera, nombre: p.nombre, estado: p.estado, nota: p.nota }));
+  });
+  agregarFilas_(asis, 'asistencia', nuevas);
+  hist.unshift(['Pasar lista', codigo, fechaCorta_(iso) + ' · ' + nuevas.length + ' nuevas · ' + corregidas + ' corregidas' +
+    (visitasMarcadas ? ' · ' + visitasMarcadas + ' visita(s) marcadas' : '')]);
+  historialVarios_(usuario, hist);
+  return { fecha: iso, codigo: codigo, nuevas: nuevas.length, corregidas: corregidas, visitasMarcadas: visitasMarcadas };
+}
+
+/** «No hubo clase» (feriado…): la clase de ese día no se avisa como «sin lista». Queda en Historial. */
+function accNoHuboClase_(datos, usuario) {
+  var iso = Utilities.formatDate(exigirFecha_(datos.fecha, 'la fecha'), zona_(), 'yyyy-MM-dd');
+  if (iso > hoyISO_()) throw new ErrorUsuario_('No se marca «No hubo clase» en un día que todavía no llega.');
+  var codigo = texto_(datos.codigo), c = buscarClase_(leerTabla_('clases'), codigo);
+  exigirDiaDeClase_(c, iso);
+  if (leerTabla_('asistencia').filas.some(function (a) { return texto_(a['Código clase']) === codigo && aISO_(a['Fecha']) === iso; }))
+    throw new ErrorUsuario_('La clase ' + codigo + ' del ' + fechaCorta_(iso) + ' ya tiene lista guardada.');
+  var sin = leerTabla_('sinClase');
+  if (sin.filas.some(function (s) { return texto_(s['Código clase']) === codigo && aISO_(s['Fecha']) === iso; }))
+    return { fecha: iso, codigo: codigo, sinCambios: true };
+  agregarFilas_(sin, 'sinClase', [{ 'Fecha': fechaDeTexto_(iso), 'Código clase': codigo, 'Nota': texto_(datos.nota),
+    'Registrado por': usuario, 'Fecha registro': ahora_() }]);
+  historial_(usuario, 'No hubo clase', codigo, fechaCorta_(iso) + (texto_(datos.nota) ? ' · ' + texto_(datos.nota) : ''));
+  return { fecha: iso, codigo: codigo };
+}
+
+/**
+ * Un niño «fuera de lista» (el profesor escribió el nombre): la coordinación
+ * lo vincula a un niño existente, lo crea (como Eventual: vino un día sin
+ * matrícula) o lo descarta. Una sola vez.
+ */
+function accResolverFueraDeLista_(datos, usuario) {
+  var asis = leerTabla_('asistencia'), a = buscarAsistencia_(asis, datos.idAsistencia);
+  var idA = texto_(a['ID asistencia']), iso = aISO_(a['Fecha']), codigo = texto_(a['Código clase']);
+  if (texto_(a['Presencia']) !== PRESENCIA.fuera) throw new ErrorUsuario_(idA + ' no es un niño fuera de lista.');
+  if (texto_(a['Resolución'])) throw new ErrorUsuario_(idA + ' ya está resuelto (' + texto_(a['Resolución']) + ').');
+  var ninos = leerTabla_('ninos'), hist = [], idNino = '', cambios;
+  var accion = texto_(datos.resolucion);
+  if (accion === 'vincular') {
+    var n = buscarNino_(ninos, datos.idNino);
+    idNino = texto_(n['ID']);
+    if (asis.filas.some(function (x) { return x !== a && texto_(x['ID niño']) === idNino && texto_(x['Código clase']) === codigo && aISO_(x['Fecha']) === iso; }))
+      throw new ErrorUsuario_(nombreDe_(n) + ' ya tiene asistencia en ' + codigo + ' el ' + fechaCorta_(iso) + '.');
+    cambios = { 'ID niño': idNino, 'Resolución': RESOLUCION.vinculado };
+  } else if (accion === 'crear') {
+    var valores = valoresNinoVisita_(datos, leerConfig_(), ninos);
+    idNino = agregarNino_(ninos, valores, ESTADO.eventual);
+    hist.push(['Crear eventual', idNino, nombreDe_(valores) + ' · desde ' + idA]);
+    cambios = { 'ID niño': idNino, 'Resolución': RESOLUCION.creado };
+  } else if (accion === 'descartar') {
+    cambios = { 'Resolución': RESOLUCION.descartado };
+  } else throw new ErrorUsuario_('La resolución tiene que ser vincular, crear o descartar.');
+  ponerCeldas_(asis, a, cambios);
+  hist.push(['Fuera de lista: ' + cambios['Resolución'].toLowerCase(), idA, '«' + texto_(a['Nombre fuera de lista']) + '» · ' + codigo + ' · ' +
+    fechaCorta_(iso) + (idNino ? ' · ' + idNino : '')]);
+  historialVarios_(usuario, hist);
+  return { id: idA, idNino: idNino };
+}
+
+/** 'HH:mm' + minutos → 'HH:mm' (sin pasar de 23:59). */
+function sumarMinutos_(hhmm, min) {
+  var m = /^(\d{2}):(\d{2})$/.exec(hhmm);
+  if (!m) return '23:59';
+  var t = Math.min(+m[1] * 60 + +m[2] + min, 23 * 60 + 59);
+  return ('0' + Math.floor(t / 60)).slice(-2) + ':' + ('0' + (t % 60)).slice(-2);
+}
+
+/**
+ * Seguimiento para la coordinación:
+ *   · faltasSeguidas: niños Activos cuya racha actual de Ausente llega al
+ *     umbral de Config. Por niño, todas sus clases en orden de fecha y hora;
+ *     Presente o Llegó tarde cortan la racha; Falta justificada se salta.
+ *   · faltasPorReponer: Ausente y Falta justificada de clase fija, de niños
+ *     Activos, de los últimos N días (Config), sin reposición en pie.
+ *   · clasesSinLista: desde «Asistencia desde» (Config), clases activas que
+ *     ya terminaron (hora + duración de Config), con niños ese día, sin
+ *     ninguna asistencia guardada y sin «No hubo clase».
+ *   · fueraDeLista: los «fuera de lista» sin resolver.
+ */
+function accSeguimiento_() {
+  var cfg = leerConfig_(), hoy = hoyISO_();
+  var ninos = leerTabla_('ninos'), clases = leerTabla_('clases'), ins = leerTabla_('inscripciones');
+  var pruebas = leerTabla_('pruebas'), asis = leerTabla_('asistencia'), sin = leerTabla_('sinClase');
+  var porId = {}, clase = {};
+  ninos.filas.forEach(function (n) { porId[texto_(n['ID'])] = n; });
+  clases.filas.forEach(function (c) { clase[texto_(c['Código clase'])] = c; });
+  var activo = function (id) { return porId[id] && texto_(porId[id]['Estado']) === ESTADO.activo; };
+  var servicio = function (codigo) { return clase[codigo] ? texto_(clase[codigo]['Servicio']) : ''; };
+  var hora = function (codigo) { return clase[codigo] ? aHora_(clase[codigo]['Hora inicio']) : ''; };
+  var repuestas = faltasRepuestas_(pruebas);
+  var filas = asis.filas.map(function (a) {
+    return { id: texto_(a['ID asistencia']), fecha: aISO_(a['Fecha']), codigo: texto_(a['Código clase']), idNino: texto_(a['ID niño']),
+             presencia: texto_(a['Presencia']), estado: texto_(a['Estado']), nota: texto_(a['Nota']),
+             nombreFuera: texto_(a['Nombre fuera de lista']), resolucion: texto_(a['Resolución']) };
+  });
+
+  var porNino = {};
+  filas.forEach(function (x) { if (x.idNino) (porNino[x.idNino] = porNino[x.idNino] || []).push(x); });
+  var umbral = cfg.faltasSeguidas || 2, faltasSeguidas = [];
+  Object.keys(porNino).forEach(function (id) {
+    if (!activo(id)) return;
+    var racha = [];
+    porNino[id].sort(function (a, b) { return (a.fecha + hora(a.codigo)).localeCompare(b.fecha + hora(b.codigo)); }).forEach(function (x) {
+      if (x.estado === ESTADO_ASIS.ausente) racha.push(x);
+      else if (x.estado === ESTADO_ASIS.presente || x.estado === ESTADO_ASIS.tarde) racha = [];
+      // Falta justificada: se salta (ni cuenta ni corta).
+    });
+    if (racha.length >= umbral) faltasSeguidas.push({ idNino: id, nombre: nombreDe_(porId[id]), cuantas: racha.length,
+      desde: racha[0].fecha, hasta: racha[racha.length - 1].fecha,
+      clases: racha.map(function (x) { return x.codigo; }).filter(function (c, i, l) { return l.indexOf(c) === i; }) });
+  });
+  faltasSeguidas.sort(function (a, b) { return b.cuantas - a.cuantas || a.nombre.localeCompare(b.nombre, 'es'); });
+
+  var desdeReponer = sumarDiasISO_(hoy, -(cfg.diasReponer || 30));
+  var faltasPorReponer = filas.filter(function (x) {
+    return x.idNino && x.presencia === PRESENCIA.inscrito && FALTAS.indexOf(x.estado) >= 0 && x.fecha >= desdeReponer &&
+      !repuestas[x.id] && activo(x.idNino);
+  }).map(function (x) {
+    return { idAsistencia: x.id, idNino: x.idNino, nombre: nombreDe_(porId[x.idNino]), fecha: x.fecha, codigo: x.codigo,
+             servicio: servicio(x.codigo), estado: x.estado };
+  }).sort(function (a, b) { return b.fecha.localeCompare(a.fecha) || a.nombre.localeCompare(b.nombre, 'es'); });
+
+  var clasesSinLista = [];
+  if (cfg.asistenciaDesde && cfg.asistenciaDesde <= hoy) {
+    var hecha = {};
+    filas.forEach(function (x) { hecha[x.codigo + '|' + x.fecha] = true; });
+    sin.filas.forEach(function (s) { hecha[texto_(s['Código clase']) + '|' + aISO_(s['Fecha'])] = true; });
+    var fechas = [];
+    for (var d = cfg.asistenciaDesde; d <= hoy; d = sumarDiasISO_(d, 1)) fechas.push(d);
+    var ocup = ocupacionFechas_(fechas, clases, ins, pruebas), ahoraHM = horaAhora_(), dur = cfg.duracionClase || 60;
+    fechas.forEach(function (d) {
+      Object.keys(ocup[d]).forEach(function (codigo) {
+        var o = ocup[d][codigo];
+        if (hecha[codigo + '|' + d] || o.i + o.v === 0) return;
+        if (d === hoy && ahoraHM < sumarMinutos_(hora(codigo), dur)) return;   // todavía no termina
+        clasesSinLista.push({ fecha: d, codigo: codigo, servicio: servicio(codigo), hora: hora(codigo) });
+      });
+    });
+    clasesSinLista.sort(function (a, b) { return (b.fecha + a.hora).localeCompare(a.fecha + b.hora); });
+  }
+
+  var fueraDeLista = filas.filter(function (x) { return x.presencia === PRESENCIA.fuera && !x.resolucion; }).map(function (x) {
+    return { idAsistencia: x.id, fecha: x.fecha, codigo: x.codigo, servicio: servicio(x.codigo), nombre: x.nombreFuera, estado: x.estado, nota: x.nota };
+  });
+  return { hoy: hoy, umbral: umbral, diasReponer: cfg.diasReponer || 30, faltasSeguidas: faltasSeguidas,
+           faltasPorReponer: faltasPorReponer, clasesSinLista: clasesSinLista, fueraDeLista: fueraDeLista };
+}
+
+/** La asistencia de un niño (para su ficha y para elegir la falta que se repone). Sin plazo. */
+function accAsistenciaNino_(datos) {
+  var n = buscarNino_(leerTabla_('ninos'), datos.idNino), id = texto_(n['ID']);
+  var clases = leerTabla_('clases'), clase = {};
+  clases.filas.forEach(function (c) { clase[texto_(c['Código clase'])] = c; });
+  var repuestas = faltasRepuestas_(leerTabla_('pruebas')), activo = texto_(n['Estado']) === ESTADO.activo;
+  var lista = leerTabla_('asistencia').filas.filter(function (a) { return texto_(a['ID niño']) === id; }).map(function (a) {
+    var codigo = texto_(a['Código clase']), idA = texto_(a['ID asistencia']), estado = texto_(a['Estado']), presencia = texto_(a['Presencia']);
+    return { id: idA, fecha: aISO_(a['Fecha']), codigo: codigo, servicio: clase[codigo] ? texto_(clase[codigo]['Servicio']) : '',
+             presencia: presencia, idVisita: texto_(a['ID visita']), estado: estado, nota: texto_(a['Nota']),
+             repuestaCon: repuestas[idA] || '',
+             reponible: activo && presencia === PRESENCIA.inscrito && FALTAS.indexOf(estado) >= 0 && !repuestas[idA] };
+  }).sort(function (a, b) { return b.fecha.localeCompare(a.fecha) || a.codigo.localeCompare(b.codigo); });
+  return { idNino: id, asistencias: lista };
 }

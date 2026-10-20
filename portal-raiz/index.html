@@ -256,6 +256,7 @@
     { nombre: "Kínder",       url: "/kinder/", area: "kinder",      color: "var(--azul)",    icono: "kinder" },
     { nombre: "Veranito",     url: "/veranito/", area: "veranito", color: "var(--naranja)", icono: "sol" },
     { nombre: "After School", url: "/after-school/", area: "afterschool", color: "var(--rojo)",    icono: "mochila" },
+    { nombre: "Pasar lista",  url: "/pasar-lista/", area: "pasarlista",  color: "var(--rojo)",    icono: "lista" },
     { nombre: "Cumpleaños",   url: "", area: "cumpleanos",  color: "var(--morado)",  icono: "torta" },
     { nombre: "Baby and Me",  url: "", area: "babyandme",   color: "var(--verde)",   icono: "corazon" },
     { nombre: "Base de Datos VEA", url: "/basededatos/", area: "basededatos", color: "var(--azul-marca)", icono: "datos" },
@@ -269,6 +270,7 @@
     "Base de Datos VEA": "Fuente única de clientes de todas las unidades.",
     "Sistema Operativo": "Procesos, plantillas y herramientas del sistema Actio.",
     "Configuración": "Usuarios del portal y sus roles.",
+    "Pasar lista": "Asistencia de las clases de hoy de After School.",
   };
 
   const ICONOS = {
@@ -278,6 +280,7 @@
     torta:   '<path d="M4 21V13a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8"/><path d="M4 16c1.3 1 2.7 1 4 0s2.7-1 4 0 2.7 1 4 0 2.7-1 4 0"/><path d="M2 21h20M12 11V8"/><path d="M12 5.5c.8 0 1.2-.7 1.2-1.3 0-.8-1.2-2.2-1.2-2.2s-1.2 1.4-1.2 2.2c0 .6.4 1.3 1.2 1.3z"/>',
     sistema: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/>',
     datos:   '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+    lista:   '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 11l1.5 1.5L13 10M9 16l1.5 1.5L13 15"/>',
     engranaje: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
     corazon: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/>'
   };

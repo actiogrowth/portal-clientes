@@ -180,6 +180,12 @@ dialog.ancho{width:min(820px,calc(100vw - 32px))}
 
 /* Pruebas e inscripción múltiple */
 .chip.Prospecto{background:var(--vea-celeste);color:var(--negro)}
+.chip.Eventual{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
+.chip.tv-prueba{background:var(--vea-celeste);color:var(--negro)}
+.chip.tv-reposicion{background:var(--pos-fondo);color:var(--verde-texto)}
+.chip.tv-eventual{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
+.seg-fila{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--linea)}
+.seg-fila:last-child{border-bottom:0}
 .chip.pr-ag{background:var(--vea-celeste);color:var(--negro)}
 .chip.pr-si{background:var(--pos-fondo);color:var(--verde-texto)}
 .chip.pr-no,.chip.pr-ca{background:var(--vea-gris);color:var(--gris2)}
@@ -225,6 +231,7 @@ tr.cancelada td{color:var(--gris2)}
       <span id="quien"></span>
       <button class="btn sec chico" id="btnActualizar" type="button">Actualizar</button>
       <a href="/">Portal</a>
+      <a href="/pasar-lista/" data-permiso="as.lista.marcar">Pasar lista</a>
       <a href="/cambiar-clave.php">Cambiar mi contraseña</a>
       <a href="/logout.php">Cerrar sesión</a>
     </div>
@@ -232,9 +239,10 @@ tr.cancelada td{color:var(--gris2)}
   <nav role="tablist" id="pestanas">
     <button role="tab" data-vista="ocupacion" data-permiso="as.ver" aria-selected="true">Ocupación</button>
     <button role="tab" data-vista="registrar" data-permiso="as.completo" aria-selected="false">Registrar</button>
-    <button role="tab" data-vista="pruebas" data-permiso="as.pruebas.ver" aria-selected="false">Pruebas <span class="insignia oculto" id="cuentaPruebas"></span></button>
+    <button role="tab" data-vista="pruebas" data-permiso="as.pruebas.ver" aria-selected="false">Visitas del día <span class="insignia oculto" id="cuentaPruebas"></span></button>
     <button role="tab" data-vista="pagos" data-permiso="as.pagos.ver" aria-selected="false">Pagos</button>
     <button role="tab" data-vista="revisar" data-permiso="as.completo" aria-selected="false">Por revisar <span class="insignia oculto" id="cuentaRevisar"></span></button>
+    <button role="tab" data-vista="seguimiento" data-permiso="as.seguimiento" aria-selected="false">Seguimiento <span class="insignia oculto" id="cuentaSeg"></span></button>
   </nav>
 </header>
 
@@ -257,7 +265,7 @@ tr.cancelada td{color:var(--gris2)}
       <span><i style="background:var(--amarillo-fondo);border-color:var(--amarillo-borde)"></i><span id="leyendaUmbral">Casi llena</span></span>
       <span><i style="background:var(--rojo);border-color:var(--rojo)"></i>LLENO</span>
       <span><i style="background:var(--fondo);border-color:var(--gris3)"></i>Inactiva</span>
-      <span>«18 + 2 prueba» = 18 inscritos y 2 en clase de prueba ese día</span>
+      <span>«18 + 3 visitas» = 18 inscritos y 3 visitas de un día (prueba, reposición o eventual); el detalle al tocar la celda</span>
       <span>Toca una celda para ver los niños</span>
     </div>
     <div class="grillas" id="grillas"></div>
@@ -283,8 +291,14 @@ tr.cancelada td{color:var(--gris2)}
   <section id="v-pruebas" class="vista oculto">
     <div class="dos">
       <div class="tarjeta" data-permiso="as.pruebas.agendar">
-        <h2>Agendar clase de prueba</h2>
+        <h2>Agendar visita del día</h2>
         <form id="formPrueba" autocomplete="off">
+          <div class="campo segmentado" role="radiogroup" aria-label="Tipo de visita">
+            <label><input type="radio" name="agVisita" value="Prueba" checked> Prueba</label>
+            <label data-permiso="as.visitas.agendar"><input type="radio" name="agVisita" value="Reposición"> Reposición</label>
+            <label data-permiso="as.visitas.agendar"><input type="radio" name="agVisita" value="Eventual"> Eventual</label>
+          </div>
+          <p class="ayuda" id="agVisitaAyuda" style="margin-bottom:8px"></p>
           <div class="campos">
             <div><label for="agServicio">Servicio *</label><select id="agServicio"></select></div>
             <div><label for="agFecha">Fecha *</label><input type="date" id="agFecha"></div>
@@ -293,7 +307,7 @@ tr.cancelada td{color:var(--gris2)}
           </div>
           <h3>El niño</h3>
           <div class="campo segmentado" role="radiogroup" aria-label="Niño">
-            <label><input type="radio" name="agTipo" value="nuevo" checked> Niño nuevo</label>
+            <label id="agTipoNuevo"><input type="radio" name="agTipo" value="nuevo" checked> Niño nuevo</label>
             <label><input type="radio" name="agTipo" value="existente"> Ya está en la base</label>
           </div>
           <div id="agExistente" class="oculto">
@@ -301,6 +315,8 @@ tr.cancelada td{color:var(--gris2)}
               <input type="text" id="agNino" list="listaNinosTodos" placeholder="Escribe el nombre o el ID">
               <datalist id="listaNinosTodos"></datalist>
               <p class="ayuda" id="agNinoInfo"></p></div>
+            <div class="campo oculto" id="agFaltaCaja"><label for="agFalta">Falta que repone *</label>
+              <select id="agFalta"></select><p class="ayuda" id="agFaltaAyuda"></p></div>
           </div>
           <div id="agNuevo">
             <div class="campos">
@@ -319,13 +335,18 @@ tr.cancelada td{color:var(--gris2)}
               <div class="ancho"><span class="etiqueta">Interés en otros servicios de VEA</span><div class="casillas" id="ag_interes"></div></div>
             </div>
           </div>
+          <div class="campos oculto" id="agPagoCaja">
+            <div><label for="agPago">¿Pagó?</label>
+              <select id="agPago"><option value="">— sin registrar —</option><option>Sí</option><option>No</option></select></div>
+            <div id="agMontoCaja" class="oculto"><label for="agMonto">Monto pagado (USD) *</label><input type="text" id="agMonto" inputmode="decimal" placeholder="0.00"></div>
+          </div>
           <div id="agError"></div>
-          <div class="acciones"><button class="btn" type="submit">Agendar prueba</button></div>
+          <div class="acciones"><button class="btn" type="submit" id="agBoton">Agendar prueba</button></div>
         </form>
       </div>
       <div>
-        <div class="tarjeta" id="prPendientesCaja"><h2>Pendientes de resultado</h2><p class="ayuda">Pruebas que ya pasaron y siguen «Agendada».</p><div id="prPendientes"></div></div>
-        <div class="tarjeta"><h2>Hoy y próximas</h2><div id="prProximas"></div></div>
+        <div class="tarjeta" id="prPendientesCaja"><h2>Pendientes de resultado</h2><p class="ayuda">Visitas que ya pasaron y siguen «Agendada».</p><div id="prPendientes"></div></div>
+        <div class="tarjeta"><h2>Visitas de hoy y próximas</h2><div id="prProximas"></div></div>
         <div class="tarjeta"><h2>Últimos 30 días, con resultado</h2><div id="prPasadas"></div></div>
       </div>
     </div>
@@ -377,6 +398,20 @@ tr.cancelada td{color:var(--gris2)}
       <p class="ayuda">Niños que vinieron de Poliwin con algo que confirmar. Al marcarlos «Activo» siguen igual; «Retirado» pide fecha y motivo y cierra sus clases.</p>
     </div>
     <div class="tarjetas" id="listaRevisar"></div>
+    <div class="tarjeta" id="fueraCaja" data-permiso="as.seguimiento" style="margin-top:14px">
+      <h2>Niños fuera de lista</h2>
+      <p class="ayuda">Niños que un profesor anotó a mano al pasar lista. La coordinación los vincula a un niño de la base, los crea (quedan Eventual) o los descarta.</p>
+      <div id="listaFuera"></div>
+    </div>
+  </section>
+
+  <!-- VISTA · SEGUIMIENTO (21-oct) -->
+  <section id="v-seguimiento" class="vista oculto">
+    <div class="tarjeta"><h2>Clases sin lista</h2><p class="ayuda">Clases que ya terminaron, con niños, sin ninguna asistencia guardada.</p><div id="segSinLista"></div></div>
+    <div class="dos">
+      <div class="tarjeta"><h2>Faltas seguidas</h2><p class="ayuda" id="segSeguidasAyuda"></p><div id="segSeguidas"></div></div>
+      <div class="tarjeta"><h2>Faltas por reponer</h2><p class="ayuda" id="segReponerAyuda"></p><div id="segReponer"></div></div>
+    </div>
   </section>
 </main>
 
@@ -438,11 +473,11 @@ tr.cancelada td{color:var(--gris2)}
     <div class="dlg-cuerpo">
       <div class="campo segmentado" role="radiogroup" aria-label="Resultado" id="drEstado"></div>
       <p class="ayuda" id="drEstadoAyuda"></p>
-      <div class="campo"><label for="drSe">¿Se inscribió?</label>
+      <div class="campo" id="drSeCaja"><label for="drSe">¿Se inscribió?</label>
         <select id="drSe"><option value="">— todavía no se sabe —</option><option>Sí</option><option>No</option></select></div>
       <div class="campo oculto" id="drMotivoCaja"><label for="drMotivo">Motivo de no inscripción *</label><select id="drMotivo"></select></div>
-      <div class="campos">
-        <div><label for="drPago">¿Pagó la clase de prueba?</label>
+      <div class="campos" id="drPagoCampos">
+        <div><label for="drPago">¿Pagó la visita?</label>
           <select id="drPago"><option value="">— sin registrar —</option><option>Sí</option><option>No</option></select></div>
         <div id="drMontoCaja" class="oculto"><label for="drMonto">Monto pagado (USD) *</label><input type="text" id="drMonto" inputmode="decimal" placeholder="0.00"></div>
       </div>
@@ -450,6 +485,25 @@ tr.cancelada td{color:var(--gris2)}
       <div id="drError"></div>
     </div>
     <div class="dlg-pie"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Guardar resultado</button></div>
+  </form>
+</dialog>
+
+<!-- Diálogo: crear el niño de un «fuera de lista» -->
+<dialog id="dlgFuera">
+  <form method="dialog" id="formFuera">
+    <div class="dlg-cab"><div><h2>Crear el niño</h2><p class="ayuda" id="dfSub"></p></div><button class="cerrar" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo">
+      <p class="ayuda" style="margin-bottom:10px">Se crea como <b>Eventual</b> (vino un día sin matrícula), con los mismos datos que una prueba.</p>
+      <div class="campos">
+        <div><label for="df_nombre">Nombre *</label><input type="text" id="df_nombre"></div>
+        <div><label for="df_apellidos">Apellidos *</label><input type="text" id="df_apellidos"></div>
+        <div><label for="df_nacimiento">Fecha de nacimiento *</label><input type="date" id="df_nacimiento"></div>
+        <div><label for="df_responsable">Nombre del responsable *</label><input type="text" id="df_responsable"></div>
+        <div><label for="df_telefono">Teléfono *</label><input type="tel" id="df_telefono"></div>
+      </div>
+      <div id="dfError"></div>
+    </div>
+    <div class="dlg-pie"><button class="btn sec" type="button" data-cerrar>Cancelar</button><button class="btn" type="submit">Crear y vincular</button></div>
   </form>
 </dialog>
 
@@ -511,7 +565,10 @@ const PERMISO_BOTON = {
   'data-ficha': 'as.completo', 'data-mover': 'as.completo', 'data-baja': 'as.completo',
   'data-quitar-nota': 'as.completo', 'data-resultado': 'as.completo', 'data-inscribir': 'as.completo',
   'data-activo': 'as.completo', 'data-retirado': 'as.completo',
-  'data-pago': 'as.pruebas.pago', 'data-cobrar': 'as.pagos.registrar'
+  'data-pago': 'as.pruebas.pago', 'data-cobrar': 'as.pagos.registrar',
+  // 21-oct
+  'data-reponer': 'as.visitas.agendar', 'data-nohubo': 'as.lista.corregir', 'data-pasarlista': 'as.lista.corregir',
+  'data-resolver': 'as.lista.corregir'
 };
 function podar(raiz) {
   if (!PERM) return;
@@ -560,8 +617,9 @@ function indexar() {
   E.clases.forEach(c => { clases[c.codigo] = c; });
   E.inscripciones.forEach(i => { meter(insNino, i.idNino, i); meter(insClase, i.codigo, i); });
   (E.inscripcionesCerradas || []).forEach(i => meter(cerradasClase, i.codigo, i));
-  (E.pruebas || []).forEach(p => { meter(pruebasClase, p.codigo, p); meter(pruebasNino, p.idNino, p); });
-  IDX = { ninos, clases, insNino, insClase, cerradasClase, pruebasClase, pruebasNino };
+  const pruebas = {};
+  (E.pruebas || []).forEach(p => { meter(pruebasClase, p.codigo, p); meter(pruebasNino, p.idNino, p); pruebas[p.id] = p; });
+  IDX = { ninos, clases, insNino, insClase, cerradasClase, pruebasClase, pruebasNino, pruebas };
 }
 const etiquetaClase = c => c ? c.servicio + ' · ' + c.dia + ' ' + c.hora : '';
 
@@ -575,25 +633,60 @@ function lunesDe(iso) { const d = aFecha(iso); d.setDate(d.getDate() - (d.getDay
 const diaDeIso = iso => E.dias[(aFecha(iso).getDay() + 6) % 7];
 const fechaCorta = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
 
-/* Ocupación de una clase en una fecha: inscripciones activas ese día (alta
-   ≤ día y sin baja, o baja posterior) + pruebas que ocupan cupo ese día. Es
-   la misma regla que aplica el servidor (ocupacionEn_ en AfterSchool.gs). */
+/* Ocupación de una clase en una fecha. LA CALCULA EL SERVIDOR (21-oct):
+   leer() trae E.ocupacion (dos semanas atrás, seis adelante y toda fecha
+   futura con visitas); otras semanas se piden con la acción «ocupacion» y
+   quedan en OCUP_EXTRA. Aquí solo se lee. Una fecha futura fuera de la
+   ventana no tiene visitas (leer trae todas las que hay) y sus inscritos son
+   los de hoy (no hay altas ni bajas futuras).
+   Devuelve { i, p (visitas), t, tipos, ninos, visitas } o null si hay que pedirla. */
+let OCUP_EXTRA = {};
 function ocupacion(c, iso, excluirNino) {
-  const i = (IDX.insClase[c.codigo] || []).filter(x => !x.alta || x.alta <= iso).length +
-            (IDX.cerradasClase[c.codigo] || []).filter(x => (!x.alta || x.alta <= iso) && x.baja > iso).length;
-  const p = (IDX.pruebasClase[c.codigo] || []).filter(x => x.fecha === iso && E.pruebaOcupa.includes(x.estado) && x.idNino !== excluirNino).length;
-  return { i, p, t: i + p };
+  const dia = (E.ocupacion && E.ocupacion[iso]) || OCUP_EXTRA[iso];
+  let d = dia ? dia[c.codigo] : undefined;
+  if (!dia) {
+    if (iso <= E.hoy) return null;
+    const ins = IDX.insClase[c.codigo] || [];
+    d = { i: ins.length, v: 0, tipos: {}, ninos: ins.map(x => x.idNino), visitas: [] };
+  }
+  if (!d) d = { i: 0, v: 0, tipos: {}, ninos: [], visitas: [] };   // inactiva u otro día
+  let v = d.v;
+  if (excluirNino) v -= d.visitas.filter(id => IDX.pruebas[id] && IDX.pruebas[id].idNino === excluirNino).length;
+  return { i: d.i, p: v, t: d.i + v, tipos: d.tipos || {}, ninos: d.ninos || [], visitas: d.visitas || [] };
+}
+const ocupacion0 = (c, iso, ex) => ocupacion(c, iso, ex) || { i: 0, p: 0, t: 0, tipos: {}, ninos: [], visitas: [] };
+const TIPO_PLURAL = { 'Prueba': ['prueba', 'pruebas'], 'Reposición': ['reposición', 'reposiciones'], 'Eventual': ['eventual', 'eventuales'] };
+const detalleTipos = tipos => Object.keys(tipos || {}).map(t => tipos[t] + ' ' + (TIPO_PLURAL[t] ? TIPO_PLURAL[t][tipos[t] === 1 ? 0 : 1] : t)).join(', ');
+const textoVisitas = n => n + (n === 1 ? ' visita' : ' visitas');
+
+/* Pide al servidor la ocupación de una semana que no vino en leer(). */
+let pidiendoSemana = '';
+async function asegurarSemana(desde, hasta) {
+  if (pidiendoSemana === desde) return;
+  pidiendoSemana = desde;
+  try {
+    const r = await api('ocupacion', { desde, hasta });
+    Object.assign(OCUP_EXTRA, r.resultado.ocupacion || {});
+  } catch (e) {
+    // Sin repintar: volvería a pedirla sin fin.
+    pidiendoSemana = '';
+    $('#grillas').innerHTML = '<div class="tarjeta"><div class="aviso mal">No se pudo leer la ocupación de esa semana: ' + esc(e.message) +
+      '</div><button class="btn sec" id="ocReintentar" type="button">Reintentar</button></div>';
+    $('#ocReintentar').onclick = pintarOcupacion;
+    return;
+  }
+  pidiendoSemana = '';
+  pintarOcupacion();
 }
 
 /* Por qué no se puede inscribir de forma fija a idNino en la clase c (''
-   si se puede). Espeja exigirCupoFijo_ del servidor, que es el que manda. */
+   si se puede). Usa la ocupación del servidor; el que manda es exigirCupoFijo_. */
 function motivoSinCupo(c, idNino) {
   if (!c.activa) return 'inactiva';
   if ((IDX.insNino[idNino] || []).some(i => i.codigo === c.codigo)) return 'ya inscrito';
   if ((IDX.insClase[c.codigo] || []).length >= c.cupo) return 'LLENA';
-  const fechas = [...new Set((IDX.pruebasClase[c.codigo] || [])
-    .filter(p => p.fecha >= E.hoy && E.pruebaOcupa.includes(p.estado) && p.idNino !== idNino).map(p => p.fecha))].sort();
-  for (const d of fechas) if (ocupacion(c, d, idNino).t + 1 > c.cupo) return 'sin cupo el ' + fechaCorta(d) + ' (pruebas)';
+  const fechas = Object.keys(E.ocupacion || {}).filter(d => d >= E.hoy && E.ocupacion[d][c.codigo] && E.ocupacion[d][c.codigo].v > 0).sort();
+  for (const d of fechas) if (ocupacion0(c, d, idNino).t + 1 > c.cupo) return 'sin cupo el ' + fechaCorta(d) + ' (visitas)';
   return '';
 }
 
@@ -643,12 +736,14 @@ function aplicar(estado) {
     return;
   }
   E = estado;
+  OCUP_EXTRA = {};
   indexar();
   $('#pantalla').classList.add('oculto');
   $('#quien').textContent = E.usuario ? 'Entraste como ' + E.usuario : '';
   pintarAvisos();
   pintarTodo();
   mostrarVista(vista);
+  cargarSeguimiento();   // aparte: no demora la pantalla
 }
 
 function pintarAvisos() {
@@ -673,6 +768,7 @@ function pintarTodo() {
   pintarPagos();
   pintarRevisar();
   pintarPruebas();
+  pintarSeguimiento();
   const nRev = E.ninos.filter(n => n.estado === 'Por revisar').length;
   const ins = $('#cuentaRevisar');
   ins.textContent = nRev; ins.classList.toggle('oculto', !nRev);
@@ -841,7 +937,7 @@ function semanaDe(iso) {
 }
 function suma(cl, semana) {
   const a = cl.filter(c => c.activa && semana[c.dia]);
-  const r = a.reduce((x, c) => x + ocupacion(c, semana[c.dia]).t, 0), k = a.reduce((x, c) => x + (c.cupo || 0), 0);
+  const r = a.reduce((x, c) => x + ocupacion0(c, semana[c.dia]).t, 0), k = a.reduce((x, c) => x + (c.cupo || 0), 0);
   return { r, k, p: k ? Math.round(r / k * 100) : 0 };
 }
 function datoHtml(et, s, principal) {
@@ -852,6 +948,13 @@ function datoHtml(et, s, principal) {
 function pintarOcupacion() {
   const ref = fechaOcup || E.hoy, semana = semanaDe(ref);
   const dias = E.dias.filter(d => E.clases.some(c => c.dia === d));
+  // Una semana pasada fuera de la ventana de leer(): se pide y se repinta.
+  const faltan = dias.filter(d => semana[d] <= E.hoy && !(E.ocupacion && E.ocupacion[semana[d]]) && !OCUP_EXTRA[semana[d]]);
+  if (faltan.length) {
+    $('#grillas').innerHTML = '<div class="tarjeta"><p class="ayuda">Leyendo la ocupación de esa semana…</p></div>';
+    asegurarSemana(semana[E.dias[0]], semana[E.dias[6]]);
+    return;
+  }
   $('#ocFecha').value = ref;
   $('#ocRango').textContent = dias.length ? 'Semana del ' + fecha(semana[dias[0]]) + ' al ' + fecha(semana[dias[dias.length - 1]]) : '';
   const servicios = [...new Set(E.clases.map(c => c.servicio))];
@@ -872,12 +975,12 @@ function pintarOcupacion() {
       dias.forEach(d => {
         const cs = cl.filter(c => c.dia === d && c.hora === hr), iso = semana[d];
         h += '<td>' + (cs.length ? cs.map(c => {
-          const o = ocupacion(c, iso), est = estadoCelda(c, o);
+          const o = ocupacion0(c, iso), est = estadoCelda(c, o);
           const txt = est === 'lleno' ? 'LLENO' : o.t + ' / ' + c.cupo;
-          const detalle = o.p ? o.i + ' + ' + o.p + (o.p === 1 ? ' prueba' : ' pruebas') : '';
+          const detalle = o.p ? o.i + ' + ' + textoVisitas(o.p) : '';
           const notas = iso <= E.hoy ? (IDX.insClase[c.codigo] || []).filter(i => i.nota && (!i.alta || i.alta <= iso)).length : 0;
           return '<button class="celda ' + est + '" data-clase="' + esc(c.codigo) + '" data-fecha="' + iso + '" type="button" aria-label="' +
-            esc(etiquetaClase(c) + ' ' + fecha(iso) + ': ' + o.t + ' de ' + c.cupo + (o.p ? ', ' + o.p + ' en prueba' : '')) + '">' +
+            esc(etiquetaClase(c) + ' ' + fecha(iso) + ': ' + o.t + ' de ' + c.cupo + (o.p ? ', ' + textoVisitas(o.p) + ' (' + detalleTipos(o.tipos) + ')' : '')) + '">' +
             '<span class="r num">' + txt + '</span>' +
             (est === 'lleno' ? '<span class="e num">' + o.t + ' / ' + c.cupo + '</span>' : '') +
             (detalle ? '<span class="pr num">' + detalle + '</span>' : '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span>') +
@@ -895,19 +998,22 @@ $('#ocAnt').onclick = () => { fechaOcup = sumarDias(fechaOcup || E.hoy, -7); pin
 $('#ocSig').onclick = () => { fechaOcup = sumarDias(fechaOcup || E.hoy, 7); pintarOcupacion(); };
 $('#ocHoy').onclick = () => { fechaOcup = null; pintarOcupacion(); };
 
-/* Los niños de una clase en una fecha: inscritos ese día y pruebas de ese día. */
+/* Los niños de una clase en una fecha: los inscritos ese día los dice el
+   servidor (ocupación); las visitas de ese día, todas (también las canceladas). */
 function abrirClase(codigo, iso) {
   const c = IDX.clases[codigo];
   if (!c) return;
   iso = iso || E.hoy;
-  const o = ocupacion(c, iso);
-  const ins = (IDX.insClase[codigo] || []).filter(i => !i.alta || i.alta <= iso).map(i => ({ i, n: IDX.ninos[i.idNino] })).filter(x => x.n)
+  const o = ocupacion0(c, iso);
+  const activa = id => (IDX.insNino[id] || []).find(i => i.codigo === codigo);
+  const ins = o.ninos.filter(id => activa(id) && IDX.ninos[id]).map(id => ({ i: activa(id), n: IDX.ninos[id] }))
     .sort((a, b) => nombre(a.n).localeCompare(nombre(b.n), 'es'));
-  const cerradas = (IDX.cerradasClase[codigo] || []).filter(i => (!i.alta || i.alta <= iso) && i.baja > iso)
-    .map(i => ({ i, n: IDX.ninos[i.idNino] })).filter(x => x.n);
+  const cerradas = o.ninos.filter(id => !activa(id) && IDX.ninos[id]).map(id => ({
+    i: (IDX.cerradasClase[codigo] || []).filter(x => x.idNino === id && x.baja > iso).sort((a, b) => a.baja.localeCompare(b.baja))[0] || { alta: '', baja: '' },
+    n: IDX.ninos[id] }));
   const pruebas = (IDX.pruebasClase[codigo] || []).filter(p => p.fecha === iso).map(p => ({ p, n: IDX.ninos[p.idNino] })).filter(x => x.n);
   $('#dcTit').textContent = etiquetaClase(c) + ' · ' + fecha(iso);
-  $('#dcSub').textContent = c.codigo + ' · ' + o.i + (o.i === 1 ? ' inscrito' : ' inscritos') + (o.p ? ' + ' + o.p + (o.p === 1 ? ' prueba' : ' pruebas') : '') +
+  $('#dcSub').textContent = c.codigo + ' · ' + o.i + (o.i === 1 ? ' inscrito' : ' inscritos') + (o.p ? ' + ' + textoVisitas(o.p) + ' (' + detalleTipos(o.tipos) + ')' : '') +
     ' de ' + c.cupo + ' cupos · ' + (c.edades || 'edades sin definir') + (c.activa ? '' : ' · INACTIVA');
   let html = '';
   if (ins.length || cerradas.length) {
@@ -923,9 +1029,9 @@ function abrirClase(codigo, iso) {
         '<td class="der"><button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button></td></tr>').join('') + '</tbody></table>';
   } else html += '<p class="ayuda">Nadie inscrito en esta clase ese día.</p>';
   if (pruebas.length) {
-    html += '<h3>Clases de prueba de ese día</h3><table class="datos"><tbody>' + pruebas.map(({ p, n }) =>
-      '<tr' + (E.pruebaOcupa.includes(p.estado) ? '' : ' class="cancelada"') + '><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + ' · ' + esc(edad(n)) + ' · ' + esc(n.telefono) + '</div></td>' +
-      '<td>' + chipPrueba(p.estado) + '</td><td class="der"><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button> ' +
+    html += '<h3>Visitas de ese día</h3><table class="datos"><tbody>' + pruebas.map(({ p, n }) =>
+      '<tr' + (E.pruebaOcupa.includes(p.estado) ? '' : ' class="cancelada"') + '><td><b>' + esc(nombre(n)) + '</b><div class="ayuda">' + esc(n.id) + ' · ' + esc(edad(n)) + (n.telefono ? ' · ' + esc(n.telefono) : '') + '</div></td>' +
+      '<td>' + chipTipo(p) + ' ' + chipPrueba(p.estado) + '</td><td class="der"><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button> ' +
       '<button class="btn sec chico" data-ficha="' + esc(n.id) + '" type="button">Ficha</button></td></tr>').join('') + '</tbody></table>';
   }
   $('#dcCuerpo').innerHTML = html;
@@ -1091,6 +1197,7 @@ function pintarFicha() {
         '<span><button class="btn sec chico" data-mover="' + esc(i.id) + '" type="button">Mover</button> <button class="btn peligro chico" data-baja="' + esc(i.id) + '" type="button">Baja de esta clase</button></span></div>';
     }).join('') : '<p class="ayuda">Sin clases activas.</p>') +
     pruebasDeNino(n) +
+    (puede('as.seguimiento') ? '<h3>Asistencia</h3><div id="fichaAsis"><p class="ayuda">Leyendo la asistencia…</p></div>' : '') +
     (retirado ? '<div class="aviso ojo" style="margin-top:10px">Retirado: para inscribirlo otra vez, reactívalo primero.</div><div class="acciones"><button class="btn" id="btnReactivar" type="button">Reactivar</button></div>'
       : '<h3>Inscribir en</h3>' + (n.estado === 'Prospecto' ? '<p class="ayuda">Es Prospecto: al inscribirlo pasa a Activo.</p>' : '') +
         casillasClases(n.id, fichaMarcar) +
@@ -1101,6 +1208,7 @@ function pintarFicha() {
     '<button class="btn" id="btnGuardar" type="button">Guardar cambios</button>' +
     (retirado ? '' : '<button class="btn peligro" id="btnBajaTotal" type="button">Dar de baja del todo</button>') + '</div></div>';
   enganchar(cont);
+  if (puede('as.seguimiento')) pintarAsistenciaFicha(n.id);
   const marcadas = () => [...cont.querySelectorAll('.lista-clases input:checked')].map(x => x.value);
   const rotular = () => { const k = marcadas().length; if ($('#btnInscribir')) $('#btnInscribir').textContent = k > 1 ? 'Inscribir en ' + k + ' clases' : 'Inscribir'; };
   cont.querySelectorAll('.lista-clases input').forEach(x => x.onchange = rotular);
@@ -1192,12 +1300,18 @@ $('#formMover').onsubmit = async ev => {
    ========================================================================== */
 const CLASE_PRUEBA = { 'Agendada': 'pr-ag', 'Asistió': 'pr-si', 'No asistió': 'pr-no', 'Cancelada': 'pr-ca' };
 const chipPrueba = e => '<span class="chip ' + (CLASE_PRUEBA[e] || 'pr-ca') + '">' + esc(e) + '</span>';
+/* 21-oct: visitas de un día: Prueba, Reposición, Eventual. */
+const CLASE_TIPO = { 'Prueba': 'tv-prueba', 'Reposición': 'tv-reposicion', 'Eventual': 'tv-eventual' };
+const tipoDe = p => p.tipo || 'Prueba';
+const chipTipo = p => '<span class="chip ' + (CLASE_TIPO[tipoDe(p)] || 'tv-prueba') + '">' + esc(tipoDe(p)) + '</span>' +
+  (p.porLista ? ' <span class="ayuda">(por la lista)</span>' : '');
+const seCobra = p => tipoDe(p) !== 'Reposición';
 const pruebasPendientes = () => (E.pruebas || []).filter(p => p.estado === 'Agendada' && p.fecha < E.hoy);
 
 /* Las pruebas de un niño, para su ficha. */
 /* El pago de una prueba en pocas palabras: «Pagó $25.50», «No pagó», o la
    etiqueta «Sin pago» si asistió y no hay pago registrado. */
-const sinPagoPrueba = p => p.estado === 'Asistió' && p.pago !== 'Sí';
+const sinPagoPrueba = p => seCobra(p) && p.estado === 'Asistió' && p.pago !== 'Sí';
 function pagoPruebaHtml(p) {
   if (p.pago === 'Sí') return '<span class="chip pagada">Pagó ' + esc(dinero(p.monto)) + '</span>';
   if (sinPagoPrueba(p)) return '<span class="chip sinpago">Sin pago</span>';
@@ -1208,12 +1322,12 @@ function pagoPruebaHtml(p) {
 function pruebasDeNino(n) {
   const l = (IDX.pruebasNino[n.id] || []).slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
   if (!l.length) return '';
-  return '<h3>Clases de prueba</h3>' + l.map(p => {
+  return '<h3>Visitas de un día</h3>' + l.map(p => {
     const c = IDX.clases[p.codigo];
-    return '<div class="fila-ins"><span><span class="chip clase">' + esc(c ? etiquetaClase(c) : p.codigo) + '</span> <span class="ayuda">' + fecha(p.fecha) + '</span> ' +
+    return '<div class="fila-ins"><span>' + chipTipo(p) + ' <span class="chip clase">' + esc(c ? etiquetaClase(c) : p.codigo) + '</span> <span class="ayuda">' + fecha(p.fecha) + '</span> ' +
       chipPrueba(p.estado) + ' ' + pagoPruebaHtml(p) +
       (p.seInscribio ? ' <span class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' (' + esc(p.motivo) + ')' : '') + '</span>' : '') + '</span>' +
-      '<span><button class="btn sec chico" data-pago="' + esc(p.id) + '" type="button">Pago</button> ' +
+      '<span>' + (seCobra(p) ? '<button class="btn sec chico" data-pago="' + esc(p.id) + '" type="button">Pago</button> ' : '') +
       '<button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button></span></div>';
   }).join('');
 }
@@ -1223,16 +1337,17 @@ function tablaPruebas(lista, vacio, resaltar) {
   return '<table class="datos"><thead><tr><th>Fecha</th><th>Clase</th><th>Niño</th><th>Estado</th><th></th></tr></thead><tbody>' + lista.map(p => {
     const c = IDX.clases[p.codigo], n = IDX.ninos[p.idNino];
     const yaInscrito = (IDX.insNino[p.idNino] || []).some(i => i.codigo === p.codigo);
-    const puedeInscribir = p.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado';
+    const puedeInscribir = (p.seInscribio === 'Sí' || (tipoDe(p) === 'Eventual' && n && n.estado === 'Eventual')) && !yaInscrito && n && n.estado !== 'Retirado';
     return '<tr class="' + (resaltar ? 'pendiente' : sinPagoPrueba(p) ? 'sinpago' : (p.estado === 'Cancelada' ? 'cancelada' : '')) + '">' +
       '<td class="num"><b>' + fechaCorta(p.fecha) + '</b><div class="ayuda">' + esc(DIA_CORTO[diaDeIso(p.fecha)] || '') + (p.fecha === E.hoy ? ' · hoy' : '') + '</div></td>' +
       '<td>' + esc(c ? c.servicio + ' ' + c.hora : p.codigo) + '<div class="ayuda">' + esc(c ? c.edades : '') + '</div></td>' +
       '<td><b>' + esc(n ? nombre(n) : p.idNino) + '</b><div class="ayuda">' + esc(n ? [n.id, edad(n), n.telefono].filter(Boolean).join(' · ') : '') + '</div>' +
       (p.nota ? '<div class="ayuda">' + esc(p.nota) + '</div>' : '') + '</td>' +
-      '<td>' + chipPrueba(p.estado) + ' ' + pagoPruebaHtml(p) + (p.seInscribio ? '<div class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' · ' + esc(p.motivo) : '') + '</div>' : '') +
+      '<td>' + chipTipo(p) + ' ' + chipPrueba(p.estado) + ' ' + pagoPruebaHtml(p) + (p.seInscribio ? '<div class="ayuda">se inscribió: ' + esc(p.seInscribio) + (p.motivo ? ' · ' + esc(p.motivo) : '') + '</div>' : '') +
+      (p.repone ? '<div class="ayuda">repone la falta ' + esc(p.repone) + '</div>' : '') +
       (yaInscrito ? '<div class="ayuda">ya inscrito en esa clase</div>' : '') + '</td>' +
       '<td class="der"><button class="btn sec chico" data-resultado="' + esc(p.id) + '" type="button">Resultado</button> ' +
-      '<button class="btn sec chico" data-pago="' + esc(p.id) + '" type="button">Pago</button> ' +
+      (seCobra(p) ? '<button class="btn sec chico" data-pago="' + esc(p.id) + '" type="button">Pago</button> ' : '') +
       (puedeInscribir ? '<button class="btn chico" data-inscribir="' + esc(p.id) + '" type="button">Inscribir</button> ' : '') +
       '<button class="btn sec chico" data-ficha="' + esc(p.idNino) + '" type="button">Ficha</button></td></tr>';
   }).join('') + '</tbody></table>';
@@ -1250,7 +1365,7 @@ function pintarPruebas() {
   $('#ag_interes').innerHTML = casillasInteres('ag_int_', marcados.join(', '));
   $('#listaNinosTodos').innerHTML = E.ninos.map(n => '<option value="' + esc(etiquetaNino(n)) + '">').join('');
   $('#agFecha').min = E.hoy;
-  if (!pruebasIniciadas) { $('#agFecha').value = E.hoy; pruebasIniciadas = true; }
+  if (!pruebasIniciadas) { $('#agFecha').value = E.hoy; pruebasIniciadas = true; pintarTipoVisita(); }
   pintarClasesPrueba();
   pintarNinoPrueba();
 
@@ -1262,7 +1377,7 @@ function pintarPruebas() {
   const pasadas = todas.filter(p => p.fecha < E.hoy && p.fecha >= hace30 && p.estado !== 'Agendada').sort((a, b) => b.fecha.localeCompare(a.fecha));
   $('#prPendientesCaja').classList.toggle('oculto', !pend.length);
   $('#prPendientes').innerHTML = tablaPruebas(pend, '', true);
-  $('#prProximas').innerHTML = tablaPruebas(prox, 'No hay pruebas para hoy ni para los próximos días.');
+  $('#prProximas').innerHTML = tablaPruebas(prox, 'No hay visitas para hoy ni para los próximos días.');
   $('#prPasadas').innerHTML = tablaPruebas(pasadas, 'Ninguna en los últimos 30 días.');
   ['#prPendientes', '#prProximas', '#prPasadas'].forEach(s => enganchar($(s)));
 }
@@ -1285,24 +1400,82 @@ function pintarClasesPrueba() {
     return;
   }
   sel.innerHTML = '<option value="">Elige la clase…</option>' + cl.map(c => {
-    const o = ocupacion(c, iso), llena = !c.activa || o.t >= c.cupo;
+    const o = ocupacion0(c, iso), llena = !c.activa || o.t >= c.cupo;
     return '<option value="' + esc(c.codigo) + '"' + (llena ? ' disabled' : '') + (c.codigo === antes && !llena ? ' selected' : '') + '>' +
-      esc(c.hora + ' · ' + c.edades + ' · ' + o.i + (o.p ? ' + ' + o.p + ' prueba' : '') + ' / ' + c.cupo + (!c.activa ? ' — inactiva' : o.t >= c.cupo ? ' — LLENA' : '')) + '</option>';
+      esc(c.hora + ' · ' + c.edades + ' · ' + o.i + (o.p ? ' + ' + textoVisitas(o.p) : '') + ' / ' + c.cupo + (!c.activa ? ' — inactiva' : o.t >= c.cupo ? ' — LLENA' : '')) + '</option>';
   }).join('');
 }
 $('#agServicio').onchange = pintarClasesPrueba;
 $('#agFecha').onchange = pintarClasesPrueba;
 
 function tipoPrueba() { return document.querySelector('input[name=agTipo]:checked').value; }
-document.querySelectorAll('input[name=agTipo]').forEach(r => r.onchange = () => {
+function tipoVisitaForm() { return document.querySelector('input[name=agVisita]:checked').value; }
+const AYUDA_VISITA = {
+  'Prueba': 'Clase de prueba: ocupa un cupo ese día. Un niño nuevo queda Prospecto.',
+  'Reposición': 'Repone una falta (Ausente o Falta justificada) de un niño Activo, en una clase del mismo servicio. Sin pago. Cada falta se repone una vez.',
+  'Eventual': 'Un niño que viene un día sin matrícula y paga ese día. Queda «Eventual»; si se inscribe pasa a Activo.'
+};
+function pintarTipoVisita() {
+  const t = tipoVisitaForm();
+  if (t === 'Reposición') document.querySelector('input[name=agTipo][value=existente]').checked = true;
+  $('#agTipoNuevo').classList.toggle('oculto', t === 'Reposición');
   $('#agExistente').classList.toggle('oculto', tipoPrueba() !== 'existente');
   $('#agNuevo').classList.toggle('oculto', tipoPrueba() !== 'nuevo');
-});
+  $('#agFaltaCaja').classList.toggle('oculto', t !== 'Reposición');
+  $('#agPagoCaja').classList.toggle('oculto', t !== 'Eventual');
+  $('#agServicio').disabled = t === 'Reposición' && !!$('#agFalta').value;
+  $('#agVisitaAyuda').textContent = AYUDA_VISITA[t];
+  $('#agBoton').textContent = 'Agendar ' + t.toLowerCase();
+  pintarNinoPrueba();
+}
+document.querySelectorAll('input[name=agVisita]').forEach(r => r.onchange = pintarTipoVisita);
+document.querySelectorAll('input[name=agTipo]').forEach(r => r.onchange = pintarTipoVisita);
+$('#agPago').onchange = () => mostrarMonto('#agPago', '#agMontoCaja');
+
+/* Reposición: las faltas reponibles del niño (sin plazo), del servidor. */
+let FALTAS_NINO = { id: '', lista: [] };
+async function cargarFaltas(idNino, elegir) {
+  $('#agFalta').innerHTML = '<option value="">Leyendo sus faltas…</option>';
+  try {
+    const r = await api('asistenciaNino', { idNino });
+    FALTAS_NINO = { id: idNino, lista: r.resultado.asistencias.filter(a => a.reponible) };
+  } catch (e) { FALTAS_NINO = { id: idNino, lista: [] }; $('#agFaltaAyuda').textContent = e.message; }
+  if (idDeEtiqueta($('#agNino').value) !== idNino) return;
+  const l = FALTAS_NINO.lista;
+  $('#agFalta').innerHTML = l.length ? '<option value="">Elige la falta…</option>' + l.map(a => {
+    const c = IDX.clases[a.codigo];
+    return '<option value="' + esc(a.id) + '"' + (a.id === elegir ? ' selected' : '') + '>' + esc(fecha(a.fecha) + ' · ' + (c ? etiquetaClase(c) : a.codigo) + ' · ' + a.estado) + '</option>';
+  }).join('') : '<option value="">Sin faltas por reponer</option>';
+  elegirFalta();
+}
+function elegirFalta() {
+  const a = FALTAS_NINO.lista.find(x => x.id === $('#agFalta').value);
+  $('#agFaltaAyuda').textContent = a ? 'Se repone en una clase de ' + a.servicio + '.' : '';
+  if (a) { $('#agServicio').value = a.servicio; $('#agServicio').disabled = true; pintarClasesPrueba(); }
+  else $('#agServicio').disabled = false;
+}
+$('#agFalta').onchange = elegirFalta;
+
 function pintarNinoPrueba() {
   const n = IDX.ninos[idDeEtiqueta($('#agNino').value)];
   $('#agNinoInfo').textContent = n ? n.estado + (edad(n) ? ' · ' + edad(n) : '') + ' · ' + ((IDX.insNino[n.id] || []).map(i => IDX.clases[i.codigo] ? etiquetaClase(IDX.clases[i.codigo]) : i.codigo).join(' · ') || 'sin clases') : '';
+  if (tipoVisitaForm() === 'Reposición' && n && FALTAS_NINO.id !== n.id) cargarFaltas(n.id);
+  if (tipoVisitaForm() === 'Reposición' && !n) { $('#agFalta').innerHTML = '<option value="">Elige primero al niño</option>'; FALTAS_NINO = { id: '', lista: [] }; elegirFalta(); }
 }
 $('#agNino').oninput = pintarNinoPrueba;
+
+/* Desde Seguimiento: «Agendar reposición» de una falta. */
+function prepararReposicion(idNino, idAsistencia) {
+  const n = IDX.ninos[idNino];
+  if (!n) return;
+  mostrarVista('pruebas');
+  document.querySelector('input[name=agVisita][value="Reposición"]').checked = true;
+  $('#agNino').value = etiquetaNino(n);
+  FALTAS_NINO = { id: n.id, lista: [] };   // así pintarTipoVisita no lanza otra lectura que pise la elección
+  pintarTipoVisita();
+  cargarFaltas(n.id, idAsistencia);
+  $('#formPrueba').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 const CAMPOS_PRUEBA = ['nombre', 'apellidos', 'nacimiento', 'responsable', 'telefono', 'correo', 'responsable2', 'telefonoResp2', 'colegio', 'comoConocio', 'referido', 'hermanos'];
 const OBLIGATORIOS_PRUEBA = { nombre: 'nombre', apellidos: 'apellidos', nacimiento: 'fecha de nacimiento', responsable: 'nombre del responsable', telefono: 'teléfono' };
@@ -1310,10 +1483,14 @@ const OBLIGATORIOS_PRUEBA = { nombre: 'nombre', apellidos: 'apellidos', nacimien
 $('#formPrueba').onsubmit = async ev => {
   ev.preventDefault();
   const err = m => { $('#agError').innerHTML = '<div class="aviso mal">' + esc(m) + '</div>'; };
+  const tipo = tipoVisitaForm();
   const datos = { codigo: $('#agClase').value, fecha: $('#agFecha').value, nota: $('#agNota').value.trim() };
   if (tipoPrueba() === 'existente') {
     datos.idNino = idDeEtiqueta($('#agNino').value);
-    if (!IDX.ninos[datos.idNino]) return err('Elige el niño de la lista (nombre · ID).');
+    const n = IDX.ninos[datos.idNino];
+    if (!n) return err('Elige el niño de la lista (nombre · ID).');
+    if (tipo === 'Reposición' && n.estado !== 'Activo') return err('La reposición es para niños Activos (' + nombre(n) + ' está ' + n.estado + ').');
+    if (tipo === 'Eventual' && (n.estado === 'Activo' || n.estado === 'Por revisar')) return err(nombre(n) + ' está ' + n.estado + ': no viene como eventual.');
   } else {
     const nino = {};
     CAMPOS_PRUEBA.forEach(k => { nino[k] = $('#ag_' + k).value.trim(); });
@@ -1322,16 +1499,31 @@ $('#formPrueba').onsubmit = async ev => {
     if (faltan.length) return err('Faltan: ' + faltan.map(k => OBLIGATORIOS_PRUEBA[k]).join(', ') + '.');
     datos.nino = nino;
   }
-  if (!datos.fecha || datos.fecha < E.hoy) return err('La fecha de la prueba tiene que ser de hoy en adelante.');
+  if (!datos.fecha || datos.fecha < E.hoy) return err('La fecha de la visita tiene que ser de hoy en adelante.');
   if (!datos.codigo) return err('Elige la clase.');
+  let accion = 'agendarPrueba';
+  if (tipo !== 'Prueba') {
+    accion = 'agendarVisita';
+    datos.tipo = tipo;
+    if (tipo === 'Reposición') {
+      datos.reponeAsistencia = $('#agFalta').value;
+      if (!datos.reponeAsistencia) return err('Elige la falta que se repone.');
+    } else if ($('#agPago').value) {
+      const pg = leerPagoPrueba('#agPago', '#agMonto');
+      if (pg.error) return err(pg.error);
+      datos.pago = pg.pago; datos.monto = pg.monto;
+    }
+  }
   $('#agError').innerHTML = '';
   const c = IDX.clases[datos.codigo];
-  const r = await escribir('agendarPrueba', datos, 'Prueba agendada: ' + etiquetaClase(c) + ', ' + fecha(datos.fecha), { donde: $('#agError') });
+  const r = await escribir(accion, datos, tipo + ' agendada: ' + etiquetaClase(c) + ', ' + fecha(datos.fecha), { donde: $('#agError') });
   if (r) {
     CAMPOS_PRUEBA.forEach(k => { $('#ag_' + k).value = ''; });
     $('#ag_interes').querySelectorAll('input').forEach(x => { x.checked = false; });
     $('#agNino').value = ''; $('#agNota').value = ''; $('#agClase').value = '';
-    pintarNinoPrueba();
+    $('#agPago').value = ''; $('#agMonto').value = ''; mostrarMonto('#agPago', '#agMontoCaja');
+    FALTAS_NINO = { id: '', lista: [] };
+    pintarTipoVisita();
   }
 };
 
@@ -1347,7 +1539,9 @@ function abrirResultado(id) {
     const no = futura && e !== 'Cancelada';
     return '<label><input type="radio" name="drEstado" value="' + e + '"' + (p.estado === e ? ' checked' : '') + (no ? ' disabled' : '') + '> ' + e + '</label>';
   }).join('');
-  $('#drEstadoAyuda').textContent = futura ? 'La prueba es el ' + fecha(p.fecha) + ': «Asistió» y «No asistió» se marcan desde ese día. Ahora solo se puede cancelar.' : '';
+  $('#drEstadoAyuda').textContent = futura ? 'La visita es el ' + fecha(p.fecha) + ': «Asistió» y «No asistió» se marcan desde ese día. Ahora solo se puede cancelar.' : '';
+  $('#drSeCaja').classList.toggle('oculto', !seCobra(p));
+  $('#drPagoCampos').classList.toggle('oculto', !seCobra(p));
   $('#drSe').value = p.seInscribio || '';
   $('#drMotivo').innerHTML = '<option value="">Elige el motivo…</option>' + (E.config.motivosNoInscripcion || []).map(m => '<option' + (m === p.motivo ? ' selected' : '') + '>' + esc(m) + '</option>').join('');
   $('#drNota').value = p.nota || '';
@@ -1378,6 +1572,7 @@ $('#formResultado').onsubmit = async ev => {
   if (pg.error) return err(pg.error);
   const datos = { idPrueba: p.id, estado: marcado.value, seInscribio: $('#drSe').value, motivo: $('#drSe').value === 'No' ? $('#drMotivo').value : '', nota: $('#drNota').value.trim(),
                   pago: pg.pago, monto: pg.monto };
+  if (!seCobra(p)) { datos.seInscribio = ''; datos.motivo = ''; delete datos.pago; delete datos.monto; }
   if (datos.seInscribio === 'No' && !datos.motivo) return err('Si no se inscribió, elige el motivo.');
   const r = await escribir('resultadoPrueba', datos, 'Resultado guardado', { donde: $('#drError') });
   if (!r) return;
@@ -1501,6 +1696,119 @@ $('#mesLista').onchange = cargarListaPagos;
 /* ==========================================================================
    VISTA 4 · POR REVISAR
    ========================================================================== */
+/* ==========================================================================
+   SEGUIMIENTO (21-oct): clases sin lista, faltas seguidas, faltas por
+   reponer y niños fuera de lista. Lo calcula el servidor (acción
+   «seguimiento»); se relee tras cada escritura.
+   ========================================================================== */
+let SEG = null;
+async function cargarSeguimiento() {
+  if (!puede('as.seguimiento')) return;
+  try { SEG = (await api('seguimiento')).resultado; }
+  catch (e) { SEG = { error: e.message }; }
+  pintarSeguimiento();
+}
+const nombreDeId = id => IDX.ninos[id] ? nombre(IDX.ninos[id]) : id;
+function pintarSeguimiento() {
+  const vacio = t => '<p class="ayuda">' + esc(t) + '</p>';
+  if (!SEG) { ['#segSinLista', '#segSeguidas', '#segReponer', '#listaFuera'].forEach(s => { $(s).innerHTML = vacio('Leyendo…'); }); return; }
+  if (SEG.error) { ['#segSinLista', '#segSeguidas', '#segReponer', '#listaFuera'].forEach(s => { $(s).innerHTML = '<div class="aviso mal">' + esc(SEG.error) + '</div>'; }); return; }
+  const nombreClase = (codigo, iso) => { const c = IDX.clases[codigo]; return c ? c.servicio + ' ' + (diaDeIso(iso) || '').toLowerCase() + ' ' + c.hora : codigo; };
+  $('#segSinLista').innerHTML = SEG.clasesSinLista.length ? SEG.clasesSinLista.map(x =>
+    '<div class="seg-fila"><span><b>' + esc(nombreClase(x.codigo, x.fecha)) + '</b> – lista sin pasar <span class="ayuda">' + fecha(x.fecha) + ' · ' + esc(x.codigo) + '</span></span>' +
+    '<span><a class="btn sec chico" data-pasarlista="1" href="/pasar-lista/?fecha=' + encodeURIComponent(x.fecha) + '&clase=' + encodeURIComponent(x.codigo) + '">Pasar lista</a> ' +
+    '<button class="btn sec chico" data-nohubo="' + esc(x.codigo + '|' + x.fecha) + '" type="button">No hubo clase</button></span></div>').join('')
+    : vacio('Todas las clases que ya terminaron tienen lista.');
+  $('#segSeguidasAyuda').textContent = 'Niños con ' + SEG.umbral + ' o más «Ausente» seguidos (la Falta justificada no cuenta). El número sale de Config.';
+  $('#segSeguidas').innerHTML = SEG.faltasSeguidas.length ? SEG.faltasSeguidas.map(x =>
+    '<div class="seg-fila"><span><b>' + esc(x.nombre) + '</b> <span class="chip sinpago">' + x.cuantas + ' seguidas</span>' +
+    '<div class="ayuda">' + esc(x.idNino) + ' · del ' + fecha(x.desde) + ' al ' + fecha(x.hasta) + ' · ' + esc(x.clases.join(', ')) + '</div></span>' +
+    '<span><button class="btn sec chico" data-ficha="' + esc(x.idNino) + '" type="button">Ficha</button></span></div>').join('')
+    : vacio('Nadie con faltas seguidas.');
+  $('#segReponerAyuda').textContent = 'Ausente y Falta justificada sin reponer de los últimos ' + SEG.diasReponer + ' días (Config).';
+  $('#segReponer').innerHTML = SEG.faltasPorReponer.length ? SEG.faltasPorReponer.map(x =>
+    '<div class="seg-fila"><span><b>' + esc(x.nombre) + '</b> <span class="ayuda">' + esc(x.estado) + '</span>' +
+    '<div class="ayuda">' + fecha(x.fecha) + ' · ' + esc(nombreClase(x.codigo, x.fecha)) + ' · ' + esc(x.idAsistencia) + '</div></span>' +
+    '<span><button class="btn sec chico" data-reponer="' + esc(x.idNino + '|' + x.idAsistencia) + '" type="button">Agendar reposición</button></span></div>').join('')
+    : vacio('No hay faltas por reponer.');
+  $('#listaFuera').innerHTML = SEG.fueraDeLista.length ? SEG.fueraDeLista.map(x =>
+    '<div class="seg-fila"><span><b>' + esc(x.nombre) + '</b> <span class="ayuda">' + esc(x.estado) + '</span>' +
+    '<div class="ayuda">' + fecha(x.fecha) + ' · ' + esc(nombreClase(x.codigo, x.fecha)) + (x.nota ? ' · ' + esc(x.nota) : '') + '</div></span>' +
+    '<span data-resolver="1" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
+    '<input type="text" list="listaNinosTodos" placeholder="Niño de la base" data-fuera-nino="' + esc(x.idAsistencia) + '" style="max-width:220px">' +
+    '<button class="btn sec chico" data-fuera-vincular="' + esc(x.idAsistencia) + '" type="button">Vincular</button>' +
+    '<button class="btn sec chico" data-fuera-crear="' + esc(x.idAsistencia) + '" type="button">Crear</button>' +
+    '<button class="btn peligro chico" data-fuera-descartar="' + esc(x.idAsistencia) + '" type="button">Descartar</button></span></div>').join('')
+    : vacio('No hay niños fuera de lista por resolver.');
+  const n = SEG.clasesSinLista.length + SEG.faltasSeguidas.length, ins = $('#cuentaSeg');
+  ins.textContent = n; ins.classList.toggle('oculto', !n);
+  const raizSeg = $('#v-seguimiento');
+  raizSeg.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => abrirFicha(b.dataset.ficha));
+  raizSeg.querySelectorAll('[data-reponer]').forEach(b => b.onclick = () => { const [id, a] = b.dataset.reponer.split('|'); prepararReposicion(id, a); });
+  raizSeg.querySelectorAll('[data-nohubo]').forEach(b => b.onclick = async () => {
+    const [codigo, iso] = b.dataset.nohubo.split('|');
+    const nota = prompt('«No hubo clase»: ' + nombreClase(codigo, iso) + ' del ' + fecha(iso) + '.\nMotivo (feriado, clase suspendida…). Queda en el Historial.', 'Feriado');
+    if (nota === null) return;
+    await escribir('noHuboClase', { codigo, fecha: iso, nota: nota.trim() }, 'Marcada «No hubo clase»');
+  });
+  const raizF = $('#listaFuera');
+  raizF.querySelectorAll('[data-fuera-vincular]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.fueraVincular, campo = raizF.querySelector('[data-fuera-nino="' + id + '"]');
+    const idNino = idDeEtiqueta(campo.value);
+    if (!IDX.ninos[idNino]) { toast('Elige el niño de la lista (nombre · ID).'); campo.focus(); return; }
+    await escribir('resolverFueraDeLista', { idAsistencia: id, resolucion: 'vincular', idNino }, 'Vinculado a ' + nombreDeId(idNino));
+  });
+  raizF.querySelectorAll('[data-fuera-descartar]').forEach(b => b.onclick = async () => {
+    if (!confirm('¿Descartar este niño fuera de lista? Queda en el Historial.')) return;
+    await escribir('resolverFueraDeLista', { idAsistencia: b.dataset.fueraDescartar, resolucion: 'descartar' }, 'Descartado');
+  });
+  raizF.querySelectorAll('[data-fuera-crear]').forEach(b => b.onclick = () => abrirCrearFuera(b.dataset.fueraCrear));
+}
+
+let fueraActual = null;
+function abrirCrearFuera(idAsistencia) {
+  const x = (SEG && SEG.fueraDeLista || []).find(f => f.idAsistencia === idAsistencia);
+  if (!x) return;
+  fueraActual = x;
+  const partes = x.nombre.trim().split(/\s+/);
+  $('#dfSub').textContent = '«' + x.nombre + '» · ' + fecha(x.fecha) + ' · ' + x.codigo;
+  $('#df_nombre').value = partes[0] || '';
+  $('#df_apellidos').value = partes.slice(1).join(' ');
+  ['nacimiento', 'responsable', 'telefono'].forEach(k => { $('#df_' + k).value = ''; });
+  $('#dfError').innerHTML = '';
+  $('#dlgFuera').showModal();
+}
+$('#formFuera').onsubmit = async ev => {
+  ev.preventDefault();
+  const nino = {};
+  ['nombre', 'apellidos', 'nacimiento', 'responsable', 'telefono'].forEach(k => { nino[k] = $('#df_' + k).value.trim(); });
+  const faltan = Object.keys(nino).filter(k => !nino[k]);
+  if (faltan.length) { $('#dfError').innerHTML = '<div class="aviso mal">Faltan: ' + esc(faltan.map(k => OBLIGATORIOS_PRUEBA[k]).join(', ')) + '.</div>'; return; }
+  const r = await escribir('resolverFueraDeLista', { idAsistencia: fueraActual.idAsistencia, resolucion: 'crear', nino }, 'Niño creado como Eventual', { donde: $('#dfError') });
+  if (r) cerrarDialogos();
+};
+
+/* La asistencia de un niño en su ficha (acción «asistenciaNino»). */
+async function pintarAsistenciaFicha(idNino) {
+  let l;
+  try { l = (await api('asistenciaNino', { idNino })).resultado.asistencias; }
+  catch (e) { if ($('#fichaAsis')) $('#fichaAsis').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; return; }
+  const caja = $('#fichaAsis');
+  if (!caja || fichaId !== idNino) return;
+  if (!l.length) { caja.innerHTML = '<p class="ayuda">Todavía no hay asistencia registrada.</p>'; return; }
+  const cuenta = e => l.filter(a => a.estado === e).length;
+  caja.innerHTML = '<p class="ayuda">' + ['Presente', 'Llegó tarde', 'Ausente', 'Falta justificada'].map(e => e + ': ' + cuenta(e)).join(' · ') + '</p>' +
+    '<table class="datos"><thead><tr><th>Fecha</th><th>Clase</th><th>Estado</th><th></th></tr></thead><tbody>' + l.slice(0, 60).map(a => {
+      const c = IDX.clases[a.codigo];
+      return '<tr><td class="num">' + fecha(a.fecha) + '</td><td>' + esc(c ? etiquetaClase(c) : a.codigo) +
+        (a.presencia !== 'Inscrito' ? ' <span class="ayuda">(' + esc(a.presencia) + ')</span>' : '') + '</td><td>' + esc(a.estado) +
+        (a.nota ? '<div class="ayuda">' + esc(a.nota) + '</div>' : '') + '</td><td class="der">' +
+        (a.repuestaCon ? '<span class="ayuda">repuesta con ' + esc(a.repuestaCon) + '</span>' :
+         a.reponible ? '<button class="btn sec chico" data-reponer="' + esc(idNino + '|' + a.id) + '" type="button">Agendar reposición</button>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table>' + (l.length > 60 ? '<p class="ayuda">Se muestran las 60 más recientes.</p>' : '');
+  caja.querySelectorAll('[data-reponer]').forEach(b => b.onclick = () => { const [id, a] = b.dataset.reponer.split('|'); prepararReposicion(id, a); });
+}
+
 function pintarRevisar() {
   const l = E.ninos.filter(n => n.estado === 'Por revisar').sort((a, b) => nombre(a).localeCompare(nombre(b), 'es'));
   $('#listaRevisar').innerHTML = l.length ? l.map(n => {

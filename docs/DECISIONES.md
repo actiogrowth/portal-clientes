@@ -28,13 +28,15 @@ revierte no se borra: se agrega otra que la reemplaza y se anota «reemplazada p
 | D-020 | 19-oct-2026 | Dirección no toca cuentas con rol Administrador; nadie cambia sus roles ni se desactiva; el último Administrador activo se conserva. | Evitar escaladas y quedarse sin administración. | — |
 | D-021 | 20-oct-2026 | `gate.php` ejecuta directo login, logout, cambiar-clave y acceso. | Con el `.htaccess` anterior el login con contraseña temporal entraba en bucle. | Depender solo del `.htaccess`. |
 | D-022 | 20-oct-2026 | Documentación del sistema en `docs/`; toda entrega la actualiza en el mismo commit. | El sistema va a crecer y probablemente migrar a Supabase. | Solo Specs internos. |
-
-## Pendientes de decidir (encargo de visitas, Pasar lista y seguimiento)
-
-Propuestas escritas en `MODELO_DATOS.md` y `ACCIONES_API.md`. Se anotan como
-decisiones cuando Actio las apruebe.
-
-- P-01 Visitas en la misma pestaña Pruebas con columnas Tipo, Repone asistencia y Resultado por lista (sin renombrar la pestaña ni el prefijo `PRU-`).
-- P-02 Acción separada `agendarVisita` (Reposición, Eventual) para que el permiso se decida por acción, como hoy.
-- P-03 Pasar lista en una carpeta propia `/pasar-lista/` con su puente, que reutiliza el transporte de `after-school/api.php`.
-- P-04 Una fila de Asistencia por niño, clase y fecha; corregir = actualizar la fila con Historial.
+| D-023 | 21-oct-2026 | Las clases de prueba pasan a ser «visitas de un día» de tres tipos (Prueba, Reposición, Eventual) en la MISMA pestaña Pruebas, con prefijo `PRU-` y columnas al final (Tipo, Repone asistencia, Resultado por lista); las existentes quedan Prueba. En la página: «Visitas del día». | No perder datos ni historial; las tres ocupan cupo igual. | Pestaña nueva «Visitas»; prefijos por tipo. |
+| D-024 | 21-oct-2026 | Reposición: niño Activo, una falta (Ausente o Falta justificada) en cualquier clase activa del mismo servicio, sin plazo, sin pago; Cancelada o No asistió liberan la falta. | Lo pidió Vida en Arte. | Misma clase; plazo fijo. |
+| D-025 | 21-oct-2026 | Eventual: cualquier niño que no esté Activo (nuevo, Prospecto o Retirado); su estado pasa a «Eventual»; paga como la prueba; si se inscribe pasa a Activo. | Venir un día sin matrícula es distinto de probar. | Tratarlo como Prospecto. |
+| D-026 | 21-oct-2026 | Agendar Reposición y Eventual: Administrador, Dirección, Coordinación After School y Recepción (acción aparte `agendarVisita`); Comercial solo Prueba. El pago de Prueba y Eventual, los mismos roles que el de las pruebas. | El permiso se decide por acción, como siempre. | Un parámetro tipo en agendarPrueba. |
+| D-027 | 21-oct-2026 | Pasar lista en carpeta y tarjeta propias `/pasar-lista/` (Profesor, Coordinación After School, Administrador, Dirección); Recepción no pasa lista. Su puente fija `soloHoy` (Profesor solo el mismo día) y recorta a nombre, edad y marca. | El profesor no ve nada más; las correcciones posteriores, la coordinación. | Una pestaña dentro de After School. |
+| D-028 | 21-oct-2026 | Una fila de Asistencia por niño, clase y fecha; corregir = actualizar con Historial. Las visitas se marcan solas según la lista sin pisar un resultado puesto a mano (columna Resultado por lista). | Un solo dato vivo por niño y día. | Guardar cada versión como fila nueva. |
+| D-029 | 21-oct-2026 | Falta justificada en una visita → la visita queda No asistió. | Lo pidió Vida en Arte. | — |
+| D-030 | 21-oct-2026 | Niño fuera de lista: fila con el nombre escrito; lo resuelve solo la coordinación (vincular, crear o descartar). Al crearlo queda Eventual. | No crear niños automáticamente; «Eventual» porque vino un día sin matrícula (decisión de construcción). | Crearlo Prospecto o Por revisar. |
+| D-031 | 21-oct-2026 | Faltas seguidas por niño sumando sus clases (Presente y Llegó tarde cortan; Falta justificada se salta), umbral en Config (2); faltas por reponer de los últimos N días (Config, 30). | Lo pidió Vida en Arte. | Por clase. |
+| D-032 | 21-oct-2026 | Clases sin lista: «Duración de clase (min)» (60) y «Asistencia desde» en Config; botón «No hubo clase» solo para la coordinación, con Historial. | Clases no tiene hora de fin; no avisar lo anterior al estreno. | Columna de hora de fin en Clases. |
+| D-033 | 21-oct-2026 | `leer` devuelve la ocupación calculada por el servidor y la página solo la pinta (resuelve H9). | Las visitas cambiaron la regla: escribirla dos veces era un riesgo. | Mantener la regla duplicada en la página. |
+| D-034 | 21-oct-2026 | La sesión del rol Profesor se cierra tras 2 horas sin uso. | Tablet compartida. | — |

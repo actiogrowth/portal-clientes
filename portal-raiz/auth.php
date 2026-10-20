@@ -55,6 +55,9 @@ function cuenta_actual(): ?array {
     $c = cuenta($u);
     if (!$c || empty($c['activo'])) return null;
     if ((int) ($_SESSION['ver_clave'] ?? 0) !== (int) ($c['ver_clave'] ?? 0)) return null;
+    // Roles con tope de inactividad (Profesor: 2 horas sin uso → sesión cerrada).
+    $max = inactividad_max($c['roles'] ?? []);
+    if ($max !== null && isset($_SESSION['ultimo']) && time() - (int) $_SESSION['ultimo'] > $max) return null;
     return $c;
 }
 
@@ -81,7 +84,7 @@ function csrf_valido($t): bool {
 /** Inicia la sesión de un usuario ya verificado. */
 function iniciar_sesion(string $u, array $c): void {
     session_regenerate_id(true);
-    $_SESSION = ['usuario' => $u, 'ver_clave' => (int) ($c['ver_clave'] ?? 0)];
+    $_SESSION = ['usuario' => $u, 'ver_clave' => (int) ($c['ver_clave'] ?? 0), 'ultimo' => time()];
     csrf_token();
 }
 
@@ -129,6 +132,7 @@ function requerir_sesion(?string $ruta = null): void {
     if (!roles_abren_ruta($c['roles'] ?? [], $ruta)) {
         negar('Tu usuario no tiene permiso para abrir esta sección.', 403, 'sin_permiso');
     }
+    $_SESSION['ultimo'] = time();   // última actividad (para el tope de inactividad)
 }
 
 function destino_seguro(?string $r): string {

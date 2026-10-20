@@ -16,6 +16,10 @@
  *      de los niños en Prospecto; los demás, ninguno. Y se le agrega
  *      'permisos' (lo de After School que el rol puede hacer) para que la
  *      página muestre solo sus pestañas y botones.
+ *      21-oct: visitas (agendarVisita), seguimiento, asistencia del niño,
+ *      «No hubo clase» y fuera de lista pasan por aquí con su permiso; las
+ *      dos de Pasar lista (leerLista, guardarLista) NO: solo por
+ *      /pasar-lista/api.php.
  *      COMPATIBLE: si auth.php todavía es el anterior (sin roles), se usa la
  *      lista 'as_usuarios' de portal_config.php como antes. Con el auth.php
  *      de roles, 'as_usuarios' ya no se usa y se puede borrar.
@@ -376,6 +380,11 @@ if (!defined('AS_SOLO_FUNCIONES')) {
 
     $datos = json_decode(file_get_contents('php://input'), true);
     if (!is_array($datos) || empty($datos['accion']) || !is_string($datos['accion'])) fallo('cuerpo ilegible', 400);
+    // Pasar lista entra SOLO por /pasar-lista/api.php: es el que decide si se
+    // puede otro día (soloHoy). Por aquí se rechaza siempre, con o sin roles.
+    if (in_array($datos['accion'], ['leerLista', 'guardarLista'], true)) {
+        fallo('Pasar lista se usa desde la página Pasar lista.', 403, 'sin_permiso');
+    }
     if ($conRoles && !roles_permiten($roles, permiso_de_accion_as($datos['accion']))) {
         fallo('Tu rol no permite hacer esto en After School (' . $datos['accion'] . ').', 403, 'sin_permiso');
     }

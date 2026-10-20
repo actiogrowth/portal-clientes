@@ -17,8 +17,8 @@ datos de niños ni nombres de personas del cliente.
    permisos.php (roles)  ·  cuentas.php (usuarios)
         │
         ▼
- Puentes de datos (PHP)            after-school/api.php, configuracion/api.php,
-                                   kinder/csv.php, basededatos/api.php…
+ Puentes de datos (PHP)            after-school/api.php, pasar-lista/api.php,
+                                   configuracion/api.php, kinder/csv.php, basededatos/api.php…
         │  POST JSON + clave compartida + usuario de la sesión
         ▼
  Apps Script (doPost)              after-school-script/AfterSchool.gs
@@ -50,11 +50,18 @@ datos de niños ni nombres de personas del cliente.
 8. `api.php` recorta la respuesta según el rol (contactos, pagos), agrega `permisos` y la devuelve.
 9. La página aplica `estado` (el mismo formato que `leer`) y repinta.
 
+### Pasar lista (21-oct)
+
+`pasar-lista/api.php` carga las funciones de transporte de `after-school/api.php`
+(con `AS_SOLO_FUNCIONES`) y solo admite `leerLista` y `guardarLista`. Fija
+`soloHoy` según el rol y recorta la respuesta a una lista blanca. El rol Profesor
+solo tiene el área `pasarlista`: no entra a After School.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
-| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`) | Commit → Actio sube los archivos al cPanel |
+| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`) | Commit → Actio sube los archivos al cPanel |
 | Raíz del portal en el servidor | `/home/…/portal.vidaenarte.com/` | Se sube desde `portal-raiz/` (el `.htaccess` es `htaccess.txt` renombrado) |
 | `portal_config.php` | `/home/…/` (una carpeta arriba, fuera de la web) | A mano en el cPanel. Lleva `as_exec`, `as_clave` y la configuración de los tableros. **No está en el repo.** |
 | Cuentas del portal | `/home/…/portal_usuarios.json` (fuera de la web) | Solo desde Configuración › Usuarios |

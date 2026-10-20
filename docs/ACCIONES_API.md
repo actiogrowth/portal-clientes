@@ -34,7 +34,8 @@ Respuesta con error: `{ "ok": false, "error": "texto para la persona", "codigo":
 | `ocupado` | script | Otra escritura tiene el lock (20 s). |
 | `id_invalido` | script | ID de solicitud con formato inválido. |
 | `id_repetido` | script | Ese ID ya se usó con otros datos u otra acción. |
-| `llena` | script | Sin cupo (inscribir, mover, agendar, resultado). |
+| `llena` | script | Sin cupo (inscribir, mover, agendar una visita, resultado). |
+| `solo_hoy` | script | Pasar lista de otro día con `soloHoy` (Profesor). |
 | `duplicado` | script | Niño con el mismo nombre, o pago del mismo mes y concepto: se repite con `confirmarDuplicado: true`. |
 | `varias` | script | Inscribir varias: falló más de una clase (no se escribió ninguna). |
 | (vacío) | script | Error de validación con mensaje para la persona. |
@@ -49,6 +50,7 @@ Sin sesión: HTTP 302 al login (la página lo trata como «sesión caducada»).
 | contactos `prospectos` | Comercial | `telefono`, `telefono2`, `correo`, `telefonoResp2` de los niños que **no** están en `Prospecto` |
 | contactos `ninguno` | Contabilidad | esos cuatro campos de todos los niños (queda el nombre del responsable) |
 | sin `as.pagos.ver` | Comercial | `pagosMes` vacío en `resultado` y en `estado` |
+| Pasar lista (`pasar-lista/api.php`) | Profesor y quien pase lista | **lista blanca**: por niño solo `idNino, nombre, edad, presencia, idVisita, estado, nota`; sin `estado` de After School |
 
 Se aplica a cualquier niño que aparezca en la respuesta (lectura, estado de una escritura, resultado).
 
@@ -56,7 +58,7 @@ Se aplica a cualquier niño que aparezca en la respuesta (lectura, estado de una
 
 L = lectura, E = escritura. «ID sol.» = acepta ID de solicitud (todas las escrituras).
 Roles: **Ad** Administrador, **Di** Dirección, **CA** Coordinación After School,
-**Re** Recepción, **Co** Comercial, **Cn** Contabilidad.
+**Re** Recepción, **Co** Comercial, **Cn** Contabilidad, **Pr** Profesor.
 
 | Acción | Tipo | Permiso | Roles | Parámetros (`datos`) | `resultado` | Errores propios |
 |---|---|---|---|---|---|---|
@@ -74,7 +76,14 @@ Roles: **Ad** Administrador, **Di** Dirección, **CA** Coordinación After Schoo
 | `registrarPago` | E | as.pagos.registrar | Ad Di CA Re Cn | `idNino`, `mes`, `concepto`, `plan?`, `monto`, `fechaPago`, `forma`, `notas?`, `confirmarDuplicado?` | `{id}` | listas de Config · monto ≤ 0 · `duplicado` |
 | `agendarPrueba` | E | as.pruebas.agendar | Ad Di CA Re Co | `fecha`, `codigo`, `idNino` **o** `nino` {nombre, apellidos, nacimiento, responsable, telefono obligatorios}, `nota?`, `confirmarDuplicado?` | `{id, idNino}` | fecha pasada · día distinto al de la clase · clase inactiva · ya inscrito · ya tiene prueba ese día · `llena` · faltan datos · `duplicado` |
 | `resultadoPrueba` | E | as.completo | Ad Di CA Re | `idPrueba`, `estado` (`Asistió`/`No asistió`/`Cancelada`), `seInscribio?` (`Sí`/`No`/''), `motivo` (si No), `nota?`, `pago?`, `monto?` | `{id, sinCambios?}` | Asistió/No asistió antes del día · `llena` al reactivar una cancelada · motivo obligatorio |
-| `pagoPrueba` | E | as.pruebas.pago | Ad Di CA Re Cn | `idPrueba`, `pago` (`Sí`/`No`/''), `monto` (si Sí) | `{id, sinCambios?}` | monto ≤ 0 con Sí |
+| `pagoPrueba` | E | as.pruebas.pago | Ad Di CA Re Cn | `idPrueba`, `pago` (`Sí`/`No`/''), `monto` (si Sí) | `{id, sinCambios?}` | monto ≤ 0 con Sí · es una Reposición (no se cobra) |
+| `agendarVisita` | E | as.visitas.agendar | Ad Di CA Re | `tipo` (`Reposición`/`Eventual`), `fecha`, `codigo`, `nota?`. Reposición: `idNino` (Activo) + `reponeAsistencia` (ID de la falta). Eventual: `idNino` (no Activo ni Por revisar) **o** `nino` {mismos obligatorios que la prueba}, `pago?`, `monto?` | `{id, idNino}` | las de agendarPrueba · tipo inválido · Reposición: niño no Activo, falta de otro niño, no es falta, de una visita, otro servicio, ya repuesta, con pago · Eventual: niño Activo o Por revisar |
+| `ocupacion` | L | as.ver | Ad Di CA Re Co Cn | `desde`, `hasta` (máx. 62 días) | `{ocupacion}` (mismo formato que en `leer`) | rango inválido |
+| `seguimiento` | L | as.seguimiento | Ad Di CA Re | — | `{hoy, umbral, diasReponer, faltasSeguidas[{idNino, nombre, cuantas, desde, hasta, clases}], faltasPorReponer[{idAsistencia, idNino, nombre, fecha, codigo, servicio, estado}], clasesSinLista[{fecha, codigo, servicio, hora}], fueraDeLista[{idAsistencia, fecha, codigo, servicio, nombre, estado, nota}]}` | — |
+| `asistenciaNino` | L | as.seguimiento | Ad Di CA Re | `idNino` | `{idNino, asistencias[{id, fecha, codigo, servicio, presencia, idVisita, estado, nota, repuestaCon, reponible}]}` | niño inexistente |
+| `noHuboClase` | E | as.lista.corregir | Ad Di CA | `fecha` (no futura), `codigo`, `nota?` | `{fecha, codigo, sinCambios?}` | día distinto al de la clase · ya tiene lista |
+| `resolverFueraDeLista` | E | as.lista.corregir | Ad Di CA | `idAsistencia`, `resolucion` (`vincular` + `idNino` / `crear` + `nino` / `descartar`) | `{id, idNino}` | no es fuera de lista · ya resuelto · ya tiene asistencia ese día |
+| `leerLista`, `guardarLista` | — | — | nadie por aquí | — | — | 403: solo por `pasar-lista/api.php` |
 | *(otra)* | — | as.completo | Ad Di CA Re | — | — | «acción desconocida» |
 
 ### `leer` → `resultado`
@@ -89,9 +98,12 @@ ninos[]: { id, socio, nombre, apellidos, nacimiento, sexo, responsable, telefono
            responsable2, telefonoResp2 },
 inscripciones[] (activas): { id, idNino, codigo, alta, nota },
 inscripcionesCerradas[]: { idNino, codigo, alta, baja },
-pruebas[]: { id, fecha, codigo, idNino, estado, seInscribio, motivo, nota, registradoPor, pago, monto },
+pruebas[] (visitas de un día): { id, fecha, codigo, idNino, estado, seInscribio, motivo, nota, registradoPor, pago, monto,
+           tipo ('Prueba'|'Reposición'|'Eventual'), repone (ID de la falta), porLista (el estado lo puso la lista) },
 pagosMes[] (mes actual): { id, idNino, mes, concepto, plan, monto, fecha, forma, registradoPor, notas },
-estados[], motivoCambio, estadosPrueba[], pruebaOcupa[], dias[]
+ocupacion: { 'yyyy-MM-dd': { codigo: { i, v, tipos: {Prueba: n…}, ninos: [ID niño…], visitas: [ID prueba…] } } }
+           — calculada por el servidor: 14 días atrás, 41 adelante y toda fecha futura con visitas,
+estados[] (incluye 'Eventual'), motivoCambio, estadosPrueba[], pruebaOcupa[], dias[], tiposVisita[], estadosAsistencia[]
 ```
 
 ## Acciones de Configuración (`configuracion/api.php`)
@@ -106,21 +118,22 @@ Solo `usuarios.gestionar` (Administrador, Dirección). Escrituras con cabecera `
 | `desactivar` / `reactivar` | POST | `usuario` | `{usuarios}` | No desactivarse a uno mismo; Dirección no toca Admin; último Admin activo. |
 | `reiniciar` | POST | `usuario` | `{temporal, usuarios}` | Corta sus sesiones; cambio obligatorio al entrar. |
 
----
 
-## PROPUESTAS — visitas, Pasar lista y seguimiento (pendientes de aprobar)
+## Acciones de Pasar lista (`pasar-lista/api.php`)
 
-Contratos escritos **antes** de implementar. Las preguntas abiertas están en `DECISIONES.md`.
+Puente propio (carpeta `/pasar-lista/`, área `pasarlista`). Reutiliza el transporte
+de `after-school/api.php`. **`soloHoy` lo pone el puente**: `true` para quien no tiene
+`as.lista.corregir` (Profesor); el navegador no lo puede cambiar. La respuesta se
+recorta a una lista blanca y nunca lleva el `estado` de After School.
+Agrega `permisos: {puedeOtroDia}`.
 
-| Acción | Tipo | Permiso (nuevo) | Roles | Parámetros | `resultado` |
-|---|---|---|---|---|---|
-| `agendarVisita` | E | as.visitas.agendar | Ad Di CA Re | `tipo` (`Reposición`/`Eventual`), `fecha`, `codigo`, `nota?`; Reposición: `idNino` + `reponeAsistencia`; Eventual: `idNino` **o** `nino` {mismos obligatorios que la prueba}, `pago?`, `monto?` | `{id, idNino}` |
-| `agendarPrueba` | E | as.pruebas.agendar | Ad Di CA Re Co | sin cambios (crea tipo `Prueba`) | sin cambios |
-| `pagoPrueba` | E | as.pruebas.pago | Ad Di CA Re Cn | sin cambios; vale para Prueba y Eventual; rechaza Reposición | sin cambios |
-| `leerLista` | L | as.lista.ver | Profesor, Ad Di CA | `fecha?` (hoy; otra fecha solo con as.lista.corregir) | `{fecha, clases[{codigo, servicio, dia, hora, ninos[{idNino, nombre, edad, presencia, idVisita?, estado?, nota?}], guardada}]}` — **sin ningún otro dato del niño** |
-| `guardarLista` | E | as.lista.marcar | Profesor (solo hoy), Ad Di CA (cualquier día no futuro) | `fecha`, `codigo`, `marcas[{idNino, idVisita?, estado, nota?}]`, `fueraDeLista[{nombre, estado, nota?}]` | `{guardadas, visitasMarcadas}` |
-| `seguimiento` | L | as.seguimiento | Ad Di CA Re | — | `{faltasSeguidas[], faltasPorReponer[], clasesSinLista[], fueraDeLista[]}` |
-| `asistenciaNino` | L | as.seguimiento | Ad Di CA Re | `idNino` | `{asistencias[]}` |
+| Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
+|---|---|---|---|---|---|---|
+| `leerLista` | L | as.lista.ver | Pr (solo hoy), Ad Di CA (cualquier día no futuro) | `fecha?` (hoy) | `{fecha, hoy, dia, otroDia, estados[], clases[{codigo, servicio, hora, guardada, sinClase, ninos[{idNino, nombre, edad, presencia, idVisita, estado, nota}], fueraDeLista[{idAsistencia, nombre, estado, nota}]}]}` | `solo_hoy` · día futuro |
+| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (solo hoy), Ad Di CA | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]` | `{fecha, codigo, nuevas, corregidas, visitasMarcadas}` | `solo_hoy` · día futuro · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
 
-Para Profesor, `api.php` no usa el recorte de contactos: la acción `leerLista`
-ya devuelve solo nombre, edad y etiqueta, y el rol no tiene ninguna otra acción.
+`presencia`: `Inscrito`, `Prueba`, `Reposición`, `Eventual`. `estado`: `Presente`,
+`Llegó tarde`, `Ausente`, `Falta justificada`. Recepción, Comercial, Contabilidad y
+Coordinación Preescolar no pasan lista (403 por área).
+
+Sesión del rol Profesor: se cierra tras **2 horas sin uso** (`inactividad_max` en `permisos.php`).

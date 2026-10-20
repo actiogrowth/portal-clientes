@@ -10,6 +10,8 @@
  *   usuarios.admin       crear, editar, desactivar o reiniciar cuentas con rol
  *                        Administrador, y asignar ese rol
  * '*' concede todo; 'excepto' lo recorta para ese rol.
+ * 'inactividad_max' (segundos): la sesión se cierra tras ese tiempo sin uso
+ * (con varios roles manda el más corto).
  *
  * Las carpetas de la raíz del portal que no están en CARPETAS_AREA solo las
  * abre quien tenga area:* (Administrador y Dirección): una carpeta nueva no
@@ -30,15 +32,17 @@ const ROLES = [
     ],
     'coordinacion_afterschool' => [
         'nombre' => 'Coordinación After School',
-        'descripcion' => 'After School completo y la Base de Datos VEA.',
-        'permisos' => ['area:afterschool', 'area:basededatos', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
-                       'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos'],
+        'descripcion' => 'After School completo, Pasar lista (también otros días), seguimiento de asistencia y la Base de Datos VEA.',
+        'permisos' => ['area:afterschool', 'area:basededatos', 'area:pasarlista', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
+                       'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
+                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento'],
     ],
     'recepcion' => [
         'nombre' => 'Recepción',
-        'descripcion' => 'After School completo: inscribir, pruebas, pagos, bajas y Por revisar.',
+        'descripcion' => 'After School completo: inscribir, visitas del día, pagos, bajas, Por revisar y seguimiento. No pasa lista.',
         'permisos' => ['area:afterschool', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
-                       'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos'],
+                       'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
+                       'as.seguimiento'],
     ],
     'comercial' => [
         'nombre' => 'Comercial',
@@ -58,8 +62,9 @@ const ROLES = [
     ],
     'profesor' => [
         'nombre' => 'Profesor',
-        'descripcion' => 'Sin acceso a datos por ahora. Se le asociarán clases para Pasar lista.',
-        'permisos' => [],
+        'descripcion' => 'Solo Pasar lista, el mismo día: nombre, edad y la marca de visita de cada niño. La sesión se cierra tras 2 horas sin uso.',
+        'permisos' => ['area:pasarlista', 'as.lista.ver', 'as.lista.marcar'],
+        'inactividad_max' => 7200,
     ],
 ];
 
@@ -72,10 +77,11 @@ const CARPETAS_AREA = [
     'baby-and-me'   => 'babyandme',
     'cumpleanos'    => 'cumpleanos',
     'configuracion' => 'configuracion',
+    'pasar-lista'   => 'pasarlista',
 ];
 
 /* Áreas que la portada conoce (tarjetas). 'actio' es la tarjeta Sistema Operativo. */
-const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'actio', 'configuracion'];
+const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'actio', 'configuracion', 'pasarlista'];
 
 /* Contactos de las familias (teléfonos y correo). El nombre del responsable no cuenta. */
 const CAMPOS_CONTACTO = ['telefono', 'telefono2', 'correo', 'telefonoResp2'];
@@ -125,7 +131,8 @@ function politica_contactos(array $roles): string {
 }
 
 /** Permisos de After School que la página necesita conocer para mostrar pestañas y botones. */
-const PERMISOS_AS = ['as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar', 'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar'];
+const PERMISOS_AS = ['as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar', 'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar',
+                     'as.visitas.agendar', 'as.seguimiento', 'as.lista.marcar', 'as.lista.corregir'];
 function permisos_as(array $roles): array {
     return array_values(array_filter(PERMISOS_AS, fn($p) => roles_permiten($roles, $p)));
 }
@@ -133,11 +140,32 @@ function permisos_as(array $roles): array {
 /* Acción de After School → permiso que exige. Las que no están exigen as.completo. */
 const PERMISO_ACCION_AS = [
     'leer'          => 'as.ver',
+    'ocupacion'     => 'as.ver',
     'listarPagos'   => 'as.pagos.ver',
     'registrarPago' => 'as.pagos.registrar',
     'agendarPrueba' => 'as.pruebas.agendar',
     'pagoPrueba'    => 'as.pruebas.pago',
+    // 21-oct
+    'agendarVisita'        => 'as.visitas.agendar',
+    'seguimiento'          => 'as.seguimiento',
+    'asistenciaNino'       => 'as.seguimiento',
+    'noHuboClase'          => 'as.lista.corregir',
+    'resolverFueraDeLista' => 'as.lista.corregir',
+    'leerLista'            => 'as.lista.ver',
+    'guardarLista'         => 'as.lista.marcar',
 ];
+/* Las de Pasar lista solo entran por /pasar-lista/api.php, que fija soloHoy. */
+const ACCIONES_LISTA = ['leerLista', 'guardarLista'];
+
+/** Segundos sin uso tras los que se cierra la sesión (null = sin tope). Con varios roles, el más corto. */
+function inactividad_max(array $roles): ?int {
+    $min = null;
+    foreach ($roles as $r) {
+        $s = ROLES[$r]['inactividad_max'] ?? null;
+        if (is_int($s) && ($min === null || $s < $min)) $min = $s;
+    }
+    return $min;
+}
 function permiso_de_accion_as(string $accion): string {
     return PERMISO_ACCION_AS[$accion] ?? 'as.completo';
 }

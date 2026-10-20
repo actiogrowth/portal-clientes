@@ -170,9 +170,17 @@ function googleFalso() {
     req.on('data', d => { cuerpo += d; });
     req.on('end', () => {
       let j = {}; try { j = JSON.parse(cuerpo); } catch (e) { }
-      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key });
+      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {} });
       let r;
       if (j.accion === 'leer') r = { ok: true, resultado: ESTADO() };
+      // Pasar lista: el script falso manda DE MÁS (contactos, el estado entero)
+      // para comprobar que pasar-lista/api.php lo recorta.
+      else if (j.accion === 'leerLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', hoy: '2026-10-19', dia: 'Lunes', otroDia: true, estados: ['Presente'], secreto: 'x',
+        clases: [{ codigo: 'LUN-1630-PARKOUR', servicio: 'Parkour', hora: '16:30', guardada: false, sinClase: false, cupo: 20, modalidad: 'Semana',
+          ninos: [{ idNino: 'AS-0001', nombre: 'Inventado Uno', edad: '8 años', presencia: 'Inscrito', idVisita: '', estado: '', nota: '',
+                    telefono: '555-0101', correo: 'uno@ejemplo.test', responsable: 'Responsable Uno', nacimiento: '2018-01-01' }],
+          fueraDeLista: [{ idAsistencia: 'ASI-0001', nombre: 'Escrito', estado: 'Presente', nota: '', telefono: '555-0999' }] }] } };
+      else if (j.accion === 'guardarLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', codigo: 'LUN-1630-PARKOUR', nuevas: 1, corregidas: 0, visitasMarcadas: 0, secreto: 'x' } };
       else if (j.accion === 'listarPagos') r = { ok: true, resultado: { mes: '2026-10', pagos: [{ id: 'PG-0001', idNino: 'AS-0001', monto: 50 }] } };
       else r = { ok: true, resultado: { id: 'AS-0003', estado: 'Prospecto', telefono: '555-0301' }, estado: ESTADO() };
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -247,6 +255,7 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'portal-raiz'), web);
   copiar(path.join(fuente, 'after-school'), path.join(web, 'after-school'));
   copiar(path.join(fuente, 'configuracion'), path.join(web, 'configuracion'));
+  copiar(path.join(fuente, 'pasar-lista'), path.join(web, 'pasar-lista'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
   // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
@@ -310,7 +319,7 @@ async function correr(fuente) {
       const a = await nav['admin-uno'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(a.texto), 'acceso.php: un Administrador ve todas las tarjetas');
       const g = await nav['cuenta-general'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","basededatos"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School y Base de Datos (' + g.texto.split('\n')[0] + ')');
+      ok(/window\.ACCESO = \["afterschool","basededatos","pasarlista"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School, Base de Datos y Pasar lista (' + g.texto.split('\n')[0] + ')');
       // Un cambio posterior en usuarios.php ya no cuenta.
       fs.writeFileSync(path.join(web, 'usuarios.php'), '<?php return [];');
       const n = new Nav(base);
@@ -426,17 +435,18 @@ async function correr(fuente) {
     seccion('áreas: cada rol abre solo lo suyo (y la URL directa responde sin permiso)');
     {
       const R = {
-        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1 },
-        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1 },
-        'prueba-coord-as':     { as: 1, bd: 1 },
+        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1 },
+        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1 },
+        'prueba-coord-as':     { as: 1, bd: 1, pl: 1 },
         'prueba-recepcion':    { as: 1 },
         'prueba-comercial':    { kinder: 1, as: 1, bd: 1 },
         'prueba-contabilidad': { as: 1 },
         'prueba-coord-pre':    { kinder: 1, bd: 1 },
-        'prueba-profesor-1':   {}
+        'prueba-profesor-1':   { pl: 1 }
       };
       const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
-        conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'] };
+        conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
+        pl: ['/pasar-lista/'] };
       for (const [u, puede] of Object.entries(R)) {
         for (const [k, rutas] of Object.entries(RUTAS)) for (const ruta of rutas) {
           const r = await n[u].get(ruta);
@@ -447,7 +457,7 @@ async function correr(fuente) {
         ok((await n[u].get('/raiz.txt')).status === 200, u + ': los archivos de la raíz (portada) se abren con sesión');
       }
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
-      ok(/window\.ACCESO = \[\];/.test(ac.texto), 'Profesor: la portada no muestra ninguna tarjeta');
+      ok(/window\.ACCESO = \["pasarlista"\];/.test(ac.texto), 'Profesor: la portada muestra solo Pasar lista');
       const co = await n['prueba-comercial'].get('/acceso.php');
       ok(/window\.ACCESO = \["kinder","afterschool","basededatos"\]/.test(co.texto), 'Comercial: Kínder, After School y Base de Datos');
       const di = await n['prueba-direccion'].get('/acceso.php');
@@ -457,12 +467,16 @@ async function correr(fuente) {
     seccion('After School: cada acción según el rol; las prohibidas no llegan al Apps Script');
     {
       const ACCIONES = ['leer', 'listarPagos', 'crearNino', 'editarNino', 'inscribir', 'inscribirVarias', 'mover', 'bajaClase', 'bajaTotal',
-        'registrarPago', 'revisar', 'notaInscripcion', 'agendarPrueba', 'resultadoPrueba', 'pagoPrueba', 'accionInventada'];
-      const COMPLETO = new Set(ACCIONES);
+        'registrarPago', 'revisar', 'notaInscripcion', 'agendarPrueba', 'resultadoPrueba', 'pagoPrueba', 'accionInventada',
+        // 21-oct
+        'ocupacion', 'agendarVisita', 'seguimiento', 'asistenciaNino', 'noHuboClase', 'resolverFueraDeLista', 'leerLista', 'guardarLista'];
+      // Pasar lista nunca entra por after-school/api.php (ni para Administrador).
+      const COMPLETO = new Set(ACCIONES.filter(a => a !== 'leerLista' && a !== 'guardarLista'));
+      const sinCorregir = new Set([...COMPLETO].filter(a => a !== 'noHuboClase' && a !== 'resolverFueraDeLista'));
       const R = {
-        'admin-uno': COMPLETO, 'prueba-direccion': COMPLETO, 'prueba-coord-as': COMPLETO, 'prueba-recepcion': COMPLETO,
-        'prueba-comercial': new Set(['leer', 'agendarPrueba']),
-        'prueba-contabilidad': new Set(['leer', 'listarPagos', 'registrarPago', 'pagoPrueba']),
+        'admin-uno': COMPLETO, 'prueba-direccion': COMPLETO, 'prueba-coord-as': COMPLETO, 'prueba-recepcion': sinCorregir,
+        'prueba-comercial': new Set(['leer', 'ocupacion', 'agendarPrueba']),
+        'prueba-contabilidad': new Set(['leer', 'ocupacion', 'listarPagos', 'registrarPago', 'pagoPrueba']),
         'prueba-coord-pre': new Set(), 'prueba-profesor-1': new Set()
       };
       for (const [u, permitidas] of Object.entries(R)) {
@@ -479,6 +493,67 @@ async function correr(fuente) {
       await n['prueba-contabilidad'].post('/after-school/api.php', { json: { accion: 'registrarPago', datos: {}, key: 'otra', usuario: 'admin-uno' } });
       const ult = google.llamadas[google.llamadas.length - 1];
       ok(ult.usuario === 'prueba-contabilidad' && ult.key === 'clave-de-prueba', 'el usuario y la clave que llegan al Apps Script los pone el servidor');
+    }
+
+    seccion('Pasar lista: quién entra, soloHoy y lo que recibe el profesor');
+    {
+      const pl = (u, accion, datos) => n[u].post('/pasar-lista/api.php', { json: { accion, datos: datos || {} } });
+      const ultima = () => google.llamadas[google.llamadas.length - 1];
+      let antes = google.llamadas.length;
+      let r = await pl('prueba-profesor-1', 'leerLista', { fecha: '2026-10-01', soloHoy: false });
+      ok(r.status === 200 && r.j.ok && google.llamadas.length === antes + 1, 'Profesor lee la lista');
+      ok(ultima().datos.soloHoy === true && ultima().usuario === 'prueba-profesor-1', 'al script le llega soloHoy = true aunque el navegador mande false');
+      const cl = r.j.resultado.clases[0];
+      ok(Object.keys(cl.ninos[0]).sort().join() === 'edad,estado,idNino,idVisita,nombre,nota,presencia', 'por niño solo nombre, edad, marca y lo marcado (' + Object.keys(cl.ninos[0]).join() + ')');
+      ok(!/555|correo|ejemplo\.test|Responsable|nacimiento/.test(r.texto), 'ningún contacto ni fecha de nacimiento llega al profesor');
+      ok(!('estado' in r.j) && !('secreto' in r.j.resultado) && !('cupo' in cl), 'ni el estado de After School ni campos de más');
+      ok(Object.keys(cl.fueraDeLista[0]).sort().join() === 'estado,idAsistencia,nombre,nota', 'los fuera de lista, recortados igual');
+      ok(r.j.permisos && r.j.permisos.puedeOtroDia === false, 'la página sabe que el profesor no puede otro día');
+      r = await pl('prueba-profesor-1', 'guardarLista', { codigo: 'LUN-1630-PARKOUR', marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] });
+      ok(r.status === 200 && r.j.ok && !('estado' in r.j) && !('secreto' in r.j.resultado) && r.j.resultado.nuevas === 1, 'guardar: el profesor no recibe el estado de After School');
+      ok(ultima().accion === 'guardarLista' && ultima().datos.soloHoy === true, 'guardar también va con soloHoy = true');
+      for (const a of ['leer', 'agendarVisita', 'seguimiento', 'noHuboClase', 'accionInventada']) {
+        antes = google.llamadas.length;
+        r = await pl('prueba-profesor-1', a);
+        ok(r.status === 403 && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes, 'Pasar lista no deja pasar «' + a + '»');
+      }
+      antes = google.llamadas.length;
+      r = await pl('admin-uno', 'leer');
+      ok(r.status === 403 && google.llamadas.length === antes, 'ni un Administrador usa Pasar lista para otra acción');
+      antes = google.llamadas.length;
+      r = await n['prueba-profesor-1'].as('leer');
+      ok(r.status === 403 && google.llamadas.length === antes, 'el profesor no entra a after-school/api.php');
+      r = await pl('prueba-coord-as', 'leerLista', { fecha: '2026-10-01' });
+      ok(r.status === 200 && ultima().datos.soloHoy === false && r.j.permisos.puedeOtroDia === true, 'Coordinación After School: soloHoy = false (corrige otros días)');
+      await pl('admin-uno', 'guardarLista', { codigo: 'X', marcas: [] });
+      ok(ultima().datos.soloHoy === false, 'Administrador: también otros días');
+      for (const u of ['prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
+        antes = google.llamadas.length;
+        r = await pl(u, 'leerLista');
+        ok(r.status === 403 && google.llamadas.length === antes, u + ' no pasa lista');
+      }
+    }
+
+    seccion('Profesor: la sesión se cierra tras 2 horas sin uso');
+    {
+      const dirSes = path.join(home, 'portal_sesiones');
+      const envejecer = (u, segundos) => {
+        const f = path.join(dirSes, 'sess_' + n[u].cookies.vea_portal);
+        const s = fs.readFileSync(f, 'utf8');
+        fs.writeFileSync(f, s.replace(/ultimo\|i:\d+;/, 'ultimo|i:' + (Math.floor(Date.now() / 1000) - segundos) + ';'));
+      };
+      ok((await n['prueba-profesor-1'].get('/pasar-lista/')).status === 200, '(control) el profesor está dentro');
+      envejecer('prueba-profesor-1', 7000);
+      ok((await n['prueba-profesor-1'].get('/pasar-lista/')).status === 200, 'con 1 h 56 min sin uso sigue dentro');
+      const ult = +(/ultimo\|i:(\d+);/.exec(fs.readFileSync(path.join(dirSes, 'sess_' + n['prueba-profesor-1'].cookies.vea_portal), 'utf8')) || [])[1];
+      ok(Date.now() / 1000 - ult < 60, 'y el uso renueva el plazo');
+      envejecer('prueba-profesor-1', 7300);
+      const r = await n['prueba-profesor-1'].get('/pasar-lista/');
+      ok(r.status === 302 && /login\.php/.test(r.location), 'con más de 2 horas sin uso, la sesión se cierra');
+      envejecer('prueba-coord-as', 30000);
+      ok((await n['prueba-coord-as'].get('/after-school/')).status === 200, 'los demás roles no tienen ese tope');
+      const c = await n['prueba-profesor-1'].entrar('prueba-profesor-1', claves['prueba-profesor-1']);
+      ok(c.status === 302, 'el profesor vuelve a entrar');
     }
 
     seccion('After School: contactos y pagos según el rol');

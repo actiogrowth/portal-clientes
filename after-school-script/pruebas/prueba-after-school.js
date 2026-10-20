@@ -91,12 +91,12 @@ seccion('instalar');
   const g = crearEntorno({ propiedades: {} });
   const inf = g.instalar();
   const L = g._libro;
-  ['Niños', 'Clases', 'Inscripciones', 'Pagos', 'Bajas', 'Config', 'Historial', 'Pruebas', 'Solicitudes'].forEach(n => ok(!!L.getSheetByName(n), 'crea la pestaña ' + n));
+  ['Niños', 'Clases', 'Inscripciones', 'Pagos', 'Bajas', 'Config', 'Historial', 'Pruebas', 'Solicitudes', 'Asistencia', 'Clases sin dictar'].forEach(n => ok(!!L.getSheetByName(n), 'crea la pestaña ' + n));
   const n = L.getSheetByName('Niños');
   ok(n.celda(5, 1) === '' && n.celda(5, 2) === 'ID' && n.celda(5, 15) === 'Notas', 'títulos de Niños en la fila 5 desde la B, A vacía');
   ok(n.celda(5, 16) === 'Colegio' && n.celda(5, 22) === 'Teléfono responsable 2', 'las columnas nuevas de Niños van después de Notas');
   const nIni = g.INS_CONFIG.length;
-  ok(nIni === 43 && L.getSheetByName('Config').getLastRow() === 5 + nIni, 'Config con sus 43 valores iniciales');
+  ok(nIni === 47 && L.getSheetByName('Config').getLastRow() === 5 + nIni, 'Config con sus 47 valores iniciales');
   ok(/FALTA/.test(inf), 'comprobar avisa que falta la clave');
   const otra = g.instalar();
   ok(L.getSheetByName('Config').getLastRow() === 5 + nIni, 'instalar dos veces no duplica Config');
@@ -135,12 +135,12 @@ seccion('actualizar estructura sobre una base de la versión 3 (con datos)');
   ok(N.celda(5, 16) === 'Colegio' && N.celda(5, 22) === 'Teléfono responsable 2', 'agrega las 7 columnas de Niños a la derecha de Notas');
   ok(JSON.stringify(N.fila(6).slice(0, 15)) === JSON.stringify(JSON.parse(antesNinos).slice(0, 15)), 'no toca los datos del niño existente');
   ok(N.formatos['6,22'] === '@', 'la columna nueva de teléfono queda como texto');
-  ok(C.getLastRow() === 5 + 21 + 22, 'Config: agrega las 22 filas de las 3 listas nuevas');
+  ok(C.getLastRow() === 5 + 21 + 26, 'Config: agrega las 22 filas de las 3 listas nuevas y los 4 parámetros de asistencia');
   ok(JSON.stringify([6, 7, 8, 26].map(f => C.fila(f))) === antesConfig, 'Config: no toca las filas que ya estaban (ni la editada)');
   ok(/Columnas agregadas al final de Niños/.test(inf) && /Creada: Pruebas/.test(inf), 'el informe dice qué agregó');
   ok(!/⚠ A la pestaña/.test(inf) && !/⚠ Config/.test(inf), 'comprobar queda sin avisos de estructura');
   const otra = g0.actualizarEstructura();
-  ok(C.getLastRow() === 5 + 43 && N.getLastColumn() === 22 && /Config: completa/.test(otra), 'correrla otra vez no cambia nada');
+  ok(C.getLastRow() === 5 + 47 && N.getLastColumn() === 22 && /Config: completa/.test(otra), 'correrla otra vez no cambia nada');
 
   // Comprobar avisa de lo nuevo que falte.
   N.poner(5, 18, '');
@@ -792,15 +792,335 @@ seccion('pago de la clase de prueba');
   g0.instalar();
   const P = L.getSheetByName('Pruebas');
   P.poner(5, 12, ''); P.poner(5, 13, '');           // como estaba antes del 16-oct
+  P.poner(5, 14, ''); P.poner(5, 15, ''); P.poner(5, 16, '');   // y sin las de visitas (21-oct)
   ['PRU-0001', new Date(2026, 9, 20), 'LUN-1630-TELAS', 'AS-0001', 'Agendada', '', '', 'nota', 'recepcion', new Date()].forEach((v, i) => {
     P.formatos['6,' + (2 + i)] = [0, 2, 3].includes(i) ? '@' : undefined; P.poner(6, 2 + i, v); });
   const antes = JSON.stringify(P.fila(6));
   ok(/⚠ A la pestaña «Pruebas» le faltan los títulos: Pagó, Monto pagado/.test(g0.comprobar()), 'Comprobar estructura avisa si faltan las columnas de pago');
   const inf = g0.actualizarEstructura();
   ok(P.celda(5, 12) === 'Pagó' && P.celda(5, 13) === 'Monto pagado' && /Columnas agregadas al final de Pruebas: Pagó, Monto pagado/.test(inf), 'Actualizar estructura agrega las dos columnas al final');
+  ok(P.celda(5, 14) === 'Tipo' && P.celda(5, 15) === 'Repone asistencia' && P.celda(5, 16) === 'Resultado por lista', 'y las tres de visitas, después');
   ok(JSON.stringify(P.fila(6).slice(0, 11)) === JSON.stringify(JSON.parse(antes).slice(0, 11)), 'sin tocar los datos de la prueba existente');
+  ok(P.celda(6, 14) === 'Prueba' && /Pruebas: 1 fila\(s\) sin Tipo quedaron como «Prueba»/.test(inf), 'la prueba existente queda con Tipo «Prueba»');
+  const inf2 = g0.actualizarEstructura();
+  ok(!/sin Tipo/.test(inf2), 'correrla otra vez no vuelve a tocar el Tipo');
   ok(!/⚠ A la pestaña/.test(g0.comprobar()), 'y Comprobar queda sin avisos de títulos');
   ok(/Ya existía, completa: Pruebas/.test(g0.actualizarEstructura()), 'correrla otra vez no cambia nada');
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 21-oct: visitas de un día, Pasar lista y seguimiento
+// ═════════════════════════════════════════════════════════════════════════════
+
+/* Fija la hora del script (ahora_) para probar lo que depende del momento. */
+function fijarHora(g, hh, mm) {
+  const d = new Date(); d.setHours(hh, mm, 0, 0);
+  g.ahora_ = () => new Date(d.getTime());
+}
+const HACE = n => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
+function sumar(f, n) { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); }
+
+/* Una clase del día de la semana de «fecha», con hora y servicio. */
+function claseDelDia(g, codigo, fecha, hora, servicio, cupo) {
+  const C = g._libro.getSheetByName('Clases');
+  const f = C.getLastRow() + 1;
+  C.formatos[f + ',2'] = '@'; C.formatos[f + ',6'] = '@';
+  const dia = DIAS[(new Date(fecha + 'T12:00:00').getDay() + 6) % 7];
+  ['', codigo, servicio, 'Semana', dia, hora, cupo, '6 a 14', 'Sí'].forEach((v, i) => { if (i) C.poner(f, 1 + i, v); });
+}
+
+/* Inscripción escrita a mano (alta en el pasado, como si viniera de antes). */
+function inscripcionPasada(g, idNino, codigo, alta) {
+  const I = g._libro.getSheetByName('Inscripciones'), f = I.getLastRow() + 1;
+  [2, 3, 4].forEach(c => { I.formatos[f + ',' + c] = '@'; });
+  ['', 'INS-' + (900 + f), idNino, codigo, new Date(alta + 'T00:00:00'), '', '', '', 'prueba', new Date(), ''].forEach((v, i) => { if (i) I.poner(f, 1 + i, v); });
+}
+
+/* Asistencia escrita a mano (días pasados). */
+function asistenciaPasada(g, id, fecha, codigo, idNino, estado, presencia) {
+  const A = g._libro.getSheetByName('Asistencia'), f = A.getLastRow() + 1;
+  [2, 4, 5, 7].forEach(c => { A.formatos[f + ',' + c] = '@'; });
+  ['', id, new Date(fecha + 'T00:00:00'), codigo, idNino, presencia || 'Inscrito', '', estado, '', 'profe', new Date(), '', ''].forEach((v, i) => { if (i) A.poner(f, 1 + i, v); });
+}
+
+seccion('visitas: ocupación por tipo y calculada por el servidor');
+{
+  const g = entornoCargado();
+  claseDeHoy(g, 'HOY-2000-TELAS', 4);
+  inscripcionPasada(g, 'AS-0001', 'HOY-2000-TELAS', AYER);
+  ok(g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, idNino: 'AS-0003' }).ok, 'una prueba hoy');
+  let r = g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'HOY-2000-TELAS', fecha: HOY, nino: Object.assign({}, NINO_NUEVO, { nombre: 'Eva', apellidos: 'Eventual Ficticia' }), pago: 'Sí', monto: '15' });
+  ok(r.ok && /^PRU-/.test(r.resultado.id), 'una eventual hoy (con pago)');
+  const ev = r.estado.ninos.find(n => n.id === r.resultado.idNino);
+  ok(ev && ev.estado === 'Eventual', 'el niño nuevo de una eventual nace «Eventual»');
+  const pe = r.estado.pruebas.find(p => p.id === r.resultado.id);
+  ok(pe.tipo === 'Eventual' && pe.pago === 'Sí' && pe.monto === 15, 'la eventual guarda tipo, Pagó y monto');
+  const o = r.estado.ocupacion[HOY]['HOY-2000-TELAS'];
+  ok(o && o.i === 1 && o.v === 2 && o.tipos.Prueba === 1 && o.tipos.Eventual === 1, 'leer devuelve la ocupación del día: 1 inscrito + 2 visitas por tipo');
+  ok(o.ninos.join() === 'AS-0001' && o.visitas.length === 2, 'con los IDs de los inscritos y de las visitas (la página no recalcula)');
+  const s = g.ocupacionEn_('HOY-2000-TELAS', HOY, g.leerTabla_('inscripciones'), g.leerTabla_('pruebas'));
+  ok(s.total === 3 && s.pruebas === 2, 'ocupacionEn_ cuenta las visitas de todos los tipos');
+  ok(g.textoOcupacion_(s, 4) === '1 + 2 visitas de 4 cupos', 'el texto dice «visitas» si hay tipos mezclados');
+  // Llenar: cupo 4 → una visita más cabe, la siguiente no.
+  ok(g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, idNino: 'AS-0005' }).ok, 'cabe una visita más (4/4)');
+  r = g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'HOY-2000-TELAS', fecha: HOY, nino: Object.assign({}, NINO_NUEVO, { nombre: 'Otro', apellidos: 'Lleno Ficticio' }) });
+  ok(!r.ok && r.codigo === 'llena' && /1 \+ 3 visitas de 4 cupos/.test(r.error), 'la clase llena por visitas rechaza otra visita y lo dice');
+  r = g.llamar('inscribir', { idNino: 'AS-0004', codigo: 'HOY-2000-TELAS' });
+  ok(!r.ok && r.codigo === 'llena', 'y una inscripción fija tampoco cabe ese día');
+  // La ventana de leer coincide con ocupacionEn_ en todas sus fechas (con una baja de hoy dentro).
+  const insAlma = g.llamar('leer').resultado.inscripciones.find(i => i.idNino === 'AS-0001' && i.codigo === 'LUN-1630-PARKOUR');
+  ok(g.llamar('bajaClase', { idInscripcion: insAlma.id, fecha: HOY, motivo: 'Horario' }).ok, '(una baja de hoy para la comparación)');
+  const d = g.llamar('leer').resultado;
+  const ins = g.leerTabla_('inscripciones'), pr = g.leerTabla_('pruebas');
+  let iguales = true, n = 0;
+  Object.keys(d.ocupacion).forEach(f => Object.keys(d.ocupacion[f]).forEach(c => {
+    const x = g.ocupacionEn_(c, f, ins, pr), y = d.ocupacion[f][c]; n++;
+    if (x.inscritos !== y.i || x.visitas !== y.v) iguales = false;
+  }));
+  ok(iguales && n > 20, 'la ocupación de leer coincide con la regla del servidor en las ' + n + ' celdas de la ventana');
+  ok(d.ocupacion[HACE(14)] && d.ocupacion[sumar(HOY, 41)] && !d.ocupacion[HACE(15)], 'ventana: 14 días atrás y 41 adelante');
+  const lejos = sumar(proximo('Lunes', true), 70);
+  ok(g.llamar('agendarPrueba', { codigo: 'LUN-1630-TELAS', fecha: lejos, idNino: 'AS-0003' }).ok, 'una prueba a 10 semanas');
+  ok(!!g.llamar('leer').resultado.ocupacion[lejos], 'una fecha futura con visitas fuera de la ventana también viene');
+  r = g.llamar('ocupacion', { desde: '2026-09-07', hasta: '2026-09-13' });
+  ok(r.ok && r.resultado.ocupacion['2026-09-07']['LUN-1630-PARKOUR'].i === 2, 'la acción «ocupacion» da otras semanas');
+  ok(!g.llamar('ocupacion', { desde: '2026-01-01', hasta: '2026-06-01' }).ok, 'y no más de 62 días');
+}
+
+seccion('visitas: Eventual');
+{
+  const g = entornoCargado();
+  const lunes = proximo('Lunes', true);
+  let r = g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'LUN-1630-PARKOUR', fecha: lunes, idNino: 'AS-0001' });
+  ok(!r.ok && /está Activo/.test(r.error), 'un niño Activo no viene como eventual');
+  r = g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'LUN-1630-PARKOUR', fecha: lunes, idNino: 'AS-0002' });
+  ok(!r.ok && /Por revisar/.test(r.error), 'uno «Por revisar» tampoco');
+  ok(!g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'LUN-1630-PARKOUR', fecha: lunes, nino: { nombre: 'Sin datos' } }).ok, 'niño nuevo: los mismos obligatorios que la prueba');
+  ok(!g.llamar('agendarVisita', { tipo: 'Prueba', codigo: 'LUN-1630-PARKOUR', fecha: lunes, idNino: 'AS-0003' }).ok, 'agendarVisita no agenda pruebas');
+  ok(!g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'LUN-1630-PARKOUR', fecha: lunes, nino: NINO_NUEVO, pago: 'Sí' }).ok, 'Pagó Sí sin monto → rechazo');
+  // Prospecto → Eventual
+  const rp = g.llamar('agendarPrueba', { codigo: 'LUN-1630-TELAS', fecha: lunes, nino: NINO_NUEVO });
+  const idP = rp.resultado.idNino;
+  r = g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'LUN-1630-PARKOUR', fecha: sumar(lunes, 7), idNino: idP });
+  ok(r.ok && r.estado.ninos.find(n => n.id === idP).estado === 'Eventual', 'un Prospecto que viene como eventual pasa a Eventual');
+  const H = g._libro.getSheetByName('Historial');
+  ok(H.celda(H.getLastRow() - 1, 4) === 'Prospecto → Eventual' && H.celda(H.getLastRow(), 4) === 'Agendar eventual', 'Historial del cambio de estado y de la visita');
+  // Retirado → Eventual
+  g.llamar('bajaTotal', { idNino: 'AS-0004', fecha: HOY, motivo: 'Precio' });
+  r = g.llamar('agendarVisita', { tipo: 'Eventual', codigo: 'LUN-1630-PARKOUR', fecha: lunes, idNino: 'AS-0004', pago: 'No' });
+  ok(r.ok && r.estado.ninos.find(n => n.id === 'AS-0004').estado === 'Eventual', 'un Retirado que viene un día pasa a Eventual');
+  // Eventual → Activo al inscribirse
+  r = g.llamar('inscribir', { idNino: idP, codigo: 'MAR-1630-PARKIDS' });
+  ok(r.ok && r.estado.ninos.find(n => n.id === idP).estado === 'Activo', 'un Eventual que se inscribe pasa a Activo');
+  ok(H.celda(H.getLastRow(), 4) === 'Eventual → Activo', 'Historial: Eventual → Activo');
+  // Pago de la eventual con pagoPrueba
+  const idEv = g.llamar('leer').resultado.pruebas.find(p => p.idNino === 'AS-0004').id;
+  r = g.llamar('pagoPrueba', { idPrueba: idEv, pago: 'Sí', monto: '12,50' });
+  ok(r.ok && r.estado.pruebas.find(p => p.id === idEv).monto === 12.5, 'el pago de una eventual se registra igual que el de una prueba');
+}
+
+seccion('visitas: Reposición de una sola falta, del mismo servicio');
+{
+  const g = entornoCargado();
+  const lunesPasado = HACE(((new Date().getDay() + 6) % 7) + 7);       // el lunes de la semana pasada
+  asistenciaPasada(g, 'ASI-0001', lunesPasado, 'LUN-1630-PARKOUR', 'AS-0001', 'Ausente');
+  asistenciaPasada(g, 'ASI-0002', lunesPasado, 'LUN-1630-PARKOUR', 'AS-0004', 'Presente');
+  asistenciaPasada(g, 'ASI-0003', lunesPasado, 'LUN-1630-TELAS', 'AS-0002', 'Falta justificada');
+  const martes = proximo('Martes', true);
+  claseDelDia(g, 'MAR-1800-PARKOUR', martes, '18:00', 'Parkour', 10);
+  let r = g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1630-PARKIDS', fecha: martes, idNino: 'AS-0001', reponeAsistencia: 'ASI-0001' });
+  ok(!r.ok && /La falta es de Parkour: se repone en una clase de Parkour/.test(r.error), 'se repone solo en una clase del mismo servicio');
+  ok(!g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: martes, idNino: 'AS-0004', reponeAsistencia: 'ASI-0002' }).ok, 'un Presente no es una falta');
+  ok(!g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: martes, idNino: 'AS-0004', reponeAsistencia: 'ASI-0001' }).ok, 'la falta de otro niño → rechazo');
+  ok(!g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: martes, idNino: 'AS-0001' }).ok, 'sin elegir la falta → rechazo');
+  ok(!g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: martes, idNino: 'AS-0001', reponeAsistencia: 'ASI-0001', pago: 'Sí', monto: 5 }).ok, 'la reposición no se cobra');
+  r = g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: martes, idNino: 'AS-0001', reponeAsistencia: 'ASI-0001' });
+  ok(r.ok, 'repone la falta en otra clase de Parkour');
+  const rep = r.estado.pruebas.find(p => p.id === r.resultado.id);
+  ok(rep.tipo === 'Reposición' && rep.repone === 'ASI-0001' && rep.pago === '', 'la visita guarda tipo y la falta que repone');
+  r = g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: sumar(martes, 7), idNino: 'AS-0001', reponeAsistencia: 'ASI-0001' });
+  ok(!r.ok && /ya se repone con PRU-/.test(r.error), 'cada falta se repone una sola vez');
+  ok(!g.llamar('pagoPrueba', { idPrueba: rep.id, pago: 'Sí', monto: 5 }).ok, 'pagoPrueba rechaza una reposición');
+  const a = g.llamar('asistenciaNino', { idNino: 'AS-0001' }).resultado.asistencias[0];
+  ok(a.id === 'ASI-0001' && a.repuestaCon === rep.id && a.reponible === false, 'la asistencia del niño dice con qué visita se repone');
+  // Cancelada → la falta vuelve a estar disponible.
+  g.llamar('resultadoPrueba', { idPrueba: rep.id, estado: 'Cancelada' });
+  ok(g.llamar('asistenciaNino', { idNino: 'AS-0001' }).resultado.asistencias[0].reponible === true, 'si la reposición se cancela, la falta vuelve a quedar disponible');
+  r = g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: sumar(martes, 7), idNino: 'AS-0001', reponeAsistencia: 'ASI-0001' });
+  ok(r.ok, 'y se puede reponer otra vez');
+  // Una reposición ocupa cupo: con cupo 1, la reposición llena la clase.
+  claseDelDia(g, 'MAR-1900-PARKOUR', martes, '19:00', 'Parkour', 1);
+  asistenciaPasada(g, 'ASI-0011', lunesPasado, 'LUN-1630-PARKOUR', 'AS-0001', 'Ausente');
+  ok(g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1900-PARKOUR', fecha: martes, idNino: 'AS-0001', reponeAsistencia: 'ASI-0011' }).ok, 'reposición en una clase de cupo 1');
+  r = g.llamar('agendarPrueba', { codigo: 'MAR-1900-PARKOUR', fecha: martes, idNino: 'AS-0003' });
+  ok(!r.ok && r.codigo === 'llena', 'la reposición ocupa el cupo: otra visita ya no cabe');
+  // Una reposición que queda «No asistió» libera la falta.
+  claseDelDia(g, 'HOY-2100-PARKOUR', HOY, '21:00', 'Parkour', 10);
+  asistenciaPasada(g, 'ASI-0010', lunesPasado, 'LUN-1630-PARKOUR', 'AS-0001', 'Ausente');
+  const rHoy = g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'HOY-2100-PARKOUR', fecha: HOY, idNino: 'AS-0001', reponeAsistencia: 'ASI-0010' });
+  ok(rHoy.ok, 'reposición hoy');
+  const falta10 = () => g.llamar('asistenciaNino', { idNino: 'AS-0001' }).resultado.asistencias.find(x => x.id === 'ASI-0010');
+  ok(falta10().reponible === false, '(control) con la reposición en pie, la falta no está disponible');
+  g.llamar('resultadoPrueba', { idPrueba: rHoy.resultado.id, estado: 'No asistió' });
+  ok(falta10().reponible === true, 'si la reposición queda «No asistió», la falta vuelve a estar disponible');
+  // Una Falta justificada también se repone; a un Retirado, no.
+  g.llamar('revisar', { idNino: 'AS-0002', estado: 'Activo' });
+  ok(g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'LUN-1630-TELAS', fecha: proximo('Lunes', true), idNino: 'AS-0002', reponeAsistencia: 'ASI-0003' }).ok === false, '(el niño ya está inscrito en esa clase: rechazo)');
+  claseDelDia(g, 'MIE-1700-TELAS', proximo('Miércoles', true), '17:00', 'Telas', 10);
+  ok(g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MIE-1700-TELAS', fecha: proximo('Miércoles', true), idNino: 'AS-0002', reponeAsistencia: 'ASI-0003' }).ok, 'una Falta justificada también se repone');
+  g.llamar('bajaTotal', { idNino: 'AS-0004', fecha: HOY, motivo: 'Precio' });
+  asistenciaPasada(g, 'ASI-0009', lunesPasado, 'LUN-1630-PARKOUR', 'AS-0004', 'Ausente');
+  ok(/la reposición es para niños Activos/.test(g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: martes, idNino: 'AS-0004', reponeAsistencia: 'ASI-0009' }).error), 'a un niño que no está Activo no se le agenda reposición');
+}
+
+seccion('Pasar lista: lo que ve el profesor y lo que guarda');
+{
+  const g = entornoCargado();
+  fijarHora(g, 20, 30);
+  claseDeHoy(g, 'HOY-2000-TELAS', 10);
+  inscripcionPasada(g, 'AS-0001', 'HOY-2000-TELAS', AYER);
+  inscripcionPasada(g, 'AS-0005', 'HOY-2000-TELAS', AYER);
+  const pr = g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, nino: NINO_NUEVO }).resultado;
+  const cancelada = g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, idNino: 'AS-0003' }).resultado.id;
+  g.llamar('resultadoPrueba', { idPrueba: cancelada, estado: 'Cancelada' });
+  let r = g.llamar('leerLista', { soloHoy: true });
+  ok(r.ok && r.resultado.fecha === HOY, 'leerLista: la lista de hoy');
+  const cl = r.resultado.clases.find(c => c.codigo === 'HOY-2000-TELAS');
+  ok(cl && cl.ninos.length === 3, 'la clase de hoy: 2 inscritos + 1 prueba (la cancelada no va)');
+  const gabi = cl.ninos.find(n => n.idNino === pr.idNino);
+  ok(gabi.presencia === 'Prueba' && gabi.idVisita === pr.id && /años/.test(gabi.edad), 'la prueba va con su marca y la edad');
+  const claves = Object.keys(cl.ninos[0]).sort().join();
+  ok(claves === 'edad,estado,idNino,idVisita,nombre,nota,presencia', 'por niño solo nombre, edad, marca y lo marcado (' + claves + ')');
+  ok(!JSON.stringify(r.resultado).match(/555|telefono|correo|responsable|@/), 'ningún dato de contacto en la lista');
+  ok(!r.estado, 'leerLista no trae el estado de After School');
+  // Profesor: otro día no.
+  r = g.llamar('leerLista', { fecha: AYER, soloHoy: true });
+  ok(!r.ok && r.codigo === 'solo_hoy', 'con soloHoy, otro día → rechazo');
+  ok(g.llamar('leerLista', { fecha: AYER }).ok, 'sin soloHoy (coordinación), otro día sí');
+  ok(!g.llamar('leerLista', { fecha: MANANA }).ok, 'un día futuro, nunca');
+
+  // Guardar
+  const marcas = [{ idNino: 'AS-0001', estado: 'Presente' }, { idNino: 'AS-0005', estado: 'Ausente' }, { idNino: pr.idNino, estado: 'Llegó tarde' }];
+  ok(!g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0002', estado: 'Presente' }], soloHoy: true }).ok, 'un niño que no está en la lista → rechazo');
+  ok(!g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0001', estado: 'Dormido' }], soloHoy: true }).ok, 'estado inválido → rechazo');
+  ok(!g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [marcas[0], marcas[0]], soloHoy: true }).ok, 'el mismo niño dos veces → rechazo');
+  ok(!g.llamar('guardarLista', { codigo: 'LUN-1630-PARKOUR', fecha: HOY, marcas: marcas, soloHoy: true }).ok || DIA_HOY === 'Lunes', 'una clase que no es de hoy → rechazo');
+  r = g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: marcas, fueraDeLista: [{ nombre: 'Niño Escrito A Mano', estado: 'Presente' }], soloHoy: true },
+    { idSolicitud: 'lista-0001-aaaa' });
+  ok(r.ok && r.resultado.nuevas === 4 && r.resultado.visitasMarcadas === 1, 'guarda 3 marcas + 1 fuera de lista y marca la prueba');
+  ok(!r.estado, 'guardarLista no devuelve el estado de After School (el profesor no lo recibe)');
+  const A = g._libro.getSheetByName('Asistencia');
+  ok(A.getLastRow() === 9 && A.celda(6, 2) === 'ASI-0001' && A.celda(6, 6) === 'Inscrito' && A.celda(6, 8) === 'Presente' && A.celda(6, 10) === 'prueba', 'filas en Asistencia con ID, presencia, estado y quién');
+  const rep = g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: marcas, fueraDeLista: [{ nombre: 'Niño Escrito A Mano', estado: 'Presente' }], soloHoy: true },
+    { idSolicitud: 'lista-0001-aaaa' });
+  ok(rep.ok && rep.repetida && A.getLastRow() === 9, 'el mismo ID de solicitud no guarda dos veces');
+  let p = g.llamar('leer').resultado.pruebas.find(x => x.id === pr.id);
+  ok(p.estado === 'Asistió' && p.porLista === true && p.seInscribio === '', 'Llegó tarde → la prueba queda Asistió, por la lista, sin tocar «Se inscribió»');
+  // Corregir el mismo día: la prueba sigue a la lista.
+  r = g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [{ idNino: pr.idNino, estado: 'Ausente' }], soloHoy: true });
+  ok(r.ok && r.resultado.corregidas === 1 && r.resultado.nuevas === 0, 'corregir el mismo día actualiza la fila (no agrega otra)');
+  p = g.llamar('leer').resultado.pruebas.find(x => x.id === pr.id);
+  ok(p.estado === 'No asistió', 'Ausente → la prueba pasa a No asistió');
+  const H = g._libro.getSheetByName('Historial');
+  ok(H.celda(H.getLastRow() - 1, 4) === 'Corregir asistencia' && /Llegó tarde → Ausente/.test(H.celda(H.getLastRow() - 1, 6)), 'la corrección queda en Historial');
+  r = g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [{ idNino: pr.idNino, estado: 'Falta justificada' }], soloHoy: true });
+  ok(g.llamar('leer').resultado.pruebas.find(x => x.id === pr.id).estado === 'No asistió', 'Falta justificada → No asistió');
+  // Un resultado puesto a mano no se pisa.
+  g.llamar('resultadoPrueba', { idPrueba: pr.id, estado: 'Asistió', seInscribio: 'Sí' });
+  g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [{ idNino: pr.idNino, estado: 'Ausente' }], soloHoy: true });
+  p = g.llamar('leer').resultado.pruebas.find(x => x.id === pr.id);
+  ok(p.estado === 'Asistió' && p.seInscribio === 'Sí' && p.porLista === false, 'la lista no pisa un resultado registrado a mano');
+  // Lo guardado aparece en la lista.
+  const cl2 = g.llamar('leerLista', { soloHoy: true }).resultado.clases.find(c => c.codigo === 'HOY-2000-TELAS');
+  ok(cl2.guardada && cl2.ninos.find(n => n.idNino === 'AS-0005').estado === 'Ausente' && cl2.fueraDeLista[0].nombre === 'Niño Escrito A Mano', 'la lista vuelve con lo marcado y los fuera de lista');
+  // El profesor no corrige otro día; la coordinación sí.
+  const hoyLista = { codigo: 'HOY-2000-TELAS', fecha: HOY, marcas: [{ idNino: 'AS-0001', estado: 'Ausente' }] };
+  ok(g.llamar('guardarLista', Object.assign({}, hoyLista, { fecha: sumar(HOY, -7), soloHoy: true })).codigo === 'solo_hoy', 'con soloHoy no se corrige otro día');
+  ok(g.llamar('guardarLista', Object.assign({}, hoyLista, { fecha: sumar(HOY, 7) })).ok === false, 'nunca un día futuro');
+}
+
+seccion('Pasar lista: niño fuera de lista y «No hubo clase»');
+{
+  const g = entornoCargado();
+  fijarHora(g, 21, 0);
+  claseDeHoy(g, 'HOY-2000-TELAS', 10);
+  inscripcionPasada(g, 'AS-0001', 'HOY-2000-TELAS', AYER);
+  g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0001', estado: 'Presente' }], fueraDeLista: [{ nombre: 'Uno', estado: 'Presente' }, { nombre: 'Dos', estado: 'Presente' }, { nombre: 'Tres', estado: 'Presente' }] });
+  let s = g.llamar('seguimiento').resultado;
+  ok(s.fueraDeLista.length === 3 && s.fueraDeLista[0].nombre === 'Uno', 'los fuera de lista aparecen para la coordinación');
+  const [a1, a2, a3] = s.fueraDeLista.map(x => x.idAsistencia);
+  ok(!g.llamar('resolverFueraDeLista', { idAsistencia: a1, resolucion: 'vincular', idNino: 'AS-0001' }).ok, 'vincular a un niño que ya tiene asistencia en esa clase ese día → rechazo');
+  ok(g.llamar('resolverFueraDeLista', { idAsistencia: a1, resolucion: 'vincular', idNino: 'AS-0003' }).ok, 'vincular a un niño existente');
+  const r = g.llamar('resolverFueraDeLista', { idAsistencia: a2, resolucion: 'crear', nino: NINO_NUEVO });
+  ok(r.ok && r.estado.ninos.find(n => n.id === r.resultado.idNino).estado === 'Eventual', 'crear el niño (queda Eventual)');
+  ok(g.llamar('resolverFueraDeLista', { idAsistencia: a3, resolucion: 'descartar' }).ok, 'descartar');
+  ok(!g.llamar('resolverFueraDeLista', { idAsistencia: a3, resolucion: 'descartar' }).ok, 'una sola vez');
+  s = g.llamar('seguimiento').resultado;
+  ok(s.fueraDeLista.length === 0, 'resueltos, ya no aparecen');
+  ok(g.llamar('asistenciaNino', { idNino: 'AS-0003' }).resultado.asistencias.length === 1, 'el vinculado tiene esa asistencia en su ficha');
+  // No hubo clase
+  claseDelDia(g, 'AYER-1600-PARKOUR', AYER, '16:00', 'Parkour', 10);
+  inscripcionPasada(g, 'AS-0004', 'AYER-1600-PARKOUR', HACE(10));
+  ok(!g.llamar('noHuboClase', { codigo: 'HOY-2000-TELAS', fecha: HOY }).ok, '«No hubo clase» en una clase con lista → rechazo');
+  ok(!g.llamar('noHuboClase', { codigo: 'AYER-1600-PARKOUR', fecha: MANANA }).ok, 'ni en un día futuro');
+  ok(g.llamar('noHuboClase', { codigo: 'AYER-1600-PARKOUR', fecha: AYER, nota: 'feriado' }).ok, '«No hubo clase» ayer');
+  const H = g._libro.getSheetByName('Historial');
+  ok(H.celda(H.getLastRow(), 4) === 'No hubo clase' && /feriado/.test(H.celda(H.getLastRow(), 6)), 'queda en Historial');
+  ok(g.llamar('noHuboClase', { codigo: 'AYER-1600-PARKOUR', fecha: AYER }).resultado.sinCambios, 'repetirlo no escribe');
+  ok(!g.llamar('guardarLista', { codigo: 'AYER-1600-PARKOUR', fecha: AYER, marcas: [{ idNino: 'AS-0004', estado: 'Presente' }] }).ok, 'y ya no se le pasa lista');
+}
+
+seccion('seguimiento: faltas seguidas, faltas por reponer y clases sin lista');
+{
+  const g = entornoCargado();
+  // Parkour de Alma (AS-0001) y Dani (AS-0004): cuatro lunes seguidos.
+  const L = n => HACE(((new Date().getDay() + 6) % 7) + 7 * n);   // el lunes de hace n semanas
+  asistenciaPasada(g, 'ASI-0001', L(4), 'LUN-1630-PARKOUR', 'AS-0001', 'Presente');
+  asistenciaPasada(g, 'ASI-0002', L(3), 'LUN-1630-PARKOUR', 'AS-0001', 'Ausente');
+  asistenciaPasada(g, 'ASI-0003', L(2), 'LUN-1630-PARKOUR', 'AS-0001', 'Falta justificada');
+  asistenciaPasada(g, 'ASI-0004', L(1), 'LUN-1630-PARKOUR', 'AS-0001', 'Ausente');
+  asistenciaPasada(g, 'ASI-0005', L(3), 'LUN-1630-PARKOUR', 'AS-0004', 'Ausente');
+  asistenciaPasada(g, 'ASI-0006', L(2), 'LUN-1630-PARKOUR', 'AS-0004', 'Llegó tarde');
+  asistenciaPasada(g, 'ASI-0007', L(1), 'LUN-1630-PARKOUR', 'AS-0004', 'Ausente');
+  asistenciaPasada(g, 'ASI-0008', HACE(60), 'LUN-1630-PARKOUR', 'AS-0004', 'Ausente');
+  let s = g.llamar('seguimiento').resultado;
+  const alma = s.faltasSeguidas.find(x => x.idNino === 'AS-0001');
+  ok(alma && alma.cuantas === 2 && alma.desde === L(3) && alma.hasta === L(1), 'Alma: Ausente, justificada (se salta), Ausente → 2 seguidas');
+  ok(!s.faltasSeguidas.find(x => x.idNino === 'AS-0004'), 'Dani: «Llegó tarde» corta la racha → sin alerta');
+  ok(s.umbral === 2, 'el umbral sale de Config');
+  const C = g._libro.getSheetByName('Config');
+  for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 3) === 'Faltas seguidas') C.poner(f, 4, 3);
+  ok(!g.llamar('seguimiento').resultado.faltasSeguidas.length, 'con umbral 3 en Config, ya no hay alerta');
+  const porReponer = s.faltasPorReponer.map(x => x.idAsistencia).sort().join();
+  ok(porReponer === 'ASI-0002,ASI-0003,ASI-0004,ASI-0005,ASI-0007', 'faltas por reponer: Ausente y justificada de los últimos 30 días (' + porReponer + ')');
+  ok(!s.faltasPorReponer.find(x => x.idAsistencia === 'ASI-0008'), 'la de hace 60 días no (Días para reponer = 30)');
+  // Al reponer una, sale de la lista.
+  claseDelDia(g, 'MAR-1800-PARKOUR', proximo('Martes', true), '18:00', 'Parkour', 10);
+  g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MAR-1800-PARKOUR', fecha: proximo('Martes', true), idNino: 'AS-0001', reponeAsistencia: 'ASI-0002' });
+  ok(!g.llamar('seguimiento').resultado.faltasPorReponer.find(x => x.idAsistencia === 'ASI-0002'), 'una falta con reposición agendada sale de «por reponer»');
+
+  // Clases sin lista
+  const g2 = entornoCargado();
+  const C2 = g2._libro.getSheetByName('Config');
+  for (let f = 6; f <= C2.getLastRow(); f++) if (C2.celda(f, 3) === 'Asistencia desde') C2.poner(f, 5, new Date(HACE(3) + 'T00:00:00'));
+  claseDelDia(g2, 'HOY-1600-PARKOUR', HOY, '16:00', 'Parkour', 10);
+  claseDelDia(g2, 'HOY-1500-TELAS', HOY, '15:00', 'Telas', 10);           // terminó, pero sin niños: no se avisa
+  claseDelDia(g2, 'AYER-1600-TELAS', AYER, '16:00', 'Telas', 10);
+  inscripcionPasada(g2, 'AS-0001', 'HOY-1600-PARKOUR', HACE(30));
+  inscripcionPasada(g2, 'AS-0001', 'AYER-1600-TELAS', HACE(30));
+  fijarHora(g2, 16, 59);
+  s = g2.llamar('seguimiento').resultado;
+  ok(!s.clasesSinLista.find(x => x.codigo === 'HOY-1600-PARKOUR'), 'a las 16:59 la clase de las 16:00 (60 min) todavía no terminó');
+  ok(s.clasesSinLista.find(x => x.codigo === 'AYER-1600-TELAS' && x.fecha === AYER), 'la de ayer sin lista sí se avisa');
+  fijarHora(g2, 17, 0);
+  s = g2.llamar('seguimiento').resultado;
+  ok(s.clasesSinLista.find(x => x.codigo === 'HOY-1600-PARKOUR' && x.hora === '16:00' && x.servicio === 'Parkour'), 'a las 17:00 terminó: «Parkour 16:00 – lista sin pasar»');
+  ok(!s.clasesSinLista.find(x => x.codigo === 'HOY-1500-TELAS'), 'una clase que terminó pero no tenía niños no se avisa');
+  ok(!s.clasesSinLista.find(x => x.fecha < HACE(3)), 'nada antes de «Asistencia desde»');
+  for (let f = 6; f <= C2.getLastRow(); f++) if (C2.celda(f, 3) === 'Duración de clase (min)') C2.poner(f, 4, 90);
+  ok(!g2.llamar('seguimiento').resultado.clasesSinLista.find(x => x.codigo === 'HOY-1600-PARKOUR'), 'con 90 minutos de duración en Config, a las 17:00 todavía no');
+  g2.llamar('guardarLista', { codigo: 'AYER-1600-TELAS', fecha: AYER, marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] });
+  ok(!g2.llamar('seguimiento').resultado.clasesSinLista.find(x => x.codigo === 'AYER-1600-TELAS'), 'con la lista guardada, ya no se avisa');
 }
 
 seccion('filas más allá de la 1000');

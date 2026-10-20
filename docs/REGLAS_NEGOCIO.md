@@ -17,11 +17,11 @@ Una regla sin prueba se marca **SIN PRUEBA**.
 |---|---|---|---|
 | R01 | Una clase admite inscripciones fijas hasta su `Cupo`; los inscritos sin baja cuentan. | `exigirCupoFijo_` | AS § inscribir · rotura «deja pasar la clase llena» |
 | R02 | Una inscripción ocupa cupo el día D si `alta ≤ D` y (`sin baja` o `baja > D`). | `inscripcionEnFecha_` | AS § ocupación en una fecha · rotura «las inscripciones cerradas cuentan después de la baja», «cuenta las bajas como activas» |
-| R03 | Una prueba ocupa cupo en su fecha mientras esté `Agendada` o `Asistió`. | `PRUEBA_OCUPA` | AS § clases de prueba: agendar · rotura «la prueba no ocupa cupo» |
+| R03 | Una visita de un día (Prueba, Reposición o Eventual) ocupa cupo en su fecha mientras esté `Agendada` o `Asistió`. | `PRUEBA_OCUPA`, `ocupacionEn_` | AS § clases de prueba: agendar, § visitas: ocupación · roturas «la prueba no ocupa cupo», «las reposiciones no ocupan cupo» |
 | R04 | Inscribir o mover exige cupo también en cada fecha futura con pruebas (inscritos ese día + pruebas + el niño ≤ cupo). | `exigirCupoFijo_` | AS § las pruebas futuras cuentan al inscribir y al mover · rotura «inscribir ignora las pruebas futuras» |
 | R05 | Las pruebas del propio niño no le cierran el cupo. | `ocupacionEn_(…, excluirNino)` | AS · rotura «la propia prueba del niño le cierra el cupo» |
 | R06 | Clase inactiva o sin cupo válido: no admite inscripciones ni pruebas. | `claseUsable_` | AS § inscribir, § clases de prueba: agendar |
-| R07 | Ocupación del día en la página = misma regla que el servidor. | `ocupacion()` en index.html | **SIN PRUEBA** automática de la página (ver hallazgo H9) |
+| R07 | La ocupación la calcula el servidor (`leer` la trae por fecha y clase; otras semanas con la acción `ocupacion`); la página solo la pinta (21-oct, resuelve H9). | `ocupacionFechas_` | AS § visitas: ocupación («coincide con la regla del servidor en las N celdas») · roturas «leer no cuenta las visitas en la ocupación», «la ocupación de leer cuenta mal las bajas» |
 
 ## Inscripciones y bajas
 
@@ -31,7 +31,7 @@ Una regla sin prueba se marca **SIN PRUEBA**.
 | R11 | Un Retirado no se inscribe: primero se reactiva. | `inscribirEn_` | AS § inscribir |
 | R12 | La fecha de alta no puede ser futura (alta futura prohibida por decisión). | `exigirNoFutura_` | AS · rotura «acepta alta futura» |
 | R13 | Inscribir varias es todo o nada. | `inscribirEn_` | AS § inscribir varias · rotura «inscribir varias no es todo o nada» |
-| R14 | Un Prospecto que se inscribe pasa a Activo (y toma fecha de ingreso). | `inscribirEn_` | AS · rotura «el Prospecto no pasa a Activo» |
+| R14 | Un Prospecto o un Eventual que se inscribe pasa a Activo (y toma fecha de ingreso). | `inscribirEn_` | AS · roturas «el Prospecto no pasa a Activo», «el Eventual no pasa a Activo al inscribirse» |
 | R15 | Bajas: fecha no futura y no anterior al alta; motivo de la lista de Config. | `exigirBajaNoAntesDeAlta_`, `exigirMotivo_` | AS § bajas · roturas «acepta bajas futuras», «no exige motivo de la lista» |
 | R16 | Mover = baja con motivo `Cambio de clase` + alta nueva el mismo día; valida cupo del destino; fecha no futura. | `accMover_` | AS § mover · roturas «mover no valida el cupo del destino», «mover acepta fecha futura» |
 | R17 | Baja total: cierra todas sus inscripciones, Estado Retirado, fila en Bajas y cancela sus pruebas Agendadas de hoy en adelante (no las pasadas ni las que tienen resultado; agrega nota). | `retirar_` | AS § baja total cancela las pruebas agendadas · 5 roturas |
@@ -60,6 +60,39 @@ Una regla sin prueba se marca **SIN PRUEBA**.
 | R45 | Volver a ocupar cupo (Cancelada → Agendada/Asistió) exige cupo ese día. | `accResultadoPrueba_` | AS § resultado |
 | R46 | Pago de prueba: Sí exige monto > 0 (2 decimales); No o vacío deja el monto vacío; se puede registrar antes, durante o después; sin precio fijo. | `valoresPagoPrueba_` | AS § pago de la clase de prueba · 8 roturas |
 | R47 | Un Prospecto que no se inscribe sigue Prospecto. | (ninguna acción lo cambia) | AS § resultado |
+
+## Visitas de un día (21-oct)
+
+| # | Regla | Dónde | Cobertura |
+|---|---|---|---|
+| R90 | Tres tipos: Prueba (agendarPrueba, también Comercial), Reposición y Eventual (agendarVisita). Las tres: fecha de hoy en adelante, en el día de la clase, clase activa, el niño no inscrito en esa clase ni con otra visita ese día, cupo ese día. | `validarFechaVisita_`, `exigirNinoLibreEn_`, `exigirCupoVisita_` | AS § visitas · rotura «una visita no valida el cupo» |
+| R91 | Reposición: solo niños Activos; repone una falta (Ausente o Falta justificada) de una clase fija del mismo niño; en cualquier clase activa del MISMO SERVICIO; sin plazo; sin pago. | `exigirFaltaReponible_` | AS § Reposición · roturas «la reposición no exige un niño Activo», «se repone en otro servicio», «se repone algo que no es falta», «la reposición se cobra» |
+| R92 | Cada falta se repone una sola vez; si la reposición queda Cancelada o No asistió, la falta vuelve a estar disponible. | `faltasRepuestas_` | AS § Reposición · roturas «una falta se repone dos veces», «una reposición No asistió sigue bloqueando la falta» |
+| R93 | Eventual: niño que no está Activo (nuevo, Prospecto, Retirado o ya Eventual; Por revisar no); su estado pasa a Eventual; un niño nuevo nace Eventual con los obligatorios de la prueba; Pagó/Monto como la prueba. | `accAgendarVisita_` | AS § Eventual · roturas «un Activo viene como eventual», «el eventual no cambia de estado», «el niño nuevo de una eventual nace Prospecto» |
+| R94 | Las pruebas anteriores quedan con Tipo «Prueba» al actualizar la estructura (una vez). | `actualizarEstructura` | AS § actualizar estructura · rotura «actualizar estructura no pone Tipo a las pruebas viejas» |
+| R95 | El texto de ocupación dice «visitas» cuando hay tipos mezclados. | `textoOcupacion_` | AS · rotura «el texto dice pruebas aunque haya otros tipos» |
+
+## Pasar lista (21-oct)
+
+| # | Regla | Dónde | Cobertura |
+|---|---|---|---|
+| R100 | La lista de una clase en una fecha: inscritos activos ese día + visitas no canceladas (con su marca) + fuera de lista. Por niño solo nombre, edad y marca. | `armarLista_`, `accLeerLista_`, `lista_recortada` | AS § Pasar lista · PO § Pasar lista · roturas «la lista incluye las visitas canceladas», «la lista manda datos de contacto», «la lista blanca deja pasar contactos», «pasar-lista no recorta la respuesta» |
+| R101 | El Profesor pasa y corrige solo el mismo día (`soloHoy` lo pone el puente); la coordinación (CA, Ad, Di) cualquier día no futuro. Nunca un día futuro. | `fechaLista_`, `pasar-lista/api.php` | AS § Pasar lista · PO § Pasar lista · roturas «la lista deja otro día con soloHoy», «la lista acepta días futuros», «pasar-lista respeta el soloHoy del navegador» |
+| R102 | Una fila por niño, clase y fecha: corregir actualiza la fila y deja Historial. | `accGuardarLista_` | AS · roturas «corregir agrega otra fila», «la corrección no queda en Historial» |
+| R103 | Solo niños de esa lista, una vez cada uno, estados válidos; no en una clase con «No hubo clase». | `accGuardarLista_` | AS · roturas «guarda niños que no están en la lista», «se pasa lista en una clase con No hubo clase» |
+| R104 | Las visitas se marcan solas: Presente o Llegó tarde → Asistió; Ausente o Falta justificada → No asistió. No toca «Se inscribió» ni pisa un resultado puesto a mano. | `accGuardarLista_`, `accResultadoPrueba_` | AS § Pasar lista · roturas «la lista no marca las visitas», «la lista pisa el resultado puesto a mano», «Llegó tarde no cuenta como asistió», «el resultado a mano no le quita la visita a la lista» |
+| R105 | guardarLista no devuelve el estado de After School; el puente de Pasar lista solo admite leerLista y guardarLista, y after-school/api.php nunca las admite. | `ACCIONES.guardarLista.sinEstado`, puentes | AS · PO § Pasar lista · roturas «guardarLista devuelve el estado completo», «pasar-lista deja pasar otras acciones», «after-school/api.php acepta Pasar lista» |
+| R106 | Niño fuera de lista: queda para la coordinación (CA, Ad, Di), que lo vincula, lo crea (Eventual) o lo descarta, una vez. | `accResolverFueraDeLista_` | AS § fuera de lista · roturas «un fuera de lista se resuelve dos veces», «el fuera de lista creado nace Activo», «Recepción resuelve fuera de lista» |
+| R107 | «No hubo clase» (CA, Ad, Di): no en un día futuro ni en una clase con lista; queda en Historial. | `accNoHuboClase_` | AS § fuera de lista y No hubo clase · rotura «No hubo clase en una clase con lista» |
+| R108 | La sesión del Profesor se cierra tras 2 horas sin uso; el uso renueva el plazo; los demás roles sin tope. | `cuenta_actual`, `requerir_sesion` | PO § inactividad · roturas «el Profesor no tiene tope de inactividad», «el tope de inactividad no se mira», «el uso no renueva el plazo» |
+
+## Seguimiento (21-oct)
+
+| # | Regla | Dónde | Cobertura |
+|---|---|---|---|
+| R110 | Faltas seguidas: por niño Activo, todas sus clases en orden de fecha y hora; Presente o Llegó tarde cortan; Falta justificada se salta; alerta desde el umbral de Config. | `accSeguimiento_` | AS § seguimiento · roturas «la falta justificada cuenta en la racha», «Llegó tarde no corta la racha», «el umbral no sale de Config» |
+| R111 | Faltas por reponer: Ausente y Falta justificada de clase fija, niños Activos, últimos N días (Config), sin reposición en pie. | `accSeguimiento_` | AS § seguimiento · roturas «faltas por reponer sin plazo», «faltas por reponer incluye las repuestas» |
+| R112 | Clases sin lista: desde «Asistencia desde», clases activas que ya terminaron (hora + duración de Config), con niños, sin asistencia ni «No hubo clase». | `accSeguimiento_` | AS § seguimiento · roturas «avisa clases que no terminaron», «avisa clases sin niños», «avisa clases con lista», «la duración no sale de Config» |
 
 ## Pagos
 
