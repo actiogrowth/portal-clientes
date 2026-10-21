@@ -122,10 +122,10 @@ lista (Profesor). La portada no muestra contadores.
 |---|---|---|---|
 | Preschool (`/kinder/`) | Rama `preschool-marca-kids` de este repo (`dashboard-kinder.html`, se publica como `kinder/index.html`) | Tema Kids, encabezado estándar con el logo Kids | Igual que antes: `config.php` → `csv.php` (no pasa por `datos.js`) |
 | Base de Datos (`/basededatos/`) | Repo `bdclientesvea`, rama `marca-vea` | `vea.css` en una capa `@layer` (sus reglas mandan), encabezado estándar | Igual que antes: `api.php` directo. **No pasa por `datos.js`**: la lectura mira el texto crudo para distinguir una página de Google de una hoja vacía |
-| Veranito (`/veranito/`) | Solo en el servidor | Pendiente: hace falta su código | — |
+| Veranito (`/veranito/`) | `veranito/index.html` (hub de enlaces: tarjetas de herramientas y «Copiar link») | `vea.css` en una capa `@layer` y encabezado estándar si existe `/comun/marca.js`; sin la barra lateral (la navegación es la portada). Sin `/comun/` se ve idéntica a antes | Solo `/acceso.php` (formato JS), igual que antes; no llama a ningún puente |
 | Sistema Operativo | GitHub Pages (`portal-v2.html`) | Se queda con la marca Actio por ahora | — |
 
-Las dos primeras funcionan igual si `/comun/` no existiera: la página sigue
+Preschool, Base de Datos y Veranito funcionan igual si `/comun/` no existiera: la página sigue
 sin encabezado (Preschool) o con su barra de siempre (Base de Datos).
 
 ## 3. Dónde vive cada cosa
