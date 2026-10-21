@@ -33,7 +33,10 @@ const PHP = process.env.PHP || 'php';
 const REPO = path.join(__dirname, '..');
 
 let total = 0, fallos = 0;
-const ok = (cond, que) => { total++; if (!cond) { fallos++; console.log('  ✗ ' + que); } };
+/* En GitHub Actions cada fallo sale también como anotación (::error): las
+   anotaciones se leen sin iniciar sesión; el registro completo, no. */
+const anotar = t => { if (process.env.GITHUB_ACTIONS) console.log('::error title=prueba-portal::' + String(t).replace(/%/g, '%25').replace(/\r?\n/g, '%0A')); };
+const ok = (cond, que) => { total++; if (!cond) { fallos++; console.log('  ✗ ' + que); if (fallos <= 9) anotar(que); } };
 const seccion = t => console.log('· ' + t);
 
 /* ── El portal de prueba ─────────────────────────────────────────────────── */
@@ -857,5 +860,5 @@ echo implode(',', $r);
 module.exports = { correr };
 
 if (require.main === module) {
-  correr(process.argv[2]).then(b => process.exit(b ? 0 : 1), e => { console.error(e); process.exit(1); });
+  correr(process.argv[2]).then(b => process.exit(b ? 0 : 1), e => { console.error(e); anotar('se cayó: ' + (e && e.stack || e)); process.exit(1); });
 }
