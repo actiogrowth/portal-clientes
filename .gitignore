@@ -16,3 +16,6 @@ Logo-Actio-Green2*.png
 
 # Datos reales de clientes (menores) - nunca subir a GitHub
 datos_privados/
+
+# Maquetas de diseño de referencia (traen nombres de ejemplo y logins): solo en el equipo
+docs/diseno/

@@ -5,133 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Configuración · Vida en Arte 360</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--negro:#000;--texto:#1c1c1c;--gris:#6b6f76;--gris2:#9aa0a6;--linea:#e3e5ea;--fondo:#f5f6f8;--blanco:#fff;
-  --azul-marca:#2e5aa8;--naranja:#f5a11c;--rojo:#d9261c;--verde:#1f9d55;--ok-fondo:#e6f5ec;--mal-fondo:#fdecea;--ojo-fondo:#fff6e0}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--texto);font-size:14px;line-height:1.45}
-header{background:var(--blanco);border-bottom:1px solid var(--linea)}
-.barra{max-width:1100px;margin:0 auto;padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.marca{font-weight:700}.marca span{color:var(--gris);font-weight:500}
-.enlaces{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
-.enlaces a{color:var(--gris);text-decoration:none}.enlaces a:hover{color:var(--azul-marca)}
-nav.secciones{max-width:1100px;margin:0 auto;padding:0 16px;display:flex;gap:4px}
-nav.secciones button{font:inherit;font-weight:600;background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;cursor:pointer;color:var(--gris)}
-nav.secciones button[aria-selected=true]{color:var(--azul-marca);border-color:var(--azul-marca)}
-main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
-.tarjeta{background:var(--blanco);border:1px solid var(--linea);border-radius:14px;padding:18px;margin-bottom:16px}
-h2{font-size:16px;margin-bottom:10px}
-.ayuda{font-size:12.5px;color:var(--gris)}
-.aviso{font-size:13px;padding:10px 12px;border-radius:10px;margin-bottom:12px}
-.aviso.mal{background:var(--mal-fondo);color:#a3160f}.aviso.ok{background:var(--ok-fondo);color:#17804a}.aviso.ojo{background:var(--ojo-fondo);color:#7a5200}
-label{font-weight:600;font-size:12.5px;display:block;margin-bottom:5px}
-input[type=text]{width:100%;font:inherit;padding:9px 12px;border:1px solid var(--linea);border-radius:10px}
-input:focus{outline:none;border-color:var(--azul-marca);box-shadow:0 0 0 3px color-mix(in srgb,var(--azul-marca) 20%,transparent)}
-.btn{font:inherit;font-weight:600;font-size:13px;padding:9px 14px;border-radius:10px;border:0;background:var(--azul-marca);color:var(--blanco);cursor:pointer}
-.btn:hover{background:#244b8f}.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn.sec{background:var(--blanco);color:var(--texto);border:1px solid var(--linea)}.btn.sec:hover{border-color:var(--azul-marca)}
-.btn.peligro{background:var(--blanco);color:var(--rojo);border:1px solid #f1b8b4}
-.btn.chico{padding:6px 10px;font-size:12px}
-.btn:focus-visible{outline:3px solid var(--naranja);outline-offset:2px}
-.roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin:6px 0 12px}
-.rol{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--linea);border-radius:10px;padding:8px 10px;font-weight:500;cursor:pointer}
-.rol input{margin-top:3px}.rol b{display:block;font-size:13px}.rol small{display:block;color:var(--gris);font-size:11.5px;font-weight:400}
-.rol.bloqueado{opacity:.5;cursor:not-allowed}
-.tabla{width:100%;border-collapse:collapse}
-.tabla th{text-align:left;font-size:12px;color:var(--gris);font-weight:600;padding:8px;border-bottom:1px solid var(--linea)}
-.tabla td{padding:10px 8px;border-bottom:1px solid var(--linea);vertical-align:top}
-.tabla tr.inactivo td{color:var(--gris2)}
-.chip{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--fondo);border:1px solid var(--linea);margin:0 4px 4px 0}
-.chip.estado-ok{background:var(--ok-fondo);border-color:#bfe5cd;color:#17804a}.chip.estado-no{background:var(--mal-fondo);border-color:#f1b8b4;color:#a3160f}
-.chip.temp{background:var(--ojo-fondo);border-color:#f0d69a;color:#7a5200}
-.acciones{display:flex;gap:6px;flex-wrap:wrap}
-.fila-form{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}.fila-form>div{flex:1;min-width:220px}
-dialog{border:0;border-radius:14px;padding:0;max-width:560px;width:calc(100% - 32px)}
-dialog::backdrop{background:rgba(0,0,0,.35)}
-.dlg{padding:20px}.dlg-pie{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.clave{font-family:ui-monospace,Consolas,monospace;font-size:20px;letter-spacing:1px;background:var(--fondo);border:1px dashed var(--gris2);border-radius:10px;padding:12px;text-align:center;margin:12px 0;user-select:all;word-break:break-all}
-.oculto{display:none!important}
-@media (max-width:760px){.tabla thead{display:none}.tabla tr{display:block;border-bottom:1px solid var(--linea);padding:8px 0}.tabla td{display:block;border:0;padding:4px 0}}
-</style>
+<link rel="stylesheet" href="/comun/vea.css">
 </head>
 <body>
-<header>
-  <div class="barra">
-    <div class="marca">Vida en Arte <span>· Configuración</span></div>
-    <div class="enlaces"><a href="/">Portal</a><a href="/cambiar-clave.php">Cambiar mi contraseña</a><a href="/logout.php">Cerrar sesión</a></div>
-  </div>
+<!-- Configuración (21-oct, rediseño con la marca). Página fija; los datos
+     pasan por comun/datos.js (Datos.usuarios). Solo Administrador y Dirección. -->
+<header id="cab"></header>
+<main class="pagina">
+  <section class="encabezado">
+    <div><h1 class="titulo">Configuración</h1><p class="ayuda">Usuarios del portal y sus roles.</p></div>
+  </section>
   <!-- Secciones de Configuración. Para sumar otra: un botón aquí y su <section id="s-…">. -->
-  <nav class="secciones" role="tablist">
+  <nav class="pestanas" role="tablist" aria-label="Secciones de Configuración">
     <button role="tab" data-seccion="usuarios" aria-selected="true">Usuarios</button>
   </nav>
-</header>
-
-<main>
   <div id="avisos"></div>
 
-  <section id="s-usuarios">
+  <section id="s-usuarios" style="display:flex;flex-direction:column;gap:16px">
     <div class="tarjeta">
       <h2>Nuevo usuario</h2>
-      <p class="ayuda" style="margin-bottom:12px">El usuario es por cargo, no por persona: por ejemplo <b>direccion</b>, <b>recepcion-afterschool</b> o <b>profesor-parkour-1</b>. Al crearlo se genera una contraseña temporal que se muestra una sola vez; la persona la cambia al entrar.</p>
+      <p class="ayuda" style="margin-bottom:14px">El usuario es por cargo, no por persona: por ejemplo <b>direccion</b>, <b>recepcion-afterschool</b> o <b>profesor-afterschool-1</b>. Se genera una contraseña temporal que se muestra una sola vez; la persona la cambia al entrar.</p>
       <form id="formNuevo" autocomplete="off">
-        <div class="fila-form"><div><label for="nuUsuario">Usuario</label><input type="text" id="nuUsuario" autocapitalize="none" spellcheck="false" maxlength="40" placeholder="recepcion-afterschool"></div></div>
-        <label style="margin-top:12px">Roles <span class="ayuda" style="font-weight:400">(se pueden marcar varios; los permisos se suman)</span></label>
-        <div class="roles" id="nuRoles"></div>
+        <div class="campo" style="max-width:420px"><label for="nuUsuario">Usuario</label>
+          <input type="text" id="nuUsuario" autocapitalize="none" spellcheck="false" maxlength="40" placeholder="recepcion-afterschool"></div>
+        <span class="etiqueta">Roles <span style="font-weight:400">(se pueden marcar varios; los permisos se suman)</span></span>
+        <div class="roles-grid" id="nuRoles"></div>
         <div id="nuError"></div>
-        <button class="btn" type="submit">Crear usuario</button>
+        <div class="acciones"><button class="btn negro" type="submit">Crear usuario</button></div>
       </form>
     </div>
-
     <div class="tarjeta">
       <h2>Usuarios</h2>
       <p class="ayuda" id="ayudaLista" style="margin-bottom:8px"></p>
-      <table class="tabla"><thead><tr><th>Usuario</th><th>Roles</th><th>Estado</th><th>Último ingreso</th><th></th></tr></thead><tbody id="lista"></tbody></table>
+      <div style="overflow-x:auto">
+        <table class="datos"><thead><tr><th>Usuario</th><th>Roles</th><th>Estado</th><th>Último ingreso</th><th></th></tr></thead><tbody id="lista"></tbody></table>
+      </div>
     </div>
   </section>
 </main>
 
 <dialog id="dlgClave">
-  <div class="dlg">
-    <h2 id="dcTit">Contraseña temporal</h2>
-    <p class="ayuda" id="dcSub"></p>
-    <div class="clave" id="dcClave"></div>
+  <div class="dlg-cab"><div><h2 id="dcTit">Contraseña temporal</h2><p class="ayuda" id="dcSub"></p></div></div>
+  <div class="dlg-cuerpo">
+    <div class="clave-temporal" id="dcClave"></div>
     <div class="aviso ojo">Cópiala ahora y entrégasela a la persona por un canal privado. <b>No se volverá a mostrar</b>: si se pierde, reinicia la contraseña otra vez. Al entrar, el portal le pedirá elegir una propia.</div>
-    <div class="dlg-pie"><button class="btn sec" type="button" id="dcCopiar">Copiar</button><button class="btn" type="button" id="dcCerrar">Ya la copié</button></div>
   </div>
+  <div class="dlg-pie"><button class="btn sec" type="button" id="dcCopiar">Copiar</button><button class="btn negro" type="button" id="dcCerrar">Ya la copié</button></div>
 </dialog>
 
 <dialog id="dlgRoles">
-  <form class="dlg" id="formRoles">
-    <h2>Roles de <span id="drUsuario"></span></h2>
-    <div class="roles" id="drRoles"></div>
-    <div id="drError"></div>
-    <div class="dlg-pie"><button class="btn sec" type="button" id="drCancelar">Cancelar</button><button class="btn" type="submit">Guardar roles</button></div>
+  <form id="formRoles">
+    <div class="dlg-cab"><h2>Roles de <span id="drUsuario"></span></h2><button class="cerrar" type="button" id="drCancelar" aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo"><div class="roles-grid" id="drRoles"></div><div id="drError"></div></div>
+    <div class="dlg-pie"><button class="btn negro" type="submit">Guardar roles</button></div>
   </form>
 </dialog>
 
+<script src="/comun/datos.js"></script>
+<script src="/comun/marca.js"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const esc = Marca.esc;
 let D = null;          // última respuesta de listar
-let csrf = '';
-
-async function llamar(metodo, cuerpo) {
-  let r;
-  try {
-    r = metodo === 'GET'
-      ? await fetch('api.php?accion=listar', { credentials: 'same-origin', cache: 'no-store' })
-      : await fetch('api.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF': csrf }, body: JSON.stringify(cuerpo) });
-  } catch (e) { throw new Error('No hay conexión con el servidor del portal.'); }
-  const txt = await r.text();
-  if (/^\s*</.test(txt)) { location.href = '/login.php?r=' + encodeURIComponent('/configuracion/'); throw new Error('La sesión caducó.'); }
-  let j; try { j = JSON.parse(txt); } catch (e) { throw new Error('El servidor respondió algo que no se entiende (código ' + r.status + ').'); }
-  if (!j.ok) throw new Error(j.error || ('Error ' + r.status));
-  return j;
-}
 
 function aviso(html, tipo) { $('#avisos').innerHTML = html ? '<div class="aviso ' + (tipo || 'mal') + '">' + html + '</div>' : ''; }
 const nombreRol = id => ((D.roles.find(r => r.id === id) || {}).nombre) || id;
@@ -141,7 +77,7 @@ const esAdmin = u => u.roles.includes('administrador');
 function casillas(cont, marcados) {
   cont.innerHTML = D.roles.map(r => {
     const bloq = r.id === 'administrador' && !D.puedeAdmin;
-    return '<label class="rol' + (bloq ? ' bloqueado' : '') + '"><input type="checkbox" value="' + esc(r.id) + '"' +
+    return '<label class="rol-opcion' + (bloq ? ' bloqueado' : '') + '"><input type="checkbox" value="' + esc(r.id) + '"' +
       (marcados.includes(r.id) ? ' checked' : '') + (bloq ? ' disabled' : '') + '><span><b>' + esc(r.nombre) + '</b><small>' +
       esc(r.descripcion) + (bloq ? ' Solo lo asigna un Administrador.' : '') + '</small></span></label>';
   }).join('');
@@ -152,15 +88,14 @@ function pintar() {
   casillas($('#nuRoles'), []);
   $('#ayudaLista').textContent = D.puedeAdmin ? '' : 'Las cuentas con rol Administrador solo las modifica un Administrador.';
   $('#lista').innerHTML = D.usuarios.map(u => {
-    const tocable = D.puedeAdmin || !esAdmin(u);
-    const yo = u.usuario === D.yo;
+    const tocable = D.puedeAdmin || !esAdmin(u), yo = u.usuario === D.yo;
     const b = (attr, txt, clase, permitido) => '<button class="btn chico ' + clase + '" type="button" ' + attr + '="' + esc(u.usuario) + '"' + (permitido ? '' : ' disabled') + '>' + txt + '</button>';
-    return '<tr class="' + (u.activo ? '' : 'inactivo') + '"><td><b>' + esc(u.usuario) + '</b>' + (yo ? ' <span class="ayuda">(tú)</span>' : '') + '</td>' +
-      '<td>' + u.roles.map(r => '<span class="chip">' + esc(nombreRol(r)) + '</span>').join('') + '</td>' +
-      '<td><span class="chip ' + (u.activo ? 'estado-ok' : 'estado-no') + '">' + (u.activo ? 'Activo' : 'Desactivado') + '</span>' +
-      (u.cambiarClave ? '<span class="chip temp">Contraseña temporal</span>' : '') + '</td>' +
+    return '<tr class="' + (u.activo ? '' : 'cancelada') + '"><td><b>' + esc(u.usuario) + '</b>' + (yo ? ' <span class="ayuda">(tú)</span>' : '') + '</td>' +
+      '<td>' + u.roles.map(r => '<span class="chip" style="margin:0 4px 4px 0">' + esc(nombreRol(r)) + '</span>').join('') + '</td>' +
+      '<td><span class="chip ' + (u.activo ? 'Activo' : 'Retirado') + '">' + (u.activo ? 'Activo' : 'Desactivado') + '</span> ' +
+      (u.cambiarClave ? '<span class="chip Eventual">Contraseña temporal</span>' : '') + '</td>' +
       '<td class="ayuda">' + fechaHora(u.ultimoIngreso) + '</td>' +
-      '<td><div class="acciones">' +
+      '<td><div class="acciones" style="margin:0">' +
       b('data-roles', 'Roles', 'sec', tocable && !yo) +
       b('data-reiniciar', 'Reiniciar contraseña', 'sec', tocable) +
       (u.activo ? b('data-desactivar', 'Desactivar', 'peligro', tocable && !yo) : b('data-reactivar', 'Reactivar', 'sec', tocable)) +
@@ -174,8 +109,12 @@ function pintar() {
 }
 
 async function cargar() {
-  try { D = await llamar('GET'); csrf = D.csrf; pintar(); }
-  catch (e) { aviso(esc(e.message)); }
+  try {
+    const s = await Datos.sesion();
+    Marca.cabecera($('#cab'), { sesion: s, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Configuración' }] });
+    D = await Datos.usuarios.listar();
+    pintar();
+  } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } aviso(esc(e.message)); }
 }
 
 function mostrarClave(usuario, clave, titulo) {
@@ -200,7 +139,7 @@ $('#formNuevo').onsubmit = async ev => {
   if (!usuario) { $('#nuError').innerHTML = '<div class="aviso mal">Escribe el usuario.</div>'; return; }
   if (!roles.length) { $('#nuError').innerHTML = '<div class="aviso mal">Elige al menos un rol.</div>'; return; }
   try {
-    const r = await llamar('POST', { accion: 'crear', usuario, roles });
+    const r = await Datos.usuarios.cambiar('crear', { usuario, roles });
     D.usuarios = r.usuarios; pintar(); $('#nuUsuario').value = ''; aviso('');
     mostrarClave(usuario, r.temporal, 'Usuario creado');
   } catch (e) { $('#nuError').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; }
@@ -220,26 +159,25 @@ $('#formRoles').onsubmit = async ev => {
   const roles = marcados($('#drRoles'));
   if (!roles.length) { $('#drError').innerHTML = '<div class="aviso mal">Elige al menos un rol.</div>'; return; }
   try {
-    const r = await llamar('POST', { accion: 'roles', usuario: rolesDe, roles });
-    D.usuarios = r.usuarios; pintar(); $('#dlgRoles').close(); aviso('Roles de <b>' + esc(rolesDe) + '</b> guardados.', 'ok');
+    const r = await Datos.usuarios.cambiar('roles', { usuario: rolesDe, roles });
+    D.usuarios = r.usuarios; pintar(); $('#dlgRoles').close(); aviso('Roles de <b>' + esc(rolesDe) + '</b> guardados.', 'bien');
   } catch (e) { $('#drError').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; }
 };
 
+/* Desactivar y reactivar se pueden deshacer: sin confirmación. */
 async function estado(usuario, accion) {
-  const pregunta = accion === 'desactivar'
-    ? '¿Desactivar a «' + usuario + '»? No podrá entrar y su sesión abierta se cerrará. Se puede reactivar después.'
-    : '¿Reactivar a «' + usuario + '»? Podrá entrar con su contraseña de antes.';
-  if (!confirm(pregunta)) return;
   try {
-    const r = await llamar('POST', { accion, usuario });
-    D.usuarios = r.usuarios; pintar(); aviso('«' + esc(usuario) + '» quedó ' + (accion === 'desactivar' ? 'desactivado' : 'activo') + '.', 'ok');
+    const r = await Datos.usuarios.cambiar(accion, { usuario });
+    D.usuarios = r.usuarios; pintar();
+    aviso('«' + esc(usuario) + '» quedó ' + (accion === 'desactivar' ? 'desactivado: ya no puede entrar y su sesión se cerró' : 'activo: puede entrar con su contraseña de antes') + '.', 'bien');
   } catch (e) { aviso(esc(e.message)); }
 }
 
+/* Reiniciar no se puede deshacer (la contraseña anterior se pierde): se confirma. */
 async function reiniciar(usuario) {
-  if (!confirm('¿Reiniciar la contraseña de «' + usuario + '»? Se genera una temporal, su sesión abierta se cierra y deberá elegir una nueva al entrar.')) return;
+  if (!confirm('¿Reiniciar la contraseña de «' + usuario + '»? La actual deja de servir, su sesión se cierra y deberá elegir una nueva al entrar.')) return;
   try {
-    const r = await llamar('POST', { accion: 'reiniciar', usuario });
+    const r = await Datos.usuarios.cambiar('reiniciar', { usuario });
     D.usuarios = r.usuarios; pintar(); aviso('');
     mostrarClave(usuario, r.temporal, 'Contraseña reiniciada');
   } catch (e) { aviso(esc(e.message)); }

@@ -147,6 +147,10 @@ function areasDeMentira(web) {
   fs.writeFileSync(path.join(web, 'kinder', 'csv.php'), puente);
   fs.writeFileSync(path.join(web, 'basededatos', 'api.php'), puente);
   fs.writeFileSync(path.join(web, 'raiz.txt'), 'archivo de la raíz');
+  // Un PHP subido por error a comun/: nunca se tiene que ejecutar ni entregar.
+  for (const f of ['prueba.php', 'api.php']) fs.writeFileSync(path.join(web, 'comun', f), '<?php echo "EJ" . "ECUTADO";');
+  fs.mkdirSync(path.join(web, 'comun', 'sub'), { recursive: true });
+  fs.writeFileSync(path.join(web, 'comun', 'sub', 'x.css'), 'body{}');
   fs.mkdirSync(path.join(web, '.well-known', 'acme-challenge'), { recursive: true });
   fs.writeFileSync(path.join(web, '.well-known', 'acme-challenge', 'ficha.txt'), 'certificado');
 }
@@ -213,18 +217,20 @@ class Nav {
   }
   get(ruta, o) { return this.pedir('GET', ruta, o); }
   post(ruta, o) { return this.pedir('POST', ruta, o); }
-  async csrfDe(ruta) {
-    const r = await this.get(ruta);
-    const m = r.texto.match(/name="csrf" value="([^"]+)"/);
-    return m ? m[1] : '';
+  /* 21-oct (rediseño): login y cambio de contraseña son páginas fijas que
+     hablan con login.php y cambiar-clave.php por JSON; aquí se hace lo mismo
+     que hace comun/datos.js. */
+  async csrfLogin() { const r = await this.get('/login.php?estado=1'); return (r.j && r.j.csrf) || ''; }
+  async entrar(usuario, clave, pedido) {
+    const csrf = await this.csrfLogin();
+    const r = await this.post('/login.php', { json: { usuario, clave, csrf, r: pedido || '/' } });
+    return Object.assign(r, { ok: !!(r.j && r.j.ok), destino: (r.j && r.j.destino) || '', codigo: (r.j && r.j.codigo) || '' });
   }
-  async entrar(usuario, clave) {
-    const csrf = await this.csrfDe('/login.php');
-    return this.post('/login.php', { form: { usuario, clave, csrf, r: '/' } });
-  }
-  async cambiarClave(actual, nueva, repetir) {
-    const csrf = await this.csrfDe('/cambiar-clave.php');
-    return this.post('/cambiar-clave.php', { form: { actual, nueva, repetir: repetir === undefined ? nueva : repetir, csrf, r: '/' } });
+  async csrfClave() { const r = await this.get('/cambiar-clave.php?estado=1'); return (r.j && r.j.csrf) || ''; }
+  async cambiarClave(actual, nueva, repetir, pedido) {
+    const csrf = await this.csrfClave();
+    const r = await this.post('/cambiar-clave.php', { json: { actual, nueva, repetir: repetir === undefined ? nueva : repetir, csrf, r: pedido || '/' } });
+    return Object.assign(r, { ok: !!(r.j && r.j.ok), destino: (r.j && r.j.destino) || '', codigo: (r.j && r.j.codigo) || '' });
   }
   async config(accion, datos) {
     const l = await this.get('/configuracion/api.php?accion=listar');
@@ -243,7 +249,8 @@ class Nav {
     }
     return Object.assign(r, { bucle: false, saltos });
   }
-  async entrarSiguiendo(usuario, clave) { return this.seguir(await this.entrar(usuario, clave)); }
+  /* Como el navegador: entra y va a donde dice el servidor, siguiendo redirecciones. */
+  async entrarSiguiendo(usuario, clave) { const r = await this.entrar(usuario, clave); return r.ok ? this.seguir(await this.get(r.destino)) : Object.assign(r, { bucle: false, saltos: [] }); }
 }
 
 /* ── La prueba ───────────────────────────────────────────────────────────── */
@@ -256,6 +263,7 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'after-school'), path.join(web, 'after-school'));
   copiar(path.join(fuente, 'configuracion'), path.join(web, 'configuracion'));
   copiar(path.join(fuente, 'pasar-lista'), path.join(web, 'pasar-lista'));
+  copiar(path.join(fuente, 'comun'), path.join(web, 'comun'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
   // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
@@ -295,7 +303,8 @@ async function correr(fuente) {
     {
       const n = new Nav(base);
       const r = await n.entrar('admin-uno', claves['admin-uno']);
-      ok(r.status === 200 && /mantenimiento/.test(r.texto), 'el login dice «mantenimiento» en vez de dejar entrar');
+      ok(r.status === 503 && r.codigo === 'mantenimiento', 'el login dice «mantenimiento» en vez de dejar entrar');
+      ok((await n.get('/login.php?estado=1')).j.mantenimiento === true, 'y la página de login lo sabe antes de escribir nada');
       ok(!/cuenta-general/.test(r.texto), 'la página pública no nombra usuarios (el detalle va al error_log)');
       ok(!fs.existsSync(cuentasF), 'no se escribió portal_usuarios.json');
     }
@@ -306,7 +315,7 @@ async function correr(fuente) {
     for (const u of Object.keys(HEREDADOS)) {
       nav[u] = new Nav(base);
       const r = await nav[u].entrar(u, claves[u]);
-      ok(r.status === 302 && r.location === '/', u + ' entra con su contraseña de siempre');
+      ok(r.ok && r.destino === '/', u + ' entra con su contraseña de siempre (y va a la portada: tiene varias secciones)');
     }
     {
       const d = leerCuentas();
@@ -319,11 +328,11 @@ async function correr(fuente) {
       const a = await nav['admin-uno'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(a.texto), 'acceso.php: un Administrador ve todas las tarjetas');
       const g = await nav['cuenta-general'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","basededatos","pasarlista"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School, Base de Datos y Pasar lista (' + g.texto.split('\n')[0] + ')');
+      ok(/window\.ACCESO = \["afterschool","basededatos"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School y Base de Datos (Pasar lista ya no es tarjeta) (' + g.texto.split('\n')[0] + ')');
       // Un cambio posterior en usuarios.php ya no cuenta.
       fs.writeFileSync(path.join(web, 'usuarios.php'), '<?php return [];');
       const n = new Nav(base);
-      ok((await n.entrar('admin-dos', claves['admin-dos'])).status === 302, 'migrado: usuarios.php ya no se lee');
+      ok((await n.entrar('admin-dos', claves['admin-dos'])).ok, 'migrado: usuarios.php ya no se lee');
     }
 
     seccion('archivos internos y raíz');
@@ -332,7 +341,7 @@ async function correr(fuente) {
       for (const f of ['auth.php', 'permisos.php', 'cuentas.php', 'usuarios.php', 'htaccess.txt'])
         ok((await n.get('/' + f)).status === 403, '/' + f + ' está prohibido');
       const g = await n.get('/generar-clave.php');
-      ok(g.status === 302 && /login\.php/.test(g.location), 'generar-clave.php ya no se abre sin sesión (pasa por el control)');
+      ok(g.status === 302 && /login\.html/.test(g.location), 'generar-clave.php ya no se abre sin sesión (pasa por el control)');
       const w = await n.get('/.well-known/acme-challenge/ficha.txt');
       ok(w.status === 200 && w.texto === 'certificado', '.well-known queda libre, sin sesión (certificados)');
       ok((await n.get('/kinder/')).status === 302, 'sin sesión, una carpeta lleva al login');
@@ -371,36 +380,41 @@ async function correr(fuente) {
     for (const u of Object.values(porRol)) {
       n[u] = new Nav(base);
       const r = await n[u].entrar(u, claves[u]);
-      ok(r.status === 302 && r.location.startsWith('/cambiar-clave.php'), u + ': con la temporal entra directo a cambiar la contraseña');
+      ok(r.ok && r.destino.startsWith('/cambiar-clave.html'), u + ': con la temporal entra directo a cambiar la contraseña');
     }
     {
       const x = n['prueba-recepcion'];
       const p = await x.get('/');
-      ok(p.status === 302 && p.location.startsWith('/cambiar-clave.php'), 'con contraseña temporal, la portada lleva a cambiarla');
+      ok(p.status === 302 && p.location.startsWith('/cambiar-clave.html'), 'con contraseña temporal, la portada lleva a cambiarla');
       const a = await x.as('leer');
       ok(a.status === 403 && a.j && a.j.codigo === 'cambiar_clave', 'con contraseña temporal, api.php responde «cambiar_clave»');
       const k = await x.get('/kinder/');
-      ok(k.status === 302 && k.location.startsWith('/cambiar-clave.php'), 'y cualquier carpeta también');
+      ok(k.status === 302 && k.location.startsWith('/cambiar-clave.html'), 'y cualquier carpeta también');
+      const est = await x.get('/cambiar-clave.php?estado=1');
+      ok(est.j && est.j.ok && est.j.obligatorio === true && est.j.usuario === 'prueba-recepcion', 'cambiar-clave.php sabe que la contraseña es temporal');
       const corta = await x.cambiarClave(claves['prueba-recepcion'], 'corta');
-      ok(/al menos 10/.test(corta.texto), 'una contraseña de menos de 10 caracteres se rechaza');
+      ok(corta.codigo === 'corta' && /al menos 10/.test(corta.texto), 'una contraseña de menos de 10 caracteres se rechaza');
       const distinta = await x.cambiarClave(claves['prueba-recepcion'], 'una-larga-1234', 'otra-larga-1234');
-      ok(/no coinciden/.test(distinta.texto), 'las dos nuevas tienen que coincidir');
+      ok(distinta.codigo === 'distintas', 'las dos nuevas tienen que coincidir');
       const igual = await x.cambiarClave(claves['prueba-recepcion'], claves['prueba-recepcion']);
-      ok(/distinta de la actual/.test(igual.texto), 'la nueva no puede ser la temporal');
+      ok(igual.codigo === 'igual', 'la nueva no puede ser la temporal');
       const mala = await x.cambiarClave('no-es-la-actual', 'una-larga-1234');
-      ok(/actual no es correcta/.test(mala.texto), 'hay que dar la contraseña actual');
-      const sinCsrf = await x.post('/cambiar-clave.php', { form: { actual: claves['prueba-recepcion'], nueva: 'una-larga-1234', repetir: 'una-larga-1234', r: '/' } });
-      ok(/caducó/.test(sinCsrf.texto) && leerCuentas().usuarios['prueba-recepcion'].cambiar_clave === true, 'sin token CSRF no se cambia');
+      ok(mala.codigo === 'actual', 'hay que dar la contraseña actual');
+      const sinCsrf = await x.post('/cambiar-clave.php', { json: { actual: claves['prueba-recepcion'], nueva: 'una-larga-1234', repetir: 'una-larga-1234', r: '/' } });
+      ok(sinCsrf.status === 403 && sinCsrf.j.codigo === 'csrf' && leerCuentas().usuarios['prueba-recepcion'].cambiar_clave === true, 'sin token CSRF no se cambia');
     }
+    /* Tras cambiar la temporal, cada uno va a su inicio: si abre UNA sola sección, directo a ella. */
+    const INICIO = { 'prueba-direccion': '/', 'prueba-coord-as': '/', 'prueba-recepcion': '/after-school/', 'prueba-comercial': '/',
+                     'prueba-contabilidad': '/after-school/', 'prueba-coord-pre': '/', 'prueba-profesor-1': '/after-school/' };
     for (const u of Object.values(porRol)) {
       const nueva = clave();
       const r = await n[u].cambiarClave(claves[u], nueva);
-      ok(r.status === 302 && r.location === '/', u + ': cambia la temporal por una propia y sigue');
+      ok(r.ok && r.j.obligatorio === true && r.destino === INICIO[u], u + ': cambia la temporal por una propia y va a su inicio (' + r.destino + ')');
       ok(leerCuentas().usuarios[u].cambiar_clave === false, u + ': ya no tiene cambio obligatorio');
       const vieja = claves[u]; claves[u] = nueva;
       limpiarIntentos();
       const otra = new Nav(base);
-      ok((await otra.entrar(u, vieja)).status === 200, u + ': la temporal ya no sirve');
+      ok(!(await otra.entrar(u, vieja)).ok, u + ': la temporal ya no sirve');
       limpiarIntentos();
     }
     for (const [u] of Object.entries(HEREDADOS)) n[u] = nav[u];
@@ -413,18 +427,22 @@ async function correr(fuente) {
       try {
         const x = new Nav(base);
         const e = await x.entrarSiguiendo(u, temporal);
-        ok(!e.bucle && e.status === 200 && /Crea tu contraseña/.test(e.texto), 'login con la temporal → carga cambiar-clave.php (' + e.status + ', ' + e.saltos.length + ' saltos' + (e.bucle ? ', BUCLE: ' + e.saltos[2] : '') + ')');
+        ok(!e.bucle && e.status === 200 && /<title>Cambiar contraseña/.test(e.texto), 'login con la temporal → carga cambiar-clave.html (' + e.status + ', ' + (e.saltos || []).length + ' saltos' + (e.bucle ? ', BUCLE: ' + e.saltos[2] : '') + ')');
         const p = await x.seguir(await x.get('/'));
-        ok(!p.bucle && p.status === 200 && /Crea tu contraseña/.test(p.texto), 'la portada lo devuelve a cambiar-clave.php, sin bucle');
+        ok(!p.bucle && p.status === 200 && /<title>Cambiar contraseña/.test(p.texto), 'la portada lo devuelve a cambiar-clave.html, sin bucle');
         const k = await x.seguir(await x.get('/after-school/'));
-        ok(!k.bucle && /Crea tu contraseña/.test(k.texto), 'After School también, sin bucle');
+        ok(!k.bucle && /<title>Cambiar contraseña/.test(k.texto), 'After School también, sin bucle');
+        const css = await x.get('/comun/vea.css');
+        ok(css.status === 200 && /--rojo: #D71C0E/.test(css.texto), 'los estilos compartidos se entregan');
         const s = await x.seguir(await x.get('/logout.php'));
-        ok(!s.bucle && s.status === 200 && /Cerraste sesión/.test(s.texto), 'Cerrar sesión funciona con la temporal');
-        await x.entrarSiguiendo(u, temporal);
+        ok(!s.bucle && s.status === 200 && /<title>Entrar · Vida en Arte/.test(s.texto), 'Cerrar sesión funciona con la temporal y termina en el login');
+        ok((await x.get('/login.php?estado=1')).j.conSesion === false, 'y la sesión quedó cerrada');
+        await x.entrar(u, temporal);
         const nueva = clave();
-        const csrf = await x.csrfDe('/cambiar-clave.php');
-        const f = await x.seguir(await x.post('/cambiar-clave.php', { form: { actual: temporal, nueva, repetir: nueva, csrf, r: '/' } }));
-        ok(!f.bucle && f.status === 200 && /UNIDADES DE NEGOCIO/.test(f.texto), 'tras cambiarla, termina en la portada');
+        const f0 = await x.cambiarClave(temporal, nueva);
+        ok(f0.ok && f0.destino === '/after-school/', 'tras cambiarla va a su inicio (Recepción: After School)');
+        const f = await x.seguir(await x.get(f0.destino));
+        ok(!f.bucle && f.status === 200 && /<title>After School · Vida en Arte/.test(f.texto), 'y After School carga, sin bucle');
         ok(leerCuentas().usuarios[u].cambiar_clave === false, 'y la cuenta ya no tiene cambio obligatorio');
         claves[u] = nueva;
       } finally {
@@ -442,7 +460,7 @@ async function correr(fuente) {
         'prueba-comercial':    { kinder: 1, as: 1, bd: 1 },
         'prueba-contabilidad': { as: 1 },
         'prueba-coord-pre':    { kinder: 1, bd: 1 },
-        'prueba-profesor-1':   { pl: 1 }
+        'prueba-profesor-1':   { as: 1, pl: 1 }
       };
       const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
@@ -457,11 +475,101 @@ async function correr(fuente) {
         ok((await n[u].get('/raiz.txt')).status === 200, u + ': los archivos de la raíz (portada) se abren con sesión');
       }
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
-      ok(/window\.ACCESO = \["pasarlista"\];/.test(ac.texto), 'Profesor: la portada muestra solo Pasar lista');
+      ok(/window\.ACCESO = \["afterschool"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School (entra directo a Pasar lista)');
       const co = await n['prueba-comercial'].get('/acceso.php');
       ok(/window\.ACCESO = \["kinder","afterschool","basededatos"\]/.test(co.texto), 'Comercial: Kínder, After School y Base de Datos');
       const di = await n['prueba-direccion'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(di.texto), 'Dirección: todas las tarjetas, Configuración incluida');
+    }
+
+    seccion('rediseño: a dónde va cada rol, pestaña de entrada y Pasar lista dentro de After School');
+    {
+      const ESPERA = {
+        'admin-uno':           { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-direccion':    { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-coord-as':     { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-recepcion':    { inicio: '/after-school/', inicioAS: 'pruebas' },
+        'prueba-comercial':    { inicio: '/', inicioAS: 'pruebas' },
+        'prueba-contabilidad': { inicio: '/after-school/', inicioAS: 'pagos' },
+        'prueba-coord-pre':    { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-profesor-1':   { inicio: '/after-school/', inicioAS: 'lista' }
+      };
+      for (const [u, e] of Object.entries(ESPERA)) {
+        const a = await n[u].get('/acceso.php?formato=json');
+        ok(a.j && a.j.ok && a.j.usuario === u && a.j.inicio === e.inicio && a.j.inicioAS === e.inicioAS,
+          u + ': empieza en ' + e.inicio + ' y After School abre en «' + e.inicioAS + '» (dio ' + (a.j && a.j.inicio) + ', ' + (a.j && a.j.inicioAS) + ')');
+      }
+      const prof = (await n['prueba-profesor-1'].get('/acceso.php?formato=json')).j;
+      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool"]',
+        'Profesor: solo los permisos de Pasar lista (' + JSON.stringify(prof.permisosAS) + ')');
+      const coord = (await n['prueba-coord-as'].get('/acceso.php?formato=json')).j;
+      ok(coord.permisosAS.includes('as.lista.marcar') && coord.permisosAS.includes('as.ver'), 'Coordinación: Pasar lista es una pestaña más');
+      ok(!(await n['prueba-recepcion'].get('/acceso.php?formato=json')).j.permisosAS.includes('as.lista.marcar'), 'Recepción no pasa lista');
+      // Tras el login, sin pedir nada: cada uno a su inicio; con una dirección pedida, a esa.
+      const x = new Nav(base);
+      let r = await x.entrar('prueba-profesor-1', claves['prueba-profesor-1']);
+      ok(r.ok && r.destino === '/after-school/', 'el profesor entra directo a After School (Pasar lista)');
+      r = await new Nav(base).entrar('prueba-contabilidad', claves['prueba-contabilidad']);
+      ok(r.ok && r.destino === '/after-school/', 'Contabilidad (una sola sección) entra directo a After School');
+      r = await new Nav(base).entrar('prueba-comercial', claves['prueba-comercial']);
+      ok(r.ok && r.destino === '/', 'Comercial (tres secciones) va a la portada');
+      r = await new Nav(base).entrar('prueba-comercial', claves['prueba-comercial'], '/kinder/');
+      ok(r.ok && r.destino === '/kinder/', 'con una dirección pedida, vuelve a esa');
+      r = await new Nav(base).entrar('prueba-comercial', claves['prueba-comercial'], '//otro-sitio.test/');
+      ok(r.ok && r.destino === '/', 'una dirección de otro sitio no se sigue');
+      ok((await x.get('/login.php?estado=1')).j.destino === '/after-school/', 'el login con sesión abierta manda directo a su inicio');
+      // La página de After School se entrega al profesor; sus datos, solo por Pasar lista.
+      const pg = await n['prueba-profesor-1'].get('/after-school/');
+      ok(pg.status === 200 && /<title>After School · Vida en Arte/.test(pg.texto) && /data-vista="lista"/.test(pg.texto), 'el profesor abre la página de After School (con Pasar lista)');
+      const viejo = await n['prueba-profesor-1'].get('/pasar-lista/');
+      ok(viejo.status === 200 && /url=\/after-school\/#lista/.test(viejo.texto) && /location\.replace\('\/after-school\/' \+ q \+ '#lista'\)/.test(viejo.texto),
+        'la dirección vieja /pasar-lista/ lleva a Pasar lista dentro de After School (conservando fecha y clase)');
+      ok(!/api\.php/.test(pg.texto.replace(/datos\.js/g, '')), 'la página no llama a api.php: todo pasa por la capa de datos');
+      ok(/<link rel="stylesheet" href="\/comun\/vea\.css">/.test(pg.texto) && !/<style>/.test(pg.texto), 'un solo archivo de estilos compartido, sin estilos propios');
+      for (const pagina of ['/', '/configuracion/', '/login.html', '/cambiar-clave.html']) {
+        const t = (await n['admin-uno'].get(pagina)).texto;
+        ok(/href="\/comun\/vea\.css"/.test(t) && !/<style>/.test(t) && !/fetch\(/.test(t), pagina + ': usa vea.css y no hace fetch por su cuenta');
+      }
+    }
+
+    seccion('rediseño: páginas públicas y comun/ (sin datos, sin PHP, sin listado)');
+    {
+      const anon = new Nav(base);
+      for (const [ruta, re] of [['/login.html', /<title>Entrar/], ['/cambiar-clave.html', /<title>Cambiar contraseña/], ['/comun/vea.css', /--rojo/],
+                                ['/comun/datos.js', /window\.Datos/], ['/comun/marca.js', /window\.Marca/]]) {
+        const r = await anon.get(ruta);
+        ok(r.status === 200 && re.test(r.texto), ruta + ' se abre sin sesión');
+      }
+      const png = await anon.get('/comun/logo-vea.png');
+      ok(png.status === 200, '/comun/logo-vea.png se abre sin sesión');
+      for (const ruta of ['/comun/', '/comun', '/comun/prueba.php', '/comun/api.php', '/comun/sub/x.css', '/comun/htaccess.txt', '/comun/.htaccess']) {
+        const r = await anon.get(ruta);
+        ok(r.status === 403 && !/EJECUTADO|vea\.css|datos\.js/.test(r.texto), ruta + ' → 403: ni listado, ni PHP, ni otra cosa (dio ' + r.status + ')');
+      }
+      const cc = await anon.get('/cambiar-clave.php?estado=1');
+      ok(cc.status === 401 && cc.j && cc.j.codigo === 'sesion', 'cambiar-clave.php sin sesión: 401 «sesion» (la página manda al login)');
+      const cp = await anon.post('/cambiar-clave.php', { json: { actual: 'x', nueva: 'una-larga-1234', repetir: 'una-larga-1234', csrf: 'x' } });
+      ok(cp.status === 401, 'y no cambia nada sin sesión');
+      const conSesion = await n['admin-uno'].get('/comun/prueba.php');
+      ok(conSesion.status === 403 && !/EJECUTADO/.test(conSesion.texto), 'con sesión tampoco se ejecuta un PHP subido a comun/');
+      // Con el .htaccess ANTERIOR (si se publicara solo el código): gate.php entrega lo público y nunca ejecuta PHP.
+      fs.writeFileSync(htActivo, HTACCESS_ANTERIOR);
+      try {
+        for (const [ruta, re] of [['/login.html', /<title>Entrar/], ['/comun/vea.css', /--rojo/], ['/comun/datos.js', /window\.Datos/]]) {
+          const r = await anon.seguir(await anon.get(ruta));
+          ok(!r.bucle && r.status === 200 && re.test(r.texto), 'con el .htaccess anterior, ' + ruta + ' también se abre sin sesión y sin bucle');
+        }
+        const php = await n['admin-uno'].get('/comun/prueba.php');
+        ok(php.status !== 200 && !/EJECUTADO|<\?php/.test(php.texto), 'con el .htaccess anterior, comun/prueba.php no se ejecuta ni se entrega su código (dio ' + php.status + ')');
+      } finally { fs.writeFileSync(htActivo, htNuevo); }
+      // Logout de verdad: corta la sesión y lleva al login.
+      const y = new Nav(base);
+      await y.entrar('admin-dos', claves['admin-dos']);
+      ok((await y.get('/after-school/')).status === 200, '(control) con sesión, After School abre');
+      const fuera = await y.seguir(await y.get('/logout.php'));
+      ok(!fuera.bucle && /<title>Entrar/.test(fuera.texto) && fuera.saltos.some(z => /login\.html\?salida=1/.test(z)), 'Salir lleva al login con «Cerraste sesión»');
+      const tras = await y.get('/after-school/');
+      ok(tras.status === 302 && /login\.html/.test(tras.location), 'después de Salir, After School pide entrar otra vez');
     }
 
     seccion('After School: cada acción según el rol; las prohibidas no llegan al Apps Script');
@@ -549,11 +657,11 @@ async function correr(fuente) {
       ok(Date.now() / 1000 - ult < 60, 'y el uso renueva el plazo');
       envejecer('prueba-profesor-1', 7300);
       const r = await n['prueba-profesor-1'].get('/pasar-lista/');
-      ok(r.status === 302 && /login\.php/.test(r.location), 'con más de 2 horas sin uso, la sesión se cierra');
+      ok(r.status === 302 && /login\.html/.test(r.location), 'con más de 2 horas sin uso, la sesión se cierra');
       envejecer('prueba-coord-as', 30000);
       ok((await n['prueba-coord-as'].get('/after-school/')).status === 200, 'los demás roles no tienen ese tope');
       const c = await n['prueba-profesor-1'].entrar('prueba-profesor-1', claves['prueba-profesor-1']);
-      ok(c.status === 302, 'el profesor vuelve a entrar');
+      ok(c.ok && c.destino === '/after-school/', 'el profesor vuelve a entrar (directo a After School)');
     }
 
     seccion('After School: contactos y pagos según el rol');
@@ -664,9 +772,12 @@ echo implode(',', $r);
       ok(cruzado.status === 403, 'el token de otra sesión no sirve');
       ok(!leerCuentas().usuarios['prueba-csrf'], 'no se creó nada');
       const l = new Nav(base);
-      await l.get('/login.php');
-      const r = await l.post('/login.php', { form: { usuario: 'admin-uno', clave: claves['admin-uno'], r: '/' } });
-      ok(r.status === 200 && /caducó/.test(r.texto), 'el login sin token CSRF no entra');
+      await l.get('/login.php?estado=1');
+      let r = await l.post('/login.php', { json: { usuario: 'admin-uno', clave: claves['admin-uno'], r: '/' } });
+      ok(r.status === 403 && r.j.codigo === 'csrf' && !r.j.destino, 'el login sin token CSRF no entra');
+      r = await l.post('/login.php', { json: { usuario: 'admin-uno', clave: claves['admin-uno'], csrf: 'falso', r: '/' } });
+      ok(r.status === 403 && r.j.codigo === 'csrf', 'con un token falso tampoco');
+      ok((await l.get('/login.php?estado=1')).j.conSesion === false, '(control) no quedó ninguna sesión');
       limpiarIntentos();
     }
 
@@ -675,15 +786,15 @@ echo implode(',', $r);
       const u = 'prueba-recepcion';
       ok((await n['admin-uno'].config('desactivar', { usuario: u })).status === 200, 'se desactiva ' + u);
       const r = await n[u].get('/after-school/');
-      ok(r.status === 302 && /login\.php/.test(r.location), 'su sesión abierta se corta en la siguiente página');
+      ok(r.status === 302 && /login\.html/.test(r.location), 'su sesión abierta se corta en la siguiente página');
       const x = await n[u].as('leer');
       ok(x.status === 302, 'y api.php ya no le responde');
       const otra = new Nav(base);
       const e = await otra.entrar(u, claves[u]);
-      ok(e.status === 200 && /incorrectos/.test(e.texto), 'una cuenta desactivada no entra (mismo mensaje que una contraseña mala)');
+      ok(!e.ok && e.codigo === 'credenciales' && /incorrectos/.test(e.j.error), 'una cuenta desactivada no entra (mismo mensaje que una contraseña mala)');
       limpiarIntentos();
       ok((await n['admin-uno'].config('reactivar', { usuario: u })).status === 200, 'se reactiva');
-      ok((await n[u].entrar(u, claves[u])).status === 302, 'y vuelve a entrar con su contraseña de antes');
+      ok((await n[u].entrar(u, claves[u])).ok, 'y vuelve a entrar con su contraseña de antes');
     }
 
     seccion('reiniciar contraseña');
@@ -695,12 +806,12 @@ echo implode(',', $r);
       ok((await n[u].get('/kinder/')).status === 302, 'la sesión abierta se corta');
       limpiarIntentos();
       const vieja = new Nav(base);
-      ok((await vieja.entrar(u, claves[u])).status === 200, 'la contraseña anterior ya no sirve');
+      ok(!(await vieja.entrar(u, claves[u])).ok, 'la contraseña anterior ya no sirve');
       limpiarIntentos();
       const t = await n[u].entrar(u, r.j.temporal);
-      ok(t.status === 302 && t.location.startsWith('/cambiar-clave.php'), 'con la temporal hay que cambiarla otra vez');
+      ok(t.ok && t.destino.startsWith('/cambiar-clave.html'), 'con la temporal hay que cambiarla otra vez');
       const nueva = clave();
-      ok((await n[u].cambiarClave(r.j.temporal, nueva)).status === 302, 'y queda con una propia');
+      ok((await n[u].cambiarClave(r.j.temporal, nueva)).ok, 'y queda con una propia');
       claves[u] = nueva;
     }
 
@@ -711,7 +822,7 @@ echo implode(',', $r);
       ok((await otra.get('/after-school/')).status === 200, '(control) la otra sesión funciona');
       const nueva = clave();
       const r = await n[u].cambiarClave(claves[u], nueva);
-      ok(r.status === 200 && /tu contraseña cambió/.test(r.texto), 'cambio voluntario: confirma y se queda en la página');
+      ok(r.ok && r.j.obligatorio === false, 'cambio voluntario: queda guardado (la página dice «tu contraseña cambió»)');
       ok((await n[u].get('/after-school/')).status === 200, 'esta sesión sigue');
       ok((await otra.get('/after-school/')).status === 302, 'la otra sesión del mismo usuario se corta');
       claves[u] = nueva;
@@ -723,7 +834,7 @@ echo implode(',', $r);
       const x = new Nav(base);
       for (let i = 0; i < 5; i++) await x.entrar('admin-uno', 'mala-' + i);
       const r = await x.entrar('admin-uno', claves['admin-uno']);
-      ok(/Demasiados intentos/.test(r.texto), 'tras 5 fallos, ni la contraseña buena entra durante 15 minutos');
+      ok(!r.ok && r.codigo === 'bloqueado' && /Demasiados intentos/.test(r.j.error), 'tras 5 fallos, ni la contraseña buena entra durante 15 minutos');
       limpiarIntentos();
     }
 

@@ -5,270 +5,81 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>After School · Vida en Arte</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/comun/vea.css">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
-  Lee y escribe SOLO a través de api.php (misma carpeta), que exige sesión y
+  Lee y escribe SOLO a través de la capa de datos (/comun/datos.js), que habla con api.php y, para Pasar lista, con /pasar-lista/api.php, que exige sesión y
   pone la clave del Apps Script en el servidor. Esta página no lleva ninguna
   clave, dirección del Sheet ni dato de niños: todo llega por api.php.
 -->
-<style>
-/* ==========================================================================
-   TOKENS — los mismos del tablero de Kínder (marca Vida en Arte).
-   Único lugar del archivo donde se declara un color.
-   ========================================================================== */
-:root{
-  --rojo:#D71C0E; --azul:#1974A8; --naranja:#FFA615;
-  --negro:#111111; --gris1:#222222; --gris2:#6b6b6b; --gris3:#E0E0E0;
-  --blanco:#ffffff; --fondo:#F5F7FA;
-  --vea-rosa:#FCCDCE; --vea-arena:#F1C873; --vea-celeste:#AED7EB; --vea-gris:#E5E5E5;
-  --verde-texto:#16794a; --rojo-texto:#a3170c;
-  --pos-fondo:#f0faf4; --pos-borde:#b7e4c7;
-  --neg-fondo:#fff0f0; --neg-borde:#ffb3b3;
-  --amarillo-fondo:#fdf3d8; --amarillo-borde:#F1C873; --amarillo-texto:#7a5300;
-  --azul-hover:#155f8a;
-  --sombra:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Poppins',sans-serif;background:var(--fondo);color:var(--gris1);
-  min-height:100vh;line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
-.num{font-variant-numeric:tabular-nums}
-button,input,select,textarea{font-family:inherit;font-size:14px;color:var(--gris1)}
-.oculto{display:none !important}
-
-/* Encabezado */
-header{background:var(--blanco);border-bottom:1px solid var(--gris3);position:sticky;top:0;z-index:20}
-.barra{max-width:1240px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.marca{font-weight:700;font-size:17px;color:var(--negro)}
-.marca span{color:var(--azul)}
-.barra .usuario{margin-left:auto;font-size:12px;color:var(--gris2);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.barra a{color:var(--azul);text-decoration:none;font-weight:600}
-nav{max-width:1240px;margin:0 auto;padding:0 16px;display:flex;gap:4px;overflow-x:auto}
-nav button{background:none;border:none;border-bottom:3px solid transparent;padding:10px 14px;
-  font-weight:600;color:var(--gris2);cursor:pointer;white-space:nowrap;min-height:44px}
-nav button[aria-selected="true"]{color:var(--azul);border-bottom-color:var(--azul)}
-.insignia{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--rojo);
-  color:var(--blanco);font-size:11px;line-height:20px;text-align:center;margin-left:4px}
-main{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
-
-/* Pantallas de estado */
-.pantalla{max-width:520px;margin:60px auto;background:var(--blanco);border-radius:16px;padding:32px;
-  text-align:center;box-shadow:var(--sombra)}
-.pantalla h2{font-size:18px;margin-bottom:8px}
-.pantalla p{color:var(--gris2);margin-bottom:16px}
-.pantalla pre{text-align:left;white-space:pre-wrap;font-size:12px;background:var(--fondo);padding:10px;border-radius:8px;margin-bottom:16px}
-
-/* Botones */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 16px;
-  border-radius:20px;border:1.5px solid var(--azul);background:var(--azul);color:var(--blanco);
-  font-weight:600;cursor:pointer;transition:.15s;text-decoration:none}
-.btn:hover{background:var(--azul-hover);border-color:var(--azul-hover)}
-.btn.sec{background:var(--blanco);color:var(--azul)}
-.btn.sec:hover{background:var(--fondo)}
-.btn.peligro{background:var(--blanco);color:var(--rojo-texto);border-color:var(--rojo)}
-.btn.peligro:hover{background:var(--neg-fondo)}
-.btn.chico{min-height:32px;padding:4px 12px;font-size:12px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-
-/* Avisos */
-.aviso{border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;border:1px solid}
-.aviso.mal{background:var(--neg-fondo);border-color:var(--neg-borde);color:var(--rojo-texto)}
-.aviso.ojo{background:var(--amarillo-fondo);border-color:var(--amarillo-borde);color:var(--amarillo-texto)}
-.aviso.bien{background:var(--pos-fondo);border-color:var(--pos-borde);color:var(--verde-texto)}
-
-/* Tarjetas */
-.tarjeta{background:var(--blanco);border-radius:14px;padding:18px;box-shadow:var(--sombra);margin-bottom:16px}
-.tarjeta h2{font-size:15px;margin-bottom:12px}
-.tarjeta h3{font-size:13px;margin:14px 0 8px;color:var(--gris2);text-transform:uppercase;letter-spacing:.04em}
-.ayuda{font-size:12px;color:var(--gris2)}
-
-/* Resumen de ocupación */
-.resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-.dato{background:var(--blanco);border-radius:14px;padding:14px 16px;box-shadow:var(--sombra)}
-.dato .et{font-size:12px;color:var(--gris2);font-weight:500}
-.dato .val{font-size:22px;font-weight:700;color:var(--negro)}
-.dato .val small{font-size:13px;color:var(--gris2);font-weight:500}
-.dato .barra-oc{height:6px;background:var(--vea-gris);border-radius:3px;margin-top:8px;overflow:hidden}
-.dato .barra-oc i{display:block;height:100%;background:var(--azul)}
-.dato.principal{border-top:4px solid var(--azul)}
-
-/* Grillas */
-.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--gris2);margin-bottom:12px}
-.leyenda span{display:inline-flex;align-items:center;gap:6px}
-.leyenda i{width:14px;height:14px;border-radius:4px;border:1px solid}
-.grillas{display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:16px}
-.grilla{width:100%;border-collapse:separate;border-spacing:6px;table-layout:fixed}
-.grilla th{font-size:12px;color:var(--gris2);font-weight:600;text-align:center;padding:2px}
-.grilla th.hora{width:58px;text-align:right;padding-right:6px}
-.grilla td{padding:0}
-.celda{width:100%;min-height:58px;border-radius:10px;border:1.5px solid;cursor:pointer;padding:6px 4px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blanco);transition:transform .1s}
-.celda:hover{transform:translateY(-1px)}
-.celda .r{font-size:16px;font-weight:700}
-.celda .e{font-size:10px;line-height:1.2;opacity:.85;text-align:center}
-.celda.libre{background:var(--pos-fondo);border-color:var(--pos-borde);color:var(--verde-texto)}
-.celda.casi{background:var(--amarillo-fondo);border-color:var(--amarillo-borde);color:var(--amarillo-texto)}
-.celda.lleno{background:var(--rojo);border-color:var(--rojo);color:var(--blanco)}
-.celda.inactiva{background:var(--fondo);border-color:var(--gris3);color:var(--gris2);border-style:dashed}
-.vacia{min-height:58px;border-radius:10px;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--vea-gris) 6px 7px);opacity:.6}
-
-/* Registrar */
-.dos{display:grid;grid-template-columns:minmax(260px,360px) 1fr;gap:16px;align-items:start}
-.buscador{display:flex;gap:8px;margin-bottom:10px}
-.buscador input{flex:1}
-input[type=text],input[type=search],input[type=date],input[type=month],input[type=email],input[type=tel],select,textarea{
-  width:100%;min-height:40px;padding:8px 12px;border:1.5px solid var(--gris3);border-radius:10px;background:var(--blanco);outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--azul)}
-textarea{min-height:64px;resize:vertical}
-label{display:block;font-size:12px;font-weight:600;color:var(--gris2);margin-bottom:4px}
-.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-.campos .ancho{grid-column:1/-1}
-.lista{list-style:none;max-height:62vh;overflow-y:auto}
-.lista li button{width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--vea-gris);
-  padding:10px 8px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center;min-height:44px}
-.lista li button:hover,.lista li button[aria-current="true"]{background:var(--fondo)}
-.lista .sub{font-size:11px;color:var(--gris2)}
-.chip{display:inline-block;padding:1px 9px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
-.chip.Activo{background:var(--pos-fondo);color:var(--verde-texto)}
-.chip.Retirado{background:var(--vea-gris);color:var(--gris2)}
-.chip.revisar{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
-.chip.clase{background:var(--vea-celeste);color:var(--negro);font-weight:500}
-.chip.nota{background:var(--amarillo-fondo);color:var(--amarillo-texto);border:1px solid var(--amarillo-borde);white-space:normal}
-.celda .marca{font-size:10px;font-weight:700;line-height:1.2;margin-top:2px}
-.ficha-tit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
-.ficha-tit h2{margin:0}
-.acciones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.sin-permiso{display:none!important}
-table.datos{width:100%;border-collapse:collapse;font-size:13px}
-table.datos th{text-align:left;font-size:11px;color:var(--gris2);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--gris3)}
-table.datos td{padding:8px;border-bottom:1px solid var(--vea-gris);vertical-align:middle}
-table.datos td.der,table.datos th.der{text-align:right}
-.fila-ins{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--vea-gris)}
-.inscribir{display:grid;grid-template-columns:1fr 160px auto;gap:8px;align-items:end;margin-top:8px}
-
-/* Diálogos */
-dialog{border:none;border-radius:16px;padding:0;width:min(560px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.3)}
-dialog::backdrop{background:rgba(0,0,0,.45)}
-dialog.ancho{width:min(820px,calc(100vw - 32px))}
-.dlg-cab{padding:16px 20px;border-bottom:1px solid var(--gris3);display:flex;justify-content:space-between;align-items:start;gap:12px}
-.dlg-cab h2{font-size:16px}
-.dlg-cuerpo{padding:16px 20px;max-height:65vh;overflow-y:auto}
-.dlg-pie{padding:12px 20px;border-top:1px solid var(--gris3);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.cerrar{background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:var(--gris2);min-width:36px;min-height:36px}
-.campo{margin-bottom:12px}
-
-/* Toast */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--negro);color:var(--blanco);
-  padding:10px 18px;border-radius:20px;font-size:13px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
-#toast.ver{opacity:1}
-
-/* Pagos y revisar */
-.tarjetas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-.mini{background:var(--blanco);border-radius:12px;padding:14px;box-shadow:var(--sombra);border-left:4px solid var(--vea-arena)}
-.mini h3{font-size:14px;margin-bottom:2px}
-.mini p{font-size:12px;color:var(--gris2);margin:4px 0}
-
-/* Ocupación por fecha */
-.fecha-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-.fecha-nav input{width:auto;min-height:32px;padding:4px 10px}
-.grilla th small{display:block;font-weight:500;font-size:11px}
-.grilla th.hoy{color:var(--azul)}
-.celda .pr{font-size:10px;font-weight:700;line-height:1.2}
-
-/* Pruebas e inscripción múltiple */
-.chip.Prospecto{background:var(--vea-celeste);color:var(--negro)}
-.chip.Eventual{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
-.chip.tv-prueba{background:var(--vea-celeste);color:var(--negro)}
-.chip.tv-reposicion{background:var(--pos-fondo);color:var(--verde-texto)}
-.chip.tv-eventual{background:var(--amarillo-fondo);color:var(--amarillo-texto)}
-.seg-fila{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--linea)}
-.seg-fila:last-child{border-bottom:0}
-.chip.pr-ag{background:var(--vea-celeste);color:var(--negro)}
-.chip.pr-si{background:var(--pos-fondo);color:var(--verde-texto)}
-.chip.pr-no,.chip.pr-ca{background:var(--vea-gris);color:var(--gris2)}
-.segmentado{display:flex;gap:16px;flex-wrap:wrap}
-.segmentado label{display:flex;gap:6px;align-items:center;font-weight:500;color:var(--gris1);font-size:14px;margin:0}
-.etiqueta{display:block;font-size:12px;font-weight:600;color:var(--gris2);margin-bottom:4px}
-.casillas{display:flex;flex-wrap:wrap;gap:6px 16px}
-.casillas label{display:flex;gap:6px;align-items:center;font-weight:500;color:var(--gris1);font-size:13px;margin:0;min-height:32px}
-.lista-clases{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:8px}
-.lista-clases fieldset{border:1px solid var(--gris3);border-radius:10px;padding:8px 10px}
-.lista-clases legend{font-size:12px;font-weight:700;padding:0 4px}
-.lista-clases label{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:500;color:var(--gris1);margin:0;min-height:34px}
-.lista-clases label.no{color:var(--gris2)}
-.lista-clases label.no .por{font-weight:700}
-.pie-inscribir{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px}
-.pie-inscribir > div{width:170px}
-tr.pendiente td{background:var(--amarillo-fondo)}
-tr.sinpago td{background:var(--neg-fondo)}
-.chip.sinpago{background:var(--neg-fondo);color:var(--rojo-texto);border:1px solid var(--neg-borde)}
-.chip.pagada{background:var(--pos-fondo);color:var(--verde-texto)}
-tr.cancelada td{color:var(--gris2)}
-
-@media (max-width:1100px){ .grillas{grid-template-columns:1fr} }
-@media (max-width:900px){
-  .dos{grid-template-columns:1fr}
-  .lista{max-height:40vh}
-}
-@media (max-width:600px){
-  .inscribir{grid-template-columns:1fr}
-  .grilla{border-spacing:3px}
-  .grilla th.hora{width:44px}
-  .celda .e{display:none}
-  .celda .r{font-size:13px}
-}
-</style>
 </head>
 <body>
 
-<header>
-  <div class="barra">
-    <div class="marca">Vida en Arte <span>· After School</span></div>
-    <div class="usuario">
-      <span id="quien"></span>
-      <button class="btn sec chico" id="btnActualizar" type="button">Actualizar</button>
-      <a href="/">Portal</a>
-      <a href="/pasar-lista/" data-permiso="as.lista.marcar">Pasar lista</a>
-      <a href="/cambiar-clave.php">Cambiar mi contraseña</a>
-      <a href="/logout.php">Cerrar sesión</a>
+<header id="cab"></header>
+<main class="pagina">
+  <section class="encabezado encabezado-as">
+    <div><h1 class="titulo">After School</h1></div>
+    <div class="acciones-cab">
+      <button class="btn sec" id="btnActualizar" type="button">Actualizar</button>
+      <button class="btn" id="irInscribir" type="button" data-permiso="as.completo">Inscribir</button>
+      <button class="btn primario" id="irAgendar" type="button" data-permiso="as.pruebas.agendar">+ Agendar visita</button>
     </div>
-  </div>
-  <nav role="tablist" id="pestanas">
+  </section>
+  <nav class="pestanas" role="tablist" id="pestanas" aria-label="Secciones de After School">
     <button role="tab" data-vista="ocupacion" data-permiso="as.ver" aria-selected="true">Ocupación</button>
-    <button role="tab" data-vista="registrar" data-permiso="as.completo" aria-selected="false">Registrar</button>
+    <button role="tab" data-vista="lista" data-permiso="as.lista.marcar" aria-selected="false">Pasar lista</button>
     <button role="tab" data-vista="pruebas" data-permiso="as.pruebas.ver" aria-selected="false">Visitas del día <span class="insignia oculto" id="cuentaPruebas"></span></button>
+    <button role="tab" data-vista="registrar" data-permiso="as.completo" aria-selected="false">Niños</button>
     <button role="tab" data-vista="pagos" data-permiso="as.pagos.ver" aria-selected="false">Pagos</button>
-    <button role="tab" data-vista="revisar" data-permiso="as.completo" aria-selected="false">Por revisar <span class="insignia oculto" id="cuentaRevisar"></span></button>
     <button role="tab" data-vista="seguimiento" data-permiso="as.seguimiento" aria-selected="false">Seguimiento <span class="insignia oculto" id="cuentaSeg"></span></button>
+    <button role="tab" data-vista="revisar" data-permiso="as.completo" aria-selected="false">Por revisar <span class="insignia oculto" id="cuentaRevisar"></span></button>
   </nav>
-</header>
 
-<main>
   <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo la base de After School.</p></div>
   <div id="avisos"></div>
 
   <!-- VISTA 1 · OCUPACIÓN -->
-  <section id="v-ocupacion" class="vista oculto">
-    <div class="fecha-nav">
-      <button class="btn sec chico" id="ocAnt" type="button" aria-label="Semana anterior">‹ Semana anterior</button>
-      <input type="date" id="ocFecha" aria-label="Fecha de la semana que se muestra">
-      <button class="btn sec chico" id="ocHoy" type="button">Hoy</button>
-      <button class="btn sec chico" id="ocSig" type="button" aria-label="Semana siguiente">Semana siguiente ›</button>
-      <span class="ayuda" id="ocRango"></span>
+  <section id="v-ocupacion" class="vista oculto columna">
+    <section class="resumen" id="resumen" aria-label="Resumen"></section>
+    <div class="encabezado">
+      <h2 class="titulo">Ocupación de la semana</h2>
+      <div class="semana-nav">
+        <button class="btn-circulo" id="ocAnt" type="button" aria-label="Semana anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <b id="ocRango"></b>
+        <button class="btn-circulo" id="ocSig" type="button" aria-label="Semana siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="btn sec chico" id="ocHoy" type="button">Hoy</button>
+        <input type="date" id="ocFecha" aria-label="Ir a la semana de una fecha">
+      </div>
     </div>
-    <div class="resumen" id="resumen"></div>
-    <div class="leyenda">
-      <span><i style="background:var(--pos-fondo);border-color:var(--pos-borde)"></i>Con cupos</span>
-      <span><i style="background:var(--amarillo-fondo);border-color:var(--amarillo-borde)"></i><span id="leyendaUmbral">Casi llena</span></span>
-      <span><i style="background:var(--rojo);border-color:var(--rojo)"></i>LLENO</span>
-      <span><i style="background:var(--fondo);border-color:var(--gris3)"></i>Inactiva</span>
-      <span>«18 + 3 visitas» = 18 inscritos y 3 visitas de un día (prueba, reposición o eventual); el detalle al tocar la celda</span>
-      <span>Toca una celda para ver los niños</span>
+    <div class="leyenda" id="leyenda"></div>
+    <div class="semana" id="grillas"></div>
+    <p class="ayuda">Toca una clase para ver sus niños y el detalle de las visitas por tipo.</p>
+  </section>
+
+  <!-- VISTA · PASAR LISTA (21-oct: dentro de After School) -->
+  <section id="v-lista" class="vista oculto columna">
+    <div class="semana-nav oculto" id="plFechaBar"><label for="plFecha" style="margin:0">Día</label><input type="date" id="plFecha"></div>
+    <div id="plAviso"></div>
+    <div class="pl-clases" id="plClases" role="group" aria-label="Clases del día"></div>
+    <div id="plCuerpo" class="oculto columna">
+      <div class="pl-cab">
+        <div><h2 class="titulo" id="plTitulo" style="font-size:clamp(36px,6vw,56px)"></h2><p class="ayuda" id="plSub"></p></div>
+        <div class="cuenta"><b id="plCuenta">0/0</b><span class="ayuda">marcados</span></div>
+      </div>
+      <div class="pl-ninos" id="plNinos"></div>
+      <div class="pl-pie">
+        <div class="fila">
+          <button class="btn borde-azul" id="plTodos" type="button">Los que faltan: Presente</button>
+          <button class="btn sec" id="plFueraBtn" type="button">+ Niño que no está en la lista</button>
+        </div>
+        <div class="pl-fuera oculto" id="plFueraForm">
+          <input type="text" id="plFueraNombre" placeholder="Nombre del niño" autocomplete="off" aria-label="Nombre del niño que no está en la lista">
+          <button class="btn negro" id="plFueraAgregar" type="button">Agregar</button>
+        </div>
+        <button class="btn negro guardar" id="plGuardar" type="button">Guardar lista</button>
+      </div>
     </div>
-    <div class="grillas" id="grillas"></div>
   </section>
 
   <!-- VISTA 2 · REGISTRAR -->
@@ -509,44 +320,20 @@ tr.cancelada td{color:var(--gris2)}
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="/comun/datos.js"></script>
+<script src="/comun/marca.js"></script>
 <script>
 'use strict';
 /* ==========================================================================
    TRANSPORTE — todo pasa por api.php. Nunca se muestran datos vacíos sin
    avisar: si la lectura falla, la pantalla lo dice y ofrece Reintentar.
    ========================================================================== */
-const API = 'api.php';
-
-class ErrorApi extends Error {
-  constructor(mensaje, codigo) { super(mensaje); this.codigo = codigo || ''; }
-}
-
+/* 21-oct (rediseño): la página no llama a api.php. Todo pasa por la capa de
+   datos (comun/datos.js); al migrar a Firebase se cambia ese módulo y no esta
+   página. api() conserva su forma de siempre para el resto del código. */
+const ErrorApi = Datos.Error;
 async function api(accion, datos, idSolicitud) {
-  let r;
-  const cuerpo = { accion, datos: datos || {} };
-  if (idSolicitud) cuerpo.idSolicitud = idSolicitud;
-  try {
-    r = await fetch(API, { method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(cuerpo) });
-  } catch (e) {
-    throw new ErrorApi('No hay conexión con el servidor del portal.', 'red');
-  }
-  const tipo = r.headers.get('content-type') || '';
-  let txt;
-  try { txt = await r.text(); } catch (e) { throw new ErrorApi('Se cortó la respuesta del servidor del portal.', 'red'); }
-  const esHtml = /text\/html/i.test(tipo) || /^\s*</.test(txt);
-  // Un 5xx en HTML es el servidor (p. ej. un 504 por tiempo), no la sesión:
-  // la petición pudo llegar al Sheet, así que cuenta como respuesta perdida.
-  if (r.status >= 500 && esHtml)
-    throw new ErrorApi('El servidor del portal no respondió bien (código ' + r.status + ').', 'incierto');
-  // La sesión del portal caducada responde con la página de login (HTML) o 401.
-  if (r.status === 401 || esHtml)
-    throw new ErrorApi('La sesión del portal caducó.', 'sesion');
-  let j;
-  try { j = JSON.parse(txt); } catch (e) { throw new ErrorApi('El servidor respondió algo que no se entiende (código ' + r.status + ').', 'ilegible'); }
-  if (j.codigo === 'cambiar_clave') { location.href = '/cambiar-clave.php?r=' + encodeURIComponent('/after-school/'); }
-  if (!j.ok) throw new ErrorApi(j.error || ('Error ' + r.status), j.codigo);
+  const j = await Datos.afterSchool(accion, datos, idSolicitud);
   if (Array.isArray(j.permisos)) fijarPermisos(j.permisos);
   return j;
 }
@@ -739,7 +526,6 @@ function aplicar(estado) {
   OCUP_EXTRA = {};
   indexar();
   $('#pantalla').classList.add('oculto');
-  $('#quien').textContent = E.usuario ? 'Entraste como ' + E.usuario : '';
   pintarAvisos();
   pintarTodo();
   mostrarVista(vista);
@@ -787,7 +573,8 @@ function mostrarVista(v) {
   }
   vista = v;
   document.querySelectorAll('#pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.vista === v ? 'true' : 'false'));
-  document.querySelectorAll('.vista').forEach(s => s.classList.toggle('oculto', s.id !== 'v-' + v || !E));
+  document.querySelectorAll('.vista').forEach(s => s.classList.toggle('oculto', s.id !== 'v-' + v || (!E && v !== 'lista')));
+  if (v === 'lista' && !LISTA.datos && !LISTA.cargando) cargarLista();
 }
 document.querySelectorAll('#pestanas button').forEach(b => b.onclick = () => mostrarVista(b.dataset.vista));
 $('#btnActualizar').onclick = cargar;
@@ -935,63 +722,76 @@ function semanaDe(iso) {
   E.dias.forEach((d, k) => { s[d] = sumarDias(lunes, k); });
   return s;
 }
-function suma(cl, semana) {
-  const a = cl.filter(c => c.activa && semana[c.dia]);
-  const r = a.reduce((x, c) => x + ocupacion0(c, semana[c.dia]).t, 0), k = a.reduce((x, c) => x + (c.cupo || 0), 0);
-  return { r, k, p: k ? Math.round(r / k * 100) : 0 };
+/* Color de cada servicio (marca): Parkour rojo, Telas azul, Parkids naranja, Baby & Me celeste. */
+function claseServicio(servicio) {
+  const n = norm(servicio);
+  return n.includes('parkour') ? 'Parkour' : n.includes('telas') ? 'Telas' : n.includes('parkids') ? 'Parkids' : n.includes('baby') ? 'Baby' : 'Otro';
 }
-function datoHtml(et, s, principal) {
-  return '<div class="dato' + (principal ? ' principal' : '') + '"><div class="et">' + esc(et) + '</div><div class="val num">' + s.r +
-    ' <small>/ ' + s.k + ' · ' + s.p + ' %</small></div><div class="barra-oc"><i style="width:' + Math.min(s.p, 100) + '%"></i></div></div>';
+const COLOR_SERVICIO = { Parkour: '#D71C0E', Telas: '#1974A8', Parkids: '#FFA615', Baby: '#AED7EB', Otro: '#6B6B6B' };
+const MESES_CORTOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const diaMes = iso => +iso.slice(8, 10) + ' de ' + MESES_CORTOS[+iso.slice(5, 7) - 1];
+
+/* Resumen de arriba: inscritos activos, visitas de la semana y, para quien
+   ve el seguimiento, clases sin lista y faltas por reponer (llevan a esa pestaña). */
+function pintarResumen(semana) {
+  const desde = semana[E.dias[0]], hasta = semana[E.dias[6]];
+  const activos = E.ninos.filter(n => n.estado === 'Activo').length;
+  const visitas = (E.pruebas || []).filter(p => p.fecha >= desde && p.fecha <= hasta && p.estado !== 'Cancelada').length;
+  const seg = (v, et, clase) => '<button type="button" class="dato ' + clase + '" data-permiso="as.seguimiento" data-ir="seguimiento" style="border:0;text-align:left;cursor:pointer;font:inherit">' +
+    '<span class="et">' + et + '</span><span class="val num">' + v + '</span></button>';
+  $('#resumen').innerHTML =
+    '<div class="dato"><span class="et">Inscritos activos</span><span class="val num">' + activos + '</span></div>' +
+    '<div class="dato"><span class="et">Visitas esta semana</span><span class="val num">' + visitas + '</span></div>' +
+    seg(SEG && !SEG.error ? SEG.clasesSinLista.length : '…', 'Clases sin lista', 'rosa') +
+    seg(SEG && !SEG.error ? SEG.faltasPorReponer.length : '…', 'Faltas por reponer', 'arena');
+  $('#resumen').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => mostrarVista(b.dataset.ir));
+}
+
+function celdaHtml(c, iso) {
+  const o = ocupacion0(c, iso), est = estadoCelda(c, o), cls = claseServicio(c.servicio), color = COLOR_SERVICIO[cls];
+  const pi = Math.min(100, Math.round(o.i / c.cupo * 100)), pv = Math.max(0, Math.min(100 - pi, Math.round(o.p / c.cupo * 100)));
+  const borde = cls === 'Baby' ? ';box-shadow:inset 0 0 0 1px #3F7895' : '';
+  const marca = est === 'lleno' ? '<span class="marca-lleno">Lleno</span>' : est === 'casi' ? '<span class="marca-casi">Casi lleno</span>' :
+    est === 'inactiva' ? '<span class="chip">Inactiva</span>' : '';
+  const notas = iso <= E.hoy ? (IDX.insClase[c.codigo] || []).filter(i => i.nota && (!i.alta || i.alta <= iso)).length : 0;
+  return '<button class="celda' + (est === 'inactiva' ? ' inactiva' : '') + '" data-clase="' + esc(c.codigo) + '" data-fecha="' + iso + '" type="button" aria-label="' +
+    esc(c.servicio + ' ' + c.hora + ', ' + fecha(iso) + ': ' + o.i + ' inscritos' + (o.p ? ' y ' + textoVisitas(o.p) + ' (' + detalleTipos(o.tipos) + ')' : '') + ', cupo ' + c.cupo +
+      (est === 'lleno' ? ', lleno' : est === 'casi' ? ', casi lleno' : est === 'inactiva' ? ', inactiva' : '')) + '">' +
+    '<span class="cab-celda"><span style="display:flex;gap:8px;align-items:center"><span class="punto ' + cls + '"></span>' + esc(c.servicio) + '</span>' + marca + '</span>' +
+    '<span class="cuenta num"><b>' + o.i + '</b>' + (o.p ? ' + ' + textoVisitas(o.p) : '') + ' · cupo ' + c.cupo + '</span>' +
+    '<span class="barra ' + cls + '"><i style="width:' + pi + '%;background:' + color + borde + '"></i>' +
+    '<i style="width:' + pv + '%;background:repeating-linear-gradient(45deg,' + color + ' 0 3px,#FFFFFF 3px 6px)' + borde + '"></i></span>' +
+    (c.edades ? '<span class="ayuda">' + esc(c.edades) + '</span>' : '') +
+    (notas ? '<span class="marca-nota">⚑ ' + notas + (notas === 1 ? ' nota' : ' notas') + '</span>' : '') + '</button>';
 }
 
 function pintarOcupacion() {
   const ref = fechaOcup || E.hoy, semana = semanaDe(ref);
   const dias = E.dias.filter(d => E.clases.some(c => c.dia === d));
+  pintarResumen(semana);
+  $('#ocFecha').value = ref;
+  $('#ocRango').textContent = dias.length ? 'Semana del ' + diaMes(semana[dias[0]]) + ' al ' + diaMes(semana[dias[dias.length - 1]]) : '';
   // Una semana pasada fuera de la ventana de leer(): se pide y se repinta.
   const faltan = dias.filter(d => semana[d] <= E.hoy && !(E.ocupacion && E.ocupacion[semana[d]]) && !OCUP_EXTRA[semana[d]]);
   if (faltan.length) {
-    $('#grillas').innerHTML = '<div class="tarjeta"><p class="ayuda">Leyendo la ocupación de esa semana…</p></div>';
+    $('#grillas').innerHTML = '<p class="ayuda" style="padding:20px">Leyendo la ocupación de esa semana…</p>';
     asegurarSemana(semana[E.dias[0]], semana[E.dias[6]]);
     return;
   }
-  $('#ocFecha').value = ref;
-  $('#ocRango').textContent = dias.length ? 'Semana del ' + fecha(semana[dias[0]]) + ' al ' + fecha(semana[dias[dias.length - 1]]) : '';
-  const servicios = [...new Set(E.clases.map(c => c.servicio))];
-  const modalidades = [...new Set(E.clases.map(c => c.modalidad))];
-  $('#resumen').innerHTML = modalidades.map(m => datoHtml(m, suma(E.clases.filter(c => c.modalidad === m), semana), true)).join('') +
-    servicios.map(s => datoHtml(s, suma(E.clases.filter(c => c.servicio === s), semana))).join('');
-  $('#leyendaUmbral').textContent = E.config.umbral != null ? 'Desde ' + Math.round(E.config.umbral * 100) + ' %' : 'Sin umbral en Config';
-
-  $('#grillas').innerHTML = servicios.map(s => {
-    const cl = E.clases.filter(c => c.servicio === s);
-    const horas = [...new Set(cl.map(c => c.hora))].sort();
-    const tot = suma(cl, semana);
-    let h = '<div class="tarjeta"><h2>' + esc(s) + ' <span class="ayuda num">' + tot.r + ' / ' + tot.k + ' · ' + tot.p + ' %</span></h2>' +
-      '<table class="grilla"><thead><tr><th class="hora"></th>' + dias.map(d => '<th' + (semana[d] === E.hoy ? ' class="hoy"' : '') + '>' +
-        esc(DIA_CORTO[d] || d) + '<small class="num">' + fechaCorta(semana[d]) + '</small></th>').join('') + '</tr></thead><tbody>';
-    horas.forEach(hr => {
-      h += '<tr><th class="hora num">' + esc(hr) + '</th>';
-      dias.forEach(d => {
-        const cs = cl.filter(c => c.dia === d && c.hora === hr), iso = semana[d];
-        h += '<td>' + (cs.length ? cs.map(c => {
-          const o = ocupacion0(c, iso), est = estadoCelda(c, o);
-          const txt = est === 'lleno' ? 'LLENO' : o.t + ' / ' + c.cupo;
-          const detalle = o.p ? o.i + ' + ' + textoVisitas(o.p) : '';
-          const notas = iso <= E.hoy ? (IDX.insClase[c.codigo] || []).filter(i => i.nota && (!i.alta || i.alta <= iso)).length : 0;
-          return '<button class="celda ' + est + '" data-clase="' + esc(c.codigo) + '" data-fecha="' + iso + '" type="button" aria-label="' +
-            esc(etiquetaClase(c) + ' ' + fecha(iso) + ': ' + o.t + ' de ' + c.cupo + (o.p ? ', ' + textoVisitas(o.p) + ' (' + detalleTipos(o.tipos) + ')' : '')) + '">' +
-            '<span class="r num">' + txt + '</span>' +
-            (est === 'lleno' ? '<span class="e num">' + o.t + ' / ' + c.cupo + '</span>' : '') +
-            (detalle ? '<span class="pr num">' + detalle + '</span>' : '<span class="e">' + esc(est === 'inactiva' ? 'inactiva' : c.edades) + '</span>') +
-            (notas ? '<span class="marca">⚑ ' + notas + (notas === 1 ? ' nota' : ' notas') + '</span>' : '') + '</button>';
-        }).join('') : '<div class="vacia" aria-hidden="true"></div>') + '</td>';
-      });
-      h += '</tr>';
-    });
-    return h + '</tbody></table></div>';
-  }).join('');
+  const servicios = [...new Set(E.clases.map(c => claseServicio(c.servicio)))];
+  const nombres = { Parkour: 'Parkour', Telas: 'Telas', Parkids: 'Parkids', Baby: 'Baby & Me', Otro: 'Otros' };
+  $('#leyenda').innerHTML = servicios.map(k => '<span><span class="punto ' + k + '"></span>' + nombres[k] + '</span>').join('') +
+    '<span><span class="tira"></span>Inscritos</span><span><span class="tira vis"></span>Visitas</span>' +
+    '<span>' + (E.config.umbral != null ? '«Casi lleno» desde ' + Math.round(E.config.umbral * 100) + ' %' : 'Sin umbral en Config') + '</span>';
+  const horas = [...new Set(E.clases.filter(c => dias.includes(c.dia)).map(c => c.hora))].sort();
+  $('#grillas').innerHTML = '<table><thead><tr><th class="hora"></th>' + dias.map(d => '<th' + (semana[d] === E.hoy ? ' class="hoy"' : '') + '>' +
+      esc(d) + '<small class="num">' + fechaCorta(semana[d]) + (semana[d] === E.hoy ? ' · hoy' : '') + '</small></th>').join('') + '</tr></thead><tbody>' +
+    horas.map(hr => '<tr><td class="hora num">' + esc(hr) + '</td>' + dias.map(d => {
+      const cs = E.clases.filter(c => c.dia === d && c.hora === hr).sort((a, b) => a.servicio.localeCompare(b.servicio, 'es'));
+      return '<td>' + cs.map(c => celdaHtml(c, semana[d])).join('') + '</td>';
+    }).join('') + '</tr>').join('') + '</tbody></table>';
   $('#grillas').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase, b.dataset.fecha));
+  podar($('#resumen'));
 }
 $('#ocFecha').onchange = () => { fechaOcup = $('#ocFecha').value || null; pintarOcupacion(); };
 $('#ocAnt').onclick = () => { fechaOcup = sumarDias(fechaOcup || E.hoy, -7); pintarOcupacion(); };
@@ -1579,8 +1379,8 @@ $('#formResultado').onsubmit = async ev => {
   cerrarDialogos();
   const n = IDX.ninos[p.idNino];
   const yaInscrito = (IDX.insNino[p.idNino] || []).some(i => i.codigo === p.codigo);
-  if (datos.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado' &&
-      confirm('¿Inscribir ahora a ' + nombre(n) + '? Se abre su ficha con la clase de la prueba marcada.')) abrirFicha(n.id, { marcar: [p.codigo] });
+  // Se inscribió: se abre su ficha con la clase de la prueba marcada (un clic menos; inscribir sigue siendo aparte).
+  if (datos.seInscribio === 'Sí' && !yaInscrito && n && n.estado !== 'Retirado') abrirFicha(n.id, { marcar: [p.codigo] });
 };
 
 /* Diálogo de pago de una prueba (acción aparte, antes o después del resultado). */
@@ -1716,7 +1516,7 @@ function pintarSeguimiento() {
   const nombreClase = (codigo, iso) => { const c = IDX.clases[codigo]; return c ? c.servicio + ' ' + (diaDeIso(iso) || '').toLowerCase() + ' ' + c.hora : codigo; };
   $('#segSinLista').innerHTML = SEG.clasesSinLista.length ? SEG.clasesSinLista.map(x =>
     '<div class="seg-fila"><span><b>' + esc(nombreClase(x.codigo, x.fecha)) + '</b> – lista sin pasar <span class="ayuda">' + fecha(x.fecha) + ' · ' + esc(x.codigo) + '</span></span>' +
-    '<span><a class="btn sec chico" data-pasarlista="1" href="/pasar-lista/?fecha=' + encodeURIComponent(x.fecha) + '&clase=' + encodeURIComponent(x.codigo) + '">Pasar lista</a> ' +
+    '<span><button class="btn sec chico" data-pasarlista="' + esc(x.fecha + '|' + x.codigo) + '" type="button">Pasar lista</button> ' +
     '<button class="btn sec chico" data-nohubo="' + esc(x.codigo + '|' + x.fecha) + '" type="button">No hubo clase</button></span></div>').join('')
     : vacio('Todas las clases que ya terminaron tienen lista.');
   $('#segSeguidasAyuda').textContent = 'Niños con ' + SEG.umbral + ' o más «Ausente» seguidos (la Falta justificada no cuenta). El número sale de Config.';
@@ -1745,6 +1545,11 @@ function pintarSeguimiento() {
   const raizSeg = $('#v-seguimiento');
   raizSeg.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => abrirFicha(b.dataset.ficha));
   raizSeg.querySelectorAll('[data-reponer]').forEach(b => b.onclick = () => { const [id, a] = b.dataset.reponer.split('|'); prepararReposicion(id, a); });
+  raizSeg.querySelectorAll('[data-pasarlista]').forEach(b => b.onclick = () => {
+    const [f, c] = b.dataset.pasarlista.split('|');
+    LISTA.cargando = true; mostrarVista('lista'); cargarLista(f, c);
+  });
+  if (E && $('#resumen')) pintarResumen(semanaDe(fechaOcup || E.hoy));
   raizSeg.querySelectorAll('[data-nohubo]').forEach(b => b.onclick = async () => {
     const [codigo, iso] = b.dataset.nohubo.split('|');
     const nota = prompt('«No hubo clase»: ' + nombreClase(codigo, iso) + ' del ' + fecha(iso) + '.\nMotivo (feriado, clase suspendida…). Queda en el Historial.', 'Feriado');
@@ -1828,7 +1633,175 @@ function pintarRevisar() {
   raiz.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => abrirFicha(b.dataset.ficha));
 }
 
-cargar();
+/* ==========================================================================
+   PASAR LISTA (21-oct, dentro de After School). Habla solo con
+   Datos.lista (→ /pasar-lista/api.php): el servidor decide si se puede otro
+   día (soloHoy) y recorta todo menos nombre, edad y la marca de visita.
+   Abre con la clase de la hora actual ya elegida.
+   ========================================================================== */
+const ESTADOS_PL = [['Presente', 'Presente'], ['Llegó tarde', 'Tarde'], ['Ausente', 'Ausente'], ['Falta justificada', 'Justif.']];
+const LISTA = { datos: null, actual: null, marcas: {}, fuera: [], cambios: false, cargando: false, otroDia: false, ultimo: { clave: '', id: '' } };
+const iniciales = t => t.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
+function horaLocal() { const d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+function avisoLista(html, tipo) { $('#plAviso').innerHTML = html ? '<div class="aviso ' + (tipo || 'mal') + '">' + html + '</div>' : ''; }
+
+async function cargarLista(fecha, codigo) {
+  LISTA.cargando = true;
+  $('#plClases').innerHTML = '<p class="ayuda">Leyendo las clases…</p>';
+  let r;
+  try { r = await Datos.lista.leer(fecha || ''); }
+  catch (e) { LISTA.cargando = false; if (e.codigo === 'sesion') { Datos.aLogin(); return; } $('#plClases').innerHTML = ''; avisoLista(esc(e.message)); return; }
+  LISTA.cargando = false;
+  LISTA.datos = r.resultado;
+  LISTA.otroDia = !!(r.permisos && r.permisos.puedeOtroDia);
+  $('#plFechaBar').classList.toggle('oculto', !LISTA.otroDia);
+  $('#plFecha').value = LISTA.datos.fecha; $('#plFecha').max = LISTA.datos.hoy;
+  const clases = LISTA.datos.clases.filter(c => !c.sinClase);
+  // La clase de la hora actual: la hora de la última que ya empezó (si
+  // ninguna, la primera del día). Entre las de esa hora, primero una con
+  // niños y sin lista guardada.
+  const ahora = horaLocal();
+  const pedida = codigo && clases.find(c => c.codigo === codigo);
+  const empezadas = LISTA.datos.fecha === LISTA.datos.hoy ? clases.filter(c => c.hora <= ahora) : [];
+  const hora = empezadas.length ? empezadas[empezadas.length - 1].hora : (clases[0] && clases[0].hora);
+  const deEsaHora = clases.filter(c => c.hora === hora);
+  const conNinos = c => c.ninos.length + c.fueraDeLista.length > 0;
+  pintarClasesLista();
+  const elegir = pedida || deEsaHora.find(c => conNinos(c) && !c.guardada) || deEsaHora.find(conNinos) || deEsaHora[0] || clases[0];
+  if (elegir) abrirClaseLista(elegir.codigo); else { $('#plCuerpo').classList.add('oculto'); avisoLista('No hay clases este día.', 'info'); }
+}
+
+function pintarClasesLista() {
+  const d = LISTA.datos;
+  $('#plClases').innerHTML = d.clases.map(c => '<button class="pl-clase" type="button" data-pl="' + esc(c.codigo) + '" aria-pressed="' +
+    (LISTA.actual && LISTA.actual.codigo === c.codigo) + '"' + (c.sinClase ? ' disabled title="No hubo clase"' : '') + '>' +
+    '<span class="punto ' + claseServicio(c.servicio) + '"></span>' + esc(c.hora + ' ' + c.servicio) +
+    (c.sinClase ? ' <span class="hecha">· sin clase</span>' : c.guardada ? ' <span class="hecha">✓</span>' : '') + '</button>').join('');
+  $('#plClases').querySelectorAll('[data-pl]').forEach(b => b.onclick = () => {
+    if (LISTA.cambios && !confirm('Hay marcas sin guardar en esta clase. ¿Cambiar de clase igual? Se pierden.')) return;
+    abrirClaseLista(b.dataset.pl);
+  });
+}
+
+function abrirClaseLista(codigo) {
+  const c = LISTA.datos.clases.find(x => x.codigo === codigo);
+  if (!c) return;
+  LISTA.actual = c; LISTA.marcas = {}; LISTA.fuera = []; LISTA.cambios = false;
+  c.ninos.forEach(n => { if (n.estado) LISTA.marcas[n.idNino] = n.estado; });
+  c.fueraDeLista.forEach(f => LISTA.fuera.push({ idAsistencia: f.idAsistencia, nombre: f.nombre, estado: f.estado }));
+  $('#plTitulo').textContent = c.servicio + ' · ' + c.hora;
+  const vis = c.ninos.filter(n => n.presencia !== 'Inscrito').length;
+  $('#plSub').textContent = Marca.fechaLarga(LISTA.datos.fecha) + ' · ' + c.ninos.length + (c.ninos.length === 1 ? ' niño' : ' niños') +
+    (vis ? ' · ' + textoVisitas(vis) : '') + (c.guardada ? ' · lista guardada' : '');
+  $('#plCuerpo').classList.remove('oculto');
+  $('#plFueraForm').classList.add('oculto');
+  avisoLista('');
+  pintarClasesLista();
+  pintarNinosLista();
+}
+
+function botonesLista(clave, estado) {
+  return '<div class="pl-botones" role="group" aria-label="Asistencia">' + ESTADOS_PL.map(([e, t]) =>
+    '<button type="button" data-k="' + esc(clave) + '" data-e="' + esc(e) + '" aria-pressed="' + (estado === e) + '">' + t + '</button>').join('') + '</div>';
+}
+
+function pintarNinosLista() {
+  const c = LISTA.actual;
+  $('#plNinos').innerHTML = c.ninos.map(n => '<div class="pl-nino"><span class="ini" aria-hidden="true">' + esc(iniciales(n.nombre)) + '</span>' +
+      '<div class="datos"><b>' + esc(n.nombre) + '</b><span>' + esc(n.edad) + (n.presencia !== 'Inscrito' ? ' <span class="pl-marca">' + esc(n.presencia) + '</span>' : '') + '</span></div>' +
+      botonesLista('n:' + n.idNino, LISTA.marcas[n.idNino]) + '</div>').join('') +
+    LISTA.fuera.map((f, i) => '<div class="pl-nino"><span class="ini" aria-hidden="true">' + esc(iniciales(f.nombre)) + '</span>' +
+      '<div class="datos"><b>' + esc(f.nombre) + '</b><span><span class="pl-marca fuera">Fuera de lista</span></span></div>' +
+      botonesLista('f:' + i, f.estado) + '</div>').join('') ||
+    '<div class="aviso info">Esta clase no tiene niños este día. Si vino alguien, agrégalo abajo.</div>';
+  $('#plNinos').querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if (k.startsWith('n:')) LISTA.marcas[k.slice(2)] = b.dataset.e; else LISTA.fuera[+k.slice(2)].estado = b.dataset.e;
+    LISTA.cambios = true;
+    b.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    pintarCuentaLista();
+  });
+  pintarCuentaLista();
+}
+
+function pintarCuentaLista() {
+  const c = LISTA.actual, total = c.ninos.length + LISTA.fuera.length;
+  const hechos = c.ninos.filter(n => LISTA.marcas[n.idNino]).length + LISTA.fuera.filter(f => f.estado).length;
+  $('#plCuenta').textContent = hechos + '/' + total;
+  $('#plGuardar').disabled = !hechos;
+  $('#plGuardar').textContent = c.guardada && !LISTA.cambios ? '✓ Lista guardada' : 'Guardar lista';
+}
+
+$('#plTodos').onclick = () => {
+  LISTA.actual.ninos.forEach(n => { if (!LISTA.marcas[n.idNino]) { LISTA.marcas[n.idNino] = 'Presente'; LISTA.cambios = true; } });
+  LISTA.fuera.forEach(f => { if (!f.estado) { f.estado = 'Presente'; LISTA.cambios = true; } });
+  pintarNinosLista();
+};
+$('#plFueraBtn').onclick = () => { $('#plFueraForm').classList.toggle('oculto'); $('#plFueraNombre').focus(); };
+$('#plFueraAgregar').onclick = () => {
+  const nombre = $('#plFueraNombre').value.trim();
+  if (!nombre) { $('#plFueraNombre').focus(); return; }
+  LISTA.fuera.push({ nombre, estado: 'Presente' }); LISTA.cambios = true;
+  $('#plFueraNombre').value = ''; $('#plFueraForm').classList.add('oculto');
+  pintarNinosLista();
+};
+$('#plFueraNombre').onkeydown = e => { if (e.key === 'Enter') $('#plFueraAgregar').click(); };
+$('#plFecha').onchange = () => { if ($('#plFecha').value) cargarLista($('#plFecha').value); };
+
+$('#plGuardar').onclick = async () => {
+  const c = LISTA.actual;
+  const datos = { fecha: LISTA.datos.fecha, codigo: c.codigo,
+    marcas: c.ninos.filter(n => LISTA.marcas[n.idNino]).map(n => ({ idNino: n.idNino, estado: LISTA.marcas[n.idNino] })),
+    fueraDeLista: LISTA.fuera.filter(f => f.estado).map(f => f.idAsistencia ? { idAsistencia: f.idAsistencia, nombre: f.nombre, estado: f.estado } : { nombre: f.nombre, estado: f.estado }) };
+  // Mismo contenido → mismo ID de solicitud (un reintento no duplica).
+  const clave = JSON.stringify(datos);
+  if (LISTA.ultimo.clave !== clave) LISTA.ultimo = { clave, id: Datos.idSolicitud() };
+  $('#plGuardar').disabled = true; $('#plGuardar').textContent = 'Guardando…';
+  try {
+    await Datos.lista.guardar(datos, LISTA.ultimo.id);
+    LISTA.cambios = false;
+    Marca.toast('Lista guardada: ' + c.servicio + ' ' + c.hora);
+    await cargarLista(LISTA.datos.fecha, c.codigo);
+    if (E && puede('as.seguimiento')) cargarSeguimiento();
+  } catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    avisoLista(e.codigo === 'incierto' || e.codigo === 'red'
+      ? 'No llegó la respuesta. Toca «Guardar lista» otra vez: si ya se había guardado, no se repite.' : esc(e.message), e.codigo === 'incierto' || e.codigo === 'red' ? 'ojo' : 'mal');
+    pintarCuentaLista();
+  }
+};
+window.addEventListener('beforeunload', e => { if (LISTA.cambios) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ==========================================================================
+   INICIO: quién soy, qué veo y en qué pestaña empiezo (la que más usa mi rol).
+   El profesor ve solo Pasar lista: sin pestañas ni lectura de After School.
+   ========================================================================== */
+$('#irInscribir').onclick = () => { mostrarVista('registrar'); $('#buscar').focus(); Marca.toast('Busca al niño (o «+ Nuevo») y marca sus clases.'); };
+$('#irAgendar').onclick = () => { mostrarVista('pruebas'); $('#formPrueba').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+
+async function iniciar() {
+  let ses;
+  try { ses = await Datos.sesion(); }
+  catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } pantallaError(e); return; }
+  fijarPermisos(ses.permisosAS || []);
+  const pedida = (location.hash || '').slice(1);
+  const soloLista = !puede('as.ver') && puede('as.lista.marcar');
+  Marca.cabecera($('#cab'), soloLista ? { sesion: ses, prefijo: 'Pasando lista:' } : { sesion: ses, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'After School' }] });
+  vista = vistaPermitida(pedida) && pedida ? pedida : (ses.inicioAS || 'ocupacion');
+  if (soloLista) vista = 'lista';
+  // Llegó con una clase pedida (Seguimiento → Pasar lista, o la dirección vieja /pasar-lista/).
+  const q = new URLSearchParams(location.search);
+  if (vista === 'lista' && (q.get('fecha') || q.get('clase'))) { LISTA.cargando = true; cargarLista(q.get('fecha') || '', q.get('clase') || ''); }
+  if (soloLista) {
+    document.body.classList.add('solo-lista');
+    $('#pantalla').classList.add('oculto');
+    mostrarVista('lista');
+    return;
+  }
+  if (vista === 'lista') mostrarVista('lista');
+  cargar();
+}
+iniciar();
 </script>
 </body>
 </html>

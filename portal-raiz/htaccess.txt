@@ -1,4 +1,6 @@
 # Portal Vida en Arte 360 — renombrar este archivo a .htaccess en el servidor
+# Versión del 21-oct-2026 (rediseño): login y cambiar contraseña como páginas
+# fijas, y la carpeta pública comun/ (estilos, capa de datos y logos).
 Options -Indexes
 DirectoryIndex index.html
 
@@ -16,8 +18,19 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteRule ^(auth\.php|permisos\.php|cuentas\.php|usuarios\.php|php\.ini|htaccess\.txt)$ - [F,L]
 RewriteRule (^|/)\. - [F,L]
 
-# 3. Páginas que se abren directo (las que piden sesión la comprueban por dentro)
-RewriteRule ^(login\.php|logout\.php|cambiar-clave\.php|acceso\.php|gate\.php|robots\.txt)$ - [L]
+# 3. Páginas que se abren directo, SIN pasar por el control de sesión.
+#    Las .php que piden sesión la comprueban por dentro; login.html y
+#    cambiar-clave.html son páginas fijas que no piden sesión (si la pidieran,
+#    el login mandaría al login: bucle).
+RewriteRule ^(login\.php|logout\.php|cambiar-clave\.php|acceso\.php|gate\.php|robots\.txt|login\.html|cambiar-clave\.html)$ - [L]
+
+# 3c. comun/: estilos, capa de datos y logos. Públicos (el login los usa antes
+#     de entrar), sin datos. Solo un nombre simple .css .js .png .svg, sin
+#     subcarpetas; TODO lo demás dentro de comun/ (un .php, el listado de la
+#     carpeta) se rechaza con 403. Va antes de 3b para que un comun/api.php
+#     subido por error tampoco se ejecute.
+RewriteRule ^comun/[a-z0-9-]+\.(css|js|png|svg)$ - [L]
+RewriteRule ^comun(/|$) - [F,L]
 
 # 3b. Los puentes de datos: comprueban sesión y permisos por dentro (requerir_sesion)
 RewriteRule ^[a-z0-9-]+/(api|csv|config)\.php$ - [L]

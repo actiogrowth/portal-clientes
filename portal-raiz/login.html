@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Entrar · Vida en Arte 360</title>
+<link rel="stylesheet" href="/comun/vea.css">
+</head>
+<body>
+<!-- Página fija: no depende de PHP. Habla con login.php por JSON a través de
+     comun/datos.js. Se entrega sin pedir sesión (regla 3 del .htaccess). -->
+<main class="acceso">
+  <div class="acceso-caja">
+    <img class="logo" src="/comun/logo-vea.png" alt="Vida en Arte">
+    <h1>Portal 360</h1>
+    <p class="ayuda">Entra con tu usuario del equipo.</p>
+    <form id="form" novalidate>
+      <div id="aviso" role="alert"></div>
+      <div>
+        <label for="usuario">Usuario</label>
+        <input id="usuario" name="usuario" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+      </div>
+      <div>
+        <label for="clave">Contraseña</label>
+        <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn negro grande" type="submit" id="entrar">Entrar</button>
+    </form>
+    <p class="acceso-pie">Uso exclusivo del equipo de Vida en Arte</p>
+  </div>
+</main>
+<script src="/comun/datos.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const pedido = params.get('r') || '/';
+let csrf = '';
+const aviso = (texto, tipo) => { $('#aviso').innerHTML = texto ? '<div class="aviso ' + (tipo || 'mal') + '">' + texto.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</div>' : ''; };
+
+async function preparar() {
+  try {
+    const e = await Datos.acceso.estadoLogin(pedido);
+    csrf = e.csrf;
+    if (e.conSesion && e.destino) { location.replace(e.destino); return; }
+    if (e.mantenimiento) aviso('El portal está en mantenimiento: falta terminar la configuración de usuarios. El detalle está en el error_log del servidor.');
+    else if (params.has('salida')) aviso('Cerraste sesión.', 'bien');
+  } catch (err) { aviso(err.message); }
+}
+
+$('#form').onsubmit = async ev => {
+  ev.preventDefault();
+  const usuario = $('#usuario').value.trim().toLowerCase(), clave = $('#clave').value;
+  if (!usuario || !clave) { aviso('Escribe tu usuario y tu contraseña.'); return; }
+  $('#entrar').disabled = true; $('#entrar').textContent = 'Entrando…';
+  try {
+    const r = await Datos.acceso.entrar(usuario, clave, csrf, pedido);
+    location.replace(r.destino || '/');
+  } catch (err) {
+    aviso(err.message);
+    if (err.codigo === 'csrf') preparar();
+    $('#clave').value = ''; $('#clave').focus();
+    $('#entrar').disabled = false; $('#entrar').textContent = 'Entrar';
+  }
+};
+preparar();
+</script>
+</body>
+</html>

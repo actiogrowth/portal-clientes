@@ -20,17 +20,20 @@
 
 const ROLES = [
     'administrador' => [
+        'inicio_as' => 'ocupacion',
         'nombre' => 'Administrador',
         'descripcion' => 'Todo, incluida la gestión de usuarios.',
         'permisos' => ['*'],
     ],
     'direccion' => [
+        'inicio_as' => 'ocupacion',
         'nombre' => 'Dirección',
         'descripcion' => 'Todo el negocio y la gestión de usuarios, salvo las cuentas con rol Administrador.',
         'permisos' => ['*'],
         'excepto' => ['usuarios.admin'],
     ],
     'coordinacion_afterschool' => [
+        'inicio_as' => 'ocupacion',
         'nombre' => 'Coordinación After School',
         'descripcion' => 'After School completo, Pasar lista (también otros días), seguimiento de asistencia y la Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:basededatos', 'area:pasarlista', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
@@ -38,6 +41,7 @@ const ROLES = [
                        'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento'],
     ],
     'recepcion' => [
+        'inicio_as' => 'pruebas',
         'nombre' => 'Recepción',
         'descripcion' => 'After School completo: inscribir, visitas del día, pagos, bajas, Por revisar y seguimiento. No pasa lista.',
         'permisos' => ['area:afterschool', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
@@ -45,12 +49,14 @@ const ROLES = [
                        'as.seguimiento'],
     ],
     'comercial' => [
+        'inicio_as' => 'pruebas',
         'nombre' => 'Comercial',
         'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Kínder y Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
                        'as.pruebas.agendar', 'as.contactos.prospectos'],
     ],
     'contabilidad' => [
+        'inicio_as' => 'pagos',
         'nombre' => 'Contabilidad',
         'descripcion' => 'After School: Pagos (ver y registrar), pago de las pruebas y Ocupación en lectura. Sin datos de contacto.',
         'permisos' => ['area:afterschool', 'as.ver', 'as.pagos.ver', 'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago'],
@@ -61,9 +67,14 @@ const ROLES = [
         'permisos' => ['area:kinder', 'area:basededatos'],
     ],
     'profesor' => [
+        'inicio_as' => 'lista',
         'nombre' => 'Profesor',
         'descripcion' => 'Solo Pasar lista, el mismo día: nombre, edad y la marca de visita de cada niño. La sesión se cierra tras 2 horas sin uso.',
-        'permisos' => ['area:pasarlista', 'as.lista.ver', 'as.lista.marcar'],
+        // 21-oct (rediseño): Pasar lista vive dentro de After School. El área
+        // afterschool le abre la PÁGINA; sus datos siguen saliendo solo por
+        // /pasar-lista/api.php (área pasarlista), que fija soloHoy y recorta.
+        // En after-school/api.php no tiene ninguna acción (todas piden as.*).
+        'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar'],
         'inactividad_max' => 7200,
     ],
 ];
@@ -81,7 +92,28 @@ const CARPETAS_AREA = [
 ];
 
 /* Áreas que la portada conoce (tarjetas). 'actio' es la tarjeta Sistema Operativo. */
-const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'actio', 'configuracion', 'pasarlista'];
+/* 21-oct (rediseño): 'pasarlista' ya no es tarjeta (Pasar lista está dentro de After School). */
+const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'actio', 'configuracion'];
+
+/* Dónde empieza cada área (para entrar directo tras el login si es la única). */
+const AREA_URL = [
+    'kinder' => '/kinder/', 'veranito' => '/veranito/', 'afterschool' => '/after-school/',
+    'basededatos' => '/basededatos/', 'configuracion' => '/configuracion/',
+];
+
+/** Tras el login: si el usuario abre UNA sola sección del portal, va directo a ella; si no, a la portada. */
+function destino_inicio(array $roles): string {
+    $v = areas_visibles($roles);
+    if ($v === '*') return '/';
+    $conUrl = array_values(array_filter($v, fn($a) => isset(AREA_URL[$a])));
+    return count($conUrl) === 1 && count($v) === 1 ? AREA_URL[$conUrl[0]] : '/';
+}
+
+/** La pestaña de After School con la que abre la página: la del primer rol (en el orden de ROLES) que la defina. */
+function inicio_as(array $roles): string {
+    foreach (ROLES as $id => $def) if (in_array($id, $roles, true) && !empty($def['inicio_as'])) return $def['inicio_as'];
+    return 'ocupacion';
+}
 
 /* Contactos de las familias (teléfonos y correo). El nombre del responsable no cuenta. */
 const CAMPOS_CONTACTO = ['telefono', 'telefono2', 'correo', 'telefonoResp2'];
@@ -132,7 +164,7 @@ function politica_contactos(array $roles): string {
 
 /** Permisos de After School que la página necesita conocer para mostrar pestañas y botones. */
 const PERMISOS_AS = ['as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar', 'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar',
-                     'as.visitas.agendar', 'as.seguimiento', 'as.lista.marcar', 'as.lista.corregir'];
+                     'as.visitas.agendar', 'as.seguimiento', 'as.lista.marcar', 'as.lista.corregir', 'as.lista.ver'];
 function permisos_as(array $roles): array {
     return array_values(array_filter(PERMISOS_AS, fn($p) => roles_permiten($roles, $p)));
 }

@@ -8,7 +8,7 @@ detrás.
 
 | Pieza | Por qué se queda |
 |---|---|
-| Las páginas (`after-school/index.html`, `configuracion/`, portada) | Hablan solo con `api.php` y con el contrato: misma acción, mismos datos, misma respuesta. |
+| Las páginas (`after-school/index.html`, `configuracion/`, portada, login) | Hablan solo con la capa de datos `comun/datos.js` (D-036), que sigue el contrato: misma acción, mismos datos, misma respuesta. Si algún día las páginas hablan directo con Supabase o Firebase, se reescribe **solo** `datos.js`. |
 | El contrato de cada acción | Nombres, parámetros, `resultado`, `estado`, códigos de error. |
 | El control de acceso (`auth.php`, `permisos.php`, `gate.php`) | Roles y áreas no dependen de dónde están los datos. |
 | `api.php` como puerta | Sigue exigiendo el permiso por acción y recortando por rol antes de responder. |

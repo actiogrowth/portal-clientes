@@ -3,8 +3,9 @@
  *
  *   PHP=php node pruebas-portal/roturas-portal.js
  *
- * Cada rotura se aplica sobre una copia de portal-raiz/, after-school/ y
- * configuracion/ en una carpeta temporal; el repo no se toca.
+ * Cada rotura se aplica sobre una copia de portal-raiz/, after-school/,
+ * configuracion/, pasar-lista/ y comun/ en una carpeta temporal; el repo no
+ * se toca.
  */
 const fs = require('fs');
 const os = require('os');
@@ -12,7 +13,7 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
@@ -35,14 +36,19 @@ const ROTURAS = [
   ['la portada muestra todas las tarjetas a todos', 'portal-raiz/acceso.php', "json_encode(areas_visibles($roles))", "json_encode('*')"],
   // login.php
   ['una cuenta desactivada entra', 'portal-raiz/login.php', "if ($c && !empty($c['activo']) && password_verify(", "if ($c && password_verify("],
-  ['el login no exige CSRF', 'portal-raiz/login.php', "    if (!csrf_valido($_POST['csrf'] ?? null)) {\n        $error = 'La página caducó. Vuelve a escribir", "    if (false) {\n        $error = 'La página caducó. Vuelve a escribir"],
-  ['el login no manda a cambiar la temporal', 'portal-raiz/login.php', "header('Location: ' . (!empty($c['cambiar_clave']) ? '/cambiar-clave.php?r=' . urlencode($destino) : $destino));", "header('Location: ' . $destino);"],
+  ['el login no exige CSRF', 'portal-raiz/login.php', "if (!csrf_valido($e['csrf'] ?? null)) responder_login(", "if (false) responder_login("],
+  ['el login no manda a cambiar la temporal', 'portal-raiz/login.php', "return !empty($c['cambiar_clave']) ? '/cambiar-clave.html?r=' . urlencode($d) : $d;", "return $d;"],
+  ['el login no bloquea tras 5 fallos', 'portal-raiz/login.php', "if ($min = bloqueado()) responder_login(", "if (false) responder_login("],
+  ['el login no anota los fallos', 'portal-raiz/login.php', "registrar_fallo();\nusleep(800000);", "usleep(800000);"],
+  ['el login sigue un destino de otro sitio', 'portal-raiz/login.php', "    $d = destino_seguro($pedido);\n", "    $d = $pedido !== '' ? $pedido : '/';\n"],
   ['el login no exige roles_iniciales completos (migra a medias)', 'portal-raiz/cuentas.php', "    if ($faltan) { $GLOBALS['cuentas_error']", "    if (false) { $GLOBALS['cuentas_error']"],
   // cambiar-clave.php
-  ['cambiar la contraseña no exige CSRF', 'portal-raiz/cambiar-clave.php', "    if (!csrf_valido($_POST['csrf'] ?? null)) {\n        $error = 'La página caducó. Vuelve a intentarlo.';", "    if (false) {\n        $error = 'La página caducó. Vuelve a intentarlo.';"],
-  ['cambiar la contraseña no pide la actual', 'portal-raiz/cambiar-clave.php', "    } elseif (!password_verify($actual, $c['hash'])) {", "    } elseif (false) {"],
-  ['acepta contraseñas de menos de 10', 'portal-raiz/cambiar-clave.php', "    } elseif (strlen($nueva) < CLAVE_MINIMA) {", "    } elseif (false) {"],
-  ['cambiar la contraseña no corta las otras sesiones', 'portal-raiz/cambiar-clave.php', "                $x['ver_clave'] = (int) ($x['ver_clave'] ?? 0) + 1;\n                anotar_evento($d, $usuario, 'cambiar_clave', $usuario);", "                anotar_evento($d, $usuario, 'cambiar_clave', $usuario);"],
+  ['cambiar la contraseña no exige CSRF', 'portal-raiz/cambiar-clave.php', "if (!csrf_valido($e['csrf'] ?? null)) $no(", "if (false) $no("],
+  ['cambiar la contraseña no pide la actual', 'portal-raiz/cambiar-clave.php', "if (!password_verify($actual, $c['hash'])) {", "if (false) {"],
+  ['acepta contraseñas de menos de 10', 'portal-raiz/cambiar-clave.php', "if (strlen($nueva) < CLAVE_MINIMA) $no(", "if (false) $no("],
+  ['cambiar la contraseña no quita la marca de temporal', 'portal-raiz/cambiar-clave.php', "        $x['cambiar_clave'] = false;\n", ""],
+  ['cambiar la contraseña funciona sin sesión', 'portal-raiz/cambiar-clave.php', "if (!sesion_activa()) responder_clave(", "if (false) responder_clave("],
+  ['cambiar la contraseña no corta las otras sesiones', 'portal-raiz/cambiar-clave.php', "        $x['ver_clave'] = (int) ($x['ver_clave'] ?? 0) + 1;\n        anotar_evento($d, $usuario, 'cambiar_clave', $usuario);", "        anotar_evento($d, $usuario, 'cambiar_clave', $usuario);"],
   // cuentas.php
   ['Dirección modifica una cuenta Administrador', 'portal-raiz/cuentas.php', "    if ($obj && es_admin($obj) && !$adminActor)", "    if (false)"],
   ['Dirección asigna el rol Administrador', 'portal-raiz/cuentas.php', "    if ($rolesNuevos !== null && in_array('administrador', $rolesNuevos, true) && !$adminActor)", "    if (false)"],
@@ -68,6 +74,20 @@ const ROTURAS = [
   ['Recepción resuelve fuera de lista', 'portal-raiz/permisos.php', "    'resolverFueraDeLista' => 'as.lista.corregir',", "    'resolverFueraDeLista' => 'as.seguimiento',"],
   ['Comercial agenda reposiciones', 'portal-raiz/permisos.php', "    'agendarVisita'        => 'as.visitas.agendar',", "    'agendarVisita'        => 'as.pruebas.agendar',"],
   ['la carpeta pasar-lista no tiene área', 'portal-raiz/permisos.php', "    'pasar-lista'   => 'pasarlista',\n", ""],
+  // 21-oct (rediseño): navegación por rol, páginas fijas y comun/
+  ['destino_inicio siempre manda a la portada', 'portal-raiz/permisos.php', "    if ($v === '*') return '/';", "    return '/';"],
+  ['After School abre siempre en Ocupación (inicio_as)', 'portal-raiz/permisos.php', "        'inicio_as' => 'lista',", "        'inicio_as' => 'ocupacion',"],
+  ['Contabilidad abre en otra pestaña', 'portal-raiz/permisos.php', "        'inicio_as' => 'pagos',", "        'inicio_as' => 'pruebas',"],
+  ['el Profesor no abre After School', 'portal-raiz/permisos.php', "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar']", "'permisos' => ['area:pasarlista', 'as.lista.ver', 'as.lista.marcar']"],
+  ['el Profesor recibe Ocupación', 'portal-raiz/permisos.php', "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar']", "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.ver', 'as.lista.ver', 'as.lista.marcar']"],
+  ['acceso.php no da la pestaña de entrada', 'portal-raiz/acceso.php', "'inicioAS' => inicio_as($roles)", "'inicioAS' => 'ocupacion'"],
+  ['requerir_sesion manda a login.php (vuelve el bucle)', 'portal-raiz/auth.php', "/login.html?r=", "/login.php?r="],
+  ['gate.php no entrega login.html sin sesión (bucle con el .htaccess anterior)', 'portal-raiz/gate.php', "if (in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match(", "if (preg_match("],
+  ['gate.php entrega cualquier cosa de comun/ sin sesión', 'portal-raiz/gate.php', "preg_match('#^comun/[a-z0-9-]+\\.(css|js|png|svg)$#', $directa)", "preg_match('#^comun/#', $directa)"],
+  ['la regla de comun/ deja pasar PHP', 'portal-raiz/htaccess.txt', "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg)$ - [L]", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|php)$ - [L]"],
+  ['sin el cierre [F] de comun/ (listado y PHP pasan al gate o a los puentes)', 'portal-raiz/htaccess.txt', "RewriteRule ^comun(/|$) - [F,L]\n", ""],
+  // (Quitar login.html de la regla 3 no se ve desde fuera: gate.php la entrega igual, a propósito. Se prueba esa copia arriba.)
+  ['/pasar-lista/ ya no lleva a After School', 'pasar-lista/index.html', "location.replace('/after-school/' + q + '#lista');", "location.replace('/');"],
   // htaccess.txt
   ['cuentas.php se puede pedir desde el navegador', 'portal-raiz/htaccess.txt', "auth\\.php|permisos\\.php|cuentas\\.php|", "auth\\.php|permisos\\.php|"],
   ['generar-clave.php sigue abierto sin sesión', 'portal-raiz/htaccess.txt', "login\\.php|logout\\.php|cambiar-clave", "login\\.php|logout\\.php|generar-clave\\.php|cambiar-clave"]

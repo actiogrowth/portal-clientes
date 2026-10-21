@@ -1,0 +1,8 @@
+# comun/ — renombrar a .htaccess DENTRO de la carpeta comun/ del servidor.
+# Segunda cerradura (la primera es la regla 3c del .htaccess de la raíz):
+# aquí nunca se ejecuta ni se entrega un script, aunque alguien suba uno,
+# y la carpeta no se lista.
+Options -Indexes -ExecCGI
+<FilesMatch "\.(php|php[0-9]|phtml|phar|pl|py|cgi|sh|html?)$">
+  Require all denied
+</FilesMatch>

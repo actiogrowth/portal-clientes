@@ -40,7 +40,22 @@ Respuesta con error: `{ "ok": false, "error": "texto para la persona", "codigo":
 | `varias` | script | Inscribir varias: falló más de una clase (no se escribió ninguna). |
 | (vacío) | script | Error de validación con mensaje para la persona. |
 
-Sin sesión: HTTP 302 al login (la página lo trata como «sesión caducada»).
+Sin sesión: HTTP 302 a `/login.html` (la capa de datos lo trata como «sesión caducada»).
+
+## Entrada y sesión (21-oct, rediseño)
+
+Estos puntos los usa solo `comun/datos.js`. Responden JSON; `codigo` dice el motivo de un error.
+
+| Punto | Pedido | Respuesta | Errores |
+|---|---|---|---|
+| `login.php?estado=1&r=` | GET | `{ok, csrf, conSesion, destino, mantenimiento}` | — |
+| `login.php` | POST `{usuario, clave, csrf, r}` | `{ok, destino, csrf}` (con temporal, `destino` = `/cambiar-clave.html?r=…`) | 403 `csrf` · 429 `bloqueado` (5 fallos, 15 min) · 403 `credenciales` · 503 `mantenimiento` |
+| `cambiar-clave.php?estado=1` | GET | `{ok, usuario, obligatorio, csrf, claveMinima}` | 401 `sesion` |
+| `cambiar-clave.php` | POST `{actual, nueva, repetir, csrf, r}` | `{ok, obligatorio, destino}` | 401 `sesion` · 403 `csrf` · 400 `actual` / `corta` / `distintas` / `igual` · 500 `guardar` |
+| `acceso.php?formato=json` | GET | `{ok, usuario, roles[{id, nombre}], areas, inicio, inicioAS, permisosAS}` | 401 `sesion` · 403 `cambiar_clave` |
+| `logout.php` | GET | 302 al login con «Cerraste sesión» | — |
+
+`destino` siempre es una dirección del portal (`destino_seguro`); nunca otro sitio.
 
 ## Recorte por rol (lo hace `api.php`, no el script)
 
@@ -121,7 +136,7 @@ Solo `usuarios.gestionar` (Administrador, Dirección). Escrituras con cabecera `
 
 ## Acciones de Pasar lista (`pasar-lista/api.php`)
 
-Puente propio (carpeta `/pasar-lista/`, área `pasarlista`). Reutiliza el transporte
+Puente propio (carpeta `/pasar-lista/`, área `pasarlista`; la pantalla es una pestaña de After School desde D-039). Reutiliza el transporte
 de `after-school/api.php`. **`soloHoy` lo pone el puente**: `true` para quien no tiene
 `as.lista.corregir` (Profesor); el navegador no lo puede cambiar. La respuesta se
 recorta a una lista blanca y nunca lleva el `estado` de After School.

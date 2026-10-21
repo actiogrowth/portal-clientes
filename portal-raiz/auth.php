@@ -118,14 +118,18 @@ function requerir_sesion(?string $ruta = null): void {
     if (!sesion_activa()) {
         // Sesión cortada (cuenta desactivada o contraseña reiniciada): se vacía.
         if (!empty($_SESSION['usuario'])) { $_SESSION = []; session_regenerate_id(true); }
+        // 21-oct (rediseño): el login es una página fija (login.html) que habla
+        // con login.php por JSON. login.html se entrega SIN pedir sesión (regla
+        // 3 del .htaccess y, si el .htaccess fuera uno anterior, gate.php): no
+        // puede volver aquí en bucle.
         $destino = $_SERVER['REQUEST_URI'] ?? '/';
-        header('Location: /login.php?r=' . urlencode($destino));
+        header('Location: /login.html?r=' . urlencode($destino));
         exit;
     }
     $c = cuenta_actual();
     if (!empty($c['cambiar_clave'])) {
         if (es_puente()) negar('Antes de seguir tienes que cambiar tu contraseña temporal.', 403, 'cambiar_clave');
-        header('Location: /cambiar-clave.php?r=' . urlencode($_SERVER['REQUEST_URI'] ?? '/'));
+        header('Location: /cambiar-clave.html?r=' . urlencode($_SERVER['REQUEST_URI'] ?? '/'));
         exit;
     }
     if ($ruta === null) $ruta = ltrim((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '/');
@@ -137,7 +141,7 @@ function requerir_sesion(?string $ruta = null): void {
 
 function destino_seguro(?string $r): string {
     if (!$r || $r[0] !== '/' || str_starts_with($r, '//') || str_contains($r, '\\')) return '/';
-    if (preg_match('#^/(login|logout|cambiar-clave)\.php#', $r)) return '/';
+    if (preg_match('#^/(login|logout|cambiar-clave)\.(php|html)#', $r)) return '/';
     return $r;
 }
 

@@ -10,6 +10,8 @@ datos de niños ni nombres de personas del cliente.
 
 ```
  Navegador (páginas HTML + JS)
+   presentación: comun/vea.css + comun/marca.js   (sin PHP, sin datos)
+   capa de datos: comun/datos.js  (window.Datos) — la ÚNICA que hace fetch
         │  fetch same-origin, cookie de sesión «vea_portal»
         ▼
  Control de acceso (PHP en el cPanel)
@@ -29,7 +31,8 @@ datos de niños ni nombres de personas del cliente.
 
 | Capa | Qué hace | Qué NO hace |
 |---|---|---|
-| Páginas | Muestran datos, arman formularios, validan para avisar antes. Esconden lo que el rol no puede usar. | No deciden nada: el servidor vuelve a validar todo. |
+| Páginas | Muestran datos, arman formularios, validan para avisar antes. Esconden lo que el rol no puede usar. | No deciden nada: el servidor vuelve a validar todo. No llaman a ningún `.php`: piden todo a `Datos`. |
+| Capa de datos (`comun/datos.js`) | Sabe a qué dirección va cada pedido, pone el ID de solicitud y el CSRF, y convierte las respuestas raras en un error con código (`sesion`, `incierto`, `cambiar_clave`…). | No decide nada ni pinta nada. |
 | Control de acceso | Sesión, roles, área por carpeta, contraseña temporal, CSRF. | No conoce las reglas de After School. |
 | Puentes | Exigen el permiso de cada acción, ponen la clave y el usuario, reintentan, recortan la respuesta según el rol. | No guardan datos ni aplican reglas de negocio. |
 | Apps Script | Reglas de negocio (cupos, bajas, pruebas, pagos), idempotencia, Historial. | No sabe de roles: confía en el usuario que le pasa el puente. |
@@ -50,18 +53,59 @@ datos de niños ni nombres de personas del cliente.
 8. `api.php` recorta la respuesta según el rol (contactos, pagos), agrega `permisos` y la devuelve.
 9. La página aplica `estado` (el mismo formato que `leer`) y repinta.
 
-### Pasar lista (21-oct)
+### Pasar lista (21-oct; dentro de After School desde el rediseño)
 
 `pasar-lista/api.php` carga las funciones de transporte de `after-school/api.php`
 (con `AS_SOLO_FUNCIONES`) y solo admite `leerLista` y `guardarLista`. Fija
-`soloHoy` según el rol y recorta la respuesta a una lista blanca. El rol Profesor
-solo tiene el área `pasarlista`: no entra a After School.
+`soloHoy` según el rol y recorta la respuesta a una lista blanca.
+
+Desde el rediseño (D-039) la **pantalla** de Pasar lista es una pestaña de
+`after-school/index.html`; el **puente** sigue siendo `pasar-lista/api.php` con
+todos sus cerrojos. El rol Profesor tiene `area:afterschool` (para abrir la
+página) y `area:pasarlista` (para el puente), pero ningún `as.ver`:
+`after-school/api.php` le contesta 403 a todo y la página le muestra solo Pasar
+lista, sin pestañas. `/pasar-lista/` es una página que redirige a
+`/after-school/#lista` conservando `?fecha=&clase=`.
+
+## 2b. Presentación y entrada (21-oct, rediseño con la marca Vida en Arte)
+
+| Pieza | Qué es |
+|---|---|
+| `comun/vea.css` | El **único** archivo de estilos de las pantallas con la marca Vida en Arte (variables de color, botones en píldora, tarjetas, pestañas, grilla de ocupación, Pasar lista, adaptaciones a tablet y celular). |
+| `comun/marca.js` | `window.Marca`: el encabezado (logo, usuario, «Cambiar mi contraseña», Salir), avisos y formato de fechas. |
+| `comun/datos.js` | `window.Datos`: la capa de datos (ver la tabla de capas). Es lo único que habría que reescribir para hablar con otro servidor (Firebase o Supabase). |
+| `comun/logo-vea.png`, `comun/logo-kids.png` | Logos. |
+| `comun/.htaccess` (`comun/htaccess.txt` en el repo) | Segundo cerrojo: sin listado, sin CGI, y niega `.php`, `.phtml`, `.phar`, `.html` y otros aunque alguien los suba. |
+| `login.html`, `cambiar-clave.html` (raíz) | Páginas **fijas** (sin PHP). Piden su estado a `login.php?estado=1` / `cambiar-clave.php?estado=1` y mandan el formulario por JSON. `login.php` y `cambiar-clave.php` sin `estado` redirigen a la página fija (direcciones viejas). |
+| `acceso.php?formato=json` | Quién soy: `{usuario, roles, areas, inicio, inicioAS, permisosAS}`. Sin `formato`, el JS de antes (para poder volver atrás). |
+
+**Sin sesión se entrega solo:** `login.html`, `cambiar-clave.html` y
+`comun/<nombre>.(css|js|png|svg)` (un nombre simple, sin subcarpetas). Lo hace
+el `.htaccess` (reglas 3 y 3c) y, por si el servidor tuviera un `.htaccess`
+anterior, también `gate.php` antes de pedir sesión. Cualquier otra cosa dentro
+de `comun/` responde 403 (regla 3c), y `comun/.htaccess` niega PHP aunque la
+regla faltara.
+
+**Por qué no hay bucle de redirección** (el error del 20-oct): `requerir_sesion()`
+solo redirige a `login.html` o `cambiar-clave.html`, que se entregan **sin**
+sesión; esas páginas nunca redirigen desde el servidor, y deciden a dónde ir
+con la respuesta JSON. `prueba-portal.js` recorre el login con contraseña
+temporal con el `.htaccess` nuevo y con el anterior y falla si hay más de 8 saltos.
+
+**A dónde va cada rol tras entrar** (`destino_inicio` y `inicio_as` en `permisos.php`):
+si pidió una dirección, a esa; si su rol abre **una sola** sección, directo a
+ella; si no, a la portada. Dentro de After School, la pestaña de entrada es la
+del rol (`inicio_as`): Ocupación (Administrador, Dirección, Coordinación After
+School), Visitas del día (Recepción, Comercial), Pagos (Contabilidad), Pasar
+lista (Profesor). La portada no muestra contadores.
 
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
-| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`) | Commit → Actio sube los archivos al cPanel |
+| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`, `comun/`) | Commit → Actio sube los archivos al cPanel |
+| Estilos, capa de datos y logos | `comun/` → `/comun/` en el servidor (pública, sin datos) | Su `htaccess.txt` se sube renombrado a `.htaccess` **dentro** de `comun/` |
+| Maquetas de referencia del diseño | `docs/diseno/` (ignorada por git: traen nombres de ejemplo) | Solo en el equipo; no entran al repo ni se publican |
 | Raíz del portal en el servidor | `/home/…/portal.vidaenarte.com/` | Se sube desde `portal-raiz/` (el `.htaccess` es `htaccess.txt` renombrado) |
 | `portal_config.php` | `/home/…/` (una carpeta arriba, fuera de la web) | A mano en el cPanel. Lleva `as_exec`, `as_clave` y la configuración de los tableros. **No está en el repo.** |
 | Cuentas del portal | `/home/…/portal_usuarios.json` (fuera de la web) | Solo desde Configuración › Usuarios |
@@ -96,7 +140,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/roturas.js` | Rompe cada regla del `.gs` y exige que la prueba anterior falle. |
 | `after-school-script/pruebas/prueba-api-transporte.php` (+ `correr-prueba-transporte.js`) | El transporte de `api.php`: redirecciones, reintentos, tiempos. |
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
-| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, áreas, acciones por rol, recortes, usuarios, CSRF, contraseña temporal. |
+| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
 
 Los datos de prueba son siempre inventados.

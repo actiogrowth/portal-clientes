@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Cambiar contraseña · Vida en Arte 360</title>
+<link rel="stylesheet" href="/comun/vea.css">
+</head>
+<body>
+<!-- Página fija: no depende de PHP. Habla con cambiar-clave.php por JSON a
+     través de comun/datos.js. Se entrega sin pedir sesión; sin sesión, la
+     página manda al login. -->
+<main class="acceso">
+  <div class="acceso-caja">
+    <img class="logo" src="/comun/logo-vea.png" alt="Vida en Arte">
+    <h1 id="titulo">Cambiar mi contraseña</h1>
+    <p class="ayuda" id="sub"></p>
+    <form id="form" novalidate class="oculto">
+      <div id="aviso" role="alert"></div>
+      <input type="text" id="usuario" autocomplete="username" hidden>
+      <div>
+        <label for="actual" id="etActual">Contraseña actual</label>
+        <input id="actual" type="password" autocomplete="current-password" required autofocus>
+      </div>
+      <div>
+        <label for="nueva">Contraseña nueva</label>
+        <input id="nueva" type="password" autocomplete="new-password" required>
+        <p class="ayuda" id="minimo"></p>
+      </div>
+      <div>
+        <label for="repetir">Repite la contraseña nueva</label>
+        <input id="repetir" type="password" autocomplete="new-password" required>
+      </div>
+      <button class="btn negro grande" type="submit" id="guardar">Guardar contraseña</button>
+    </form>
+    <div id="listo" class="oculto">
+      <div class="aviso bien" role="status">Listo: tu contraseña cambió.</div>
+      <div class="acciones"><a class="btn negro grande" id="volver" href="/">Volver</a></div>
+    </div>
+    <p class="acceso-pie" id="pie"><a href="/logout.php">Salir</a></p>
+  </div>
+</main>
+<script src="/comun/datos.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const pedido = params.get('r') || '/';
+let csrf = '', obligatorio = false, minimo = 10;
+const aviso = texto => { $('#aviso').innerHTML = texto ? '<div class="aviso mal">' + texto.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '</div>' : ''; };
+
+async function preparar() {
+  let e;
+  try { e = await Datos.acceso.estadoClave(); }
+  catch (err) { if (err.codigo === 'sesion') { location.replace('/login.html?r=' + encodeURIComponent('/cambiar-clave.html')); return; } aviso(err.message); return; }
+  csrf = e.csrf; obligatorio = e.obligatorio; minimo = e.claveMinima || 10;
+  $('#usuario').value = e.usuario;
+  $('#titulo').textContent = obligatorio ? 'Crea tu contraseña' : 'Cambiar mi contraseña';
+  $('#sub').textContent = obligatorio ? 'Entraste con una contraseña temporal. Antes de seguir, elige una tuya.' : 'Usuario: ' + e.usuario;
+  $('#etActual').textContent = obligatorio ? 'Contraseña temporal' : 'Contraseña actual';
+  $('#minimo').textContent = 'Al menos ' + minimo + ' caracteres.';
+  $('#volver').href = pedido;
+  if (!obligatorio) $('#pie').insertAdjacentHTML('afterbegin', '<a href="' + pedido.replace(/"/g, '') + '">Volver sin cambiar</a> · ');
+  $('#form').classList.remove('oculto');
+}
+
+$('#form').onsubmit = async ev => {
+  ev.preventDefault();
+  const actual = $('#actual').value, nueva = $('#nueva').value, repetir = $('#repetir').value;
+  if (nueva.length < minimo) return aviso('La contraseña nueva tiene que tener al menos ' + minimo + ' caracteres.');
+  if (nueva !== repetir) return aviso('Las dos contraseñas nuevas no coinciden.');
+  $('#guardar').disabled = true;
+  try {
+    const r = await Datos.acceso.cambiarClave(actual, nueva, repetir, csrf, pedido);
+    if (r.obligatorio) { location.replace(r.destino || '/'); return; }
+    $('#form').classList.add('oculto'); $('#listo').classList.remove('oculto');
+  } catch (err) {
+    aviso(err.message);
+    if (err.codigo === 'csrf') preparar();
+  }
+  $('#guardar').disabled = false;
+};
+preparar();
+</script>
+</body>
+</html>
