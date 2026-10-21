@@ -840,7 +840,7 @@ function abrirClase(codigo, iso) {
   enganchar($('#dcCuerpo'));
   $('#dcCuerpo').querySelectorAll('[data-quitar-nota]').forEach(b => b.onclick = async () => {
     const i = E.inscripciones.find(x => x.id === b.dataset.quitarNota);
-    if (!i || !confirm('¿Quitar la nota «' + i.nota + '»? Queda registrada en el Historial.')) return;
+    if (!i) return;   // sin confirmar: se puede volver a poner y queda en el Historial
     const r = await escribir('notaInscripcion', { idInscripcion: i.id, nota: '' }, 'Nota quitada');
     if (r) abrirClase(codigo, iso);
   });
@@ -1627,7 +1627,7 @@ function pintarRevisar() {
   const raiz = $('#listaRevisar');
   raiz.querySelectorAll('[data-activo]').forEach(b => b.onclick = () => {
     const n = IDX.ninos[b.dataset.activo];
-    if (confirm('¿Marcar a ' + nombre(n) + ' como Activo?')) escribir('revisar', { idNino: n.id, estado: 'Activo' }, nombre(n) + ' quedó Activo');
+    escribir('revisar', { idNino: n.id, estado: 'Activo' }, nombre(n) + ' quedó Activo');   // sin confirmar: se cambia desde la ficha
   });
   raiz.querySelectorAll('[data-retirado]').forEach(b => b.onclick = () => abrirBaja({ tipo: 'revisar', idNino: b.dataset.retirado }));
   raiz.querySelectorAll('[data-ficha]').forEach(b => b.onclick = () => abrirFicha(b.dataset.ficha));
