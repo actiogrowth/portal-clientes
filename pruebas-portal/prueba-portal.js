@@ -527,7 +527,8 @@ async function correr(fuente) {
       const viejo = await n['prueba-profesor-1'].get('/pasar-lista/');
       ok(viejo.status === 200 && /url=\/after-school\/#lista/.test(viejo.texto) && /location\.replace\('\/after-school\/' \+ q \+ '#lista'\)/.test(viejo.texto),
         'la dirección vieja /pasar-lista/ lleva a Pasar lista dentro de After School (conservando fecha y clase)');
-      ok(!/api\.php/.test(pg.texto.replace(/datos\.js/g, '')), 'la página no llama a api.php: todo pasa por la capa de datos');
+      // Llamadas de verdad (una dirección entre comillas o un fetch); los comentarios pueden nombrar api.php.
+      ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por la capa de datos');
       ok(/<link rel="stylesheet" href="\/comun\/vea\.css">/.test(pg.texto) && !/<style>/.test(pg.texto), 'un solo archivo de estilos compartido, sin estilos propios');
       for (const pagina of ['/', '/configuracion/', '/login.html', '/cambiar-clave.html']) {
         const t = (await n['admin-uno'].get(pagina)).texto;
