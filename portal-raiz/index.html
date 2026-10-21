@@ -36,16 +36,16 @@ const GRUPOS = [
     { nombre: 'After School', url: '/after-school/', area: 'afterschool', color: 'var(--rojo)', icono: 'parkour',
       desc: 'Ocupación, niños, visitas del día, Pasar lista y seguimiento.' },
     { nombre: 'Veranito', url: '/veranito/', area: 'veranito', color: 'var(--naranja)', icono: 'sol', oscuro: true, desc: 'Temporada de vacaciones.' },
-    { nombre: 'Cumpleaños', url: '', area: 'cumpleanos', color: 'var(--azul)', icono: 'torta', desc: 'Próximamente.' }
+    { nombre: 'Cumpleaños', url: '', area: 'cumpleanos', color: 'var(--azul)', icono: 'torta', desc: 'Reservas y eventos.' }
   ] },
   { id: 'kids', titulo: 'Vida en Arte Kids', logo: '/comun/logo-kids.png', unidades: [
-    { nombre: 'Preescolar', url: '/kinder/', area: 'kinder', color: '#7E53A2', icono: 'arcoiris', cuadrado: true, desc: 'Tablero de Kínder.' },
-    { nombre: 'Baby & Me', url: '', area: 'babyandme', color: '#68A8C9', icono: 'corazon', cuadrado: true, desc: 'Próximamente.' }
+    { nombre: 'Preschool', url: '/kinder/', area: 'kinder', color: '#7E53A2', icono: 'arcoiris', cuadrado: true, desc: 'Tablero de matrícula y ocupación.' },
+    { nombre: 'Baby & Me', url: '', area: 'babyandme', color: '#68A8C9', icono: 'corazon', cuadrado: true, desc: 'Grupos y asistencia.' }
   ] },
   { id: 'admin', titulo: 'Administración', fila: true, unidades: [
     { nombre: 'Base de Datos', url: '/basededatos/', area: 'basededatos', icono: 'datos', desc: 'Clientes de todas las unidades' },
     { nombre: 'Configuración', url: '/configuracion/', area: 'configuracion', icono: 'usuarios', desc: 'Usuarios y roles' },
-    { nombre: 'Sistema Operativo', url: 'https://actiogrowth.github.io/portal-clientes/portal-v2.html', area: 'actio', icono: 'sistema', desc: 'Procesos y herramientas de Actio' }
+    { nombre: 'Sistema Operativo', url: 'https://actiogrowth.github.io/portal-clientes/portal-v2.html', area: 'actio', icono: 'sistema', desc: 'Procesos y herramientas del negocio' }
   ] }
 ];
 const ICONOS = {
@@ -87,7 +87,7 @@ async function cargar() {
   document.getElementById('hola').textContent = 'Hola, ' + s.usuario;
   const ve = a => s.areas === '*' || (Array.isArray(s.areas) && s.areas.includes(a));
   const html = GRUPOS.map(g => ({ g, us: g.unidades.filter(u => ve(u.area)) })).filter(x => x.us.length).map((x, i) =>
-    '<section style="display:flex;flex-direction:column;gap:20px">' + titulo(x.g, i) + '<div class="unidades">' + x.us.map(u => tarjeta(u, x.g.fila)).join('') + '</div></section>').join('');
+    '<section style="display:flex;flex-direction:column;gap:20px">' + titulo(x.g, i) + '<div class="unidades' + (x.g.fila ? ' fila' : '') + '">' + x.us.map(u => tarjeta(u, x.g.fila)).join('') + '</div></section>').join('');
   document.getElementById('grupos').innerHTML = html ||
     '<div class="aviso info">Tu usuario todavía no tiene secciones asignadas. Si necesitas entrar a alguna, pídeselo a Dirección.</div>';
   document.getElementById('grupos').style.cssText = 'display:flex;flex-direction:column;gap:44px';

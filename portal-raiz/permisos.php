@@ -51,7 +51,7 @@ const ROLES = [
     'comercial' => [
         'inicio_as' => 'pruebas',
         'nombre' => 'Comercial',
-        'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Kínder y Base de Datos VEA.',
+        'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool y Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
                        'as.pruebas.agendar', 'as.contactos.prospectos'],
     ],
@@ -62,8 +62,8 @@ const ROLES = [
         'permisos' => ['area:afterschool', 'as.ver', 'as.pagos.ver', 'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago'],
     ],
     'coordinacion_preescolar' => [
-        'nombre' => 'Coordinación Preescolar',
-        'descripcion' => 'Tablero de Kínder y Base de Datos VEA.',
+        'nombre' => 'Coordinación Preschool',
+        'descripcion' => 'Tablero de Preschool y Base de Datos VEA.',
         'permisos' => ['area:kinder', 'area:basededatos'],
     ],
     'profesor' => [

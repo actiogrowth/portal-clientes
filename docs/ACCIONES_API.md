@@ -149,6 +149,6 @@ Agrega `permisos: {puedeOtroDia}`.
 
 `presencia`: `Inscrito`, `Prueba`, `Reposición`, `Eventual`. `estado`: `Presente`,
 `Llegó tarde`, `Ausente`, `Falta justificada`. Recepción, Comercial, Contabilidad y
-Coordinación Preescolar no pasan lista (403 por área).
+Coordinación Preschool no pasan lista (403 por área).
 
 Sesión del rol Profesor: se cierra tras **2 horas sin uso** (`inactividad_max` en `permisos.php`).

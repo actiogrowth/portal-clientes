@@ -71,8 +71,8 @@ lista, sin pestañas. `/pasar-lista/` es una página que redirige a
 
 | Pieza | Qué es |
 |---|---|
-| `comun/vea.css` | El **único** archivo de estilos de las pantallas con la marca Vida en Arte (variables de color, botones en píldora, tarjetas, pestañas, grilla de ocupación, Pasar lista, adaptaciones a tablet y celular). |
-| `comun/marca.js` | `window.Marca`: el encabezado (logo, usuario, «Cambiar mi contraseña», Salir), avisos y formato de fechas. |
+| `comun/vea.css` | El **único** archivo de estilos del portal (variables de color, botones en píldora, tarjetas, pestañas, ocupación, Pasar lista, adaptaciones a tablet y celular). Dos temas sobre los mismos componentes: Vida en Arte (por defecto) y **Vida en Arte Kids** (`.tema-kids` en `<html>`: solo cambia variables; lo usa Preschool). |
+| `comun/marca.js` | `window.Marca`: el encabezado (logo —el de Kids con la opción `logo`—, ruta, usuario, «Cambiar mi contraseña», Salir), avisos y formato de fechas. |
 | `comun/datos.js` | `window.Datos`: la capa de datos (ver la tabla de capas). Es lo único que habría que reescribir para hablar con otro servidor (Firebase o Supabase). |
 | `comun/logo-vea.png`, `comun/logo-kids.png` | Logos. |
 | `comun/.htaccess` (`comun/htaccess.txt` en el repo) | Segundo cerrojo: sin listado, sin CGI, y niega `.php`, `.phtml`, `.phar`, `.html` y otros aunque alguien los suba. |
@@ -98,6 +98,35 @@ ella; si no, a la portada. Dentro de After School, la pestaña de entrada es la
 del rol (`inicio_as`): Ocupación (Administrador, Dirección, Coordinación After
 School), Visitas del día (Recepción, Comercial), Pagos (Contabilidad), Pasar
 lista (Profesor). La portada no muestra contadores.
+
+### Segunda ronda de diseño (22-oct)
+
+- **Ocupación compacta.** Cada clase en una línea («● Parkour 16/20»); el
+  fondo se llena con el tinte del servicio según inscritos + visitas que
+  ocupan cupo; desde «casi lleno» (umbral de Config), borde del color del
+  servicio y número en negrita. La edad, los niños y las visitas salen al
+  tocar la clase. La semana va en **bloques**: lunes a viernes y, aparte, el
+  fin de semana; cada bloque lleva solo los días con clases y solo los
+  horarios que tienen clases en ese bloque (se calcula de la pestaña Clases).
+  Por debajo de 1000 px, vista **por día**.
+- **Sin botón «Actualizar».** Al cambiar de pestaña o de semana la página
+  relee `leer` en silencio si lo leído tiene más de 30 s; no relee con un
+  diálogo abierto ni mientras guarda, y solo repinta si algo cambió.
+- **Pasar lista** compacta con mouse (`@media (pointer: fine)`, sin
+  `.solo-lista`): filas de ~44 px y botones de ~36 px. En pantallas táctiles
+  y para el Profesor sigue grande (≥ 52 px).
+
+### Páginas de las unidades con la marca (22-oct)
+
+| Página | Dónde vive el código | Marca | Datos |
+|---|---|---|---|
+| Preschool (`/kinder/`) | Rama `preschool-marca-kids` de este repo (`dashboard-kinder.html`, se publica como `kinder/index.html`) | Tema Kids, encabezado estándar con el logo Kids | Igual que antes: `config.php` → `csv.php` (no pasa por `datos.js`) |
+| Base de Datos (`/basededatos/`) | Repo `bdclientesvea`, rama `marca-vea` | `vea.css` en una capa `@layer` (sus reglas mandan), encabezado estándar | Igual que antes: `api.php` directo. **No pasa por `datos.js`**: la lectura mira el texto crudo para distinguir una página de Google de una hoja vacía |
+| Veranito (`/veranito/`) | Solo en el servidor | Pendiente: hace falta su código | — |
+| Sistema Operativo | GitHub Pages (`portal-v2.html`) | Se queda con la marca Actio por ahora | — |
+
+Las dos primeras funcionan igual si `/comun/` no existiera: la página sigue
+sin encabezado (Preschool) o con su barra de siempre (Base de Datos).
 
 ## 3. Dónde vive cada cosa
 

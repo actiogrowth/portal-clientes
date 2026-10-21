@@ -480,7 +480,7 @@ async function correr(fuente) {
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
       ok(/window\.ACCESO = \["afterschool"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School (entra directo a Pasar lista)');
       const co = await n['prueba-comercial'].get('/acceso.php');
-      ok(/window\.ACCESO = \["kinder","afterschool","basededatos"\]/.test(co.texto), 'Comercial: Kínder, After School y Base de Datos');
+      ok(/window\.ACCESO = \["kinder","afterschool","basededatos"\]/.test(co.texto), 'Comercial: Preschool, After School y Base de Datos');
       const di = await n['prueba-direccion'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(di.texto), 'Dirección: todas las tarjetas, Configuración incluida');
     }
@@ -530,6 +530,15 @@ async function correr(fuente) {
       // Llamadas de verdad (una dirección entre comillas o un fetch); los comentarios pueden nombrar api.php.
       ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por la capa de datos');
       ok(/<link rel="stylesheet" href="\/comun\/vea\.css">/.test(pg.texto) && !/<style>/.test(pg.texto), 'un solo archivo de estilos compartido, sin estilos propios');
+      // 22-oct (segunda ronda): ocupación compacta, sin «Actualizar» ni campo de fecha suelto.
+      ok(!/id="btnActualizar"/.test(pg.texto) && /id="ocRango"/.test(pg.texto) && /id="ocDias"/.test(pg.texto) && /function bloqueHtml/.test(pg.texto),
+        'After School: semana en bloques, vista por día, la fecha abre el calendario y no hay botón «Actualizar»');
+      const css = (await new Nav(base).get('/comun/vea.css')).texto;
+      ok(/\.tema-kids\s*\{[^}]*#7E53A2[^}]*#9DCC4C[^}]*#FCCC14/.test(css) && /@media \(pointer: fine\)/.test(css),
+        'vea.css: tema Kids con la paleta de VEA Kids y Pasar lista compacta con mouse');
+      const portada = (await n['admin-uno'].get('/')).texto;
+      ok(/nombre: 'Preschool', url: '\/kinder\/'/.test(portada) && !/Preescolar|Kínder/.test(portada) && /Reservas y eventos/.test(portada) && /Procesos y herramientas del negocio/.test(portada),
+        'portada: la unidad se llama Preschool (la ruta sigue /kinder/) y las tarjetas dicen qué serán');
       for (const pagina of ['/', '/configuracion/', '/login.html', '/cambiar-clave.html']) {
         const t = (await n['admin-uno'].get(pagina)).texto;
         ok(/href="\/comun\/vea\.css"/.test(t) && !/<style>/.test(t) && !/fetch\(/.test(t), pagina + ': usa vea.css y no hace fetch por su cuenta');

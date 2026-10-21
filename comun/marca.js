@@ -14,8 +14,10 @@
    *   sesion: {usuario, roles:[{nombre}]}
    *   ruta:   [{texto, url?}]  (miga de pan: «Inicio / After School»)
    *   prefijo: texto antes del usuario (p. ej. «Pasando lista:»)
+   *   logo:   {src, alt} (por defecto, el de Vida en Arte; Preschool usa el de Kids)
    */
-  function cabecera(el, { sesion, ruta, prefijo } = {}) {
+  function cabecera(el, { sesion, ruta, prefijo, logo } = {}) {
+    const lg = logo || { src: '/comun/logo-vea.png', alt: 'Vida en Arte' };
     const usuario = sesion ? sesion.usuario : '';
     const rol = sesion && sesion.roles && sesion.roles.length ? sesion.roles.map(r => r.nombre).join(' · ') : '';
     const miga = (ruta || []).map((p, i, l) => i < l.length - 1 && p.url
@@ -23,12 +25,12 @@
       : '<b>' + esc(p.texto) + '</b>').join('');
     el.className = 'cab';
     el.innerHTML = '<div class="cab-in">' +
-      '<div class="cab-marca"><a href="/" aria-label="Inicio del portal"><img src="/comun/logo-vea.png" alt="Vida en Arte"></a>' +
+      '<div class="cab-marca"><a href="/" aria-label="Inicio del portal"><img src="' + esc(lg.src) + '" alt="' + esc(lg.alt) + '"' + (logo ? ' class="kids"' : '') + '></a>' +
       (miga ? '<nav class="cab-ruta" aria-label="Ruta">' + miga + '</nav>' : '') + '</div>' +
       '<div class="cab-usuario">' +
       (usuario ? '<span class="cab-quien">' + (prefijo ? '' : '<span class="inicial" aria-hidden="true">' + esc(usuario.charAt(0).toUpperCase()) + '</span>') +
         '<span>' + (prefijo ? esc(prefijo) + ' ' : '') + '<b>' + esc(usuario) + '</b>' + (rol && !prefijo ? '<span class="rol"> · ' + esc(rol) + '</span>' : '') + '</span></span>' : '') +
-      '<a class="cab-enlace" href="/cambiar-clave.html?r=' + encodeURIComponent(location.pathname) + '">Cambiar mi contraseña</a>' +
+      '<a class="cab-enlace" href="/cambiar-clave.html?r=' + encodeURIComponent(location.pathname) + '"><span class="largo">Cambiar mi contraseña</span><span class="corto">Contraseña</span></a>' +
       '<a class="btn" href="/logout.php">Salir</a></div></div>';
   }
 
