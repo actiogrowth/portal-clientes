@@ -7,7 +7,7 @@
 <!-- 22-oct: marca Vida en Arte Kids. Tipografía, colores, encabezado y
      tarjetas salen de /comun/vea.css (tema .tema-kids, en <html>); aquí
      queda solo lo propio de este tablero. -->
-<link rel="stylesheet" href="/comun/vea.css">
+<link rel="stylesheet" href="/comun/vea.css?v=1c33b1d6ff">
 <style>
 /* ==========================================================================
    TIPOGRAFIA
@@ -41,7 +41,8 @@
 }
 body{font-size:13.5px;line-height:1.55}
 .num{letter-spacing:-.02em}
-.wrap{max-width:1120px;margin:0 auto;padding:22px 20px 70px}
+/* Mismo ancho y mismo borde que el encabezado del portal (.cab-in en vea.css). */
+.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 70px}
 
 #aviso{background:var(--amarillo);color:#4A3B00;font-size:11.5px;font-weight:600;
   padding:9px 20px;text-align:center}
@@ -218,6 +219,8 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
   border-top:1px solid var(--linea);padding-top:16px}
 
 @media (max-width:940px){ .salones{grid-template-columns:repeat(2,1fr)} }
+/* En celular el encabezado usa 14px de margen (vea.css, 640px): el contenido también. */
+@media (max-width:640px){ .wrap{padding-left:14px;padding-right:14px} }
 @media (max-width:860px){
   .lect{border-left:none;padding:0;min-width:46%;margin-bottom:16px}
 }
@@ -517,15 +520,15 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
      Las dos tienen que cargar ANTES del script principal. -->
 <script src="config.php"></script>
 <script src="config-local.js"></script>
-<script src="/comun/datos.js"></script>
-<script src="/comun/marca.js"></script>
+<script src="/comun/datos.js?v=367f2a5a0f"></script>
+<script src="/comun/marca.js?v=bc6a4e424f"></script>
 <script>
 /* El encabezado del portal. Si /comun/ no estuviera (otro servidor), la
    página sigue igual, sin encabezado: el tablero no depende de él. */
 (function(){
   if(!window.Marca) return;
   const cab=document.getElementById("cab");
-  const pintar=s=>Marca.cabecera(cab,{sesion:s,logo:{src:"/comun/logo-kids.png",alt:"Vida en Arte Kids"},
+  const pintar=s=>Marca.cabecera(cab,{sesion:s,logo:{src:"/comun/logo-kids.png?v=84821d6ddf",alt:"Vida en Arte Kids"},
     ruta:[{texto:"Inicio",url:"/"},{texto:"Preschool"}]});
   pintar(null);
   if(window.Datos) Datos.sesion().then(pintar).catch(function(){});
