@@ -457,7 +457,6 @@ a.pa-boton { text-decoration: none; }
 .chip.pa-curso { background: var(--arena); color: var(--cafe); }
 .chip.pa-pend { background: var(--pildora); color: var(--texto-2); }
 /* Reuniones: por mes, fecha en forma de calendario. */
-.pa-meses { max-width: 900px; }
 .pa-mes-nom { font-size: 13px; font-weight: 600; color: var(--texto-2); text-transform: uppercase; letter-spacing: .5px; }
 .pa-reu { display: flex; align-items: center; gap: 14px; padding: 8px 0; }
 .pa-cal { width: 48px; flex-shrink: 0; text-align: center; border: 1px solid var(--gris); border-radius: 10px; padding: 4px 0; display: flex; flex-direction: column; }
@@ -465,13 +464,14 @@ a.pa-boton { text-decoration: none; }
 .pa-cal span:last-child { font-size: 11px; color: var(--texto-2); }
 .pa-reu-tema { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
 /* Acompañamiento: totales, horas por mes (una serie, azul) y el detalle. */
-.pa-acomp { display: flex; flex-direction: column; gap: 16px; max-width: 760px; align-items: flex-start; }
+.pa-acomp { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
 .pa-acomp-tot { display: flex; gap: 16px 32px; flex-wrap: wrap; }
 .pa-acomp-tot > div { display: flex; flex-direction: column; }
 .pa-acomp-tot .titulo { font-size: 40px; line-height: 1; }
 .pa-grafico { margin: 0; align-self: stretch; border: 1px solid var(--gris); border-radius: 16px; padding: 16px; }
 .pa-grafico figcaption { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
-.pa-barras { display: flex; align-items: flex-end; gap: 8px; height: 180px; overflow-x: auto; overflow-y: visible; padding-top: 4px; }
+/* En computador los meses caben: sin desplazamiento. Solo en celular, si son muchos, se desliza. */
+.pa-barras { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding-top: 4px; }
 .pa-barra-col { position: relative; flex: 1 0 28px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; outline: none; }
 .pa-barra-col i { display: block; width: 100%; max-width: 36px; border-radius: 4px 4px 0 0; background: #1974A8; }
 .pa-barra-val { font-size: 11px; font-weight: 600; color: var(--texto); }
@@ -481,7 +481,10 @@ a.pa-boton { text-decoration: none; }
   padding: 6px 10px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 2; }
 .pa-globo b { display: block; font-weight: 600; }
 .pa-barra-col:hover .pa-globo, .pa-barra-col:focus-visible .pa-globo { opacity: 1; }
-.pa-lista { display: flex; flex-direction: column; gap: 8px; max-width: 900px; }
+/* En los extremos el globo se apoya hacia adentro para no salirse de la tarjeta. */
+.pa-barra-col:first-child .pa-globo { left: 0; transform: none; }
+.pa-barra-col:last-child .pa-globo { left: auto; right: 0; transform: none; }
+.pa-lista { display: flex; flex-direction: column; gap: 8px; align-self: stretch; }
 .pa-fila { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1px solid var(--gris); border-radius: var(--radio-chico); padding: 12px 16px; }
 .pa-fecha { width: 110px; flex-shrink: 0; font-size: 14px; font-weight: 600; color: var(--texto-2); }
 .pa-fila-txt { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
@@ -506,6 +509,7 @@ body.pa-visor-abierto { overflow: hidden; }
   .pa-proyectos { width: 100%; }
   .pa-proyectos button { flex: 1; }
   .pa-grupo-nom { font-size: 22px; }
+  .pa-barras { overflow-x: auto; }
   .pa-buscar { min-width: 0; width: 100%; }
   .pa-fila-e-txt { flex-basis: 100%; }
   .pa-reu { flex-wrap: wrap; }

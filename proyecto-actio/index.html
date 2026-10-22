@@ -11,7 +11,7 @@
   Proyecto 2. 23-oct: cabecera baja como el resto del portal, pestaña
   Documentos (todas las filas de «Documentos VEA») y desplegables por unidad
   y por mes, cerrados al abrir cada pestaña. -->
-<link rel="stylesheet" href="/comun/vea.css?v=824dc980f4">
+<link rel="stylesheet" href="/comun/vea.css?v=9eadc9a5d1">
 </head>
 <body>
 <header id="cab"></header>
@@ -176,7 +176,10 @@ function pintarCabecera() {
    (y los que no tienen ninguno no se muestran). */
 function grupo(pestana, clave, cabecera, cuerpo, total) {
   const id = 'g-' + pestana + '-' + clave.replace(/[^a-z0-9]/gi, '-');
-  const abierto = !!busqueda.trim() || abiertos[pestana].has(clave);
+  // La búsqueda solo abre grupos donde hay buscador (Entregables y Documentos);
+  // si no, un texto que quedó escrito abría todos los meses de Reuniones.
+  const buscando = !!busqueda.trim() && (pestana === 'entregables' || pestana === 'documentos');
+  const abierto = buscando || abiertos[pestana].has(clave);
   return '<section class="pa-grupo"><h2 class="pa-grupo-h">' +
     '<button type="button" class="pa-grupo-cab" aria-expanded="' + abierto + '" aria-controls="' + id + '" data-grupo="' + esc(clave) + '" data-pestana="' + pestana + '">' +
       cabecera + '<span class="pa-grupo-n">' + total + '</span><i aria-hidden="true"></i>' + FLECHA + '</button></h2>' +
@@ -229,6 +232,13 @@ function filaEntregable(e) {
 }
 
 /* ── Documentos: TODAS las filas de «Documentos VEA», con o sin entregable ── */
+/* Bajo el nombre va la versión, no la columna Tipo: Video si el nombre o el
+   enlace lo dicen (etiqueta «(Video…)», Loom, YouTube, Vimeo); si no, la que
+   deduce el visor (Documento / Presentación / Interactiva). */
+function versionDoc(d) {
+  if (/\(\s*video[^()]*\)\s*$/i.test(d.nombre || '') || /^https?:\/\/([^/]+\.)?(loom\.com|youtube\.com|youtu\.be|vimeo\.com)\//i.test(d.enlace || '')) return 'Video';
+  return /^https?:\/\//i.test(d.enlace || '') ? Visor.version(d.nombre, d.enlace) : '';
+}
 function pintarDocumentos() {
   const todos = delProyecto(D.documentos).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   $('#paResumenD').textContent = todos.length ? plural(todos.length, 'documento', 'documentos') : '';
@@ -241,7 +251,7 @@ function pintarDocumentos() {
     const ds = vistos.filter(d => unidad(d.unidad).nombre === nom);
     return grupo('documentos', nom, cabUnidad(unidad(ds[0].unidad)), '<div class="pa-filas">' + ds.map(d => {
       const i = D.documentos.indexOf(d), puede = Visor.vista(d.enlace).modo !== 'nada', des = Visor.descarga(d.enlace);
-      const sub = [d.tipo, fecha(d.fecha)].filter(Boolean).join(' · ');
+      const sub = [versionDoc(d), fecha(d.fecha)].filter(Boolean).join(' · ');
       return '<div class="pa-fila-e"><div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(d.nombre) + '</span>' +
         (sub ? '<span class="ayuda">' + esc(sub) + '</span>' : '') + '</div><div class="pa-versiones-fila">' +
         (puede ? '<button type="button" class="pa-boton" data-doc="' + i + '">' + icono('Abrir') + 'Abrir</button>' : '<span class="pa-por-cargar">Sin enlace</span>') +

@@ -133,7 +133,7 @@ lista (Profesor). La portada no muestra contadores.
 | Preschool (`/kinder/`) | Rama `preschool-marca-kids` de este repo (`dashboard-kinder.html`, se publica como `kinder/index.html`) | Tema Kids, encabezado estándar con el logo Kids | Igual que antes: `config.php` → `csv.php` (no pasa por `datos.js`) |
 | Base de Datos (`/basededatos/`) | Repo `bdclientesvea`, rama `marca-vea` | `vea.css` en una capa `@layer` (sus reglas mandan), encabezado estándar | Igual que antes: `api.php` directo. **No pasa por `datos.js`**: la lectura mira el texto crudo para distinguir una página de Google de una hoja vacía |
 | Veranito (`/veranito/`) | `veranito/index.html` (hub de enlaces: tarjetas de herramientas y «Copiar link») | `vea.css` en una capa `@layer` y encabezado estándar si existe `/comun/marca.js`; sin la barra lateral (la navegación es la portada). Sin `/comun/` se ve idéntica a antes | Solo `/acceso.php` (formato JS), igual que antes; no llama a ningún puente |
-| Sistema Operativo | GitHub Pages (`portal-v2.html`) | Reemplazado por **Proyecto Actio** (`/proyecto-actio/`, abajo). Hay una redirección preparada para subir cuando Proyecto Actio esté publicado | — |
+| Sistema Operativo | GitHub Pages (`portal-v2.html`) | Reemplazado por **Proyecto Actio** (`/proyecto-actio/`, abajo). Desde el 23-oct `portal-v2.html` redirige allá (en `main`) | — |
 
 Preschool, Base de Datos y Veranito funcionan igual si `/comun/` no existiera: la página sigue
 sin encabezado (Preschool) o con su barra de siempre (Base de Datos).
@@ -164,7 +164,8 @@ Reemplaza al «Sistema Operativo» de GitHub Pages. **Solo lectura.**
   filas por unidad con su color; un botón por versión que abre ESA versión
   en el visor; el estado solo si no está entregado), Documentos (TODAS las
   filas de «Documentos VEA», también las que no tienen entregable, por
-  unidad, con Abrir y Descargar), Reuniones (por mes, fecha en forma de
+  unidad; bajo el nombre, la versión —Documento, Presentación, Interactiva
+  o Video— y la fecha; con Abrir y Descargar), Reuniones (por mes, fecha en forma de
   calendario, Minuta y Grabación) y Acompañamiento (horas, encuentros y
   reuniones; horas por mes en barras; el detalle desplegable).
   Unidades y meses son desplegables (botón con aria-expanded), cerrados al
