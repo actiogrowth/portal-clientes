@@ -13,12 +13,22 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
+  // 22-oct: Proyecto Actio
+  ['Dirección recibe Proyecto 2 (sin recorte en el servidor)', 'proyecto-actio/api.php', "if ($soloActio && !$internos) continue;", ""],
+  ['Dirección tiene pa.internos', 'portal-raiz/permisos.php', "'excepto' => ['usuarios.admin', 'pa.internos'],", "'excepto' => ['usuarios.admin'],"],
+  ['Proyecto Actio sin lista blanca (salen las Notas)', 'proyecto-actio/api.php', "foreach ($campos as $c) $fila[$c] = $f[$c] ?? '';", "$fila = $f;"],
+  ['cualquier rol de After School abre Proyecto Actio', 'portal-raiz/permisos.php', "'proyecto-actio' => 'proyecto-actio',", "'proyecto-actio' => 'afterschool',"],
+  ['Proyecto Actio acepta otras acciones', 'proyecto-actio/api.php', "($datos['accion'] ?? '') !== 'leer'", "false"],
+  ['Proyecto Actio sin copia en el servidor', 'proyecto-actio/api.php', "if ($copia && $edad < $ttl) {", "if (false) {"],
+  ['la copia de Proyecto Actio vive en la carpeta pública', 'proyecto-actio/api.php', "$archivo = dirname(__DIR__, 2) . '/portal_cache/proyecto-actio.json';", "$archivo = dirname(__DIR__) . '/portal_cache/proyecto-actio.json';"],
+  ['se usa una copia de más de un día', 'proyecto-actio/api.php', "if ($copia && $edad < PA_COPIA_MAX_SEG) {", "if ($copia) {"],
+  ['un documento sin proyecto no toma el de su entregable (Proyecto 2 se le escapa a Dirección)', 'proyecto-actio/api.php', "if ($p === '' && $tabla === 'documentos') $p = $proyEntregable[(string) ($f['idEntregable'] ?? '')] ?? '';", ""],
   // permisos.php
-  ['Dirección puede tocar cuentas de Administrador (sin «excepto»)', 'portal-raiz/permisos.php', "        'excepto' => ['usuarios.admin'],\n", ''],
+  ['Dirección puede tocar cuentas de Administrador (sin «excepto»)', 'portal-raiz/permisos.php', "'excepto' => ['usuarios.admin', 'pa.internos'],", "'excepto' => ['pa.internos'],"],
   ['las carpetas sin asignar quedan abiertas', 'portal-raiz/permisos.php', "    return CARPETAS_AREA[$carpeta] ?? '*';", "    return CARPETAS_AREA[$carpeta] ?? null;"],
   ['Comercial con After School completo', 'portal-raiz/permisos.php', "'area:basededatos', 'as.ver', 'as.pruebas.ver',\n                       'as.pruebas.agendar', 'as.contactos.prospectos'],", "'area:basededatos', 'as.ver', 'as.pruebas.ver', 'as.completo',\n                       'as.pruebas.agendar', 'as.contactos.prospectos'],"],
   ['Contabilidad recibe contactos', 'portal-raiz/permisos.php', "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago'],", "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'as.contactos.todos'],"],

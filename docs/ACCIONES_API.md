@@ -152,3 +152,61 @@ Agrega `permisos: {puedeOtroDia}`.
 Coordinación Preschool no pasan lista (403 por área).
 
 Sesión del rol Profesor: se cierra tras **2 horas sin uso** (`inactividad_max` en `permisos.php`).
+
+## Acciones de Proyecto Actio (`proyecto-actio/api.php`) — 22-oct
+
+Lo que Actio Growth le entrega a Vida en Arte (reemplaza al «Sistema
+Operativo» de GitHub Pages). **Solo lectura**: el portal nunca escribe en el
+Sheet «Datos — Vida en Arte»; lo actualiza Actio desde el Tablero de Tareas.
+
+Puente propio, área `proyecto-actio` (solo Administrador y Dirección). Habla
+con un Apps Script aparte, `proyecto-actio-script/ProyectoActio.gs`, con el
+mismo sobre que After School (`{key, usuario, accion, datos}`) y el mismo
+transporte con reintentos (`after-school/api.php` cargado con
+`AS_SOLO_FUNCIONES`). Configuración en `portal_config.php`: `pa_exec`,
+`pa_clave`, `pa_proyectos_cliente` y, opcional, `pa_cache_seg`.
+
+| Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
+|---|---|---|---|---|---|---|
+| `leer` | L | area:proyecto-actio | Ad, Di | — | ver abajo | `sin_configuracion` (falta `pa_exec`, `pa_clave` o `pa_proyectos_cliente`) |
+
+### `leer` → `resultado`
+
+```
+{ generado: "2026-10-22T15:04:05Z",       // cuándo lo leyó el script
+  proyectos: ["Proyecto 1", "Proyecto 2"],  // los que vienen en esta respuesta
+  entregables: [{ id, unidad, entregable, segmento, estado, avance, fechaCompromiso, fechaReal, proyecto, soloActio }],
+  documentos:  [{ nombre, unidad, segmento, tipo, fecha, enlace, idEntregable, proyecto, soloActio }],
+  reuniones:   [{ fecha, tema, minuta, grabacion, proyecto, soloActio }],
+  atencion:    [{ fecha, tipo, duracionMin, asunto, unidad, enlace, proyecto, soloActio }],
+  faltan: ["Documentos VEA: Enlace", …]     // columnas obligatorias que no están (vacío si todo bien)
+}
+// y, si la respuesta salió de la copia del servidor: copia: { segundos }
+```
+
+- Fechas en `AAAA-MM-DD` ('' si no hay); `avance` es un número de 0 a 100;
+  `duracionMin`, un número de minutos.
+- `proyecto`: el de la fila. Documentos sin columna Proyecto toman el de su
+  entregable (`idEntregable`); una fila sin proyecto queda con
+  `pa_proyectos_cliente[0]`.
+- `soloActio`: `true` en las filas de un proyecto que no está en
+  `pa_proyectos_cliente` (solo le llegan a Administrador).
+
+### Recorte (lo hace `api.php`, no el script ni la pantalla)
+
+| Rol | Recibe |
+|---|---|
+| Administrador (`pa.internos`) | todas las filas; las de proyectos que no son del cliente con `soloActio: true` |
+| Dirección | **solo** las filas de `pa_proyectos_cliente` (hoy «Proyecto 1»); el resto no sale del servidor |
+
+En `atencion` nunca se envían «Origen duración» ni «Notas»: el script no las
+lee y `api.php` igual responde con una **lista blanca** de campos por tabla.
+
+### Copia en el servidor
+
+La respuesta completa del script (antes del recorte) se guarda
+`pa_cache_seg` segundos (300 si no se configura) en
+`/home/…/portal_cache/proyecto-actio.json`, **fuera de la carpeta pública**, y
+el recorte se aplica en cada pedido. Si Google no responde y la copia tiene
+menos de un día, se entrega la copia con `copia.segundos` (la pantalla dice
+de cuándo son los datos).

@@ -9,6 +9,8 @@
  *   usuarios.gestionar   entrar a Configuración › Usuarios
  *   usuarios.admin       crear, editar, desactivar o reiniciar cuentas con rol
  *                        Administrador, y asignar ese rol
+ *   pa.internos          Proyecto Actio: ver lo que es solo de Actio (los
+ *                        proyectos que no son del cliente, p. ej. Proyecto 2)
  * '*' concede todo; 'excepto' lo recorta para ese rol.
  * 'inactividad_max' (segundos): la sesión se cierra tras ese tiempo sin uso
  * (con varios roles manda el más corto).
@@ -30,7 +32,7 @@ const ROLES = [
         'nombre' => 'Dirección',
         'descripcion' => 'Todo el negocio y la gestión de usuarios, salvo las cuentas con rol Administrador.',
         'permisos' => ['*'],
-        'excepto' => ['usuarios.admin'],
+        'excepto' => ['usuarios.admin', 'pa.internos'],
     ],
     'coordinacion_afterschool' => [
         'inicio_as' => 'ocupacion',
@@ -89,16 +91,18 @@ const CARPETAS_AREA = [
     'cumpleanos'    => 'cumpleanos',
     'configuracion' => 'configuracion',
     'pasar-lista'   => 'pasarlista',
+    'proyecto-actio' => 'proyecto-actio',   // 22-oct: solo Administrador y Dirección (nadie más la tiene)
 ];
 
-/* Áreas que la portada conoce (tarjetas). 'actio' es la tarjeta Sistema Operativo. */
+/* Áreas que la portada conoce (tarjetas). 22-oct: 'proyecto-actio' reemplaza a
+   'actio' (la tarjeta Sistema Operativo, que llevaba a GitHub Pages). */
 /* 21-oct (rediseño): 'pasarlista' ya no es tarjeta (Pasar lista está dentro de After School). */
-const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'actio', 'configuracion'];
+const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion'];
 
 /* Dónde empieza cada área (para entrar directo tras el login si es la única). */
 const AREA_URL = [
     'kinder' => '/kinder/', 'veranito' => '/veranito/', 'afterschool' => '/after-school/',
-    'basededatos' => '/basededatos/', 'configuracion' => '/configuracion/',
+    'basededatos' => '/basededatos/', 'configuracion' => '/configuracion/', 'proyecto-actio' => '/proyecto-actio/',
 ];
 
 /** Tras el login: si el usuario abre UNA sola sección del portal, va directo a ella; si no, a la portada. */

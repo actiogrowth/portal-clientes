@@ -304,3 +304,57 @@ Las reglas que hoy aplica el `.gs` bajo el lock (cupo, no futuras, una
 inscripción activa por clase…) pasan a funciones de Postgres con
 transacción (`security definer`) o a una Edge Function; ver `MIGRACION_SUPABASE.md`.
 
+
+---
+
+# Catálogo de Proyecto Actio (Sheet «Datos — Vida en Arte») — 22-oct
+
+Lo que Actio Growth le entrega a Vida en Arte. Lo escribe Actio (Tablero de
+Tareas); el portal solo lee, siempre por **título de columna** (nunca por
+letra) y desde la fila de títulos que encuentre en las primeras filas.
+
+| Pestaña | Columnas que se leen | Obligatorias |
+|---|---|---|
+| Entregables | Unidad de negocio, Entregable, Segmento, Estado, % Avance, Fecha compromiso, Fecha real, Proyecto, ID | Entregable, Proyecto, ID |
+| Documentos VEA | Nombre, Unidad de negocio, Segmento, Tipo, Fecha, Enlace, ID Entregable (y Proyecto si existe) | Nombre, Enlace |
+| Reuniones VEA | Fecha, Tema, Minuta, Grabación (y Proyecto si existe) | Fecha, Tema |
+| Atención Directa | Fecha, Tipo, Duración (min), Asunto, Unidad de negocio, Enlace (y Proyecto si existe) | Fecha, Tipo |
+
+«Origen duración» y «Notas» de Atención Directa son internos de Actio: no se
+leen. La pestaña «Catálogo» (orden de unidades y áreas) no se lee todavía.
+
+**Versiones de un entregable.** Un entregable puede tener hasta tres
+documentos: Documento, Presentación e Interactiva. La versión sale de la
+etiqueta final del nombre — «Modelo de negocio (Presentación)» — y, si no la
+tiene, del tipo de enlace (Drive o Google Docs → Documento; Gamma o Google
+Slides → Presentación; cualquier otra página → Interactiva).
+
+**Unidad de negocio.** El dato dice «Kinder»; en pantalla se muestra
+«Preschool» (D-046). El dato no cambia.
+
+## Equivalente propuesto en Firebase (Firestore)
+
+El portal depende solo del **enlace** de cada documento, no de quién es
+dueño del archivo: cuando los documentos pasen a una unidad compartida de
+Vida en Arte, cambian los enlaces y nada más.
+
+```
+proyectos/{proyectoId}            nombre ("Proyecto 1"), visibleCliente (bool), orden
+entregables/{id}                  proyectoId → proyectos, unidad, entregable, segmento,
+                                  estado ("Entregado" | "En curso" | "Pendiente"),
+                                  avance (0–100), fechaCompromiso, fechaReal (Timestamp | null)
+entregables/{id}/versiones/{v}    v ∈ {documento, presentacion, interactiva}:
+                                  nombre, enlace, fecha, tipo (categoría de la hoja)
+documentos/{docId}                documentos sueltos (sin entregable): proyectoId, nombre,
+                                  unidad, segmento, tipo, fecha, enlace
+reuniones/{id}                    proyectoId, fecha, tema, minuta (enlace), grabacion (enlace)
+atencion/{id}                     proyectoId, fecha, tipo ("Llamada" | "Reunión virtual"),
+                                  duracionMin, asunto, unidad, enlace
+atencionInterna/{id}              (solo Actio) origenDuracion, notas — misma clave que atencion
+```
+
+Relaciones: `entregables.proyectoId → proyectos`; las versiones cuelgan de
+su entregable (hoy, `ID Entregable` de Documentos VEA); `reuniones` y
+`atencion` cuelgan de un proyecto. Reglas de seguridad: el cliente lee solo
+documentos con `proyectos/{proyectoId}.visibleCliente == true` y nunca
+`atencionInterna` — es el mismo recorte que hoy hace `proyecto-actio/api.php`.

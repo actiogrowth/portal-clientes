@@ -113,6 +113,12 @@
       }
     },
 
+    /* ── Proyecto Actio (solo lectura) ─────────────────────────────────── */
+    proyectoActio: {
+      /** {resultado: {generado, proyectos, entregables, documentos, reuniones, atencion, faltan}, copia?: {segundos}} */
+      leer() { return pedir('/proyecto-actio/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' }, tipo: 'texto' }); }
+    },
+
     /* ── Configuración › Usuarios ───────────────────────────────────────── */
     usuarios: {
       /** {usuarios[], roles[], yo, puedeAdmin, claveMinima} */

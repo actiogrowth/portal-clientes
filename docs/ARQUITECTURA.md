@@ -133,10 +133,65 @@ lista (Profesor). La portada no muestra contadores.
 | Preschool (`/kinder/`) | Rama `preschool-marca-kids` de este repo (`dashboard-kinder.html`, se publica como `kinder/index.html`) | Tema Kids, encabezado estándar con el logo Kids | Igual que antes: `config.php` → `csv.php` (no pasa por `datos.js`) |
 | Base de Datos (`/basededatos/`) | Repo `bdclientesvea`, rama `marca-vea` | `vea.css` en una capa `@layer` (sus reglas mandan), encabezado estándar | Igual que antes: `api.php` directo. **No pasa por `datos.js`**: la lectura mira el texto crudo para distinguir una página de Google de una hoja vacía |
 | Veranito (`/veranito/`) | `veranito/index.html` (hub de enlaces: tarjetas de herramientas y «Copiar link») | `vea.css` en una capa `@layer` y encabezado estándar si existe `/comun/marca.js`; sin la barra lateral (la navegación es la portada). Sin `/comun/` se ve idéntica a antes | Solo `/acceso.php` (formato JS), igual que antes; no llama a ningún puente |
-| Sistema Operativo | GitHub Pages (`portal-v2.html`) | Se queda con la marca Actio por ahora | — |
+| Sistema Operativo | GitHub Pages (`portal-v2.html`) | Reemplazado por **Proyecto Actio** (`/proyecto-actio/`, abajo). Hay una redirección preparada para subir cuando Proyecto Actio esté publicado | — |
 
 Preschool, Base de Datos y Veranito funcionan igual si `/comun/` no existiera: la página sigue
 sin encabezado (Preschool) o con su barra de siempre (Base de Datos).
+
+## 2c. Proyecto Actio (22-oct)
+
+Lo que Actio Growth le entrega a Vida en Arte, en un solo lugar del portal.
+Reemplaza al «Sistema Operativo» de GitHub Pages. **Solo lectura.**
+
+```
+ /proyecto-actio/index.html  ── datos.js: Datos.proyectoActio.leer()
+        │  POST {accion:'leer'}
+        ▼
+ proyecto-actio/api.php      requerir_sesion (área proyecto-actio: Ad, Di)
+        │                    copia en /home/…/portal_cache/ (pa_cache_seg)
+        │                    RECORTE: Dirección solo pa_proyectos_cliente;
+        │                    lista blanca de campos (nada interno de Actio)
+        ▼
+ ProyectoActio.gs (doPost)   clave PA_CLAVE_API · solo «leer» · por títulos
+        ▼
+ Sheet «Datos — Vida en Arte» (lo escribe Actio desde el Tablero de Tareas)
+```
+
+- La pantalla: selector de proyecto (Proyecto 2 con el sello «Solo Actio»,
+  que solo ve Administrador) y tres pestañas: Entregables (avance, filtros
+  por unidad, buscador, tarjetas por unidad, Abrir), Reuniones (Minuta,
+  Grabación) y Atención directa (resumen por mes y lista).
+- El visor (`comun/visor.js`) muestra el documento en la misma página, con
+  una pestaña por versión (Documento, Presentación, Interactiva): Drive en
+  `/preview`, Google Docs/Hojas/Presentaciones en `/preview` (solo lectura),
+  Gamma en su modo de inserción; cualquier otro enlace, en pestaña nueva.
+  Descargar solo donde hay un archivo que bajar (Drive y Google Docs).
+- El portal depende solo del **enlace** de cada documento, no de quién es su
+  dueño: cuando los documentos pasen a una unidad de Vida en Arte o el
+  catálogo a Firebase, cambian los enlaces o la fuente, no la pantalla
+  (modelo en `MODELO_DATOS.md`).
+
+**Instalar el Apps Script** (lo hace Actio, una sola vez):
+1. Abrir el Sheet «Datos — Vida en Arte» › Extensiones › Apps Script.
+2. Pegar `proyecto-actio-script/ProyectoActio.gs` (reemplazando lo que haya en
+   un proyecto nuevo) y guardar.
+3. Configuración del proyecto (engranaje) › Propiedades del script › Agregar:
+   `PA_CLAVE_API` = una clave nueva de 32 caracteres o más (no la de After School).
+4. Implementar › Nueva implementación › Tipo: Aplicación web ›
+   Ejecutar como: **Yo** · Quién tiene acceso: **Cualquier usuario** › Implementar
+   (autorizar con la cuenta de Actio la primera vez).
+5. Copiar la dirección `/exec` y la clave a `portal_config.php` (abajo). Si
+   después se cambia el `.gs`: Implementar › Gestionar implementaciones ›
+   editar › **Nueva versión** (la dirección `/exec` no cambia).
+
+**`portal_config.php`** (fuera de la carpeta pública), dentro del `return [ … ]`:
+```
+  'pa_exec'              => '',                // la dirección /exec del paso 5
+  'pa_clave'             => '',                // la misma que PA_CLAVE_API
+  'pa_proyectos_cliente' => ['Proyecto 1'],    // los proyectos que ve Vida en Arte
+  'pa_cache_seg'         => 300,               // segundos de la copia del servidor (opcional)
+```
+La carpeta `portal_cache/` la crea `api.php` sola junto a `portal_config.php`.
 
 ## 3. Dónde vive cada cosa
 
@@ -152,6 +207,7 @@ sin encabezado (Preschool) o con su barra de siempre (Base de Datos).
 | Apps Script | Proyecto ligado al Sheet `VEA_AfterSchool_BD` | Copiar `after-school-script/AfterSchool.gs`, pegar, **Nueva versión** de la implementación |
 | Clave del puente | Propiedad del script `AS_CLAVE_API` y `as_clave` en `portal_config.php` | A mano, las dos iguales |
 | Datos | El Sheet `VEA_AfterSchool_BD` | Solo a través del puente (o a mano, con cuidado) |
+| Catálogo de Proyecto Actio | Sheet «Datos — Vida en Arte» (lo escribe Actio) · Apps Script `proyecto-actio-script/ProyectoActio.gs` · copia en `/home/…/portal_cache/` | Desde el Tablero de Tareas de Actio; el portal nunca escribe |
 | Datos reales para cargas | `datos_privados/` (ignorada por git) | Nunca entran al repo |
 | Especificaciones internas | `Spec*.md` (ignoradas por git) | Notas de trabajo; lo estable va a `docs/` |
 

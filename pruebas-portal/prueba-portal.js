@@ -71,6 +71,10 @@ return [
   'as_exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
   'as_clave' => 'clave-de-prueba',
   'as_usuarios' => ['admin-uno'],
+  'pa_exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
+  'pa_clave' => 'clave-pa-de-prueba',
+  'pa_proyectos_cliente' => ['Proyecto 1'],
+  'pa_cache_seg' => 300,
   'roles_iniciales' => [
 ${roles}
   ],
@@ -170,6 +174,26 @@ const ESTADO = () => ({ usuario: 'x', hoy: '2026-10-19', mes: '2026-10', config:
   inscripcionesCerradas: [], pruebas: [{ id: 'PR-0001', idNino: 'AS-0002', estado: 'Agendada', pago: '', monto: null }],
   pagosMes: [{ id: 'PG-0001', idNino: 'AS-0001', monto: 50 }] });
 
+/* Proyecto Actio (22-oct): datos INVENTADOS. El script falso manda de más a
+   propósito: filas de Proyecto 2, «notas» y «origenDuracion» en atención y un
+   campo «secreto»; proyecto-actio/api.php tiene que recortarlo todo. */
+const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
+  entregables: [
+    { id: 'E-001', unidad: 'Kinder', entregable: 'Plan de prueba uno', segmento: 'Ventas', estado: 'Entregado', avance: 100, fechaCompromiso: '', fechaReal: '2026-03-31', proyecto: 'Proyecto 1', secreto: 'NO-DEBE-SALIR' },
+    { id: 'E-002', unidad: 'After School', entregable: 'Plan de prueba dos', segmento: 'Servicio', estado: 'En curso', avance: 40, fechaCompromiso: '2026-11-30', fechaReal: '', proyecto: '' },
+    { id: 'E-901', unidad: 'Gerencia', entregable: 'Plan reservado de Actio', segmento: 'Finanzas', estado: 'Pendiente', avance: 0, fechaCompromiso: '', fechaReal: '', proyecto: 'Proyecto 2' }],
+  documentos: [
+    { nombre: 'Plan de prueba uno (Documento)', unidad: 'Kinder', segmento: 'Ventas', tipo: 'Entregable', fecha: '2026-03-31', enlace: 'https://ejemplo.test/doc-uno', idEntregable: 'E-001', proyecto: '' },
+    { nombre: 'Plan reservado de Actio (Documento)', unidad: 'Gerencia', segmento: 'Finanzas', tipo: 'Entregable', fecha: '2026-10-01', enlace: 'https://ejemplo.test/doc-reservado', idEntregable: 'E-901', proyecto: '' },
+    { nombre: 'Guía suelta de prueba', unidad: 'Gerencia', segmento: '', tipo: 'Documento', fecha: '2026-05-01', enlace: 'https://ejemplo.test/guia', idEntregable: '', proyecto: '' }],
+  reuniones: [
+    { fecha: '2026-07-22', tema: 'Reunión de prueba', minuta: 'https://ejemplo.test/minuta', grabacion: '', proyecto: '' },
+    { fecha: '2026-09-01', tema: 'Reunión reservada de Actio', minuta: 'https://ejemplo.test/minuta-reservada', grabacion: '', proyecto: 'Proyecto 2' }],
+  atencion: [
+    { fecha: '2026-09-02', tipo: 'Llamada', duracionMin: 12, asunto: 'Consulta de prueba', unidad: '', enlace: '', proyecto: '', notas: 'NOTA-INTERNA', origenDuracion: 'Medida' },
+    { fecha: '2026-09-03', tipo: 'Reunión virtual', duracionMin: 45, asunto: 'Asunto reservado de Actio', unidad: '', enlace: '', proyecto: 'Proyecto 2', notas: 'NOTA-INTERNA-2', origenDuracion: 'Estimada' }] });
+const PA = { llamadas: 0, falla: false };
+
 function googleFalso() {
   const llamadas = [];
   const s = http.createServer((req, res) => {
@@ -179,7 +203,12 @@ function googleFalso() {
       let j = {}; try { j = JSON.parse(cuerpo); } catch (e) { }
       llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {} });
       let r;
-      if (j.accion === 'leer') r = { ok: true, resultado: ESTADO() };
+      if (j.key === 'clave-pa-de-prueba') {
+        PA.llamadas++;
+        r = PA.falla ? null : (j.accion === 'leer' ? { ok: true, resultado: PA_DATOS() } : { ok: false, error: 'acción desconocida' });
+        if (!r) { res.writeHead(500, { 'Content-Type': 'text/html' }); res.end('<html>error</html>'); return; }
+      }
+      else if (j.accion === 'leer') r = { ok: true, resultado: ESTADO() };
       // Pasar lista: el script falso manda DE MÁS (contactos, el estado entero)
       // para comprobar que pasar-lista/api.php lo recorta.
       else if (j.accion === 'leerLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', hoy: '2026-10-19', dia: 'Lunes', otroDia: true, estados: ['Presente'], secreto: 'x',
@@ -267,6 +296,7 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'configuracion'), path.join(web, 'configuracion'));
   copiar(path.join(fuente, 'pasar-lista'), path.join(web, 'pasar-lista'));
   copiar(path.join(fuente, 'comun'), path.join(web, 'comun'));
+  copiar(path.join(fuente, 'proyecto-actio'), path.join(web, 'proyecto-actio'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
   // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
@@ -585,6 +615,61 @@ async function correr(fuente) {
       ok(!fuera.bucle && /<title>Entrar/.test(fuera.texto) && fuera.saltos.some(z => /login\.html\?salida=1/.test(z)), 'Salir lleva al login con «Cerraste sesión»');
       const tras = await y.get('/after-school/');
       ok(tras.status === 302 && /login\.html/.test(tras.location), 'después de Salir, After School pide entrar otra vez');
+    }
+
+    seccion('Proyecto Actio: solo Administrador y Dirección; el recorte lo hace el servidor');
+    {
+      const leerPA = u => n[u].post('/proyecto-actio/api.php', { json: { accion: 'leer' } });
+      const cache = path.join(home, 'portal_cache', 'proyecto-actio.json');
+      PA.llamadas = 0;
+      // Quién entra
+      for (const u of ['prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
+        const r = await leerPA(u);
+        ok(r.status === 403 && !/Plan de prueba/.test(r.texto), u + ': el puente de Proyecto Actio responde 403 y no manda datos');
+        ok((await n[u].get('/proyecto-actio/')).status !== 200, u + ': no abre la página /proyecto-actio/');
+        const a = (await n[u].get('/acceso.php?formato=json')).j;
+        ok(Array.isArray(a.areas) && !a.areas.includes('proyecto-actio'), u + ': la portada no le muestra la tarjeta Proyecto Actio');
+      }
+      ok(PA.llamadas === 0, 'ningún pedido de otro rol llegó al Apps Script de Proyecto Actio');
+      const pg = await n['prueba-direccion'].get('/proyecto-actio/');
+      ok(pg.status === 200 && /<title>Proyecto Actio/.test(pg.texto) && /\/comun\/visor\.js\?v=[0-9a-f]{10}/.test(pg.texto), 'Dirección abre la página (con visor.js versionado)');
+      ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por datos.js');
+      // Administrador: todo, con «soloActio» en lo que no es del cliente
+      const ad = await leerPA('admin-uno');
+      const A = ad.j && ad.j.resultado;
+      ok(ad.status === 200 && ad.j.ok && JSON.stringify(A.proyectos) === '["Proyecto 1","Proyecto 2"]', 'Administrador recibe Proyecto 1 y Proyecto 2 (' + ad.texto.slice(0, 120) + ')');
+      ok(A && A.entregables.find(e => e.id === 'E-901').soloActio === true && A.entregables.find(e => e.id === 'E-001').soloActio === false, 'Proyecto 2 llega marcado soloActio; Proyecto 1 no');
+      ok(A && A.entregables.find(e => e.id === 'E-002').proyecto === 'Proyecto 1', 'una fila sin proyecto queda con el primero del cliente');
+      ok(A && A.documentos.find(d => /reservado/.test(d.nombre)).proyecto === 'Proyecto 2', 'un documento sin proyecto toma el de su entregable');
+      // Lista blanca: lo interno nunca sale, ni para Administrador
+      ok(!/NOTA-INTERNA|NO-DEBE-SALIR|Medida|Estimada|origenDuracion|"notas"|secreto/.test(ad.texto), 'Administrador tampoco recibe Notas, Origen duración ni campos fuera del contrato');
+      // Dirección: Proyecto 2 no sale del servidor
+      const di = await leerPA('prueba-direccion');
+      const Dd = di.j && di.j.resultado;
+      ok(di.status === 200 && di.j.ok && JSON.stringify(Dd.proyectos) === '["Proyecto 1"]', 'Dirección recibe solo Proyecto 1');
+      ok(!/Proyecto 2|E-901|reservad|NOTA-INTERNA|Medida|Estimada|origenDuracion|"notas"|NO-DEBE-SALIR|"soloActio":true/.test(di.texto), 'a Dirección no le llega nada de Proyecto 2 ni lo interno (ni en el texto de la respuesta)');
+      ok(Dd && Dd.entregables.length === 2 && Dd.documentos.length === 2 && Dd.reuniones.length === 1 && Dd.atencion.length === 1, 'Dirección: 2 entregables, 2 documentos, 1 reunión, 1 atención');
+      ok(Dd && Object.keys(Dd.atencion[0]).sort().join() === 'asunto,duracionMin,enlace,fecha,proyecto,soloActio,tipo,unidad', 'atención directa: solo los campos del contrato');
+      // Solo «leer»
+      const otra = await n['admin-uno'].post('/proyecto-actio/api.php', { json: { accion: 'guardar' } });
+      ok(otra.status === 403 && otra.j && otra.j.codigo === 'sin_permiso', 'cualquier acción que no sea «leer» se rechaza');
+      // Copia en el servidor
+      ok(PA.llamadas === 1, 'la segunda lectura sale de la copia del servidor: el Apps Script se llamó una vez (' + PA.llamadas + ')');
+      ok(fs.existsSync(cache) && !path.relative(web, cache).match(/^[^.]/), 'la copia vive fuera de la carpeta pública (' + path.relative(home, cache) + ')');
+      ok(!/Plan de prueba/.test((await n['admin-uno'].get('/portal_cache/proyecto-actio.json')).texto), 'la copia no se puede pedir desde el navegador');
+      ok(di.j.copia && typeof di.j.copia.segundos === 'number', 'la respuesta dice que salió de la copia (copia.segundos)');
+      // Copia vencida y Google caído: se usa la copia del día, avisando
+      const c = JSON.parse(fs.readFileSync(cache, 'utf8')); c.t -= 3600; fs.writeFileSync(cache, JSON.stringify(c));
+      PA.falla = true;
+      const caido = await leerPA('prueba-direccion');
+      ok(caido.status === 200 && caido.j.copia && caido.j.copia.segundos >= 3600 && !/Proyecto 2/.test(caido.texto), 'si Google no responde, se entrega la copia (recortada) y se dice de cuándo es');
+      c.t -= 2 * 86400; fs.writeFileSync(cache, JSON.stringify(c));
+      const viejo = await leerPA('prueba-direccion');
+      ok(viejo.status >= 500 && viejo.j && viejo.j.ok === false && !/Plan de prueba/.test(viejo.texto), 'una copia de más de un día no se usa: error, sin datos');
+      PA.falla = false;
+      fs.unlinkSync(cache);
+      const fresco = await leerPA('admin-uno');
+      ok(fresco.status === 200 && fresco.j.ok && !fresco.j.copia, 'sin copia, se vuelve a leer del Sheet');
     }
 
     seccion('After School: cada acción según el rol; las prohibidas no llegan al Apps Script');
