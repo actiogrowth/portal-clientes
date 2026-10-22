@@ -61,6 +61,9 @@ jobs:
       - name: Sintaxis de los PHP
         run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php; do php -l "$f" || exit 1; done
 
+      - name: Versión de los archivos de comun/ en cada página (caché del navegador)
+        run: node pruebas-portal/prueba-versiones.js
+
       - name: Sintaxis de comun/ (capa de datos y marca)
         run: for f in comun/*.js; do node --check "$f" || exit 1; done
 

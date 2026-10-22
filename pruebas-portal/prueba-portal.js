@@ -529,7 +529,7 @@ async function correr(fuente) {
         'la dirección vieja /pasar-lista/ lleva a Pasar lista dentro de After School (conservando fecha y clase)');
       // Llamadas de verdad (una dirección entre comillas o un fetch); los comentarios pueden nombrar api.php.
       ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por la capa de datos');
-      ok(/<link rel="stylesheet" href="\/comun\/vea\.css">/.test(pg.texto) && !/<style>/.test(pg.texto), 'un solo archivo de estilos compartido, sin estilos propios');
+      ok(/<link rel="stylesheet" href="\/comun\/vea\.css\?v=[0-9a-f]{10}">/.test(pg.texto) && !/<style>/.test(pg.texto), 'un solo archivo de estilos compartido, sin estilos propios');
       // 22-oct (segunda ronda): ocupación compacta, sin «Actualizar» ni campo de fecha suelto.
       ok(!/id="btnActualizar"/.test(pg.texto) && /id="ocRango"/.test(pg.texto) && /id="ocDias"/.test(pg.texto) && /function bloqueHtml/.test(pg.texto),
         'After School: semana en bloques, vista por día, la fecha abre el calendario y no hay botón «Actualizar»');
@@ -541,7 +541,7 @@ async function correr(fuente) {
         'portada: la unidad se llama Preschool (la ruta sigue /kinder/) y las tarjetas dicen qué serán');
       for (const pagina of ['/', '/configuracion/', '/login.html', '/cambiar-clave.html']) {
         const t = (await n['admin-uno'].get(pagina)).texto;
-        ok(/href="\/comun\/vea\.css"/.test(t) && !/<style>/.test(t) && !/fetch\(/.test(t), pagina + ': usa vea.css y no hace fetch por su cuenta');
+        ok(/href="\/comun\/vea\.css\?v=[0-9a-f]{10}"/.test(t) && !/<style>/.test(t) && !/fetch\(/.test(t), pagina + ': usa vea.css y no hace fetch por su cuenta');
       }
     }
 
@@ -549,7 +549,8 @@ async function correr(fuente) {
     {
       const anon = new Nav(base);
       for (const [ruta, re] of [['/login.html', /<title>Entrar/], ['/cambiar-clave.html', /<title>Cambiar contraseña/], ['/comun/vea.css', /--rojo/],
-                                ['/comun/datos.js', /window\.Datos/], ['/comun/marca.js', /window\.Marca/]]) {
+                                ['/comun/datos.js', /window\.Datos/], ['/comun/marca.js', /window\.Marca/],
+                                ['/comun/vea.css?v=0123456789', /--rojo/], ['/comun/marca.js?v=0123456789', /window\.Marca/]]) {
         const r = await anon.get(ruta);
         ok(r.status === 200 && re.test(r.texto), ruta + ' se abre sin sesión');
       }
@@ -568,7 +569,8 @@ async function correr(fuente) {
       // Con el .htaccess ANTERIOR (si se publicara solo el código): gate.php entrega lo público y nunca ejecuta PHP.
       fs.writeFileSync(htActivo, HTACCESS_ANTERIOR);
       try {
-        for (const [ruta, re] of [['/login.html', /<title>Entrar/], ['/comun/vea.css', /--rojo/], ['/comun/datos.js', /window\.Datos/]]) {
+        for (const [ruta, re] of [['/login.html', /<title>Entrar/], ['/comun/vea.css', /--rojo/], ['/comun/datos.js', /window\.Datos/],
+                                  ['/comun/vea.css?v=0123456789', /--rojo/]]) {
           const r = await anon.seguir(await anon.get(ruta));
           ok(!r.bucle && r.status === 200 && re.test(r.texto), 'con el .htaccess anterior, ' + ruta + ' también se abre sin sesión y sin bucle');
         }

@@ -11,7 +11,7 @@
 <!-- 22-oct: MARCA DEL PORTAL. vea.css entra en una CAPA (@layer vea): las
      reglas de esta página siempre le ganan. Si /comun/ no existe (otro
      servidor), el @import falla en silencio y la página se ve como antes. -->
-<style>@import url("/comun/vea.css") layer(vea);</style>
+<style>@import url("/comun/vea.css?v=2cf5474bbd") layer(vea);</style>
 <style>
   :root {
     --negro:#000; --texto:#1c1c1c; --gris:#6b6f76; --linea:#e3e5ea; --fondo:#f5f6f8; --blanco:#fff;
@@ -226,8 +226,8 @@
 <!-- Qué puede ver este usuario. Lo decide el servidor en acceso.php. -->
 <script src="/acceso.php"></script>
 <!-- Encabezado del portal (si /comun/ existe). La lógica de abajo no cambia. -->
-<script src="/comun/datos.js"></script>
-<script src="/comun/marca.js"></script>
+<script src="/comun/datos.js?v=367f2a5a0f"></script>
+<script src="/comun/marca.js?v=bc6a4e424f"></script>
 <script>
   (function () {
     if (!window.Marca) return;

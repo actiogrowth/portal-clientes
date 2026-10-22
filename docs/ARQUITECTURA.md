@@ -79,6 +79,16 @@ lista, sin pestañas. `/pasar-lista/` es una página que redirige a
 | `login.html`, `cambiar-clave.html` (raíz) | Páginas **fijas** (sin PHP). Piden su estado a `login.php?estado=1` / `cambiar-clave.php?estado=1` y mandan el formulario por JSON. `login.php` y `cambiar-clave.php` sin `estado` redirigen a la página fija (direcciones viejas). |
 | `acceso.php?formato=json` | Quién soy: `{usuario, roles, areas, inicio, inicioAS, permisosAS}`. Sin `formato`, el JS de antes (para poder volver atrás). |
 
+**Versión en cada referencia a `comun/` (22-oct).** Las páginas cargan
+`/comun/vea.css?v=<hash>` (y igual `marca.js`, `datos.js` y los logos): el
+hash son 10 caracteres del sha256 del contenido del archivo, así que cambia
+solo cuando el archivo cambia y el navegador nunca usa un `vea.css` viejo de
+su caché. Lo pone `pruebas-portal/versionar-comun.js --escribir` (también a
+`marca.js`, que carga el logo); `prueba-versiones.js` falla en Actions si una
+página carga algo de `comun/` sin versión o con una vieja. El servidor ignora
+el `?v=` (el `.htaccess` y `gate.php` miran solo la ruta). Preschool y Base de
+Datos viven en otras ramas: se versionan pasando sus rutas al mismo comando.
+
 **Sin sesión se entrega solo:** `login.html`, `cambiar-clave.html` y
 `comun/<nombre>.(css|js|png|svg)` (un nombre simple, sin subcarpetas). Lo hace
 el `.htaccess` (reglas 3 y 3c) y, por si el servidor tuviera un `.htaccess`

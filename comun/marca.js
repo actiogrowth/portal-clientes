@@ -17,7 +17,7 @@
    *   logo:   {src, alt} (por defecto, el de Vida en Arte; Preschool usa el de Kids)
    */
   function cabecera(el, { sesion, ruta, prefijo, logo } = {}) {
-    const lg = logo || { src: '/comun/logo-vea.png', alt: 'Vida en Arte' };
+    const lg = logo || { src: '/comun/logo-vea.png?v=03a73eb9c2', alt: 'Vida en Arte' };
     const usuario = sesion ? sesion.usuario : '';
     const rol = sesion && sesion.roles && sesion.roles.length ? sesion.roles.map(r => r.nombre).join(' · ') : '';
     const miga = (ruta || []).map((p, i, l) => i < l.length - 1 && p.url
