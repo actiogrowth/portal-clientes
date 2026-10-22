@@ -11,7 +11,7 @@
   Proyecto 2. 23-oct: cabecera baja como el resto del portal, pestaña
   Documentos (todas las filas de «Documentos VEA») y desplegables por unidad
   y por mes, cerrados al abrir cada pestaña. -->
-<link rel="stylesheet" href="/comun/vea.css?v=9eadc9a5d1">
+<link rel="stylesheet" href="/comun/vea.css?v=dc4eac83ac">
 </head>
 <body>
 <header id="cab"></header>
@@ -65,7 +65,7 @@
 
 <script src="/comun/datos.js?v=fe16b3d544"></script>
 <script src="/comun/marca.js?v=bc6a4e424f"></script>
-<script src="/comun/visor.js?v=7009c9d8cb"></script>
+<script src="/comun/visor.js?v=a241db0d73"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -224,6 +224,7 @@ function filaEntregable(e) {
   return '<div class="pa-fila-e">' +
     '<div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(e.entregable) +
       (est !== 'Entregado' ? ' <span class="chip ' + (est === 'En curso' ? 'pa-curso' : 'pa-pend') + '">' + est + (est === 'En curso' && e.avance ? ' · ' + esc(e.avance) + ' %' : '') + '</span>' : '') +
+      (e.ocultoCliente ? ' <span class="pa-oculto">Oculto al cliente</span>' : '') +
     '</span>' + (sub ? '<span class="ayuda">' + esc(sub) + '</span>' : '') + '</div>' +
     '<div class="pa-versiones-fila">' + (vs.length ? vs.map(v =>
       '<button type="button" class="pa-boton" data-abrir="' + esc(e.id) + '" data-version="' + esc(v.version) + '">' + icono(v.version) + esc(v.version) + '</button>').join('')
@@ -237,7 +238,7 @@ function filaEntregable(e) {
    deduce el visor (Documento / Presentación / Interactiva). */
 function versionDoc(d) {
   if (/\(\s*video[^()]*\)\s*$/i.test(d.nombre || '') || /^https?:\/\/([^/]+\.)?(loom\.com|youtube\.com|youtu\.be|vimeo\.com)\//i.test(d.enlace || '')) return 'Video';
-  return /^https?:\/\//i.test(d.enlace || '') ? Visor.version(d.nombre, d.enlace) : '';
+  return Visor.vista(d.enlace).modo !== 'nada' ? Visor.version(d.nombre, d.enlace) : '';
 }
 function pintarDocumentos() {
   const todos = delProyecto(D.documentos).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
@@ -252,7 +253,8 @@ function pintarDocumentos() {
     return grupo('documentos', nom, cabUnidad(unidad(ds[0].unidad)), '<div class="pa-filas">' + ds.map(d => {
       const i = D.documentos.indexOf(d), puede = Visor.vista(d.enlace).modo !== 'nada', des = Visor.descarga(d.enlace);
       const sub = [versionDoc(d), fecha(d.fecha)].filter(Boolean).join(' · ');
-      return '<div class="pa-fila-e"><div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(d.nombre) + '</span>' +
+      return '<div class="pa-fila-e"><div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(d.nombre) +
+        (d.ocultoCliente ? ' <span class="pa-oculto">Oculto al cliente</span>' : '') + '</span>' +
         (sub ? '<span class="ayuda">' + esc(sub) + '</span>' : '') + '</div><div class="pa-versiones-fila">' +
         (puede ? '<button type="button" class="pa-boton" data-doc="' + i + '">' + icono('Abrir') + 'Abrir</button>' : '<span class="pa-por-cargar">Sin enlace</span>') +
         (des ? '<a class="pa-boton" href="' + esc(des) + '" target="_blank" rel="noopener">' + icono('Descargar') + 'Descargar</a>' : '') +
@@ -376,7 +378,9 @@ function verVersion(i) {
   if (des) $('#visorDescargar').href = des;
   $('#visorCompleta').classList.toggle('oculto', x.modo !== 'incrustar' || !document.fullscreenEnabled);
   $('#visorCuerpo').innerHTML = x.modo === 'incrustar'
-    ? '<iframe src="' + esc(x.url) + '" title="' + esc(v.version + ': ' + (v.nombre || '')) + '" allow="fullscreen; autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>'
+    ? '<iframe src="' + esc(x.url) + '" title="' + esc(v.version + ': ' + (v.nombre || '')) + '" allow="fullscreen; autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"' +
+      // Presentación del portal: sus scripts corren, pero aislada en un origen propio: no ve la sesión ni esta página.
+      (x.aislado ? ' sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"' : '') + '></iframe>'
     : '<div class="pantalla"><h2>' + esc(v.version) + '</h2><p>Este enlace no se puede mostrar dentro del portal: se abre en una pestaña nueva.</p>' +
       '<a class="btn negro" href="' + esc(x.url) + '" target="_blank" rel="noopener">Abrir en una pestaña nueva</a></div>';
 }

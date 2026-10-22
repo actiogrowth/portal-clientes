@@ -22,7 +22,8 @@ const ROTURAS = [
   ['acepta claves cortas', "if (!clave || clave.length < 24)", "if (!clave)"],
   ['no normaliza dd/mm/aaaa', "if (m) return m[3] + '-' + dos_(+m[2]) + '-' + dos_(+m[1]);", "if (m) return s;"],
   ['el 100 % de una celda con formato queda en 1', "return Math.round((x <= 1 ? x * 100 : x) * 10) / 10;", "return x;"],
-  ['no salta las filas vacías', "if (!vacia) filas.push(o);", "filas.push(o);"]
+  ['no salta las filas vacías', "if (!vacia) filas.push(o);", "filas.push(o);"],
+  ['no lee «Visible para el cliente»', "    { titulo: 'Proyecto', campo: 'proyecto', obligatoria: true },\n    { titulo: 'Visible para el cliente', campo: 'visibleCliente' }", "    { titulo: 'Proyecto', campo: 'proyecto', obligatoria: true }"]
 ];
 
 const original = fs.readFileSync(GS, 'utf8').replace(/\r\n/g, '\n');

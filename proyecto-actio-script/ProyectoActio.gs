@@ -14,6 +14,9 @@
  *  · «Origen duración» y «Notas» de Atención Directa son internas de Actio:
  *    no se leen. El recorte por rol (Proyecto 2 solo para Administrador) lo
  *    hace el portal, en api.php.
+ *  · «Visible para el cliente» (Entregables y Documentos VEA) es opcional: si
+ *    la columna no existe, el campo sale vacío y rige la regla por proyecto.
+ *    El portal decide con ella qué ve Dirección (api.php).
  *
  *  Instalación: Extensiones › Apps Script en el MISMO Sheet, pegar este
  *  archivo, poner la propiedad PA_CLAVE_API e Implementar como aplicación
@@ -34,7 +37,8 @@ var TABLAS = {
     { titulo: '% Avance', campo: 'avance', tipo: 'porcentaje' },
     { titulo: 'Fecha compromiso', campo: 'fechaCompromiso', tipo: 'fecha' },
     { titulo: 'Fecha real', campo: 'fechaReal', tipo: 'fecha' },
-    { titulo: 'Proyecto', campo: 'proyecto', obligatoria: true }
+    { titulo: 'Proyecto', campo: 'proyecto', obligatoria: true },
+    { titulo: 'Visible para el cliente', campo: 'visibleCliente' }   // Sí / No / vacío (23-oct; opcional)
   ] },
   documentos: { pestana: 'Documentos VEA', columnas: [
     { titulo: 'Nombre', campo: 'nombre', obligatoria: true },
@@ -44,7 +48,8 @@ var TABLAS = {
     { titulo: 'Fecha', campo: 'fecha', tipo: 'fecha' },
     { titulo: 'Enlace', campo: 'enlace', obligatoria: true },
     { titulo: 'ID Entregable', campo: 'idEntregable' },
-    { titulo: 'Proyecto', campo: 'proyecto' }
+    { titulo: 'Proyecto', campo: 'proyecto' },
+    { titulo: 'Visible para el cliente', campo: 'visibleCliente' }   // Sí / No / vacío (23-oct; opcional)
   ] },
   reuniones: { pestana: 'Reuniones VEA', columnas: [
     { titulo: 'Fecha', campo: 'fecha', tipo: 'fecha', obligatoria: true },

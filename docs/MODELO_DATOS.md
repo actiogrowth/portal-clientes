@@ -315,8 +315,8 @@ letra) y desde la fila de títulos que encuentre en las primeras filas.
 
 | Pestaña | Columnas que se leen | Obligatorias |
 |---|---|---|
-| Entregables | Unidad de negocio, Entregable, Segmento, Estado, % Avance, Fecha compromiso, Fecha real, Proyecto, ID | Entregable, Proyecto, ID |
-| Documentos VEA | Nombre, Unidad de negocio, Segmento, Tipo, Fecha, Enlace, ID Entregable (y Proyecto si existe) | Nombre, Enlace |
+| Entregables | Unidad de negocio, Entregable, Segmento, Estado, % Avance, Fecha compromiso, Fecha real, Proyecto, ID, Visible para el cliente (opcional) | Entregable, Proyecto, ID |
+| Documentos VEA | Nombre, Unidad de negocio, Segmento, Tipo, Fecha, Enlace, ID Entregable (y Proyecto y Visible para el cliente, si existen) | Nombre, Enlace |
 | Reuniones VEA | Fecha, Tema, Minuta, Grabación (y Proyecto si existe) | Fecha, Tema |
 | Atención Directa | Fecha, Tipo, Duración (min), Asunto, Unidad de negocio, Enlace (y Proyecto si existe) | Fecha, Tipo |
 
@@ -328,6 +328,15 @@ documentos: Documento, Presentación e Interactiva. La versión sale de la
 etiqueta final del nombre — «Modelo de negocio (Presentación)» — y, si no la
 tiene, del tipo de enlace (Drive o Google Docs → Documento; Gamma o Google
 Slides → Presentación; cualquier otra página → Interactiva).
+
+**Visible para el cliente** (opcional, 23-oct): Sí / No / vacío. Decide qué
+recibe Dirección fila por fila (regla en `ACCIONES_API.md`). En Firebase:
+campo `visibleCliente` (`true` | `false` | `null`) en `entregables` y
+`documentos`.
+
+**Enlace.** Una dirección `https://…` (Drive, Google Docs, Gamma, otra
+página) o una ruta del portal `/proyecto-actio/archivos/<nombre>.html` para
+las presentaciones privadas que se suben al portal.
 
 **Unidad de negocio.** El dato dice «Kinder»; en pantalla se muestra
 «Preschool» (D-046). El dato no cambia.

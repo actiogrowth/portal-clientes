@@ -12,10 +12,16 @@
  *      /proyecto-actio/): solo Administrador y Dirección.
  *   2. Una sola acción, «leer».
  *   3. EL RECORTE ES DE ESTE ARCHIVO, no de la pantalla: quien no tiene
- *      pa.internos (Dirección) recibe solo las filas de los proyectos del
- *      cliente (pa_proyectos_cliente); el resto no sale del servidor. Quien lo
- *      tiene (Administrador) recibe todo, con soloActio en lo que no es del
- *      cliente.
+ *      pa.internos (Dirección) recibe solo lo visible para el cliente:
+ *        · «Visible para el cliente» = Sí → se envía, aunque sea de Proyecto 2;
+ *        · = No → nunca se envía;
+ *        · vacío (o sin la columna) → regla por proyecto: solo los de
+ *          pa_proyectos_cliente. Un documento con la celda vacía hereda la
+ *          visibilidad de su entregable (como hereda su proyecto).
+ *      Reuniones y Atención directa: solo la regla por proyecto.
+ *      Quien tiene pa.internos (Administrador) recibe todo, con soloActio en
+ *      lo que no es de un proyecto del cliente y ocultoCliente en lo que
+ *      Dirección no ve.
  *   4. Lista blanca de campos por tabla: aunque el script mandara de más
  *      (p. ej. «Notas» u «Origen duración» de Atención directa), no sale.
  *
@@ -112,6 +118,14 @@ function pa_guardar_copia(string $archivo, string $cuerpo): void {
 
 function pa_norm(string $s): string { return mb_strtolower(trim(preg_replace('/\s+/u', ' ', $s))); }
 
+/** «Visible para el cliente»: 'si', 'no' o '' (vacío o cualquier otra cosa: rige la regla por proyecto). */
+function pa_visible(string $v): string {
+    $v = strtr(pa_norm($v), ['í' => 'i']);
+    if (in_array($v, ['si', 's', 'x', 'yes', 'true', '1'], true)) return 'si';
+    if (in_array($v, ['no', 'n', 'false', '0'], true)) return 'no';
+    return '';
+}
+
 /**
  * La respuesta del script, recortada para quien pregunta. $internos: si ve lo
  * que no es del cliente. $cliente: los proyectos que ve Vida en Arte. Una fila
@@ -126,9 +140,11 @@ function pa_recortar(string $cuerpo, bool $internos, array $cliente, ?int $edad)
     $r = $j['resultado'];
     $deCliente = array_map('pa_norm', array_map('strval', $cliente));
     $porDefecto = (string) $cliente[0];
-    $proyEntregable = [];
+    $proyEntregable = []; $visEntregable = [];
     foreach (is_array($r['entregables'] ?? null) ? $r['entregables'] : [] as $e) {
-        if (is_array($e) && isset($e['id'])) $proyEntregable[(string) $e['id']] = trim((string) ($e['proyecto'] ?? ''));
+        if (!is_array($e) || !isset($e['id'])) continue;
+        $proyEntregable[(string) $e['id']] = trim((string) ($e['proyecto'] ?? ''));
+        $visEntregable[(string) $e['id']] = pa_visible((string) ($e['visibleCliente'] ?? ''));
     }
     $out = ['generado' => (string) ($r['generado'] ?? ''), 'proyectos' => []];
     $vistos = [];
@@ -140,13 +156,17 @@ function pa_recortar(string $cuerpo, bool $internos, array $cliente, ?int $edad)
             if ($p === '' && $tabla === 'documentos') $p = $proyEntregable[(string) ($f['idEntregable'] ?? '')] ?? '';
             if ($p === '') $p = $porDefecto;
             $soloActio = !in_array(pa_norm($p), $deCliente, true);
-            if ($soloActio && !$internos) continue;            // Dirección: lo de Actio no sale del servidor
+            $v = in_array($tabla, ['entregables', 'documentos'], true) ? pa_visible((string) ($f['visibleCliente'] ?? '')) : '';
+            if ($v === '' && $tabla === 'documentos') $v = $visEntregable[(string) ($f['idEntregable'] ?? '')] ?? '';
+            $alCliente = $v === 'si' ? true : ($v === 'no' ? false : !$soloActio);
+            if (!$alCliente && !$internos) continue;           // Dirección: lo que no es para el cliente no sale del servidor
             $fila = [];
             foreach ($campos as $c) $fila[$c] = $f[$c] ?? '';
             $fila['proyecto'] = $p;
-            $fila['soloActio'] = $soloActio;
+            $fila['soloActio'] = $internos && $soloActio;       // a Dirección no le llega lo interno
+            $fila['ocultoCliente'] = $internos && !$alCliente;
             $out[$tabla][] = $fila;
-            $vistos[$p] = $soloActio;
+            $vistos[$p] = ($vistos[$p] ?? true) && $fila['soloActio'];
         }
     }
     // Primero los del cliente, en el orden de la configuración; después los demás.

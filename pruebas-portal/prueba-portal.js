@@ -181,11 +181,18 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
   entregables: [
     { id: 'E-001', unidad: 'Kinder', entregable: 'Plan de prueba uno', segmento: 'Ventas', estado: 'Entregado', avance: 100, fechaCompromiso: '', fechaReal: '2026-03-31', proyecto: 'Proyecto 1', secreto: 'NO-DEBE-SALIR' },
     { id: 'E-002', unidad: 'After School', entregable: 'Plan de prueba dos', segmento: 'Servicio', estado: 'En curso', avance: 40, fechaCompromiso: '2026-11-30', fechaReal: '', proyecto: '' },
-    { id: 'E-901', unidad: 'Gerencia', entregable: 'Plan reservado de Actio', segmento: 'Finanzas', estado: 'Pendiente', avance: 0, fechaCompromiso: '', fechaReal: '', proyecto: 'Proyecto 2' }],
+    { id: 'E-901', unidad: 'Gerencia', entregable: 'Plan reservado de Actio', segmento: 'Finanzas', estado: 'Pendiente', avance: 0, fechaCompromiso: '', fechaReal: '', proyecto: 'Proyecto 2' },
+    // 23-oct: «Visible para el cliente»
+    { id: 'E-003', unidad: 'Kinder', entregable: 'Plan OCULTO-P1 de prueba', segmento: 'Ventas', estado: 'Entregado', avance: 100, fechaCompromiso: '', fechaReal: '2026-04-01', proyecto: 'Proyecto 1', visibleCliente: 'No' },
+    { id: 'E-902', unidad: 'Gerencia', entregable: 'Plan compartido de Proyecto 2', segmento: 'Finanzas', estado: 'En curso', avance: 50, fechaCompromiso: '2026-12-01', fechaReal: '', proyecto: 'Proyecto 2', visibleCliente: 'Sí' }],
   documentos: [
     { nombre: 'Plan de prueba uno (Documento)', unidad: 'Kinder', segmento: 'Ventas', tipo: 'Entregable', fecha: '2026-03-31', enlace: 'https://ejemplo.test/doc-uno', idEntregable: 'E-001', proyecto: '' },
     { nombre: 'Plan reservado de Actio (Documento)', unidad: 'Gerencia', segmento: 'Finanzas', tipo: 'Entregable', fecha: '2026-10-01', enlace: 'https://ejemplo.test/doc-reservado', idEntregable: 'E-901', proyecto: '' },
-    { nombre: 'Guía suelta de prueba', unidad: 'Gerencia', segmento: '', tipo: 'Documento', fecha: '2026-05-01', enlace: 'https://ejemplo.test/guia', idEntregable: '', proyecto: '' }],
+    { nombre: 'Guía suelta de prueba', unidad: 'Gerencia', segmento: '', tipo: 'Documento', fecha: '2026-05-01', enlace: 'https://ejemplo.test/guia', idEntregable: '', proyecto: '' },
+    { nombre: 'Plan OCULTO-P1 de prueba (Documento)', unidad: 'Kinder', segmento: 'Ventas', tipo: 'Entregable', fecha: '2026-04-01', enlace: 'https://ejemplo.test/doc-oculto', idEntregable: 'E-003', proyecto: '', visibleCliente: '' },
+    { nombre: 'Plan compartido de Proyecto 2 (Presentación)', unidad: 'Gerencia', segmento: 'Finanzas', tipo: 'Entregable', fecha: '2026-10-05', enlace: '/proyecto-actio/archivos/plan-compartido.html', idEntregable: 'E-902', proyecto: '', visibleCliente: '' },
+    { nombre: 'Guía OCULTO-SUELTA de prueba', unidad: 'Gerencia', segmento: '', tipo: 'Documento', fecha: '2026-05-02', enlace: 'https://ejemplo.test/guia-oculta', idEntregable: '', proyecto: '', visibleCliente: 'No' },
+    { nombre: 'Guía compartida suelta de Proyecto 2', unidad: 'Gerencia', segmento: '', tipo: 'Capacitación', fecha: '2026-10-06', enlace: 'https://ejemplo.test/guia-p2', idEntregable: '', proyecto: 'Proyecto 2', visibleCliente: 'si' }],
   reuniones: [
     { fecha: '2026-07-22', tema: 'Reunión de prueba', minuta: 'https://ejemplo.test/minuta', grabacion: '', proyecto: '' },
     { fecha: '2026-09-01', tema: 'Reunión reservada de Actio', minuta: 'https://ejemplo.test/minuta-reservada', grabacion: '', proyecto: 'Proyecto 2' }],
@@ -245,7 +252,7 @@ class Nav {
     }
     const texto = await r.text();
     let j = null; try { j = JSON.parse(texto); } catch (e) { }
-    return { status: r.status, location: r.headers.get('location') || '', texto, j };
+    return { status: r.status, location: r.headers.get('location') || '', tipo: r.headers.get('content-type') || '', texto, j };
   }
   get(ruta, o) { return this.pedir('GET', ruta, o); }
   post(ruta, o) { return this.pedir('POST', ruta, o); }
@@ -637,6 +644,8 @@ async function correr(fuente) {
       ok(/data-vista="documentos"[^>]*>Documentos</.test(pg.texto) && /data-vista="atencion"[^>]*>Acompañamiento</.test(pg.texto) &&
         /aria-expanded/.test(pg.texto) && !/pa-franja/.test(pg.texto) && !/<style>/.test(pg.texto),
         'ajustes 23-oct: pestañas Documentos y Acompañamiento, desplegables con aria-expanded, cabecera baja y sin estilos propios');
+      ok(/sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"/.test(pg.texto) && !/allow-same-origin/.test(pg.texto),
+        'las presentaciones del portal se abren en un iframe con sandbox y SIN allow-same-origin (no ven la sesión)');
       // Administrador: todo, con «soloActio» en lo que no es del cliente
       const ad = await leerPA('admin-uno');
       const A = ad.j && ad.j.resultado;
@@ -645,15 +654,28 @@ async function correr(fuente) {
       ok(A && A.entregables.find(e => e.id === 'E-002').proyecto === 'Proyecto 1', 'una fila sin proyecto queda con el primero del cliente');
       ok(A && A.documentos.find(d => /reservado/.test(d.nombre)).proyecto === 'Proyecto 2', 'un documento sin proyecto toma el de su entregable');
       // Lista blanca: lo interno nunca sale, ni para Administrador
-      ok(!/NOTA-INTERNA|NO-DEBE-SALIR|Medida|Estimada|origenDuracion|"notas"|secreto/.test(ad.texto), 'Administrador tampoco recibe Notas, Origen duración ni campos fuera del contrato');
+      ok(!/NOTA-INTERNA|NO-DEBE-SALIR|Medida|Estimada|origenDuracion|"notas"|secreto|visibleCliente/.test(ad.texto), 'Administrador tampoco recibe Notas, Origen duración ni campos fuera del contrato');
+      // Administrador: el sello «Oculto al cliente» en todo lo que Dirección no ve
+      const oc = (lista, f) => (A[lista].find(f) || {}).ocultoCliente;
+      ok(A && oc('entregables', e => e.id === 'E-003') === true && oc('entregables', e => e.id === 'E-901') === true &&
+        oc('entregables', e => e.id === 'E-902') === false && oc('entregables', e => e.id === 'E-001') === false,
+        'Administrador: ocultoCliente en «No» y en Proyecto 2 sin «Sí»; no en «Sí» ni en Proyecto 1');
+      ok(A && oc('documentos', d => /OCULTO-P1/.test(d.nombre)) === true && oc('documentos', d => /OCULTO-SUELTA/.test(d.nombre)) === true &&
+        oc('documentos', d => /compartido de Proyecto 2/.test(d.nombre)) === false && oc('documentos', d => /compartida suelta/.test(d.nombre)) === false,
+        'Administrador: un documento vacío hereda la visibilidad de su entregable; uno suelto usa la suya');
       // Dirección: Proyecto 2 no sale del servidor
       const di = await leerPA('prueba-direccion');
       const Dd = di.j && di.j.resultado;
       ok(Dd && Dd.documentos.some(d => !d.idEntregable), 'a Dirección le llegan también los documentos sin entregable (pestaña Documentos)');
-      ok(di.status === 200 && di.j.ok && JSON.stringify(Dd.proyectos) === '["Proyecto 1"]', 'Dirección recibe solo Proyecto 1');
-      ok(!/Proyecto 2|E-901|reservad|NOTA-INTERNA|Medida|Estimada|origenDuracion|"notas"|NO-DEBE-SALIR|"soloActio":true/.test(di.texto), 'a Dirección no le llega nada de Proyecto 2 ni lo interno (ni en el texto de la respuesta)');
-      ok(Dd && Dd.entregables.length === 2 && Dd.documentos.length === 2 && Dd.reuniones.length === 1 && Dd.atencion.length === 1, 'Dirección: 2 entregables, 2 documentos, 1 reunión, 1 atención');
-      ok(Dd && Object.keys(Dd.atencion[0]).sort().join() === 'asunto,duracionMin,enlace,fecha,proyecto,soloActio,tipo,unidad', 'atención directa: solo los campos del contrato');
+      ok(di.status === 200 && di.j.ok && JSON.stringify(Dd.proyectos) === '["Proyecto 1","Proyecto 2"]', 'Dirección ve Proyecto 2 solo porque tiene filas «Sí» (' + JSON.stringify(Dd && Dd.proyectos) + ')');
+      ok(!/E-901|reservad|OCULTO|NOTA-INTERNA|Medida|Estimada|origenDuracion|"notas"|NO-DEBE-SALIR|"soloActio":true|"ocultoCliente":true|visibleCliente/.test(di.texto),
+        'a Dirección nunca le llega una fila «No», ni una de Proyecto 2 sin «Sí», ni lo interno (ni en el texto de la respuesta)');
+      ok(Dd && Dd.entregables.map(e => e.id).sort().join() === 'E-001,E-002,E-902', 'Dirección: entregables E-001, E-002 y el de Proyecto 2 con «Sí» (' + (Dd && Dd.entregables.map(e => e.id).join()) + ')');
+      ok(Dd && Dd.documentos.length === 4 && Dd.documentos.some(d => /compartido de Proyecto 2/.test(d.nombre)) && Dd.documentos.some(d => /compartida suelta/.test(d.nombre)),
+        'Dirección: los documentos visibles, también los de Proyecto 2 con «Sí» (propio o heredado de su entregable)');
+      ok(Dd && Dd.reuniones.length === 1 && Dd.atencion.length === 1 && !/reservad/i.test(JSON.stringify(Dd.reuniones.concat(Dd.atencion))),
+        'reuniones y atención: sin cambios (solo los proyectos del cliente)');
+      ok(Dd && Object.keys(Dd.atencion[0]).sort().join() === 'asunto,duracionMin,enlace,fecha,ocultoCliente,proyecto,soloActio,tipo,unidad', 'atención directa: solo los campos del contrato');
       // Solo «leer»
       const otra = await n['admin-uno'].post('/proyecto-actio/api.php', { json: { accion: 'guardar' } });
       ok(otra.status === 403 && otra.j && otra.j.codigo === 'sin_permiso', 'cualquier acción que no sea «leer» se rechaza');
@@ -666,7 +688,7 @@ async function correr(fuente) {
       const c = JSON.parse(fs.readFileSync(cache, 'utf8')); c.t -= 3600; fs.writeFileSync(cache, JSON.stringify(c));
       PA.falla = true;
       const caido = await leerPA('prueba-direccion');
-      ok(caido.status === 200 && caido.j.copia && caido.j.copia.segundos >= 3600 && !/Proyecto 2/.test(caido.texto), 'si Google no responde, se entrega la copia (recortada) y se dice de cuándo es');
+      ok(caido.status === 200 && caido.j.copia && caido.j.copia.segundos >= 3600 && !/reservad|OCULTO/.test(caido.texto), 'si Google no responde, se entrega la copia (recortada) y se dice de cuándo es');
       c.t -= 2 * 86400; fs.writeFileSync(cache, JSON.stringify(c));
       const viejo = await leerPA('prueba-direccion');
       ok(viejo.status >= 500 && viejo.j && viejo.j.ok === false && !/Plan de prueba/.test(viejo.texto), 'una copia de más de un día no se usa: error, sin datos');
@@ -674,6 +696,29 @@ async function correr(fuente) {
       fs.unlinkSync(cache);
       const fresco = await leerPA('admin-uno');
       ok(fresco.status === 200 && fresco.j.ok && !fresco.j.copia, 'sin copia, se vuelve a leer del Sheet');
+    }
+
+    seccion('Proyecto Actio: presentaciones privadas en /proyecto-actio/archivos/');
+    {
+      const dir = path.join(web, 'proyecto-actio', 'archivos');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'plan-de-prueba.html'), '<!doctype html><title>Presentación de prueba</title><p>CONTENIDO-PRESENTACION</p>');
+      fs.writeFileSync(path.join(dir, 'malo.php'), '<?php echo "EJ" . "ECUTADO";');
+      const pres = await n['admin-uno'].get('/proyecto-actio/archivos/plan-de-prueba.html');
+      ok(pres.status === 200 && /CONTENIDO-PRESENTACION/.test(pres.texto) && /^text\/html/.test(pres.tipo), 'Administrador abre la presentación, servida como text/html');
+      ok(/CONTENIDO-PRESENTACION/.test((await n['prueba-direccion'].get('/proyecto-actio/archivos/plan-de-prueba.html')).texto), 'Dirección también');
+      for (const u of ['prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-profesor-1']) {
+        const r = await n[u].get('/proyecto-actio/archivos/plan-de-prueba.html');
+        ok(r.status !== 200 && !/CONTENIDO-PRESENTACION/.test(r.texto), u + ': no abre las presentaciones de Proyecto Actio (' + r.status + ')');
+      }
+      const anon = await new Nav(base).get('/proyecto-actio/archivos/plan-de-prueba.html');
+      ok(anon.status === 302 && /login\.html/.test(anon.location) && !/CONTENIDO-PRESENTACION/.test(anon.texto), 'sin sesión: al login, sin contenido');
+      const lista = await n['admin-uno'].get('/proyecto-actio/archivos/');
+      ok(lista.status !== 200 || !/plan-de-prueba|malo\.php/.test(lista.texto), 'la carpeta no se lista (' + lista.status + ')');
+      const php = await n['admin-uno'].get('/proyecto-actio/archivos/malo.php');
+      ok(php.status !== 200 && !/EJECUTADO|<\?php/.test(php.texto), 'un .php subido ahí no se ejecuta ni se entrega (' + php.status + ')');
+      ok(fs.existsSync(path.join(fuente || REPO, 'proyecto-actio', 'archivos', 'htaccess.txt')), 'la carpeta lleva su propio .htaccess (htaccess.txt en el repo)');
+      fs.unlinkSync(path.join(dir, 'malo.php'));
     }
 
     seccion('After School: cada acción según el rol; las prohibidas no llegan al Apps Script');

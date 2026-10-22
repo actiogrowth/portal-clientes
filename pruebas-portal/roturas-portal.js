@@ -18,7 +18,13 @@ const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista',
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
   // 22-oct: Proyecto Actio
-  ['Dirección recibe Proyecto 2 (sin recorte en el servidor)', 'proyecto-actio/api.php', "if ($soloActio && !$internos) continue;", ""],
+  ['Dirección recibe filas «No»', 'proyecto-actio/api.php', "$alCliente = $v === 'si' ? true : ($v === 'no' ? false : !$soloActio);", "$alCliente = $v === 'si' ? true : !$soloActio;"],
+  ['no se respeta «Sí» (solo la regla por proyecto)', 'proyecto-actio/api.php', "$alCliente = $v === 'si' ? true : ($v === 'no' ? false : !$soloActio);", "$alCliente = $v === 'no' ? false : !$soloActio;"],
+  ['un documento no hereda la visibilidad de su entregable', 'proyecto-actio/api.php', "if ($v === '' && $tabla === 'documentos') $v = $visEntregable[(string) ($f['idEntregable'] ?? '')] ?? '';", ""],
+  ['a Dirección le llega soloActio', 'proyecto-actio/api.php', "$fila['soloActio'] = $internos && $soloActio;", "$fila['soloActio'] = $soloActio;"],
+  ['las presentaciones se abren sin sandbox', 'proyecto-actio/index.html', " sandbox=\"allow-scripts allow-popups allow-popups-to-escape-sandbox\"", ""],
+  ['las presentaciones con allow-same-origin (verían la sesión)', 'proyecto-actio/index.html', "allow-scripts allow-popups allow-popups-to-escape-sandbox", "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"],
+  ['Dirección recibe Proyecto 2 (sin recorte en el servidor)', 'proyecto-actio/api.php', "if (!$alCliente && !$internos) continue;", ""],
   ['Dirección tiene pa.internos', 'portal-raiz/permisos.php', "'excepto' => ['usuarios.admin', 'pa.internos'],", "'excepto' => ['usuarios.admin'],"],
   ['Proyecto Actio sin lista blanca (salen las Notas)', 'proyecto-actio/api.php', "foreach ($campos as $c) $fila[$c] = $f[$c] ?? '';", "$fila = $f;"],
   ['cualquier rol de After School abre Proyecto Actio', 'portal-raiz/permisos.php', "'proyecto-actio' => 'proyecto-actio',", "'proyecto-actio' => 'afterschool',"],

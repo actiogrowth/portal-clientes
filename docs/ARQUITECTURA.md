@@ -181,6 +181,33 @@ Reemplaza al «Sistema Operativo» de GitHub Pages. **Solo lectura.**
   catálogo a Firebase, cambian los enlaces o la fuente, no la pantalla
   (modelo en `MODELO_DATOS.md`).
 
+**Visible para el cliente** (23-oct): columna opcional en Entregables y
+Documentos VEA; la regla la aplica `api.php` (ver `ACCIONES_API.md`). La
+pantalla de Administrador marca con «Oculto al cliente» lo que Dirección no
+ve.
+
+**Presentaciones privadas** (23-oct): `/proyecto-actio/archivos/` guarda
+presentaciones `.html` que solo se abren con sesión y con el área
+`proyecto-actio` (las entrega `gate.php`, como `text/html`, sin caché).
+Segundo cerrojo: `proyecto-actio/archivos/.htaccess` (sin listado, sin
+ejecutar scripts aunque alguien suba un `.php`). Nombres: solo minúsculas,
+números y guiones, terminados en `.html` (`^[a-z0-9][a-z0-9-]*\.html$`); el
+Enlace del Sheet es la ruta: `/proyecto-actio/archivos/<nombre>.html`. El
+visor las abre en un iframe con `sandbox="allow-scripts allow-popups
+allow-popups-to-escape-sandbox"`, **sin `allow-same-origin`**: la
+presentación corre en un origen propio y no ve la sesión ni la página del
+portal (comprobado: las presentaciones no usan almacenamiento ni cookies).
+Pantalla completa por el botón del visor o el de la propia presentación.
+Ojo: un archivo de esta carpeta lo abre cualquier Administrador o
+Dirección que conozca su ruta; «Visible para el cliente» oculta la fila, no
+el archivo.
+
+**Más adelante — sección «Procesos»** (no construida): cada rol verá las
+presentaciones de procesos que le tocan (p. ej. Recepción las de atención,
+Coordinación las de su unidad). Reutilizará estas mismas piezas: archivos
+privados del portal, visor aislado y un catálogo en el Sheet con una columna
+de roles.
+
 **Instalar el Apps Script** (lo hace Actio, una sola vez):
 1. Abrir el Sheet «Datos — Vida en Arte» › Extensiones › Apps Script.
 2. Pegar `proyecto-actio-script/ProyectoActio.gs` (reemplazando lo que haya en

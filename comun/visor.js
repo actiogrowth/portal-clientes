@@ -10,6 +10,10 @@
      Google Docs/Hojas/
        Presentaciones       /preview (solo lectura); descarga como PDF/XLSX
      Gamma                  su modo de inserción (/embed/<id>); sin descarga
+     /proyecto-actio/archivos/<nombre>.html
+                            presentación privada del portal: se incrusta
+                            AISLADA (iframe con sandbox, sin allow-same-origin:
+                            sus scripts corren pero no ven la sesión)
      cualquier otro enlace  se abre en pestaña nueva (no se incrusta)
    ========================================================================== */
 (function (raiz) {
@@ -21,11 +25,14 @@
 
   const drive = u => (u.match(/^https?:\/\/drive\.google\.com\/file\/d\/([^/?#]+)/) || [])[1] || '';
   const docs = u => { const m = u.match(/^https?:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/?#]+)/); return m ? { tipo: m[1], id: m[2] } : null; };
+  /* Presentación privada del portal: solo un nombre simple en minúsculas. */
+  const archivoPortal = u => /^\/proyecto-actio\/archivos\/[a-z0-9][a-z0-9-]*\.html$/.test(u);
   const gamma = u => { const m = u.match(/^https?:\/\/gamma\.app\/(?:docs|embed|public)\/(?:[^/?#]*-)?([a-z0-9]+)(?:[/?#]|$)/i); return m ? m[1] : ''; };
 
   /** Cómo se muestra un enlace: {modo: 'incrustar' | 'nueva', url}. */
   function vista(enlace) {
     const u = String(enlace || '').trim();
+    if (archivoPortal(u)) return { modo: 'incrustar', url: u, aislado: true };
     if (!/^https?:\/\//i.test(u)) return { modo: 'nada', url: '' };
     const d = drive(u); if (d) return { modo: 'incrustar', url: 'https://drive.google.com/file/d/' + d + '/preview' };
     const g = docs(u); if (g) return { modo: 'incrustar', url: 'https://docs.google.com/' + g.tipo + '/d/' + g.id + '/preview' };
@@ -51,7 +58,7 @@
     const m = String(nombre || '').match(RE_ETIQUETA);
     if (m) { const v = VERSIONES.find(x => norm(x) === norm(m[2])); if (v) return v; }
     const u = String(enlace || '');
-    if (gamma(u) || (docs(u) || {}).tipo === 'presentation') return 'Presentación';
+    if (archivoPortal(u) || gamma(u) || (docs(u) || {}).tipo === 'presentation') return 'Presentación';
     if (drive(u) || docs(u)) return 'Documento';
     return /^https?:\/\//i.test(u) ? 'Interactiva' : 'Documento';
   }

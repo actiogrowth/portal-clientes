@@ -455,6 +455,9 @@ a.pa-boton { text-decoration: none; }
 .pa-por-cargar { font-size: 13px; color: var(--texto-3); min-height: 36px; display: inline-flex; align-items: center; }
 @media (pointer: coarse) { .pa-boton { min-height: var(--toque); } }
 .chip.pa-curso { background: var(--arena); color: var(--cafe); }
+/* Solo Administrador lo ve: la fila no le llega a Dirección. */
+.pa-oculto { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  border: 1px dashed var(--texto-2); color: var(--texto-2); vertical-align: 1px; white-space: nowrap; }
 .chip.pa-pend { background: var(--pildora); color: var(--texto-2); }
 /* Reuniones: por mes, fecha en forma de calendario. */
 .pa-mes-nom { font-size: 13px; font-weight: 600; color: var(--texto-2); text-transform: uppercase; letter-spacing: .5px; }

@@ -175,10 +175,10 @@ transporte con reintentos (`after-school/api.php` cargado con
 ```
 { generado: "2026-10-22T15:04:05Z",       // cuándo lo leyó el script
   proyectos: ["Proyecto 1", "Proyecto 2"],  // los que vienen en esta respuesta
-  entregables: [{ id, unidad, entregable, segmento, estado, avance, fechaCompromiso, fechaReal, proyecto, soloActio }],
-  documentos:  [{ nombre, unidad, segmento, tipo, fecha, enlace, idEntregable, proyecto, soloActio }],
-  reuniones:   [{ fecha, tema, minuta, grabacion, proyecto, soloActio }],
-  atencion:    [{ fecha, tipo, duracionMin, asunto, unidad, enlace, proyecto, soloActio }],
+  entregables: [{ id, unidad, entregable, segmento, estado, avance, fechaCompromiso, fechaReal, proyecto, soloActio, ocultoCliente }],
+  documentos:  [{ nombre, unidad, segmento, tipo, fecha, enlace, idEntregable, proyecto, soloActio, ocultoCliente }],
+  reuniones:   [{ fecha, tema, minuta, grabacion, proyecto, soloActio, ocultoCliente }],
+  atencion:    [{ fecha, tipo, duracionMin, asunto, unidad, enlace, proyecto, soloActio, ocultoCliente }],
   faltan: ["Documentos VEA: Enlace", …]     // columnas obligatorias que no están (vacío si todo bien)
 }
 // y, si la respuesta salió de la copia del servidor: copia: { segundos }
@@ -190,14 +190,33 @@ transporte con reintentos (`after-school/api.php` cargado con
   entregable (`idEntregable`); una fila sin proyecto queda con
   `pa_proyectos_cliente[0]`.
 - `soloActio`: `true` en las filas de un proyecto que no está en
-  `pa_proyectos_cliente` (solo le llegan a Administrador).
+  `pa_proyectos_cliente`. Solo para Administrador; a Dirección siempre le
+  llega `false`.
+- `ocultoCliente` (23-oct): `true` en lo que Dirección NO recibe. Solo para
+  Administrador (sello «Oculto al cliente»); a Dirección siempre `false`.
+- `enlace`: una dirección `https://…` o, para las presentaciones privadas del
+  portal, una ruta `/proyecto-actio/archivos/<nombre>.html`.
 
 ### Recorte (lo hace `api.php`, no el script ni la pantalla)
 
 | Rol | Recibe |
 |---|---|
-| Administrador (`pa.internos`) | todas las filas; las de proyectos que no son del cliente con `soloActio: true` |
-| Dirección | **solo** las filas de `pa_proyectos_cliente` (hoy «Proyecto 1»); el resto no sale del servidor |
+| Administrador (`pa.internos`) | todas las filas, con `soloActio` y `ocultoCliente` |
+| Dirección | solo lo **visible para el cliente**; el resto no sale del servidor |
+
+**Visible para el cliente** (23-oct). En Entregables y Documentos VEA, la
+columna opcional «Visible para el cliente» decide fila por fila:
+
+| Valor | Dirección |
+|---|---|
+| Sí (o S, X) | la recibe, aunque sea de un proyecto que no es del cliente (p. ej. Proyecto 2) |
+| No (o N) | **nunca** la recibe |
+| vacío, o sin la columna | regla por proyecto: solo `pa_proyectos_cliente` |
+
+Un documento con la celda vacía **hereda la visibilidad de su entregable**
+(igual que hereda su proyecto). Reuniones y Atención directa: solo la regla
+por proyecto. El selector de proyecto de Dirección muestra un proyecto solo
+si le llegó al menos una fila de ese proyecto.
 
 En `atencion` nunca se envían «Origen duración» ni «Notas»: el script no las
 lee y `api.php` igual responde con una **lista blanca** de campos por tabla.

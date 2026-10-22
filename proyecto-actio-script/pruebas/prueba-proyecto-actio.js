@@ -23,11 +23,11 @@ const HOJAS = {
   'Entregables': [
     ['Hoja de ruta de prueba', '', '', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', '', '', ''],
-    ['ID', 'Proyecto', 'Entregable', 'Unidad de negocio', 'Columna de más', 'Segmento', 'Estado', '% Avance', 'Fecha compromiso', 'Fecha real'],
-    ['E-001', 'Proyecto 1', 'Plan inventado uno', 'Kinder', 'x', 'Ventas', 'Entregado', 1, new Date(2026, 2, 31), '31/03/2026'],
-    ['E-002', 'Proyecto 1', 'Plan inventado dos', 'After School', 'x', 'Marketing', 'En curso', '45,5%', '', ''],
-    ['E-101', 'Proyecto 2', 'Plan interno', 'Gerencia', 'x', 'Finanzas', 'Pendiente', '0%', '2026-11-30', ''],
-    ['', '', '', '', '', '', '', '', '', '']
+    ['ID', 'Proyecto', 'Entregable', 'Unidad de negocio', 'Columna de más', 'Segmento', 'Estado', '% Avance', 'Fecha compromiso', 'Fecha real', 'Visible para el cliente'],
+    ['E-001', 'Proyecto 1', 'Plan inventado uno', 'Kinder', 'x', 'Ventas', 'Entregado', 1, new Date(2026, 2, 31), '31/03/2026', ''],
+    ['E-002', 'Proyecto 1', 'Plan inventado dos', 'After School', 'x', 'Marketing', 'En curso', '45,5%', '', '', 'No'],
+    ['E-101', 'Proyecto 2', 'Plan interno', 'Gerencia', 'x', 'Finanzas', 'Pendiente', '0%', '2026-11-30', '', 'Sí'],
+    ['', '', '', '', '', '', '', '', '', '', '']
   ],
   'Documentos VEA': [
     ['Enlace', 'Nombre', 'ID Entregable', 'Tipo', 'Unidad de negocio', 'Segmento', 'Fecha'],
@@ -86,6 +86,11 @@ ok(d[1].fecha === '2026-04-02' && d[0].fecha === '2026-04-02', 'fecha de documen
 ok(d[0].proyecto === '', 'sin columna Proyecto en Documentos, el campo va vacío (el portal lo toma del entregable)');
 const reu = (R.reuniones || [])[0] || {};
 ok(reu.tema === 'Reunión inventada' && reu.fecha === '2026-07-22' && reu.minuta === 'https://ejemplo.test/minuta' && reu.grabacion === '', 'reuniones por título');
+
+console.log('· «Visible para el cliente» (opcional)');
+const vis = id => ((R.entregables || []).find(e => e.id === id) || {}).visibleCliente;
+ok(vis('E-001') === '' && vis('E-002') === 'No' && vis('E-101') === 'Sí', 'se lee por título en Entregables');
+ok(d.every(x => x.visibleCliente === ''), 'en Documentos VEA, sin la columna, sale vacío (rige la regla por proyecto)');
 
 console.log('· atención directa: lo interno de Actio no sale');
 const a = R.atencion || [];
