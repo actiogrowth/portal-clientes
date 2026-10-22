@@ -513,9 +513,11 @@ window.VEAFS=function(btn,onChange){
   if(standalone){btn.hidden=true;return;}
   btn.hidden=false;btn.style.display='';
   var api=!!(d.fullscreenEnabled||d.webkitFullscreenEnabled)&&!!(r.requestFullscreen||r.webkitRequestFullscreen);
+  var ios=/iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1&&!api);
+  if(!api&&!ios){btn.hidden=true;return;}
   var tip=d.getElementById('fsTip'),ok=d.getElementById('fsTipOk');
   function inFS(){return !!(d.fullscreenElement||d.webkitFullscreenElement);}
-  function showTip(){if(tip){tip.hidden=false;if(ok)ok.focus();}}
+  function showTip(){if(!ios){btn.hidden=true;return;}if(tip){tip.hidden=false;if(ok)ok.focus();}}
   if(ok)ok.addEventListener('click',function(){tip.hidden=true;btn.focus();});
   if(tip)tip.addEventListener('click',function(e){if(e.target===tip)tip.hidden=true;});
   function sync(){var on=inFS();btn.classList.toggle('on',on);btn.setAttribute('aria-label',on?'Salir de pantalla completa':'Pantalla completa');btn.title=btn.getAttribute('aria-label');if(onChange)setTimeout(function(){onChange(on)},150);}
