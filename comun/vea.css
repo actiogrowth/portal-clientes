@@ -308,7 +308,7 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
   overflow: hidden; flex: 999 1 640px; min-width: 0; }
 .oc-bloque.finde { flex: 1 1 250px; }
 .oc-esq, .oc-dia-cab { background: #FAFAFA; border-bottom: 1px solid var(--gris); padding: 10px; font-size: 13px; }
-.oc-esq { color: var(--texto-2); font-size: 12px; padding: 10px 8px; }
+.oc-esq { color: var(--texto-2); font-size: 11px; padding: 10px 5px; white-space: nowrap; }   /* «Lun–Jue» en una línea */
 .oc-dia-cab { border-left: 1px solid var(--gris); }
 .oc-dia-cab span { color: #444444; }
 .oc-dia-cab.hoy { background: var(--negro); color: var(--blanco); }
@@ -388,6 +388,13 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
 
 /* Computador con mouse (coordinación): versión compacta, filas de ~44px y
    botones de ~36px. En pantallas táctiles y para el Profesor queda grande. */
+/* Computador con mouse (también el Profesor): las clases del día en varias
+   líneas, sin desplazamiento ni barra, y la lista con ancho máximo para que
+   los botones queden cerca de los nombres. */
+@media (pointer: fine) {
+  #v-lista { max-width: 900px; }
+  .pl-clases { flex-wrap: wrap; overflow-x: visible; padding-bottom: 0; }
+}
 @media (pointer: fine) {
   body:not(.solo-lista) .pl-clase { min-height: 40px; border-width: 1.5px; }
   body:not(.solo-lista) .pl-ninos { gap: 6px; }
