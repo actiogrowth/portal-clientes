@@ -1,0 +1,26 @@
+{
+  "name": "Bono del equipo comercial",
+  "short_name": "Bono comercial",
+  "start_url": "./bono-equipo-comercial.html",
+  "scope": "./bono-equipo-comercial.html",
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
+  "orientation": "any",
+  "background_color": "#f3f3f1",
+  "theme_color": "#f3f3f1",
+  "icons": [
+    {
+      "src": "iconos/vea-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "iconos/vea-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Mecanismo VEA"><meta name="theme-color" content="#1A1A1A"><link rel="manifest" href="mecanismo-vida-en-arte.webmanifest"><link rel="apple-touch-icon" href="iconos/vea-180.png"></head><body>
 <title>Mecanismo Vida en Arte</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -465,6 +465,58 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit
   </div>
 </div>
 
+<div id="fsTip" hidden role="dialog" aria-modal="true" aria-labelledby="fsTipT">
+  <div class="fsTipBox">
+    <b id="fsTipT">Pantalla completa en iPhone</b>
+    <p>Safari no deja que una página ocupe toda la pantalla del iPhone. Para verla sin barras:</p>
+    <ol>
+      <li>Toca <b>Compartir</b> (el cuadro con la flecha hacia arriba).</li>
+      <li>Elige <b>Agregar a pantalla de inicio</b>.</li>
+      <li>Abre la presentación desde el ícono nuevo.</li>
+    </ol>
+    <p>Mientras tanto, gira el teléfono: en horizontal Safari oculta sus barras.</p>
+    <button type="button" id="fsTipOk">Entendido</button>
+  </div>
+</div>
+<style>
+#fsTip{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
+#fsTip[hidden]{display:none!important}
+.fsTipBox{background:#fff;color:#111;border-radius:18px;padding:22px 22px 18px;max-width:360px;width:100%;max-height:100%;overflow:auto;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-sizing:border-box}
+.fsTipBox>b{display:block;font-size:19px;margin-bottom:8px}
+.fsTipBox p{margin:0 0 10px}
+.fsTipBox ol{margin:0 0 12px;padding-left:22px}
+.fsTipBox li{margin-bottom:6px}
+#fsTipOk{display:block;width:100%;min-height:46px;border:0;border-radius:12px;background:#111;color:#fff;font:600 16px/1 system-ui,-apple-system,sans-serif;cursor:pointer;touch-action:manipulation}
+</style>
+<script>
+window.VEAFS=function(btn,onChange){
+  if(!btn)return;
+  var d=document,r=d.documentElement;
+  var standalone=window.navigator.standalone===true||(window.matchMedia&&(matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches));
+  if(standalone){btn.hidden=true;return;}
+  btn.hidden=false;btn.style.display='';
+  var api=!!(d.fullscreenEnabled||d.webkitFullscreenEnabled)&&!!(r.requestFullscreen||r.webkitRequestFullscreen);
+  var tip=d.getElementById('fsTip'),ok=d.getElementById('fsTipOk');
+  function inFS(){return !!(d.fullscreenElement||d.webkitFullscreenElement);}
+  function showTip(){if(tip){tip.hidden=false;if(ok)ok.focus();}}
+  if(ok)ok.addEventListener('click',function(){tip.hidden=true;btn.focus();});
+  if(tip)tip.addEventListener('click',function(e){if(e.target===tip)tip.hidden=true;});
+  function sync(){var on=inFS();btn.classList.toggle('on',on);btn.setAttribute('aria-label',on?'Salir de pantalla completa':'Pantalla completa');btn.title=btn.getAttribute('aria-label');if(onChange)setTimeout(function(){onChange(on)},150);}
+  btn.onclick=function(e){
+    if(e){e.preventDefault();e.stopImmediatePropagation();}
+    if(!api){showTip();return;}
+    try{
+      var p;
+      if(inFS())p=(d.exitFullscreen||d.webkitExitFullscreen).call(d);
+      else p=(r.requestFullscreen?r.requestFullscreen({navigationUI:'hide'}):r.webkitRequestFullscreen());
+      if(p&&p.catch)p.catch(showTip);
+    }catch(err){showTip();}
+  };
+  d.addEventListener('fullscreenchange',sync);d.addEventListener('webkitfullscreenchange',sync);
+  d.addEventListener('keydown',function(e){if(e.key==='Escape'&&tip&&!tip.hidden)tip.hidden=true;});
+  sync();
+};
+</script>
 <script>
 (function(){
   let started=false;
@@ -572,16 +624,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit
   let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,120);});
   addEventListener('orientationchange',()=>setTimeout(fit,250));
   if(window.visualViewport)visualViewport.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,120);});
-  const fsb=document.getElementById('fs'), de=document.documentElement;
-  const canFS=!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
-  if(!canFS) fsb.hidden=true;
-  function inFS(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
-  function syncFS(){const on=inFS();fsb.classList.toggle('on',on);fsb.setAttribute('aria-label',on?'Salir de pantalla completa':'Pantalla completa');fsb.title=fsb.getAttribute('aria-label');setTimeout(fit,150);}
-  fsb.onclick=async()=>{try{
-      if(inFS()){await (document.exitFullscreen?document.exitFullscreen():document.webkitExitFullscreen());}
-      else{await (de.requestFullscreen?de.requestFullscreen():de.webkitRequestFullscreen());}
-    }catch(e){fsb.hidden=true;}};
-  document.addEventListener('fullscreenchange',syncFS);document.addEventListener('webkitfullscreenchange',syncFS);
+  const fsb=document.getElementById('fs');VEAFS(fsb,()=>fit());
   document.addEventListener('keydown',e=>{if(e.key==='f'||e.key==='F')fsb.click();});
   window.__go=(i)=>{playing=false;setPP();go(i,false);};
   function start(){ if(started)return; started=true; fit(); go(0,false); raf=requestAnimationFrame(tick); }
