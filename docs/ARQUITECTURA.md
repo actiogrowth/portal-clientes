@@ -157,16 +157,19 @@ Reemplaza al «Sistema Operativo» de GitHub Pages. **Solo lectura.**
  Sheet «Datos — Vida en Arte» (lo escribe Actio desde el Tablero de Tareas)
 ```
 
-- La pantalla (rediseño visual del 23-oct): franja negra «Lo que hemos
-  construido juntos» con «Desde <mes del primer registro> · datos al
-  <fecha>», el selector Proyecto 1 / Proyecto 2 (este con «Solo Actio», solo
-  Administrador) y cuatro cifras calculadas del proyecto elegido
-  (entregables y % entregado, unidades, reuniones, horas de acompañamiento).
-  Pestañas: Entregables (filas agrupadas por unidad con su color; un botón
-  por versión que abre ESA versión en el visor; el estado solo si no está
-  entregado; buscador a la derecha), Reuniones (por mes, fecha en forma de
-  calendario, Minuta y Grabación) y Acompañamiento (totales, horas por mes
-  en barras y el detalle de cada encuentro desplegable).
+- La pantalla (23-oct): cabecera como el resto del portal («Proyecto
+  Actio», «Desde <mes más antiguo de todos los datos> · datos al <fecha>» y
+  el selector Proyecto 1 / Proyecto 2, este con «Solo Actio», solo
+  Administrador). Pestañas: Entregables («N entregables · X % entregados»;
+  filas por unidad con su color; un botón por versión que abre ESA versión
+  en el visor; el estado solo si no está entregado), Documentos (TODAS las
+  filas de «Documentos VEA», también las que no tienen entregable, por
+  unidad, con Abrir y Descargar), Reuniones (por mes, fecha en forma de
+  calendario, Minuta y Grabación) y Acompañamiento (horas, encuentros y
+  reuniones; horas por mes en barras; el detalle desplegable).
+  Unidades y meses son desplegables (botón con aria-expanded), cerrados al
+  abrir cada pestaña; el buscador (Entregables y Documentos) abre solo los
+  grupos donde encuentra resultados.
 - El visor (`comun/visor.js`) muestra el documento en la misma página, con
   una pestaña por versión (Documento, Presentación, Interactiva): Drive en
   `/preview`, Google Docs/Hojas/Presentaciones en `/preview` (solo lectura),

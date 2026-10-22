@@ -413,40 +413,33 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
   body:not(.solo-lista) .pl-fuera input { min-height: var(--toque); }
 }
 
-/* ── Proyecto Actio (22-oct; 23-oct rediseño visual) ──────────────────── */
-.pagina.pa { padding-top: 20px; gap: 20px; }
-/* Franja negra a todo el ancho: título, desde cuándo, selector y cifras. */
-.pa-franja { background: var(--negro); color: var(--blanco); }
-.pa-franja-in { max-width: 1200px; margin: 0 auto; padding: 32px 20px 28px; display: flex; flex-direction: column; gap: 24px; }
-.pa-franja-fila { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
-.pa-franja-tit { display: flex; flex-direction: column; gap: 6px; }
-.pa-sobre { font-size: 13px; color: #CFCFCF; letter-spacing: .5px; }
-.pa-franja h1.titulo { font-size: clamp(36px, 6vw, 52px); color: var(--blanco); }
-.pa-desde { font-size: 14px; color: #CFCFCF; }
-.pa-proyectos { display: flex; gap: 4px; flex-wrap: wrap; background: #2A2A2A; border-radius: 999px; padding: 4px; }
-.pa-proyectos button { border: 0; background: none; border-radius: 999px; min-height: 40px; padding: 0 18px; font-size: 14px; font-weight: 500; color: #CFCFCF; cursor: pointer; }
-.pa-proyectos button[aria-pressed="true"] { background: var(--blanco); color: var(--negro); font-weight: 600; }
-.pa-proyectos button:focus-visible { outline-color: var(--blanco); }
-.pa-proy-unico { padding: 8px 18px; font-size: 14px; font-weight: 600; color: var(--blanco); }
-.pa-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 900px) { .pa-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; } }
-.pa-cifra { border-left: 4px solid var(--blanco); padding: 4px 0 4px 14px; display: flex; flex-direction: column; }
-.pa-cifra .titulo { font-size: 44px; line-height: 1; color: var(--blanco); }
-.pa-cifra > span:last-child { font-size: 13px; color: #CFCFCF; }
-.pa-cifra.c-rojo { border-color: var(--rojo); } .pa-cifra.c-naranja { border-color: var(--naranja); }
-.pa-cifra.c-azul { border-color: #1974A8; } .pa-cifra.c-blanco { border-color: var(--blanco); }
+/* ── Proyecto Actio (22-oct; 23-oct: cabecera baja, Documentos, desplegables) ── */
+.pagina.pa { padding-top: 20px; gap: 16px; }
+.pa-proyectos { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; border: 1px solid var(--gris); border-radius: 999px; }
+.pa-proyectos button { border: 0; background: none; border-radius: 999px; min-height: 40px; padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.pa-proyectos button[aria-pressed="true"] { background: var(--negro); color: var(--blanco); font-weight: 600; }
+.pa-proy-unico { padding: 8px 14px; font-size: 14px; font-weight: 600; }
+.pa-resumen { font-size: 14px; color: var(--texto-2); }
+.pa-resumen:empty { display: none; }
 /* Pestañas y, a la derecha, el buscador (solo en Entregables). */
 .pa-barra-pestanas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-bottom: 1px solid #EFEFEF; padding-bottom: 14px; }
 .pa-buscar { display: flex; align-items: center; gap: 8px; border: 1px solid var(--gris); border-radius: 999px; padding: 0 14px; min-height: var(--toque);
   min-width: 240px; margin: 0; font-weight: 400; cursor: text; }
 .pa-buscar input[type=search] { border: 0; outline: none; padding: 0; min-height: 0; background: transparent; font-size: 14px; flex: 1; width: auto; box-shadow: none; }
 .pa-buscar:focus-within { border-color: var(--azul); box-shadow: 0 0 0 3px rgba(25, 116, 168, .2); }
-/* Entregables: una sección por unidad, con su color, y filas. */
-.pa-unidad { display: flex; flex-direction: column; gap: 8px; }
-.pa-unidad + .pa-unidad { margin-top: 8px; }
-.pa-unidad-cab { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
-.pa-unidad-cab h2.titulo { font-size: 28px; }
-.pa-unidad-cab i, .pa-mes-cab i { flex: 1; height: 2px; background: #EFEFEF; }
+/* Entregables, Documentos y Reuniones: un desplegable por unidad o por mes
+   (un botón con aria-expanded); cerrado muestra el nombre, el color y la cantidad. */
+.pa-grupos { display: flex; flex-direction: column; gap: 6px; }
+.pa-grupo-h { margin: 0; font: inherit; }
+.pa-grupo-cab { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 4px; border: 0; background: none;
+  color: var(--texto); text-align: left; cursor: pointer; border-radius: 12px; }
+.pa-grupo-cab:hover { background: var(--fondo-suave); }
+.pa-grupo-nom { font-size: 26px; line-height: 1; }
+.pa-grupo-n { font-size: 13px; color: var(--texto-2); white-space: nowrap; }
+.pa-grupo-cab i { flex: 1; height: 2px; background: #EFEFEF; }
+.pa-flecha { flex-shrink: 0; transition: transform .15s; }
+.pa-grupo-cab[aria-expanded="true"] .pa-flecha { transform: rotate(180deg); }
+.pa-grupo-cuerpo { padding: 4px 0 10px; }
 .pa-insignia { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
 .pa-filas { border: 1px solid var(--gris); border-radius: 16px; overflow: hidden; }
 .pa-fila-e { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; border-bottom: 1px solid #F1F1F1; }
@@ -457,15 +450,14 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
 .pa-versiones-fila { display: flex; gap: 6px; flex-wrap: wrap; }
 .pa-boton { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; min-height: 36px; padding: 0 12px; border-radius: 999px;
   border: 1px solid var(--gris); background: var(--blanco); color: var(--texto); cursor: pointer; }
-.pa-boton:hover { border-color: var(--negro); }
+.pa-boton:hover { border-color: var(--negro); color: var(--texto); }
+a.pa-boton { text-decoration: none; }
 .pa-por-cargar { font-size: 13px; color: var(--texto-3); min-height: 36px; display: inline-flex; align-items: center; }
 @media (pointer: coarse) { .pa-boton { min-height: var(--toque); } }
 .chip.pa-curso { background: var(--arena); color: var(--cafe); }
 .chip.pa-pend { background: var(--pildora); color: var(--texto-2); }
 /* Reuniones: por mes, fecha en forma de calendario. */
-.pa-meses { display: flex; flex-direction: column; gap: 18px; max-width: 900px; }
-.pa-mes { display: flex; flex-direction: column; gap: 2px; }
-.pa-mes-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.pa-meses { max-width: 900px; }
 .pa-mes-nom { font-size: 13px; font-weight: 600; color: var(--texto-2); text-transform: uppercase; letter-spacing: .5px; }
 .pa-reu { display: flex; align-items: center; gap: 14px; padding: 8px 0; }
 .pa-cal { width: 48px; flex-shrink: 0; text-align: center; border: 1px solid var(--gris); border-radius: 10px; padding: 4px 0; display: flex; flex-direction: column; }
@@ -474,7 +466,7 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
 .pa-reu-tema { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
 /* Acompañamiento: totales, horas por mes (una serie, azul) y el detalle. */
 .pa-acomp { display: flex; flex-direction: column; gap: 16px; max-width: 760px; align-items: flex-start; }
-.pa-acomp-tot { display: flex; gap: 32px; }
+.pa-acomp-tot { display: flex; gap: 16px 32px; flex-wrap: wrap; }
 .pa-acomp-tot > div { display: flex; flex-direction: column; }
 .pa-acomp-tot .titulo { font-size: 40px; line-height: 1; }
 .pa-grafico { margin: 0; align-self: stretch; border: 1px solid var(--gris); border-radius: 16px; padding: 16px; }
@@ -511,10 +503,9 @@ body.pa-visor-abierto { overflow: hidden; }
 @media (max-width: 640px) {
   .pa-visor-cab, .pa-versiones, .pa-visor-cuerpo { padding-left: 12px; padding-right: 12px; }
   .pa-visor-cuerpo { padding-top: 8px; padding-bottom: 8px; }
-  .pa-franja-in { padding: 24px 14px 22px; gap: 18px; }
   .pa-proyectos { width: 100%; }
   .pa-proyectos button { flex: 1; }
-  .pa-cifra .titulo { font-size: 36px; }
+  .pa-grupo-nom { font-size: 22px; }
   .pa-buscar { min-width: 0; width: 100%; }
   .pa-fila-e-txt { flex-basis: 100%; }
   .pa-reu { flex-wrap: wrap; }

@@ -634,8 +634,9 @@ async function correr(fuente) {
       const pg = await n['prueba-direccion'].get('/proyecto-actio/');
       ok(pg.status === 200 && /<title>Proyecto Actio/.test(pg.texto) && /\/comun\/visor\.js\?v=[0-9a-f]{10}/.test(pg.texto), 'Dirección abre la página (con visor.js versionado)');
       ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por datos.js');
-      ok(/Lo que hemos construido juntos/.test(pg.texto) && /data-vista="atencion"[^>]*>Acompañamiento</.test(pg.texto) && !/<style>/.test(pg.texto),
-        'rediseño 23-oct: franja «Lo que hemos construido juntos», pestaña Acompañamiento y sin estilos propios');
+      ok(/data-vista="documentos"[^>]*>Documentos</.test(pg.texto) && /data-vista="atencion"[^>]*>Acompañamiento</.test(pg.texto) &&
+        /aria-expanded/.test(pg.texto) && !/pa-franja/.test(pg.texto) && !/<style>/.test(pg.texto),
+        'ajustes 23-oct: pestañas Documentos y Acompañamiento, desplegables con aria-expanded, cabecera baja y sin estilos propios');
       // Administrador: todo, con «soloActio» en lo que no es del cliente
       const ad = await leerPA('admin-uno');
       const A = ad.j && ad.j.resultado;
@@ -648,6 +649,7 @@ async function correr(fuente) {
       // Dirección: Proyecto 2 no sale del servidor
       const di = await leerPA('prueba-direccion');
       const Dd = di.j && di.j.resultado;
+      ok(Dd && Dd.documentos.some(d => !d.idEntregable), 'a Dirección le llegan también los documentos sin entregable (pestaña Documentos)');
       ok(di.status === 200 && di.j.ok && JSON.stringify(Dd.proyectos) === '["Proyecto 1"]', 'Dirección recibe solo Proyecto 1');
       ok(!/Proyecto 2|E-901|reservad|NOTA-INTERNA|Medida|Estimada|origenDuracion|"notas"|NO-DEBE-SALIR|"soloActio":true/.test(di.texto), 'a Dirección no le llega nada de Proyecto 2 ni lo interno (ni en el texto de la respuesta)');
       ok(Dd && Dd.entregables.length === 2 && Dd.documentos.length === 2 && Dd.reuniones.length === 1 && Dd.atencion.length === 1, 'Dirección: 2 entregables, 2 documentos, 1 reunión, 1 atención');

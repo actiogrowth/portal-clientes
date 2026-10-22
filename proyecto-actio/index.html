@@ -8,46 +8,40 @@
 <!-- Proyecto Actio: lo que Actio Growth le entrega a Vida en Arte. Solo
   lectura. Lee SOLO a través de la capa de datos (/comun/datos.js →
   proyecto-actio/api.php), que ya recorta por rol: Dirección nunca recibe
-  Proyecto 2. 23-oct: rediseño visual (franja con cifras, entregables en
-  filas por unidad, reuniones por mes, acompañamiento con horas por mes). -->
-<link rel="stylesheet" href="/comun/vea.css?v=37098cb6a3">
+  Proyecto 2. 23-oct: cabecera baja como el resto del portal, pestaña
+  Documentos (todas las filas de «Documentos VEA») y desplegables por unidad
+  y por mes, cerrados al abrir cada pestaña. -->
+<link rel="stylesheet" href="/comun/vea.css?v=824dc980f4">
 </head>
 <body>
 <header id="cab"></header>
-
-<!-- Franja negra: qué se ha construido, desde cuándo, y las cuatro cifras. -->
-<section class="pa-franja" aria-labelledby="paTitulo">
-  <div class="pa-franja-in">
-    <div class="pa-franja-fila">
-      <div class="pa-franja-tit">
-        <span class="pa-sobre">PROYECTO ACTIO</span>
-        <h1 class="titulo" id="paTitulo">Lo que hemos construido juntos</h1>
-        <span class="pa-desde" id="paSello" aria-live="polite"></span>
-      </div>
-      <div class="pa-proyectos" id="paProyectos" role="group" aria-label="Proyecto"></div>
-    </div>
-    <div class="pa-cifras" id="paCifras"></div>
-  </div>
-</section>
-
 <main class="pagina pa">
+  <section class="encabezado encabezado-as">
+    <div>
+      <h1 class="titulo">Proyecto Actio</h1>
+      <p class="ayuda" id="paSello" aria-live="polite"></p>
+    </div>
+    <div class="pa-proyectos" id="paProyectos" role="group" aria-label="Proyecto"></div>
+  </section>
   <div class="pa-barra-pestanas">
     <nav class="pestanas" role="tablist" id="pestanas" aria-label="Secciones de Proyecto Actio">
       <button role="tab" data-vista="entregables" aria-selected="true">Entregables</button>
+      <button role="tab" data-vista="documentos" aria-selected="false">Documentos</button>
       <button role="tab" data-vista="reuniones" aria-selected="false">Reuniones</button>
       <button role="tab" data-vista="atencion" aria-selected="false">Acompañamiento</button>
     </nav>
     <label class="pa-buscar" id="paBuscarCaja">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555555" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-      <input type="search" id="paBuscar" placeholder="Buscar entregable" aria-label="Buscar entregable" autocomplete="off">
+      <input type="search" id="paBuscar" placeholder="Buscar" aria-label="Buscar" autocomplete="off">
     </label>
   </div>
 
   <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo lo que Actio Growth le ha entregado a Vida en Arte.</p></div>
   <div id="avisos"></div>
 
-  <section id="v-entregables" class="vista oculto columna"><div id="paEntregables" class="columna"></div></section>
-  <section id="v-reuniones" class="vista oculto columna"><div id="paReuniones" class="pa-meses"></div></section>
+  <section id="v-entregables" class="vista oculto columna"><p class="pa-resumen" id="paResumenE"></p><div id="paEntregables" class="pa-grupos"></div></section>
+  <section id="v-documentos" class="vista oculto columna"><p class="pa-resumen" id="paResumenD"></p><div id="paDocumentos" class="pa-grupos"></div></section>
+  <section id="v-reuniones" class="vista oculto columna"><div id="paReuniones" class="pa-grupos pa-meses"></div></section>
   <section id="v-atencion" class="vista oculto columna">
     <div id="paAcomp" class="pa-acomp"></div>
     <div id="paAtLista" class="pa-lista oculto"></div>
@@ -83,6 +77,7 @@ const esFecha = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '');
 const fecha = iso => esFecha(iso) ? +iso.slice(8, 10) + ' ' + MESES[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4) : '';
 const mesLargo = k => MESES_LARGOS[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
 const decimal = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');   // siempre un decimal: 1,0 · 12,5
+const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
 
 /* Cada unidad con su color (texto negro sobre los claros: contraste ≥ 4.5).
    La unidad se muestra como se llama hoy (D-046); el dato no cambia. */
@@ -115,11 +110,17 @@ const ICONO = {
   'Presentación': '<path d="M3 4h18v12H3z"/><path d="M8 20h8M12 16v4"/>',
   'Interactiva': '<path d="M4 4l7 17 2-7 7-2z"/>',
   'Minuta': '<path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/>',
-  'Grabación': '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>'
+  'Grabación': '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>',
+  'Abrir': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  'Descargar': '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>'
 };
 const icono = k => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONO[k] || '') + '</svg>';
+const FLECHA = '<svg class="pa-flecha" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 
 let D = null, copia = null, proyecto = '', vista = 'entregables', busqueda = '';
+/* Qué grupos están abiertos en cada pestaña. Se vacía al abrir la pestaña:
+   todas empiezan cerradas. */
+const abiertos = { entregables: new Set(), documentos: new Set(), reuniones: new Set() };
 
 function pantalla(html) { $('#pantalla').innerHTML = html; $('#pantalla').classList.remove('oculto'); }
 
@@ -137,65 +138,75 @@ async function cargar() {
   if (!D.proyectos.includes(proyecto)) proyecto = D.proyectos[0] || '';
   $('#pantalla').classList.add('oculto');
   pintar();
+  mostrarVista(vista);
 }
 
 const delProyecto = lista => (lista || []).filter(f => f.proyecto === proyecto);
 const soloActio = p => ['entregables', 'documentos', 'reuniones', 'atencion'].some(k => (D[k] || []).some(f => f.proyecto === p && f.soloActio));
 
 function pintar() {
-  pintarFranja();
+  pintarCabecera();
   $('#avisos').innerHTML = (D.faltan || []).length
     ? '<div class="aviso ojo">En el Sheet faltan columnas o pestañas: ' + esc(D.faltan.join(' · ')) + '. Esas partes salen vacías.</div>' : '';
-  pintarEntregables(); pintarReuniones(); pintarAcompanamiento();
-  mostrarVista(vista);
+  pintarEntregables(); pintarDocumentos(); pintarReuniones(); pintarAcompanamiento();
 }
 
-/* ── Franja: desde cuándo, datos al, selector y cuatro cifras ────────────── */
-function pintarFranja() {
-  const es = delProyecto(D.entregables), rs = delProyecto(D.reuniones), as = delProyecto(D.atencion);
-  const fechas = [].concat(es.map(e => e.fechaReal), es.map(e => e.fechaCompromiso), delProyecto(D.documentos).map(d => d.fecha),
-    rs.map(r => r.fecha), as.map(a => a.fecha)).filter(esFecha).sort();
+/* ── Cabecera: desde cuándo (todos los datos), datos al, selector ────────── */
+function pintarCabecera() {
+  const todas = [].concat(
+    D.entregables.map(e => e.fechaReal), D.entregables.map(e => e.fechaCompromiso),
+    D.documentos.map(d => d.fecha), D.reuniones.map(r => r.fecha), D.atencion.map(a => a.fecha)).filter(esFecha).sort();
   const gen = D.generado ? new Date(D.generado) : null;
   const partes = [];
-  if (fechas.length) partes.push('Desde ' + mesLargo(fechas[0]).replace(' ', ' de '));
+  if (todas.length) partes.push('Desde ' + mesLargo(todas[0]).replace(' ', ' de '));
   if (gen && !isNaN(gen)) partes.push('datos al ' + gen.getDate() + ' de ' + MESES_LARGOS[gen.getMonth()] +
     (copia && copia.segundos > 60 ? ' (copia de hace ' + Math.round(copia.segundos / 60) + ' min)' : ''));
   $('#paSello').textContent = partes.join(' · ');
-
   $('#paProyectos').innerHTML = D.proyectos.length > 1 || D.proyectos.some(soloActio)
     ? D.proyectos.map(p => '<button type="button" aria-pressed="' + (p === proyecto) + '" data-proyecto="' + esc(p) + '">' + esc(p) +
         (soloActio(p) ? ' · Solo Actio' : '') + '</button>').join('')
     : (proyecto ? '<span class="pa-proy-unico">' + esc(proyecto) + '</span>' : '');
-  $('#paProyectos').querySelectorAll('[data-proyecto]').forEach(b => b.onclick = () => { proyecto = b.dataset.proyecto; pintar(); });
-
-  const hechos = es.filter(e => estadoDe(e) === 'Entregado').length;
-  const pct = es.length ? Math.round(hechos / es.length * 100) : 0;
-  const unidades = new Set(es.map(e => unidad(e.unidad).nombre)).size;
-  const minutos = as.reduce((t, a) => t + (+a.duracionMin || 0), 0);
-  const cifra = (clase, n, texto) => '<div class="pa-cifra ' + clase + '"><span class="titulo num">' + n + '</span><span>' + texto + '</span></div>';
-  $('#paCifras').innerHTML =
-    cifra('c-rojo', es.length, (es.length === 1 ? 'entregable' : 'entregables') + ', ' + pct + ' % ' + (es.length === 1 ? 'entregado' : 'entregados')) +
-    cifra('c-naranja', unidades, unidades === 1 ? 'unidad de negocio' : 'unidades de negocio') +
-    cifra('c-azul', rs.length, rs.length === 1 ? 'reunión de trabajo' : 'reuniones de trabajo') +
-    cifra('c-blanco', decimal(minutos / 60) + ' h', 'de acompañamiento directo');
+  $('#paProyectos').querySelectorAll('[data-proyecto]').forEach(b => b.onclick = () => {
+    proyecto = b.dataset.proyecto; Object.values(abiertos).forEach(s => s.clear()); pintar();
+  });
 }
 
-/* ── Entregables: filas agrupadas por unidad ─────────────────────────────── */
+/* ── Desplegables: un botón con aria-expanded abre y cierra cada grupo ───── */
+/* Con una búsqueda escrita, se abren solos los grupos donde hay resultados
+   (y los que no tienen ninguno no se muestran). */
+function grupo(pestana, clave, cabecera, cuerpo, total) {
+  const id = 'g-' + pestana + '-' + clave.replace(/[^a-z0-9]/gi, '-');
+  const abierto = !!busqueda.trim() || abiertos[pestana].has(clave);
+  return '<section class="pa-grupo"><h2 class="pa-grupo-h">' +
+    '<button type="button" class="pa-grupo-cab" aria-expanded="' + abierto + '" aria-controls="' + id + '" data-grupo="' + esc(clave) + '" data-pestana="' + pestana + '">' +
+      cabecera + '<span class="pa-grupo-n">' + total + '</span><i aria-hidden="true"></i>' + FLECHA + '</button></h2>' +
+    '<div class="pa-grupo-cuerpo" id="' + id + '"' + (abierto ? '' : ' hidden') + '>' + cuerpo + '</div></section>';
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('.pa-grupo-cab');
+  if (!b) return;
+  const abrir = b.getAttribute('aria-expanded') !== 'true', set = abiertos[b.dataset.pestana];
+  b.setAttribute('aria-expanded', String(abrir));
+  document.getElementById(b.getAttribute('aria-controls')).hidden = !abrir;
+  if (abrir) set.add(b.dataset.grupo); else set.delete(b.dataset.grupo);
+});
+const cabUnidad = u => '<span class="pa-insignia" style="background:' + u.fondo + ';color:' + u.texto + '" aria-hidden="true">' + esc(u.ini) + '</span><span class="titulo pa-grupo-nom">' + esc(u.nombre) + '</span>';
+
+/* ── Entregables: por unidad, filas con un botón por versión ─────────────── */
 function docsDe(e) { return D.documentos.filter(d => d.idEntregable && d.idEntregable === e.id && d.proyecto === e.proyecto); }
 
 function pintarEntregables() {
   const todos = delProyecto(D.entregables);
+  const hechos = todos.filter(e => estadoDe(e) === 'Entregado').length;
+  $('#paResumenE').textContent = todos.length ? plural(todos.length, 'entregable', 'entregables') + ' · ' + Math.round(hechos / todos.length * 100) + ' % ' + (todos.length === 1 ? 'entregado' : 'entregados') : '';
   const q = norm(busqueda);
   const vistos = todos.filter(e => !q || norm(e.entregable + ' ' + e.segmento + ' ' + unidad(e.unidad).nombre).includes(q));
   if (!todos.length) { $('#paEntregables').innerHTML = '<div class="tarjeta"><p class="ayuda">Este proyecto todavía no tiene entregables.</p></div>'; return; }
   if (!vistos.length) { $('#paEntregables').innerHTML = '<div class="tarjeta"><p class="ayuda">Ningún entregable coincide con «' + esc(busqueda) + '».</p></div>'; return; }
-  const nombres = [...new Set(vistos.map(e => unidad(e.unidad).nombre))];
-  $('#paEntregables').innerHTML = nombres.map(nom => {
-    const es = vistos.filter(e => unidad(e.unidad).nombre === nom), u = unidad(es[0].unidad);
-    return '<section class="pa-unidad">' +
-      '<div class="pa-unidad-cab"><span class="pa-insignia" style="background:' + u.fondo + ';color:' + u.texto + '" aria-hidden="true">' + esc(u.ini) + '</span>' +
-      '<h2 class="titulo">' + esc(u.nombre) + '</h2><span class="ayuda">' + es.length + (es.length === 1 ? ' entregable' : ' entregables') + '</span><i aria-hidden="true"></i></div>' +
-      '<div class="pa-filas">' + es.map(filaEntregable).join('') + '</div></section>';
+  $('#paEntregables').innerHTML = [...new Set(vistos.map(e => unidad(e.unidad).nombre))].map(nom => {
+    const es = vistos.filter(e => unidad(e.unidad).nombre === nom);
+    return grupo('entregables', nom, cabUnidad(unidad(es[0].unidad)), '<div class="pa-filas">' + es.map(filaEntregable).join('') + '</div>',
+      plural(es.length, 'entregable', 'entregables'));
   }).join('');
   $('#paEntregables').querySelectorAll('[data-abrir]').forEach(b => b.onclick = () => {
     const e = D.entregables.find(x => x.id === b.dataset.abrir && x.proyecto === proyecto);
@@ -216,17 +227,45 @@ function filaEntregable(e) {
       : '<span class="pa-por-cargar">Documento por cargar</span>') + '</div>' +
     '</div>';
 }
-$('#paBuscar').addEventListener('input', () => { busqueda = $('#paBuscar').value; pintarEntregables(); });
 
-/* ── Reuniones: por mes, fecha en forma de calendario ────────────────────── */
+/* ── Documentos: TODAS las filas de «Documentos VEA», con o sin entregable ── */
+function pintarDocumentos() {
+  const todos = delProyecto(D.documentos).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  $('#paResumenD').textContent = todos.length ? plural(todos.length, 'documento', 'documentos') : '';
+  const q = norm(busqueda);
+  const vistos = todos.filter(d => !q || norm(d.nombre + ' ' + d.tipo + ' ' + d.segmento + ' ' + unidad(d.unidad).nombre).includes(q));
+  if (!todos.length) { $('#paDocumentos').innerHTML = '<div class="tarjeta"><p class="ayuda">Este proyecto todavía no tiene documentos.</p></div>'; return; }
+  if (!vistos.length) { $('#paDocumentos').innerHTML = '<div class="tarjeta"><p class="ayuda">Ningún documento coincide con «' + esc(busqueda) + '».</p></div>'; return; }
+  const nombres = [...new Set(todos.map(d => unidad(d.unidad).nombre))].filter(n => vistos.some(d => unidad(d.unidad).nombre === n));
+  $('#paDocumentos').innerHTML = nombres.map(nom => {
+    const ds = vistos.filter(d => unidad(d.unidad).nombre === nom);
+    return grupo('documentos', nom, cabUnidad(unidad(ds[0].unidad)), '<div class="pa-filas">' + ds.map(d => {
+      const i = D.documentos.indexOf(d), puede = Visor.vista(d.enlace).modo !== 'nada', des = Visor.descarga(d.enlace);
+      const sub = [d.tipo, fecha(d.fecha)].filter(Boolean).join(' · ');
+      return '<div class="pa-fila-e"><div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(d.nombre) + '</span>' +
+        (sub ? '<span class="ayuda">' + esc(sub) + '</span>' : '') + '</div><div class="pa-versiones-fila">' +
+        (puede ? '<button type="button" class="pa-boton" data-doc="' + i + '">' + icono('Abrir') + 'Abrir</button>' : '<span class="pa-por-cargar">Sin enlace</span>') +
+        (des ? '<a class="pa-boton" href="' + esc(des) + '" target="_blank" rel="noopener">' + icono('Descargar') + 'Descargar</a>' : '') +
+        '</div></div>';
+    }).join('') + '</div>', plural(ds.length, 'documento', 'documentos'));
+  }).join('');
+  $('#paDocumentos').querySelectorAll('[data-doc]').forEach(b => b.onclick = () => {
+    const d = D.documentos[+b.dataset.doc];
+    abrirVisor(Visor.nombreBase(d.nombre), [unidad(d.unidad).nombre, d.tipo].filter(Boolean).join(' · '),
+      [{ version: Visor.version(d.nombre, d.enlace), nombre: d.nombre, enlace: d.enlace }]);
+  });
+}
+
+$('#paBuscar').addEventListener('input', () => { busqueda = $('#paBuscar').value; pintarEntregables(); pintarDocumentos(); });
+
+/* ── Reuniones: un desplegable por mes, fecha en forma de calendario ─────── */
 function pintarReuniones() {
   const rs = delProyecto(D.reuniones).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   if (!rs.length) { $('#paReuniones').innerHTML = '<div class="tarjeta"><p class="ayuda">No hay reuniones registradas en este proyecto.</p></div>'; return; }
   const meses = [];
-  rs.forEach(r => { const k = esFecha(r.fecha) ? r.fecha.slice(0, 7) : ''; let m = meses.find(x => x.k === k); if (!m) meses.push(m = { k, items: [] }); m.items.push(r); });
-  $('#paReuniones').innerHTML = meses.map(m =>
-    '<div class="pa-mes"><div class="pa-mes-cab"><span class="pa-mes-nom">' + (m.k ? mesLargo(m.k) : 'Sin fecha') + '</span>' +
-    '<span class="ayuda">' + m.items.length + (m.items.length === 1 ? ' reunión' : ' reuniones') + '</span><i aria-hidden="true"></i></div>' +
+  rs.forEach(r => { const k = esFecha(r.fecha) ? r.fecha.slice(0, 7) : 'sin-fecha'; let m = meses.find(x => x.k === k); if (!m) meses.push(m = { k, items: [] }); m.items.push(r); });
+  $('#paReuniones').innerHTML = meses.map(m => grupo('reuniones', m.k,
+    '<span class="pa-mes-nom">' + (m.k === 'sin-fecha' ? 'Sin fecha' : mesLargo(m.k)) + '</span>',
     m.items.map(r => {
       const i = rs.indexOf(r);
       return '<div class="pa-reu">' +
@@ -237,18 +276,23 @@ function pintarReuniones() {
           (Visor.vista(r.minuta).modo !== 'nada' ? '<button class="pa-boton" type="button" data-reu="' + i + '" data-que="minuta">' + icono('Minuta') + 'Minuta</button>' : '') +
           (Visor.vista(r.grabacion).modo !== 'nada' ? '<button class="pa-boton" type="button" data-reu="' + i + '" data-que="grabacion">' + icono('Grabación') + 'Grabación</button>' : '') +
         '</div></div>';
-    }).join('') + '</div>').join('');
+    }).join(''), plural(m.items.length, 'reunión', 'reuniones'))).join('');
   $('#paReuniones').querySelectorAll('[data-reu]').forEach(b => b.onclick = () => {
     const r = rs[+b.dataset.reu], minuta = b.dataset.que === 'minuta';
     abrirVisor(r.tema, fecha(r.fecha), [{ version: minuta ? 'Minuta' : 'Grabación', nombre: r.tema, enlace: minuta ? r.minuta : r.grabacion }]);
   });
 }
 
-/* ── Acompañamiento: totales, horas por mes y el detalle desplegable ─────── */
+/* ── Acompañamiento: totales (horas, encuentros, reuniones), barras y detalle ── */
 function pintarAcompanamiento() {
   const as = delProyecto(D.atencion).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  const nReu = delProyecto(D.reuniones).length;
+  const totalMin = as.reduce((t, a) => t + (+a.duracionMin || 0), 0);
+  const total = (n, et) => '<div><span class="titulo num">' + n + '</span><span class="ayuda">' + et + '</span></div>';
+  const totales = '<div class="pa-acomp-tot">' + total(decimal(totalMin / 60) + ' h', 'de acompañamiento directo') +
+    total(as.length, as.length === 1 ? 'encuentro' : 'encuentros') + total(nReu, nReu === 1 ? 'reunión de trabajo' : 'reuniones de trabajo') + '</div>';
   if (!as.length) {
-    $('#paAcomp').innerHTML = '<div class="tarjeta"><p class="ayuda">No hay acompañamiento directo registrado en este proyecto.</p></div>';
+    $('#paAcomp').innerHTML = totales + '<div class="tarjeta"><p class="ayuda">No hay acompañamiento directo registrado en este proyecto.</p></div>';
     $('#paAtLista').innerHTML = ''; return;
   }
   const meses = {};
@@ -260,20 +304,15 @@ function pintarAcompanamiento() {
     if (k === ks[ks.length - 1]) break; if (++m > 12) { m = 1; y++; }
   }
   const maxH = Math.max(...serie.map(s => s.h), 0.1);
-  const totalMin = as.reduce((t, a) => t + (+a.duracionMin || 0), 0);
-  $('#paAcomp').innerHTML =
-    '<div class="pa-acomp-tot">' +
-      '<div><span class="titulo num">' + decimal(totalMin / 60) + ' h</span><span class="ayuda">llamadas y reuniones</span></div>' +
-      '<div><span class="titulo num">' + as.length + '</span><span class="ayuda">' + (as.length === 1 ? 'encuentro' : 'encuentros') + '</span></div>' +
-    '</div>' +
+  $('#paAcomp').innerHTML = totales +
     '<figure class="pa-grafico"><figcaption>Horas por mes</figcaption>' +
       '<div class="pa-barras" role="list">' + serie.map(s =>
-        '<div class="pa-barra-col" role="listitem" tabindex="0" title="' + esc(mesLargo(s.k) + ': ' + decimal(s.h) + ' h en ' + s.n + (s.n === 1 ? ' encuentro' : ' encuentros')) + '"' +
-          ' aria-label="' + esc(mesLargo(s.k) + ': ' + decimal(s.h) + ' horas, ' + s.n + (s.n === 1 ? ' encuentro' : ' encuentros')) + '">' +
+        '<div class="pa-barra-col" role="listitem" tabindex="0" title="' + esc(mesLargo(s.k) + ': ' + decimal(s.h) + ' h en ' + plural(s.n, 'encuentro', 'encuentros')) + '"' +
+          ' aria-label="' + esc(mesLargo(s.k) + ': ' + decimal(s.h) + ' horas, ' + plural(s.n, 'encuentro', 'encuentros')) + '">' +
           '<span class="pa-barra-val num">' + decimal(s.h) + '</span>' +
           '<i style="height:' + (s.h ? Math.max(3, Math.round(s.h / maxH * 130)) : 0) + 'px"></i>' +
           '<span class="pa-barra-mes">' + MESES[+s.k.slice(5, 7) - 1] + '</span>' +
-          '<span class="pa-globo" aria-hidden="true">' + esc(mesLargo(s.k)) + '<b>' + decimal(s.h) + ' h · ' + s.n + (s.n === 1 ? ' encuentro' : ' encuentros') + '</b></span>' +
+          '<span class="pa-globo" aria-hidden="true">' + esc(mesLargo(s.k)) + '<b>' + decimal(s.h) + ' h · ' + plural(s.n, 'encuentro', 'encuentros') + '</b></span>' +
         '</div>').join('') + '</div></figure>' +
     '<button class="btn sec" type="button" id="paVerDetalle" aria-expanded="false" aria-controls="paAtLista">Ver el detalle de cada encuentro</button>';
   $('#paAtLista').innerHTML = as.map(a =>
@@ -291,11 +330,13 @@ function pintarAcompanamiento() {
 }
 
 /* ── Pestañas ────────────────────────────────────────────────────────────── */
+/* Al abrir una pestaña, todos sus grupos empiezan cerrados. */
 function mostrarVista(v) {
   vista = v;
+  if (abiertos[v]) { abiertos[v].clear(); if (D) ({ entregables: pintarEntregables, documentos: pintarDocumentos, reuniones: pintarReuniones })[v](); }
   document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.setAttribute('aria-selected', b.dataset.vista === v ? 'true' : 'false'));
   document.querySelectorAll('.vista').forEach(s => s.classList.toggle('oculto', !D || s.id !== 'v-' + v));
-  $('#paBuscarCaja').classList.toggle('oculto', v !== 'entregables');   // el buscador es de Entregables
+  $('#paBuscarCaja').classList.toggle('oculto', v !== 'entregables' && v !== 'documentos');   // buscar entregables y documentos
   if (location.hash.slice(1) !== v) history.replaceState(null, '', '#' + v);
 }
 document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.onclick = () => mostrarVista(b.dataset.vista));
@@ -345,7 +386,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('#vis
   try { s = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
   Marca.cabecera($('#cab'), { sesion: s, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Proyecto Actio' }] });
   const h = location.hash.slice(1);
-  if (['entregables', 'reuniones', 'atencion'].includes(h)) vista = h;
+  if (['entregables', 'documentos', 'reuniones', 'atencion'].includes(h)) vista = h;
   cargar();
 })();
 </script>
