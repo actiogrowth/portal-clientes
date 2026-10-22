@@ -413,44 +413,87 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
   body:not(.solo-lista) .pl-fuera input { min-height: var(--toque); }
 }
 
-/* ── Proyecto Actio (22-oct) ─────────────────────────────────────────── */
-.pa-proyectos { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px; border: 1px solid var(--gris); border-radius: 999px; }
-.pa-proyectos button { border: 0; background: none; border-radius: 999px; min-height: 40px; padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 8px; }
-.pa-proyectos button[aria-pressed="true"] { background: var(--negro); color: var(--blanco); font-weight: 600; }
-.pa-proyectos button[aria-pressed="true"] .pa-sello { background: var(--blanco); color: var(--negro); }
-.pa-proy-unico { padding: 8px 14px; font-size: 14px; font-weight: 600; }
-.pa-sello { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--negro); color: var(--blanco);
-  letter-spacing: .02em; vertical-align: middle; }
-.pa-avance { display: flex; flex-direction: column; gap: 8px; }
-.pa-avance-num { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--texto-2); }
-.pa-avance-num .titulo { font-size: 40px; color: var(--texto); }
-.pa-barra { height: 10px; border-radius: 5px; background: var(--gris); overflow: hidden; }
-.pa-barra i { display: block; height: 100%; background: var(--azul); border-radius: 5px; }
-.pa-filtros { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
-.pa-filtros input[type=search] { width: min(320px, 100%); }
-.pa-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.pa-chips button { min-height: var(--toque); padding: 0 14px; border-radius: 999px; border: 0; background: var(--pildora); font-size: 14px; font-weight: 500; cursor: pointer; }
-.pa-chips button[aria-pressed="true"] { background: var(--negro); color: var(--blanco); font-weight: 600; }
-.pa-n { font-size: 12px; opacity: .75; }
-.pa-unidad { display: flex; flex-direction: column; gap: 14px; }
-.pa-unidad .seccion-tit { display: flex; align-items: center; gap: 14px; }
-.pa-unidad .seccion-tit .raya { flex: 1; }
-.pa-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-.pa-card { border: 1px solid var(--gris); border-radius: var(--radio); padding: 18px; display: flex; flex-direction: column; gap: 8px; background: var(--blanco); }
-.pa-card h3 { font-size: 16px; font-weight: 600; line-height: 1.3; }
-.pa-chips-fila { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.pa-card-pie { margin-top: auto; padding-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.chip.pa-ok { background: var(--verde-fondo); color: var(--verde-oscuro); }
+/* ── Proyecto Actio (22-oct; 23-oct rediseño visual) ──────────────────── */
+.pagina.pa { padding-top: 20px; gap: 20px; }
+/* Franja negra a todo el ancho: título, desde cuándo, selector y cifras. */
+.pa-franja { background: var(--negro); color: var(--blanco); }
+.pa-franja-in { max-width: 1200px; margin: 0 auto; padding: 32px 20px 28px; display: flex; flex-direction: column; gap: 24px; }
+.pa-franja-fila { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.pa-franja-tit { display: flex; flex-direction: column; gap: 6px; }
+.pa-sobre { font-size: 13px; color: #CFCFCF; letter-spacing: .5px; }
+.pa-franja h1.titulo { font-size: clamp(36px, 6vw, 52px); color: var(--blanco); }
+.pa-desde { font-size: 14px; color: #CFCFCF; }
+.pa-proyectos { display: flex; gap: 4px; flex-wrap: wrap; background: #2A2A2A; border-radius: 999px; padding: 4px; }
+.pa-proyectos button { border: 0; background: none; border-radius: 999px; min-height: 40px; padding: 0 18px; font-size: 14px; font-weight: 500; color: #CFCFCF; cursor: pointer; }
+.pa-proyectos button[aria-pressed="true"] { background: var(--blanco); color: var(--negro); font-weight: 600; }
+.pa-proyectos button:focus-visible { outline-color: var(--blanco); }
+.pa-proy-unico { padding: 8px 18px; font-size: 14px; font-weight: 600; color: var(--blanco); }
+.pa-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .pa-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; } }
+.pa-cifra { border-left: 4px solid var(--blanco); padding: 4px 0 4px 14px; display: flex; flex-direction: column; }
+.pa-cifra .titulo { font-size: 44px; line-height: 1; color: var(--blanco); }
+.pa-cifra > span:last-child { font-size: 13px; color: #CFCFCF; }
+.pa-cifra.c-rojo { border-color: var(--rojo); } .pa-cifra.c-naranja { border-color: var(--naranja); }
+.pa-cifra.c-azul { border-color: #1974A8; } .pa-cifra.c-blanco { border-color: var(--blanco); }
+/* Pestañas y, a la derecha, el buscador (solo en Entregables). */
+.pa-barra-pestanas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-bottom: 1px solid #EFEFEF; padding-bottom: 14px; }
+.pa-buscar { display: flex; align-items: center; gap: 8px; border: 1px solid var(--gris); border-radius: 999px; padding: 0 14px; min-height: var(--toque);
+  min-width: 240px; margin: 0; font-weight: 400; cursor: text; }
+.pa-buscar input[type=search] { border: 0; outline: none; padding: 0; min-height: 0; background: transparent; font-size: 14px; flex: 1; width: auto; box-shadow: none; }
+.pa-buscar:focus-within { border-color: var(--azul); box-shadow: 0 0 0 3px rgba(25, 116, 168, .2); }
+/* Entregables: una sección por unidad, con su color, y filas. */
+.pa-unidad { display: flex; flex-direction: column; gap: 8px; }
+.pa-unidad + .pa-unidad { margin-top: 8px; }
+.pa-unidad-cab { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+.pa-unidad-cab h2.titulo { font-size: 28px; }
+.pa-unidad-cab i, .pa-mes-cab i { flex: 1; height: 2px; background: #EFEFEF; }
+.pa-insignia { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.pa-filas { border: 1px solid var(--gris); border-radius: 16px; overflow: hidden; }
+.pa-fila-e { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; border-bottom: 1px solid #F1F1F1; }
+.pa-fila-e:last-child { border-bottom: 0; }
+.pa-fila-e-txt { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pa-fila-e-nom { font-size: 15px; font-weight: 600; }
+.pa-fila-e-nom .chip { margin-left: 6px; vertical-align: 1px; }
+.pa-versiones-fila { display: flex; gap: 6px; flex-wrap: wrap; }
+.pa-boton { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; min-height: 36px; padding: 0 12px; border-radius: 999px;
+  border: 1px solid var(--gris); background: var(--blanco); color: var(--texto); cursor: pointer; }
+.pa-boton:hover { border-color: var(--negro); }
+.pa-por-cargar { font-size: 13px; color: var(--texto-3); min-height: 36px; display: inline-flex; align-items: center; }
+@media (pointer: coarse) { .pa-boton { min-height: var(--toque); } }
 .chip.pa-curso { background: var(--arena); color: var(--cafe); }
 .chip.pa-pend { background: var(--pildora); color: var(--texto-2); }
-.pa-lista { display: flex; flex-direction: column; gap: 8px; }
+/* Reuniones: por mes, fecha en forma de calendario. */
+.pa-meses { display: flex; flex-direction: column; gap: 18px; max-width: 900px; }
+.pa-mes { display: flex; flex-direction: column; gap: 2px; }
+.pa-mes-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.pa-mes-nom { font-size: 13px; font-weight: 600; color: var(--texto-2); text-transform: uppercase; letter-spacing: .5px; }
+.pa-reu { display: flex; align-items: center; gap: 14px; padding: 8px 0; }
+.pa-cal { width: 48px; flex-shrink: 0; text-align: center; border: 1px solid var(--gris); border-radius: 10px; padding: 4px 0; display: flex; flex-direction: column; }
+.pa-cal .titulo { font-size: 22px; line-height: 1; }
+.pa-cal span:last-child { font-size: 11px; color: var(--texto-2); }
+.pa-reu-tema { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
+/* Acompañamiento: totales, horas por mes (una serie, azul) y el detalle. */
+.pa-acomp { display: flex; flex-direction: column; gap: 16px; max-width: 760px; align-items: flex-start; }
+.pa-acomp-tot { display: flex; gap: 32px; }
+.pa-acomp-tot > div { display: flex; flex-direction: column; }
+.pa-acomp-tot .titulo { font-size: 40px; line-height: 1; }
+.pa-grafico { margin: 0; align-self: stretch; border: 1px solid var(--gris); border-radius: 16px; padding: 16px; }
+.pa-grafico figcaption { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.pa-barras { display: flex; align-items: flex-end; gap: 8px; height: 180px; overflow-x: auto; overflow-y: visible; padding-top: 4px; }
+.pa-barra-col { position: relative; flex: 1 0 28px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; outline: none; }
+.pa-barra-col i { display: block; width: 100%; max-width: 36px; border-radius: 4px 4px 0 0; background: #1974A8; }
+.pa-barra-val { font-size: 11px; font-weight: 600; color: var(--texto); }
+.pa-barra-mes { font-size: 11px; color: var(--texto-2); }
+.pa-barra-col:hover i, .pa-barra-col:focus-visible i { background: #0B3A56; }
+.pa-globo { position: absolute; top: 0; left: 50%; transform: translateX(-50%); background: var(--negro); color: var(--blanco); font-size: 12px;
+  padding: 6px 10px; border-radius: 8px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 2; }
+.pa-globo b { display: block; font-weight: 600; }
+.pa-barra-col:hover .pa-globo, .pa-barra-col:focus-visible .pa-globo { opacity: 1; }
+.pa-lista { display: flex; flex-direction: column; gap: 8px; max-width: 900px; }
 .pa-fila { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1px solid var(--gris); border-radius: var(--radio-chico); padding: 12px 16px; }
 .pa-fecha { width: 110px; flex-shrink: 0; font-size: 14px; font-weight: 600; color: var(--texto-2); }
 .pa-fila-txt { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
 .pa-fila-acc { display: flex; gap: 8px; flex-wrap: wrap; }
-.pa-tabla-scroll { overflow-x: auto; }
-.pa-total td { font-weight: 600; border-bottom: 0; }
 /* El visor ocupa la pantalla: el documento se lee aquí mismo. */
 .pa-visor { position: fixed; inset: 0; z-index: 50; background: var(--blanco); display: flex; flex-direction: column; }
 body.pa-visor-abierto { overflow: hidden; }
@@ -468,10 +511,16 @@ body.pa-visor-abierto { overflow: hidden; }
 @media (max-width: 640px) {
   .pa-visor-cab, .pa-versiones, .pa-visor-cuerpo { padding-left: 12px; padding-right: 12px; }
   .pa-visor-cuerpo { padding-top: 8px; padding-bottom: 8px; }
+  .pa-franja-in { padding: 24px 14px 22px; gap: 18px; }
+  .pa-proyectos { width: 100%; }
+  .pa-proyectos button { flex: 1; }
+  .pa-cifra .titulo { font-size: 36px; }
+  .pa-buscar { min-width: 0; width: 100%; }
+  .pa-fila-e-txt { flex-basis: 100%; }
+  .pa-reu { flex-wrap: wrap; }
+  .pa-reu .pa-versiones-fila { width: 100%; padding-left: 62px; }
   .pa-fecha { width: auto; }
   .pa-fila-txt { min-width: 0; flex-basis: 100%; }
-  .pa-proyectos { width: 100%; }
-  .pa-proyectos button { flex: 1; justify-content: center; }
 }
 
 /* ── Configuración ─────────────────────────────────────────────────────── */

@@ -5,50 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Proyecto Actio · Vida en Arte</title>
-<!-- Proyecto Actio (22-oct): lo que Actio Growth le entrega a Vida en Arte.
-  Solo lectura. Reemplaza al «Sistema Operativo» de GitHub Pages. Lee SOLO
-  a través de la capa de datos (/comun/datos.js → proyecto-actio/api.php),
-  que ya recorta por rol: Dirección nunca recibe Proyecto 2. -->
-<link rel="stylesheet" href="/comun/vea.css?v=dbaf13aa6d">
+<!-- Proyecto Actio: lo que Actio Growth le entrega a Vida en Arte. Solo
+  lectura. Lee SOLO a través de la capa de datos (/comun/datos.js →
+  proyecto-actio/api.php), que ya recorta por rol: Dirección nunca recibe
+  Proyecto 2. 23-oct: rediseño visual (franja con cifras, entregables en
+  filas por unidad, reuniones por mes, acompañamiento con horas por mes). -->
+<link rel="stylesheet" href="/comun/vea.css?v=37098cb6a3">
 </head>
 <body>
 <header id="cab"></header>
-<main class="pagina pa">
-  <section class="encabezado encabezado-as">
-    <div>
-      <h1 class="titulo">Proyecto Actio</h1>
-      <p class="ayuda" id="paSello" aria-live="polite"></p>
+
+<!-- Franja negra: qué se ha construido, desde cuándo, y las cuatro cifras. -->
+<section class="pa-franja" aria-labelledby="paTitulo">
+  <div class="pa-franja-in">
+    <div class="pa-franja-fila">
+      <div class="pa-franja-tit">
+        <span class="pa-sobre">PROYECTO ACTIO</span>
+        <h1 class="titulo" id="paTitulo">Lo que hemos construido juntos</h1>
+        <span class="pa-desde" id="paSello" aria-live="polite"></span>
+      </div>
+      <div class="pa-proyectos" id="paProyectos" role="group" aria-label="Proyecto"></div>
     </div>
-    <div class="pa-proyectos" id="paProyectos" role="group" aria-label="Proyecto"></div>
-  </section>
-  <nav class="pestanas" role="tablist" id="pestanas" aria-label="Secciones de Proyecto Actio">
-    <button role="tab" data-vista="entregables" aria-selected="true">Entregables</button>
-    <button role="tab" data-vista="reuniones" aria-selected="false">Reuniones</button>
-    <button role="tab" data-vista="atencion" aria-selected="false">Atención directa</button>
-  </nav>
+    <div class="pa-cifras" id="paCifras"></div>
+  </div>
+</section>
+
+<main class="pagina pa">
+  <div class="pa-barra-pestanas">
+    <nav class="pestanas" role="tablist" id="pestanas" aria-label="Secciones de Proyecto Actio">
+      <button role="tab" data-vista="entregables" aria-selected="true">Entregables</button>
+      <button role="tab" data-vista="reuniones" aria-selected="false">Reuniones</button>
+      <button role="tab" data-vista="atencion" aria-selected="false">Acompañamiento</button>
+    </nav>
+    <label class="pa-buscar" id="paBuscarCaja">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555555" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="search" id="paBuscar" placeholder="Buscar entregable" aria-label="Buscar entregable" autocomplete="off">
+    </label>
+  </div>
 
   <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo lo que Actio Growth le ha entregado a Vida en Arte.</p></div>
   <div id="avisos"></div>
 
-  <!-- ENTREGABLES -->
-  <section id="v-entregables" class="vista oculto columna">
-    <div class="pa-avance" id="paAvance"></div>
-    <div class="pa-filtros">
-      <div class="pa-chips" id="paUnidades" role="group" aria-label="Unidad de negocio"></div>
-      <input type="search" id="paBuscar" placeholder="Buscar un entregable" aria-label="Buscar un entregable" autocomplete="off">
-    </div>
-    <div id="paEntregables" class="columna"></div>
-  </section>
-
-  <!-- REUNIONES -->
-  <section id="v-reuniones" class="vista oculto columna">
-    <div id="paReuniones" class="pa-lista"></div>
-  </section>
-
-  <!-- ATENCIÓN DIRECTA -->
+  <section id="v-entregables" class="vista oculto columna"><div id="paEntregables" class="columna"></div></section>
+  <section id="v-reuniones" class="vista oculto columna"><div id="paReuniones" class="pa-meses"></div></section>
   <section id="v-atencion" class="vista oculto columna">
-    <div id="paAtResumen"></div>
-    <div id="paAtLista" class="pa-lista"></div>
+    <div id="paAcomp" class="pa-acomp"></div>
+    <div id="paAtLista" class="pa-lista oculto"></div>
   </section>
 </main>
 
@@ -77,11 +79,27 @@ const esc = Marca.esc;
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const fecha = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? +iso.slice(8, 10) + ' ' + MESES[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4) : '';
+const esFecha = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '');
+const fecha = iso => esFecha(iso) ? +iso.slice(8, 10) + ' ' + MESES[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4) : '';
+const mesLargo = k => MESES_LARGOS[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
+const decimal = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');   // siempre un decimal: 1,0 · 12,5
 
-/* La unidad se muestra como se llama hoy (D-046); el dato no cambia. */
-const UNIDAD_VISIBLE = { kinder: 'Preschool', 'kinder ': 'Preschool' };
-const unidadVisible = u => UNIDAD_VISIBLE[norm(u)] || (String(u || '').trim() || 'Sin unidad');
+/* Cada unidad con su color (texto negro sobre los claros: contraste ≥ 4.5).
+   La unidad se muestra como se llama hoy (D-046); el dato no cambia. */
+const UNIDADES = {
+  kinder:        { nombre: 'Preschool',    ini: 'PS', fondo: '#7E53A2', texto: '#FFFFFF' },
+  preschool:     { nombre: 'Preschool',    ini: 'PS', fondo: '#7E53A2', texto: '#FFFFFF' },
+  veranito:      { nombre: 'Veranito',     ini: 'VE', fondo: '#FFA615', texto: '#111111' },
+  'after school': { nombre: 'After School', ini: 'AS', fondo: '#D71C0E', texto: '#FFFFFF' },
+  gerencia:      { nombre: 'Gerencia',     ini: 'GE', fondo: '#111111', texto: '#FFFFFF' },
+  cumpleanos:    { nombre: 'Cumpleaños',   ini: 'CU', fondo: '#1974A8', texto: '#FFFFFF' },
+  'baby & me':   { nombre: 'Baby & Me',    ini: 'BM', fondo: '#68A8C9', texto: '#111111' },
+  'baby and me': { nombre: 'Baby & Me',    ini: 'BM', fondo: '#68A8C9', texto: '#111111' }
+};
+function unidad(u) {
+  const n = String(u || '').trim();
+  return UNIDADES[norm(n)] || { nombre: n || 'Sin unidad', ini: (n || '?').slice(0, 2).toUpperCase(), fondo: '#6B6B6B', texto: '#FFFFFF' };
+}
 
 /* Estado del entregable en tres palabras. */
 function estadoDe(e) {
@@ -90,9 +108,18 @@ function estadoDe(e) {
   if (/curso|progreso|proceso|revision/.test(s)) return 'En curso';
   return 'Pendiente';
 }
-const CLASE_ESTADO = { 'Entregado': 'pa-ok', 'En curso': 'pa-curso', 'Pendiente': 'pa-pend' };
 
-let D = null, copia = null, proyecto = '', vista = 'entregables', filtroUnidad = '', busqueda = '';
+/* Íconos de línea (sin emojis). */
+const ICONO = {
+  'Documento': '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+  'Presentación': '<path d="M3 4h18v12H3z"/><path d="M8 20h8M12 16v4"/>',
+  'Interactiva': '<path d="M4 4l7 17 2-7 7-2z"/>',
+  'Minuta': '<path d="M6 3h9l4 4v14H6z"/><path d="M9 13h7M9 17h5"/>',
+  'Grabación': '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>'
+};
+const icono = k => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONO[k] || '') + '</svg>';
+
+let D = null, copia = null, proyecto = '', vista = 'entregables', busqueda = '';
 
 function pantalla(html) { $('#pantalla').innerHTML = html; $('#pantalla').classList.remove('oculto'); }
 
@@ -112,109 +139,155 @@ async function cargar() {
   pintar();
 }
 
+const delProyecto = lista => (lista || []).filter(f => f.proyecto === proyecto);
+const soloActio = p => ['entregables', 'documentos', 'reuniones', 'atencion'].some(k => (D[k] || []).some(f => f.proyecto === p && f.soloActio));
+
 function pintar() {
-  const gen = D.generado ? new Date(D.generado) : null;
-  $('#paSello').textContent = gen && !isNaN(gen)
-    ? 'Datos al ' + gen.getDate() + ' de ' + MESES_LARGOS[gen.getMonth()] + ', ' + gen.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) +
-      (copia && copia.segundos > 60 ? ' (copia guardada hace ' + Math.round(copia.segundos / 60) + ' min)' : '')
-    : '';
+  pintarFranja();
   $('#avisos').innerHTML = (D.faltan || []).length
     ? '<div class="aviso ojo">En el Sheet faltan columnas o pestañas: ' + esc(D.faltan.join(' · ')) + '. Esas partes salen vacías.</div>' : '';
-  // Selector de proyecto: el sello «Solo Actio» en lo que no es del cliente (solo le llega a Administrador).
-  const soloActio = p => D.entregables.concat(D.documentos, D.reuniones, D.atencion).some(f => f.proyecto === p && f.soloActio);
-  $('#paProyectos').innerHTML = D.proyectos.length > 1 || D.proyectos.some(soloActio) ? D.proyectos.map(p =>
-    '<button type="button" aria-pressed="' + (p === proyecto) + '" data-proyecto="' + esc(p) + '">' + esc(p) +
-    (soloActio(p) ? ' <span class="pa-sello">Solo Actio</span>' : '') + '</button>').join('') : (proyecto ? '<span class="pa-proy-unico">' + esc(proyecto) + '</span>' : '');
-  $('#paProyectos').querySelectorAll('[data-proyecto]').forEach(b => b.onclick = () => { proyecto = b.dataset.proyecto; filtroUnidad = ''; pintar(); });
-  pintarEntregables(); pintarReuniones(); pintarAtencion();
+  pintarEntregables(); pintarReuniones(); pintarAcompanamiento();
   mostrarVista(vista);
 }
 
-const delProyecto = lista => (lista || []).filter(f => f.proyecto === proyecto);
+/* ── Franja: desde cuándo, datos al, selector y cuatro cifras ────────────── */
+function pintarFranja() {
+  const es = delProyecto(D.entregables), rs = delProyecto(D.reuniones), as = delProyecto(D.atencion);
+  const fechas = [].concat(es.map(e => e.fechaReal), es.map(e => e.fechaCompromiso), delProyecto(D.documentos).map(d => d.fecha),
+    rs.map(r => r.fecha), as.map(a => a.fecha)).filter(esFecha).sort();
+  const gen = D.generado ? new Date(D.generado) : null;
+  const partes = [];
+  if (fechas.length) partes.push('Desde ' + mesLargo(fechas[0]).replace(' ', ' de '));
+  if (gen && !isNaN(gen)) partes.push('datos al ' + gen.getDate() + ' de ' + MESES_LARGOS[gen.getMonth()] +
+    (copia && copia.segundos > 60 ? ' (copia de hace ' + Math.round(copia.segundos / 60) + ' min)' : ''));
+  $('#paSello').textContent = partes.join(' · ');
 
-/* ── Entregables ─────────────────────────────────────────────────────────── */
+  $('#paProyectos').innerHTML = D.proyectos.length > 1 || D.proyectos.some(soloActio)
+    ? D.proyectos.map(p => '<button type="button" aria-pressed="' + (p === proyecto) + '" data-proyecto="' + esc(p) + '">' + esc(p) +
+        (soloActio(p) ? ' · Solo Actio' : '') + '</button>').join('')
+    : (proyecto ? '<span class="pa-proy-unico">' + esc(proyecto) + '</span>' : '');
+  $('#paProyectos').querySelectorAll('[data-proyecto]').forEach(b => b.onclick = () => { proyecto = b.dataset.proyecto; pintar(); });
+
+  const hechos = es.filter(e => estadoDe(e) === 'Entregado').length;
+  const pct = es.length ? Math.round(hechos / es.length * 100) : 0;
+  const unidades = new Set(es.map(e => unidad(e.unidad).nombre)).size;
+  const minutos = as.reduce((t, a) => t + (+a.duracionMin || 0), 0);
+  const cifra = (clase, n, texto) => '<div class="pa-cifra ' + clase + '"><span class="titulo num">' + n + '</span><span>' + texto + '</span></div>';
+  $('#paCifras').innerHTML =
+    cifra('c-rojo', es.length, (es.length === 1 ? 'entregable' : 'entregables') + ', ' + pct + ' % ' + (es.length === 1 ? 'entregado' : 'entregados')) +
+    cifra('c-naranja', unidades, unidades === 1 ? 'unidad de negocio' : 'unidades de negocio') +
+    cifra('c-azul', rs.length, rs.length === 1 ? 'reunión de trabajo' : 'reuniones de trabajo') +
+    cifra('c-blanco', decimal(minutos / 60) + ' h', 'de acompañamiento directo');
+}
+
+/* ── Entregables: filas agrupadas por unidad ─────────────────────────────── */
 function docsDe(e) { return D.documentos.filter(d => d.idEntregable && d.idEntregable === e.id && d.proyecto === e.proyecto); }
 
 function pintarEntregables() {
   const todos = delProyecto(D.entregables);
-  const hechos = todos.filter(e => estadoDe(e) === 'Entregado').length;
-  const pct = todos.length ? Math.round(hechos / todos.length * 100) : 0;
-  $('#paAvance').innerHTML = todos.length
-    ? '<div class="pa-avance-num"><span class="titulo">' + hechos + ' de ' + todos.length + '</span><span>entregables entregados · ' + pct + ' %</span></div>' +
-      '<div class="pa-barra" role="img" aria-label="' + pct + ' % entregado"><i style="width:' + pct + '%"></i></div>'
-    : '';
-  const unidades = [...new Set(todos.map(e => unidadVisible(e.unidad)))];
-  if (filtroUnidad && !unidades.includes(filtroUnidad)) filtroUnidad = '';
-  $('#paUnidades').innerHTML = ['', ...unidades].map(u => '<button type="button" aria-pressed="' + (u === filtroUnidad) + '" data-unidad="' + esc(u) + '">' +
-    esc(u || 'Todas') + ' <span class="pa-n">' + (u ? todos.filter(e => unidadVisible(e.unidad) === u).length : todos.length) + '</span></button>').join('');
-  $('#paUnidades').querySelectorAll('[data-unidad]').forEach(b => b.onclick = () => { filtroUnidad = b.dataset.unidad; pintarEntregables(); });
   const q = norm(busqueda);
-  const vistos = todos.filter(e => (!filtroUnidad || unidadVisible(e.unidad) === filtroUnidad) &&
-    (!q || norm(e.entregable + ' ' + e.segmento + ' ' + unidadVisible(e.unidad)).includes(q)));
+  const vistos = todos.filter(e => !q || norm(e.entregable + ' ' + e.segmento + ' ' + unidad(e.unidad).nombre).includes(q));
   if (!todos.length) { $('#paEntregables').innerHTML = '<div class="tarjeta"><p class="ayuda">Este proyecto todavía no tiene entregables.</p></div>'; return; }
-  if (!vistos.length) { $('#paEntregables').innerHTML = '<div class="tarjeta"><p class="ayuda">Ningún entregable coincide con la búsqueda.</p></div>'; return; }
-  $('#paEntregables').innerHTML = [...new Set(vistos.map(e => unidadVisible(e.unidad)))].map(u => {
-    const es = vistos.filter(e => unidadVisible(e.unidad) === u);
-    const todosU = todos.filter(e => unidadVisible(e.unidad) === u);
-    return '<section class="pa-unidad"><div class="seccion-tit"><h2 class="titulo">' + esc(u) + '</h2><div class="raya" aria-hidden="true"></div>' +
-      '<span class="ayuda">' + todosU.filter(e => estadoDe(e) === 'Entregado').length + ' de ' + todosU.length + ' entregados</span></div>' +
-      '<div class="pa-tarjetas">' + es.map(tarjetaEntregable).join('') + '</div></section>';
+  if (!vistos.length) { $('#paEntregables').innerHTML = '<div class="tarjeta"><p class="ayuda">Ningún entregable coincide con «' + esc(busqueda) + '».</p></div>'; return; }
+  const nombres = [...new Set(vistos.map(e => unidad(e.unidad).nombre))];
+  $('#paEntregables').innerHTML = nombres.map(nom => {
+    const es = vistos.filter(e => unidad(e.unidad).nombre === nom), u = unidad(es[0].unidad);
+    return '<section class="pa-unidad">' +
+      '<div class="pa-unidad-cab"><span class="pa-insignia" style="background:' + u.fondo + ';color:' + u.texto + '" aria-hidden="true">' + esc(u.ini) + '</span>' +
+      '<h2 class="titulo">' + esc(u.nombre) + '</h2><span class="ayuda">' + es.length + (es.length === 1 ? ' entregable' : ' entregables') + '</span><i aria-hidden="true"></i></div>' +
+      '<div class="pa-filas">' + es.map(filaEntregable).join('') + '</div></section>';
   }).join('');
   $('#paEntregables').querySelectorAll('[data-abrir]').forEach(b => b.onclick = () => {
     const e = D.entregables.find(x => x.id === b.dataset.abrir && x.proyecto === proyecto);
-    abrirVisor(e.entregable, unidadVisible(e.unidad) + (e.segmento ? ' · ' + e.segmento : ''), Visor.versiones(docsDe(e)));
+    abrirVisor(e.entregable, unidad(e.unidad).nombre + (e.segmento ? ' · ' + e.segmento : ''), Visor.versiones(docsDe(e)), b.dataset.version);
   });
 }
 
-function tarjetaEntregable(e) {
+function filaEntregable(e) {
   const est = estadoDe(e), vs = Visor.versiones(docsDe(e));
-  const cuando = est === 'Entregado' ? (e.fechaReal ? 'Entregado el ' + fecha(e.fechaReal) : 'Entregado')
-    : (e.fechaCompromiso ? 'Compromiso: ' + fecha(e.fechaCompromiso) : 'Sin fecha de compromiso');
-  return '<article class="pa-card">' +
-    '<div class="pa-chips-fila"><span class="chip ' + CLASE_ESTADO[est] + '">' + est + '</span>' +
-    (e.segmento ? '<span class="chip">' + esc(e.segmento) + '</span>' : '') + (e.soloActio ? '<span class="pa-sello">Solo Actio</span>' : '') + '</div>' +
-    '<h3>' + esc(e.entregable) + '</h3>' +
-    '<p class="ayuda">' + esc(cuando) + (est === 'En curso' && e.avance ? ' · ' + esc(e.avance) + ' %' : '') + '</p>' +
-    (vs.length ? '<div class="pa-card-pie"><span class="ayuda">' + vs.map(v => v.version).join(' · ') + '</span>' +
-      '<button class="btn negro chico" type="button" data-abrir="' + esc(e.id) + '">Abrir</button></div>'
-      : '<div class="pa-card-pie"><span class="ayuda">Sin documento todavía</span></div>') +
-    '</article>';
+  const cuando = est === 'Entregado' ? fecha(e.fechaReal) : (e.fechaCompromiso ? 'compromiso ' + fecha(e.fechaCompromiso) : 'sin fecha');
+  const sub = [e.segmento, cuando].filter(Boolean).join(' · ');
+  return '<div class="pa-fila-e">' +
+    '<div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(e.entregable) +
+      (est !== 'Entregado' ? ' <span class="chip ' + (est === 'En curso' ? 'pa-curso' : 'pa-pend') + '">' + est + (est === 'En curso' && e.avance ? ' · ' + esc(e.avance) + ' %' : '') + '</span>' : '') +
+    '</span>' + (sub ? '<span class="ayuda">' + esc(sub) + '</span>' : '') + '</div>' +
+    '<div class="pa-versiones-fila">' + (vs.length ? vs.map(v =>
+      '<button type="button" class="pa-boton" data-abrir="' + esc(e.id) + '" data-version="' + esc(v.version) + '">' + icono(v.version) + esc(v.version) + '</button>').join('')
+      : '<span class="pa-por-cargar">Documento por cargar</span>') + '</div>' +
+    '</div>';
 }
 $('#paBuscar').addEventListener('input', () => { busqueda = $('#paBuscar').value; pintarEntregables(); });
 
-/* ── Reuniones ───────────────────────────────────────────────────────────── */
+/* ── Reuniones: por mes, fecha en forma de calendario ────────────────────── */
 function pintarReuniones() {
   const rs = delProyecto(D.reuniones).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
-  $('#paReuniones').innerHTML = rs.length ? rs.map((r, i) =>
-    '<div class="pa-fila"><div class="pa-fecha num">' + esc(fecha(r.fecha) || 'Sin fecha') + '</div>' +
-    '<div class="pa-fila-txt"><b>' + esc(r.tema) + '</b>' + (r.soloActio ? ' <span class="pa-sello">Solo Actio</span>' : '') + '</div>' +
-    '<div class="pa-fila-acc">' +
-      (Visor.vista(r.minuta).modo !== 'nada' ? '<button class="btn sec chico" type="button" data-reu="' + i + '" data-que="minuta">Minuta</button>' : '') +
-      (Visor.vista(r.grabacion).modo !== 'nada' ? '<button class="btn sec chico" type="button" data-reu="' + i + '" data-que="grabacion">Grabación</button>' : '') +
-    '</div></div>').join('') : '<div class="tarjeta"><p class="ayuda">No hay reuniones registradas en este proyecto.</p></div>';
+  if (!rs.length) { $('#paReuniones').innerHTML = '<div class="tarjeta"><p class="ayuda">No hay reuniones registradas en este proyecto.</p></div>'; return; }
+  const meses = [];
+  rs.forEach(r => { const k = esFecha(r.fecha) ? r.fecha.slice(0, 7) : ''; let m = meses.find(x => x.k === k); if (!m) meses.push(m = { k, items: [] }); m.items.push(r); });
+  $('#paReuniones').innerHTML = meses.map(m =>
+    '<div class="pa-mes"><div class="pa-mes-cab"><span class="pa-mes-nom">' + (m.k ? mesLargo(m.k) : 'Sin fecha') + '</span>' +
+    '<span class="ayuda">' + m.items.length + (m.items.length === 1 ? ' reunión' : ' reuniones') + '</span><i aria-hidden="true"></i></div>' +
+    m.items.map(r => {
+      const i = rs.indexOf(r);
+      return '<div class="pa-reu">' +
+        (esFecha(r.fecha) ? '<div class="pa-cal" aria-label="' + esc(fecha(r.fecha)) + '"><span class="titulo">' + +r.fecha.slice(8, 10) + '</span><span>' + MESES[+r.fecha.slice(5, 7) - 1] + '</span></div>'
+          : '<div class="pa-cal"><span>—</span></div>') +
+        '<span class="pa-reu-tema">' + esc(r.tema) + '</span>' +
+        '<div class="pa-versiones-fila">' +
+          (Visor.vista(r.minuta).modo !== 'nada' ? '<button class="pa-boton" type="button" data-reu="' + i + '" data-que="minuta">' + icono('Minuta') + 'Minuta</button>' : '') +
+          (Visor.vista(r.grabacion).modo !== 'nada' ? '<button class="pa-boton" type="button" data-reu="' + i + '" data-que="grabacion">' + icono('Grabación') + 'Grabación</button>' : '') +
+        '</div></div>';
+    }).join('') + '</div>').join('');
   $('#paReuniones').querySelectorAll('[data-reu]').forEach(b => b.onclick = () => {
     const r = rs[+b.dataset.reu], minuta = b.dataset.que === 'minuta';
     abrirVisor(r.tema, fecha(r.fecha), [{ version: minuta ? 'Minuta' : 'Grabación', nombre: r.tema, enlace: minuta ? r.minuta : r.grabacion }]);
   });
 }
 
-/* ── Atención directa ────────────────────────────────────────────────────── */
-function pintarAtencion() {
+/* ── Acompañamiento: totales, horas por mes y el detalle desplegable ─────── */
+function pintarAcompanamiento() {
   const as = delProyecto(D.atencion).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  if (!as.length) {
+    $('#paAcomp').innerHTML = '<div class="tarjeta"><p class="ayuda">No hay acompañamiento directo registrado en este proyecto.</p></div>';
+    $('#paAtLista').innerHTML = ''; return;
+  }
   const meses = {};
-  as.forEach(a => { const k = String(a.fecha).slice(0, 7) || 'sin fecha'; (meses[k] = meses[k] || { n: 0, min: 0 }); meses[k].n++; meses[k].min += +a.duracionMin || 0; });
-  const horas = min => (min / 60).toFixed(1).replace('.', ',');
+  as.forEach(a => { if (!esFecha(a.fecha)) return; const k = a.fecha.slice(0, 7); (meses[k] = meses[k] || { n: 0, min: 0 }); meses[k].n++; meses[k].min += +a.duracionMin || 0; });
+  // Todos los meses entre el primero y el último, aunque alguno no tenga encuentros (barra en cero).
+  const ks = Object.keys(meses).sort(), serie = [];
+  if (ks.length) for (let y = +ks[0].slice(0, 4), m = +ks[0].slice(5, 7); ; ) {
+    const k = y + '-' + String(m).padStart(2, '0'); serie.push({ k, n: (meses[k] || {}).n || 0, h: ((meses[k] || {}).min || 0) / 60 });
+    if (k === ks[ks.length - 1]) break; if (++m > 12) { m = 1; y++; }
+  }
+  const maxH = Math.max(...serie.map(s => s.h), 0.1);
   const totalMin = as.reduce((t, a) => t + (+a.duracionMin || 0), 0);
-  $('#paAtResumen').innerHTML = as.length ? '<div class="tarjeta"><h2>Resumen por mes</h2><div class="pa-tabla-scroll"><table class="datos"><thead><tr><th>Mes</th><th class="der">Encuentros</th><th class="der">Horas</th></tr></thead><tbody>' +
-    Object.keys(meses).sort().reverse().map(k => '<tr><td>' + (k.length === 7 ? MESES_LARGOS[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4) : 'Sin fecha') + '</td>' +
-      '<td class="der num">' + meses[k].n + '</td><td class="der num">' + horas(meses[k].min) + '</td></tr>').join('') +
-    '<tr class="pa-total"><td>Total</td><td class="der num">' + as.length + '</td><td class="der num">' + horas(totalMin) + '</td></tr></tbody></table></div></div>' : '';
-  $('#paAtLista').innerHTML = as.length ? as.map(a =>
+  $('#paAcomp').innerHTML =
+    '<div class="pa-acomp-tot">' +
+      '<div><span class="titulo num">' + decimal(totalMin / 60) + ' h</span><span class="ayuda">llamadas y reuniones</span></div>' +
+      '<div><span class="titulo num">' + as.length + '</span><span class="ayuda">' + (as.length === 1 ? 'encuentro' : 'encuentros') + '</span></div>' +
+    '</div>' +
+    '<figure class="pa-grafico"><figcaption>Horas por mes</figcaption>' +
+      '<div class="pa-barras" role="list">' + serie.map(s =>
+        '<div class="pa-barra-col" role="listitem" tabindex="0" title="' + esc(mesLargo(s.k) + ': ' + decimal(s.h) + ' h en ' + s.n + (s.n === 1 ? ' encuentro' : ' encuentros')) + '"' +
+          ' aria-label="' + esc(mesLargo(s.k) + ': ' + decimal(s.h) + ' horas, ' + s.n + (s.n === 1 ? ' encuentro' : ' encuentros')) + '">' +
+          '<span class="pa-barra-val num">' + decimal(s.h) + '</span>' +
+          '<i style="height:' + (s.h ? Math.max(3, Math.round(s.h / maxH * 130)) : 0) + 'px"></i>' +
+          '<span class="pa-barra-mes">' + MESES[+s.k.slice(5, 7) - 1] + '</span>' +
+          '<span class="pa-globo" aria-hidden="true">' + esc(mesLargo(s.k)) + '<b>' + decimal(s.h) + ' h · ' + s.n + (s.n === 1 ? ' encuentro' : ' encuentros') + '</b></span>' +
+        '</div>').join('') + '</div></figure>' +
+    '<button class="btn sec" type="button" id="paVerDetalle" aria-expanded="false" aria-controls="paAtLista">Ver el detalle de cada encuentro</button>';
+  $('#paAtLista').innerHTML = as.map(a =>
     '<div class="pa-fila"><div class="pa-fecha num">' + esc(fecha(a.fecha) || 'Sin fecha') + '</div>' +
     '<div class="pa-fila-txt"><b>' + esc(a.asunto || a.tipo) + '</b><span class="ayuda">' + esc(a.tipo) +
-      (a.duracionMin ? ' · ' + esc(a.duracionMin) + ' min' : '') + (a.unidad ? ' · ' + esc(unidadVisible(a.unidad)) : '') + '</span></div>' +
-    '<div class="pa-fila-acc">' + (Visor.vista(a.enlace).modo !== 'nada' ? '<a class="btn sec chico" href="' + esc(a.enlace) + '" target="_blank" rel="noopener">Abrir</a>' : '') + '</div></div>').join('')
-    : '<div class="tarjeta"><p class="ayuda">No hay atención directa registrada en este proyecto.</p></div>';
+      (a.duracionMin ? ' · ' + esc(a.duracionMin) + ' min' : '') + (a.unidad ? ' · ' + esc(unidad(a.unidad).nombre) : '') + '</span></div>' +
+    '<div class="pa-fila-acc">' + (Visor.vista(a.enlace).modo !== 'nada' ? '<a class="btn sec chico" href="' + esc(a.enlace) + '" target="_blank" rel="noopener">Abrir</a>' : '') + '</div></div>').join('');
+  $('#paAtLista').classList.add('oculto');
+  $('#paVerDetalle').onclick = () => {
+    const abrir = $('#paAtLista').classList.contains('oculto');
+    $('#paAtLista').classList.toggle('oculto', !abrir);
+    $('#paVerDetalle').setAttribute('aria-expanded', String(abrir));
+    $('#paVerDetalle').textContent = abrir ? 'Ocultar el detalle' : 'Ver el detalle de cada encuentro';
+  };
 }
 
 /* ── Pestañas ────────────────────────────────────────────────────────────── */
@@ -222,24 +295,27 @@ function mostrarVista(v) {
   vista = v;
   document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.setAttribute('aria-selected', b.dataset.vista === v ? 'true' : 'false'));
   document.querySelectorAll('.vista').forEach(s => s.classList.toggle('oculto', !D || s.id !== 'v-' + v));
+  $('#paBuscarCaja').classList.toggle('oculto', v !== 'entregables');   // el buscador es de Entregables
   if (location.hash.slice(1) !== v) history.replaceState(null, '', '#' + v);
 }
 document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.onclick = () => mostrarVista(b.dataset.vista));
 
 /* ── Visor ───────────────────────────────────────────────────────────────── */
 let versionesVisor = [], volverFoco = null;
-function abrirVisor(titulo, sub, versiones) {
+/* Abre el visor en la versión pedida (1 clic desde la fila); las demás quedan
+   como pestañas. Un enlace que no se puede incrustar se abre en pestaña nueva. */
+function abrirVisor(titulo, sub, versiones, pedida) {
   versionesVisor = versiones.filter(v => Visor.vista(v.enlace).modo !== 'nada');
   if (!versionesVisor.length) return;
-  // Un solo enlace que no se puede incrustar: directo a una pestaña nueva, sin pasos de más.
-  if (versionesVisor.length === 1 && Visor.vista(versionesVisor[0].enlace).modo === 'nueva') { window.open(versionesVisor[0].enlace, '_blank', 'noopener'); return; }
+  const i = Math.max(0, versionesVisor.findIndex(v => v.version === pedida));
+  if (Visor.vista(versionesVisor[i].enlace).modo === 'nueva') { window.open(versionesVisor[i].enlace, '_blank', 'noopener'); return; }
   volverFoco = document.activeElement;
   $('#visorTit').textContent = titulo; $('#visorSub').textContent = sub || '';
-  $('#visorVersiones').innerHTML = versionesVisor.length > 1 ? versionesVisor.map((v, i) =>
-    '<button role="tab" type="button" data-v="' + i + '">' + esc(v.version) + '</button>').join('') : '';
+  $('#visorVersiones').innerHTML = versionesVisor.length > 1 ? versionesVisor.map((v, k) =>
+    '<button role="tab" type="button" data-v="' + k + '">' + esc(v.version) + '</button>').join('') : '';
   $('#visorVersiones').querySelectorAll('[data-v]').forEach(b => b.onclick = () => verVersion(+b.dataset.v));
   $('#visor').classList.remove('oculto'); document.body.classList.add('pa-visor-abierto');
-  verVersion(0);
+  verVersion(i);
   $('#visorCerrar').focus();
 }
 function verVersion(i) {

@@ -634,6 +634,8 @@ async function correr(fuente) {
       const pg = await n['prueba-direccion'].get('/proyecto-actio/');
       ok(pg.status === 200 && /<title>Proyecto Actio/.test(pg.texto) && /\/comun\/visor\.js\?v=[0-9a-f]{10}/.test(pg.texto), 'Dirección abre la página (con visor.js versionado)');
       ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por datos.js');
+      ok(/Lo que hemos construido juntos/.test(pg.texto) && /data-vista="atencion"[^>]*>Acompañamiento</.test(pg.texto) && !/<style>/.test(pg.texto),
+        'rediseño 23-oct: franja «Lo que hemos construido juntos», pestaña Acompañamiento y sin estilos propios');
       // Administrador: todo, con «soloActio» en lo que no es del cliente
       const ad = await leerPA('admin-uno');
       const A = ad.j && ad.j.resultado;

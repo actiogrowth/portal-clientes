@@ -157,10 +157,16 @@ Reemplaza al «Sistema Operativo» de GitHub Pages. **Solo lectura.**
  Sheet «Datos — Vida en Arte» (lo escribe Actio desde el Tablero de Tareas)
 ```
 
-- La pantalla: selector de proyecto (Proyecto 2 con el sello «Solo Actio»,
-  que solo ve Administrador) y tres pestañas: Entregables (avance, filtros
-  por unidad, buscador, tarjetas por unidad, Abrir), Reuniones (Minuta,
-  Grabación) y Atención directa (resumen por mes y lista).
+- La pantalla (rediseño visual del 23-oct): franja negra «Lo que hemos
+  construido juntos» con «Desde <mes del primer registro> · datos al
+  <fecha>», el selector Proyecto 1 / Proyecto 2 (este con «Solo Actio», solo
+  Administrador) y cuatro cifras calculadas del proyecto elegido
+  (entregables y % entregado, unidades, reuniones, horas de acompañamiento).
+  Pestañas: Entregables (filas agrupadas por unidad con su color; un botón
+  por versión que abre ESA versión en el visor; el estado solo si no está
+  entregado; buscador a la derecha), Reuniones (por mes, fecha en forma de
+  calendario, Minuta y Grabación) y Acompañamiento (totales, horas por mes
+  en barras y el detalle de cada encuentro desplegable).
 - El visor (`comun/visor.js`) muestra el documento en la misma página, con
   una pestaña por versión (Documento, Presentación, Interactiva): Drive en
   `/preview`, Google Docs/Hojas/Presentaciones en `/preview` (solo lectura),
