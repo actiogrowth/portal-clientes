@@ -567,8 +567,8 @@ async function correr(fuente) {
       ok(/\.tema-kids\s*\{[^}]*#7E53A2[^}]*#9DCC4C[^}]*#FCCC14/.test(css) && /@media \(pointer: fine\)/.test(css),
         'vea.css: tema Kids con la paleta de VEA Kids y Pasar lista compacta con mouse');
       const portada = (await n['admin-uno'].get('/')).texto;
-      ok(/nombre: 'Preschool', url: '\/kinder\/'/.test(portada) && !/Preescolar|Kínder/.test(portada) && /Reservas y eventos/.test(portada) && /Procesos y herramientas del negocio/.test(portada),
-        'portada: la unidad se llama Preschool (la ruta sigue /kinder/) y las tarjetas dicen qué serán');
+      ok(/nombre: 'Preschool', url: '\/kinder\/'/.test(portada) && !/Preescolar|Kínder/.test(portada) && /Reservas y eventos/.test(portada) && /nombre: 'Proyecto Actio', url: '\/proyecto-actio\/', area: 'proyecto-actio'/.test(portada) && !/Sistema Operativo|portal-v2/.test(portada),
+        'portada: la unidad se llama Preschool (la ruta sigue /kinder/), las tarjetas dicen qué serán y Proyecto Actio reemplaza a Sistema Operativo');
       for (const pagina of ['/', '/configuracion/', '/login.html', '/cambiar-clave.html']) {
         const t = (await n['admin-uno'].get(pagina)).texto;
         ok(/href="\/comun\/vea\.css\?v=[0-9a-f]{10}"/.test(t) && !/<style>/.test(t) && !/fetch\(/.test(t), pagina + ': usa vea.css y no hace fetch por su cuenta');
