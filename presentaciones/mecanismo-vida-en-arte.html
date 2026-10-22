@@ -17,7 +17,12 @@
 [hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:#1A1A1A;color:var(--ink);font-family:var(--title);overflow:hidden}
-#app{position:fixed;inset:0;display:flex;flex-direction:column}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;background:#1A1A1A;padding-top:env(safe-area-inset-top,0px)}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.nav{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:transparent;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.nav svg{width:18px;height:18px}
+.nav:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+@media (max-width:480px){#lbl{display:none}#player{gap:8px!important}}
 #viewport{position:relative;flex:1;min-height:0;overflow:hidden;background:#1A1A1A}
 #stage{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;background:var(--paper)}
 #cam{position:absolute;inset:0;transform-origin:50% 50%}
@@ -213,7 +218,7 @@ body{margin:0;background:#1A1A1A;color:var(--ink);font-family:var(--title);overf
 .h .s11 img{width:760px}.v .s11 img{width:600px}
 /* ---------- player ---------- */
 #player{flex:none;display:flex;align-items:center;gap:14px;background:#111;color:#fff;
-  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 #pp{flex:none;width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:transparent;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
 #fs{flex:none;width:44px;height:44px;border-radius:10px;border:2px solid #fff;background:transparent;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #fs.on{background:#fff;color:#111}
@@ -451,7 +456,9 @@ body{margin:0;background:#1A1A1A;color:var(--ink);font-family:var(--title);overf
     </div></div></div>
   </div>
   <div id="player">
+    <button class="nav" id="prev" aria-label="Escena anterior"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4 6.5 10l6 6"/></svg></button>
     <button id="pp" aria-label="Pausar">❚❚</button>
+    <button class="nav" id="next" aria-label="Escena siguiente"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4l6 6-6 6"/></svg></button>
     <div id="segs"></div>
     <span id="lbl">1/11</span>
     <button id="fs" aria-label="Pantalla completa" title="Pantalla completa"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
@@ -560,7 +567,11 @@ body{margin:0;background:#1A1A1A;color:var(--ink);font-family:var(--title);overf
   function setPP(){pp.textContent=playing?'❚❚':'▶';pp.setAttribute('aria-label',playing?'Pausar':'Reproducir');}
   pp.onclick=()=>{ if(!playing&&cur===panels.length-1&&elapsed>=durs[cur]*1000){go(0);} playing=!playing; if(playing)t0=performance.now()-elapsed; setPP(); };
   document.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();pp.click();}else if(e.key==='ArrowRight'&&cur<panels.length-1)go(cur+1);else if(e.key==='ArrowLeft'&&cur>0)go(cur-1);});
+  document.getElementById('prev').onclick=()=>{if(cur>0)go(cur-1);};
+  document.getElementById('next').onclick=()=>{if(cur<panels.length-1)go(cur+1);};
   let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,120);});
+  addEventListener('orientationchange',()=>setTimeout(fit,250));
+  if(window.visualViewport)visualViewport.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,120);});
   const fsb=document.getElementById('fs'), de=document.documentElement;
   const canFS=!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
   if(!canFS) fsb.hidden=true;
