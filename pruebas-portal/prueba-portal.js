@@ -786,14 +786,22 @@ async function correr(fuente) {
       const cfgF = path.join(home, 'portal_config.php'), cfg = fs.readFileSync(cfgF, 'utf8');
       const sinProcesos = cfg.split('\n').filter(l => !/'procesos_(segmentos|general)'/.test(l)).join('\n');
       ok(sinProcesos !== cfg && !/procesos_/.test(sinProcesos), '(control) la configuración de prueba sin las dos entradas de Procesos');
-      // Si el PHP de pruebas guarda los archivos compilados (opcache), solo vuelve a mirar el archivo pasados ~2 s.
-      const esperarCambio = () => new Promise(res => setTimeout(res, 2100));
-      fs.writeFileSync(cfgF, sinProcesos); await esperarCambio();
+      // En un PHP aparte: el servidor de pruebas puede tener portal_config.php en su caché de compilados (opcache).
+      fs.writeFileSync(cfgF, sinProcesos);
       try {
-        const sin = await leer('prueba-recepcion');
-        ok(sin.status === 500 && sin.j && sin.j.codigo === 'sin_configuracion' && /procesos_segmentos, procesos_general/.test(sin.j.error),
-          'sin procesos_segmentos ni procesos_general en portal_config.php: error «sin_configuracion» que los nombra (' + sin.texto.slice(0, 160) + ')');
-      } finally { fs.writeFileSync(cfgF, cfg); await esperarCambio(); }
+        const script = path.join(tmp, 'sin-procesos.php');
+        fs.writeFileSync(script, `<?php
+define('PA_SOLO_FUNCIONES', true);
+require '${web.replace(/\\/g, '/')}/proyecto-actio/api.php';
+pa_config(['procesos_segmentos', 'procesos_general']);
+echo 'SIGUIO';
+`);
+        const sin = spawnSync(PHP, [script], { encoding: 'utf8' });
+        let j = null; try { j = JSON.parse(sin.stdout); } catch (e) { }
+        ok(j && j.ok === false && j.codigo === 'sin_configuracion' && /procesos_segmentos, procesos_general/.test(j.error) && !/SIGUIO/.test(sin.stdout),
+          'sin procesos_segmentos ni procesos_general en portal_config.php: error «sin_configuracion» que los nombra (' + (sin.stdout + sin.stderr).slice(0, 200) + ')');
+        ok(/\$cfg = pa_config\(\['procesos_segmentos', 'procesos_general'\]\);/.test(fs.readFileSync(path.join(web, 'procesos', 'api.php'), 'utf8')), 'procesos/api.php exige esas dos entradas');
+      } finally { fs.writeFileSync(cfgF, cfg); }
     }
 
     seccion('portada por marca: logos, Procesos, Administración y la entrada de cada rol');
