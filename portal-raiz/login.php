@@ -56,7 +56,7 @@ if ($metodo !== 'POST') responder_login(405, ['ok' => false, 'error' => 'Método
 $e = json_decode((string) file_get_contents('php://input'), true);
 if (!is_array($e)) $e = $_POST;   // por si llega un formulario
 if ($sinCuentas) responder_login(503, ['ok' => false, 'codigo' => 'mantenimiento',
-    'error' => 'El portal está en mantenimiento: falta terminar la configuración de usuarios. El detalle está en el error_log del servidor.']);
+    'error' => 'En mantenimiento: falta terminar la configuración de usuarios. El detalle está en el error_log del servidor.']);
 if (!csrf_valido($e['csrf'] ?? null)) responder_login(403, ['ok' => false, 'codigo' => 'csrf', 'error' => 'La página caducó. Vuelve a escribir tu usuario y contraseña.']);
 if ($min = bloqueado()) responder_login(429, ['ok' => false, 'codigo' => 'bloqueado', 'error' => "Demasiados intentos fallidos. Vuelve a intentarlo en $min min."]);
 

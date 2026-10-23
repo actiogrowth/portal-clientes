@@ -4,13 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Proyecto Actio · Vida en Arte</title>
+<title>Proyecto Actio · Vida en Arte 360</title>
 <!-- Proyecto Actio: lo que Actio Growth le entrega a Vida en Arte. Solo
   lectura. Lee SOLO a través de la capa de datos (/comun/datos.js →
   proyecto-actio/api.php), que ya recorta por rol: Dirección nunca recibe
   Proyecto 2. 23-oct: cabecera baja como el resto del portal, pestaña
   Documentos (todas las filas de «Documentos VEA») y desplegables por unidad
   y por mes, cerrados al abrir cada pestaña. -->
+<!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
+<link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
+<link rel="apple-touch-icon" href="/comun/app-icono-180.png?v=56fff6a358">
+<meta name="apple-mobile-web-app-title" content="VEA 360">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="/comun/vea.css?v=dc4eac83ac">
 </head>
 <body>
@@ -63,8 +71,8 @@
   <div class="pa-visor-cuerpo" id="visorCuerpo"></div>
 </div>
 
-<script src="/comun/datos.js?v=fe16b3d544"></script>
-<script src="/comun/marca.js?v=bc6a4e424f"></script>
+<script src="/comun/datos.js?v=0032db3bee"></script>
+<script src="/comun/marca.js?v=fb40b4e318"></script>
 <script src="/comun/visor.js?v=a241db0d73"></script>
 <script>
 'use strict';
@@ -381,7 +389,7 @@ function verVersion(i) {
     ? '<iframe src="' + esc(x.url) + '" title="' + esc(v.version + ': ' + (v.nombre || '')) + '" allow="fullscreen; autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"' +
       // Presentación del portal: sus scripts corren, pero aislada en un origen propio: no ve la sesión ni esta página.
       (x.aislado ? ' sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"' : '') + '></iframe>'
-    : '<div class="pantalla"><h2>' + esc(v.version) + '</h2><p>Este enlace no se puede mostrar dentro del portal: se abre en una pestaña nueva.</p>' +
+    : '<div class="pantalla"><h2>' + esc(v.version) + '</h2><p>Este enlace no se puede mostrar aquí: se abre en una pestaña nueva.</p>' +
       '<a class="btn negro" href="' + esc(x.url) + '" target="_blank" rel="noopener">Abrir en una pestaña nueva</a></div>';
 }
 function cerrarVisor() {

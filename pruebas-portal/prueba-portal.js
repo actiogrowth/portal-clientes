@@ -593,7 +593,21 @@ async function correr(fuente) {
       }
       const png = await anon.get('/comun/logo-vea.png');
       ok(png.status === 200, '/comun/logo-vea.png se abre sin sesión');
-      for (const ruta of ['/comun/', '/comun', '/comun/prueba.php', '/comun/api.php', '/comun/sub/x.css', '/comun/htaccess.txt', '/comun/.htaccess']) {
+      // App instalable (23-oct): el navegador pide el manifiesto y sus íconos SIN cookies.
+      const man = await anon.get('/comun/app.webmanifest?v=0123456789');
+      ok(man.status === 200 && man.j && man.j.name === 'Vida en Arte 360' && man.j.start_url === '/' && man.j.scope === '/' && man.j.display === 'standalone',
+        '/comun/app.webmanifest se abre sin sesión: «Vida en Arte 360», empieza en la portada y abarca todo');
+      for (const src of new Set(((man.j && man.j.icons) || []).map(i => i.src).concat('/comun/app-icono-180.png'))) {
+        const r = await anon.get(src);
+        ok(r.status === 200 && /image\/png/.test(r.tipo), src + ': ícono de la app sin sesión');
+      }
+      for (const pagina of ['/login.html', '/cambiar-clave.html', '/', '/after-school/', '/configuracion/', '/proyecto-actio/']) {
+        const t = (await n['admin-uno'].get(pagina)).texto;
+        ok(/<link rel="manifest" href="\/comun\/app\.webmanifest\?v=[0-9a-f]{10}">/.test(t) && /<link rel="apple-touch-icon" href="\/comun\/app-icono-180\.png\?v=[0-9a-f]{10}">/.test(t),
+          pagina + ': enlaza el manifiesto y el ícono (se puede instalar desde cualquier pantalla)');
+        ok(!/[Pp]ortal 360|Portal ·|Volver al portal|Entrar al portal/.test(t), pagina + ': ya no dice «Portal», dice Vida en Arte 360 / Inicio');
+      }
+      for (const ruta of ['/comun/','/comun', '/comun/prueba.php', '/comun/api.php', '/comun/sub/x.css', '/comun/htaccess.txt', '/comun/.htaccess']) {
         const r = await anon.get(ruta);
         ok(r.status === 403 && !/EJECUTADO|vea\.css|datos\.js/.test(r.texto), ruta + ' → 403: ni listado, ni PHP, ni otra cosa (dio ' + r.status + ')');
       }
@@ -607,10 +621,11 @@ async function correr(fuente) {
       fs.writeFileSync(htActivo, HTACCESS_ANTERIOR);
       try {
         for (const [ruta, re] of [['/login.html', /<title>Entrar/], ['/comun/vea.css', /--rojo/], ['/comun/datos.js', /window\.Datos/],
-                                  ['/comun/vea.css?v=0123456789', /--rojo/]]) {
+                                  ['/comun/vea.css?v=0123456789', /--rojo/], ['/comun/app.webmanifest', /"start_url"/]]) {
           const r = await anon.seguir(await anon.get(ruta));
           ok(!r.bucle && r.status === 200 && re.test(r.texto), 'con el .htaccess anterior, ' + ruta + ' también se abre sin sesión y sin bucle');
         }
+        ok(/application\/manifest\+json/.test((await anon.get('/comun/app.webmanifest')).tipo), 'con el .htaccess anterior, gate.php entrega el manifiesto con su tipo');
         const php = await n['admin-uno'].get('/comun/prueba.php');
         ok(php.status !== 200 && !/EJECUTADO|<\?php/.test(php.texto), 'con el .htaccess anterior, comun/prueba.php no se ejecuta ni se entrega su código (dio ' + php.status + ')');
       } finally { fs.writeFileSync(htActivo, htNuevo); }

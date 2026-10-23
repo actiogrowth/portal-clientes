@@ -75,6 +75,7 @@ lista, sin pestañas. `/pasar-lista/` es una página que redirige a
 | `comun/marca.js` | `window.Marca`: el encabezado (logo —el de Kids con la opción `logo`—, ruta, usuario, «Cambiar mi contraseña», Salir), avisos y formato de fechas. |
 | `comun/datos.js` | `window.Datos`: la capa de datos (ver la tabla de capas). Es lo único que habría que reescribir para hablar con otro servidor (Firebase o Supabase). |
 | `comun/logo-vea.png`, `comun/logo-kids.png` | Logos. |
+| `comun/app.webmanifest`, `comun/app-icono-{180,192,512}.png` | **App instalable** (23-oct): el manifiesto (nombre «Vida en Arte 360», corto «VEA 360», empieza en `/`, abarca todo el sitio, pantalla completa sin barra del navegador) y los íconos (el símbolo de las tres bolitas sobre blanco; el de 512 sirve también de «maskable»). Todas las páginas con la marca los enlazan en el `<head>`, así que se instala desde cualquier pantalla: Android/Chrome «Instalar app», iPhone Safari › Compartir › «Agregar a inicio». **Sin service worker**: nada se guarda para usar sin conexión y no hay una caché más que pueda servir una página vieja o una sesión vencida. |
 | `comun/.htaccess` (`comun/htaccess.txt` en el repo) | Segundo cerrojo: sin listado, sin CGI, y niega `.php`, `.phtml`, `.phar`, `.html` y otros aunque alguien los suba. |
 | `login.html`, `cambiar-clave.html` (raíz) | Páginas **fijas** (sin PHP). Piden su estado a `login.php?estado=1` / `cambiar-clave.php?estado=1` y mandan el formulario por JSON. `login.php` y `cambiar-clave.php` sin `estado` redirigen a la página fija (direcciones viejas). |
 | `acceso.php?formato=json` | Quién soy: `{usuario, roles, areas, inicio, inicioAS, permisosAS}`. Sin `formato`, el JS de antes (para poder volver atrás). |
@@ -90,7 +91,8 @@ el `?v=` (el `.htaccess` y `gate.php` miran solo la ruta). Preschool y Base de
 Datos viven en otras ramas: se versionan pasando sus rutas al mismo comando.
 
 **Sin sesión se entrega solo:** `login.html`, `cambiar-clave.html` y
-`comun/<nombre>.(css|js|png|svg)` (un nombre simple, sin subcarpetas). Lo hace
+`comun/<nombre>.(css|js|png|svg|webmanifest)` (un nombre simple, sin subcarpetas; el
+navegador pide el manifiesto y los íconos sin cookies, por eso son públicos). Lo hace
 el `.htaccess` (reglas 3 y 3c) y, por si el servidor tuviera un `.htaccess`
 anterior, también `gate.php` antes de pedir sesión. Cualquier otra cosa dentro
 de `comun/` responde 403 (regla 3c), y `comun/.htaccess` niega PHP aunque la

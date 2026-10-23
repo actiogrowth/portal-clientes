@@ -3,6 +3,8 @@
 # aquí nunca se ejecuta ni se entrega un script, aunque alguien suba uno,
 # y la carpeta no se lista.
 Options -Indexes -ExecCGI
+# El manifiesto de la app instalable (23-oct) con su tipo.
+AddType application/manifest+json .webmanifest
 <FilesMatch "\.(php|php[0-9]|phtml|phar|pl|py|cgi|sh|html?)$">
   Require all denied
 </FilesMatch>

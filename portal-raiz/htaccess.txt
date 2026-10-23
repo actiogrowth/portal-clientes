@@ -25,11 +25,12 @@ RewriteRule (^|/)\. - [F,L]
 RewriteRule ^(login\.php|logout\.php|cambiar-clave\.php|acceso\.php|gate\.php|robots\.txt|login\.html|cambiar-clave\.html)$ - [L]
 
 # 3c. comun/: estilos, capa de datos y logos. Públicos (el login los usa antes
-#     de entrar), sin datos. Solo un nombre simple .css .js .png .svg, sin
+#     de entrar), sin datos. Solo un nombre simple .css .js .png .svg
+#     .webmanifest (el manifiesto de la app instalable), sin
 #     subcarpetas; TODO lo demás dentro de comun/ (un .php, el listado de la
 #     carpeta) se rechaza con 403. Va antes de 3b para que un comun/api.php
 #     subido por error tampoco se ejecute.
-RewriteRule ^comun/[a-z0-9-]+\.(css|js|png|svg)$ - [L]
+RewriteRule ^comun/[a-z0-9-]+\.(css|js|png|svg|webmanifest)$ - [L]
 RewriteRule ^comun(/|$) - [F,L]
 
 # 3b. Los puentes de datos: comprueban sesión y permisos por dentro (requerir_sesion)

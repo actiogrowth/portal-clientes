@@ -41,14 +41,14 @@
     }
     let r;
     try { r = await fetch(url, { method: metodo, credentials: 'same-origin', cache: 'no-store', headers: h, body }); }
-    catch (e) { throw new ErrorDatos('No hay conexión con el servidor del portal.', 'red'); }
+    catch (e) { throw new ErrorDatos('No hay conexión con el servidor.', 'red'); }
     let txt;
-    try { txt = await r.text(); } catch (e) { throw new ErrorDatos('Se cortó la respuesta del servidor del portal.', 'red'); }
+    try { txt = await r.text(); } catch (e) { throw new ErrorDatos('Se cortó la respuesta del servidor.', 'red'); }
     const esHtml = /text\/html/i.test(r.headers.get('content-type') || '') || /^\s*</.test(txt);
     // Un 5xx en HTML es el servidor (p. ej. un 504), no la sesión: la petición pudo llegar.
-    if (r.status >= 500 && esHtml) throw new ErrorDatos('El servidor del portal no respondió bien (código ' + r.status + ').', 'incierto');
+    if (r.status >= 500 && esHtml) throw new ErrorDatos('El servidor no respondió bien (código ' + r.status + ').', 'incierto');
     // La sesión caducada responde con el login (HTML, tras redirección) o 401.
-    if (r.status === 401 || esHtml) throw new ErrorDatos('La sesión del portal caducó.', 'sesion');
+    if (r.status === 401 || esHtml) throw new ErrorDatos('Tu sesión caducó.', 'sesion');
     let j;
     try { j = JSON.parse(txt); } catch (e) { throw new ErrorDatos('El servidor respondió algo que no se entiende (código ' + r.status + ').', 'ilegible'); }
     if (j && j.codigo === 'cambiar_clave') {

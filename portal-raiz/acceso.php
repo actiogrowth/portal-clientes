@@ -19,7 +19,7 @@ header('X-Content-Type-Options: nosniff');
 if (($_GET['formato'] ?? '') === 'json') {
     header('Content-Type: application/json; charset=utf-8');
     $c = cuenta_actual();
-    if (!$c) { http_response_code(401); echo json_encode(['ok' => false, 'codigo' => 'sesion', 'error' => 'La sesión del portal caducó.']); exit; }
+    if (!$c) { http_response_code(401); echo json_encode(['ok' => false, 'codigo' => 'sesion', 'error' => 'Tu sesión caducó.']); exit; }
     if (!empty($c['cambiar_clave'])) { http_response_code(403); echo json_encode(['ok' => false, 'codigo' => 'cambiar_clave', 'error' => 'Cambia tu contraseña temporal.']); exit; }
     $_SESSION['ultimo'] = time();
     $roles = $c['roles'] ?? [];

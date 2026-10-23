@@ -31,7 +31,7 @@ if ($metodo === 'GET' && !isset($_GET['estado'])) {
     header('Location: /cambiar-clave.html' . ($q !== '' ? '?' . $q : ''));
     exit;
 }
-if (!sesion_activa()) responder_clave(401, ['ok' => false, 'codigo' => 'sesion', 'error' => 'La sesión del portal caducó.']);
+if (!sesion_activa()) responder_clave(401, ['ok' => false, 'codigo' => 'sesion', 'error' => 'Tu sesión caducó.']);
 $usuario = usuario_actual();
 $c = cuenta_actual();
 $obligatorio = !empty($c['cambiar_clave']);

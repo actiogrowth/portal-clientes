@@ -105,7 +105,7 @@ function negar(string $mensaje, int $http, string $codigo): void {
         header('Content-Type: text/html; charset=utf-8');
         echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sin permiso</title>'
            . '<p style="font-family:system-ui;padding:40px;max-width:520px">' . htmlspecialchars($mensaje)
-           . '<br><br><a href="/">Volver al portal</a></p>';
+           . '<br><br><a href="/">Volver al inicio</a></p>';
     }
     exit;
 }

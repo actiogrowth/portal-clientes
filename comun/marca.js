@@ -25,7 +25,7 @@
       : '<b>' + esc(p.texto) + '</b>').join('');
     el.className = 'cab';
     el.innerHTML = '<div class="cab-in">' +
-      '<div class="cab-marca"><a href="/" aria-label="Inicio del portal"><img src="' + esc(lg.src) + '" alt="' + esc(lg.alt) + '"' + (logo ? ' class="kids"' : '') + '></a>' +
+      '<div class="cab-marca"><a href="/" aria-label="Inicio"><img src="' + esc(lg.src) + '" alt="' + esc(lg.alt) + '"' + (logo ? ' class="kids"' : '') + '></a>' +
       (miga ? '<nav class="cab-ruta" aria-label="Ruta">' + miga + '</nav>' : '') + '</div>' +
       '<div class="cab-usuario">' +
       (usuario ? '<span class="cab-quien">' + (prefijo ? '' : '<span class="inicial" aria-hidden="true">' + esc(usuario.charAt(0).toUpperCase()) + '</span>') +
