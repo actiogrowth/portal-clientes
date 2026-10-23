@@ -15,8 +15,10 @@
    *   ruta:   [{texto, url?}]  (miga de pan: «Inicio / After School»)
    *   prefijo: texto antes del usuario (p. ej. «Pasando lista:»)
    *   logo:   {src, alt} (por defecto, el de Vida en Arte; Preschool usa el de Kids)
+   *   accesos: [{texto, url}] (23-oct) enlaces de texto en una fila propia,
+   *           visibles en todo tamaño (el Profesor en Pasar lista: Inicio, Procesos)
    */
-  function cabecera(el, { sesion, ruta, prefijo, logo } = {}) {
+  function cabecera(el, { sesion, ruta, prefijo, logo, accesos } = {}) {
     const lg = logo || { src: '/comun/logo-vea.png?v=03a73eb9c2', alt: 'Vida en Arte' };
     const usuario = sesion ? sesion.usuario : '';
     const rol = sesion && sesion.roles && sesion.roles.length ? sesion.roles.map(r => r.nombre).join(' · ') : '';
@@ -31,7 +33,9 @@
       (usuario ? '<span class="cab-quien">' + (prefijo ? '' : '<span class="inicial" aria-hidden="true">' + esc(usuario.charAt(0).toUpperCase()) + '</span>') +
         '<span>' + (prefijo ? esc(prefijo) + ' ' : '') + '<b>' + esc(usuario) + '</b>' + (rol && !prefijo ? '<span class="rol"> · ' + esc(rol) + '</span>' : '') + '</span></span>' : '') +
       '<a class="cab-enlace" href="/cambiar-clave.html?r=' + encodeURIComponent(location.pathname) + '"><span class="largo">Cambiar mi contraseña</span><span class="corto">Contraseña</span></a>' +
-      '<a class="btn" href="/logout.php">Salir</a></div></div>';
+      '<a class="btn" href="/logout.php">Salir</a></div></div>' +
+      (accesos && accesos.length ? '<nav class="cab-accesos" aria-label="Ir a"><div class="cab-accesos-in">' +
+        accesos.map(a => '<a href="' + esc(a.url) + '">' + esc(a.texto) + '</a>').join('') + '</div></nav>' : '');
   }
 
   let t = null;

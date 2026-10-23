@@ -97,6 +97,15 @@ const ROTURAS = [
   ['la reposición se cobra', "  if (tipoVisita_(f) === TIPO_VISITA.reposicion) throw new ErrorUsuario_('La reposición no se cobra.');", ""],
   // 21-oct: Pasar lista
   ['la lista deja otro día con soloHoy', "  if (datos.soloHoy === true && iso !== hoy)", "  if (false)"],
+  // 23-oct (v8): ventana del Profesor
+  ['el Profesor marca un día futuro', "    if (escribir && iso > hoy) throw", "    if (false) throw"],
+  ['el Profesor ve y corrige más atrás de su ventana', "    if (iso < desde) throw", "    if (false) throw"],
+  ['el Profesor ve más adelante de su ventana', "    if (iso > hasta) throw", "    if (false) throw"],
+  ['sin los parámetros en Config, la ventana sale del código', "    if (cfg.listaAtras === null || cfg.listaAdelante === null)\n", "    if (false)\n"],
+  ['el script ignora limiteProfesor (el Profesor vuelve a solo hoy)', "  if (datos.limiteProfesor === true) {", "  if (false) {"],
+  ['la corrección no guarda el registro anterior', "donde + antes + ' → ' + estado + ' · ' + previo]);", "donde + antes + ' → ' + estado]);"],
+  ['cambiar solo la nota no deja rastro', "    } else if (notaAntes !== nota) {", "    } else if (false) {"],
+  ['el Profesor ve días futuros como si se pudieran marcar', "soloLectura: iso > hoyISO_(),", "soloLectura: false,"],
   ['la lista acepta días futuros', "  if (iso > hoy) throw new ErrorUsuario_('No se pasa lista de un día que todavía no llega.');", ""],
   ['la lista incluye las visitas canceladas', "|| texto_(f['Estado']) === ESTADO_PRUEBA.cancelada) return;\n    var id = texto_(f['Niño ID']);", ") return;\n    var id = texto_(f['Niño ID']);"],
   ['la lista manda datos de contacto', "presencia: x.presencia, idVisita: x.idVisita, estado: a ?", "telefono: n ? texto_(n['Teléfono']) : '', presencia: x.presencia, idVisita: x.idVisita, estado: a ?"],

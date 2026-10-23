@@ -96,7 +96,7 @@ seccion('instalar');
   ok(n.celda(5, 1) === '' && n.celda(5, 2) === 'ID' && n.celda(5, 15) === 'Notas', 'títulos de Niños en la fila 5 desde la B, A vacía');
   ok(n.celda(5, 16) === 'Colegio' && n.celda(5, 22) === 'Teléfono responsable 2', 'las columnas nuevas de Niños van después de Notas');
   const nIni = g.INS_CONFIG.length;
-  ok(nIni === 47 && L.getSheetByName('Config').getLastRow() === 5 + nIni, 'Config con sus 47 valores iniciales');
+  ok(nIni === 49 && L.getSheetByName('Config').getLastRow() === 5 + nIni, 'Config con sus 49 valores iniciales');
   ok(/FALTA/.test(inf), 'comprobar avisa que falta la clave');
   const otra = g.instalar();
   ok(L.getSheetByName('Config').getLastRow() === 5 + nIni, 'instalar dos veces no duplica Config');
@@ -135,12 +135,12 @@ seccion('actualizar estructura sobre una base de la versión 3 (con datos)');
   ok(N.celda(5, 16) === 'Colegio' && N.celda(5, 22) === 'Teléfono responsable 2', 'agrega las 7 columnas de Niños a la derecha de Notas');
   ok(JSON.stringify(N.fila(6).slice(0, 15)) === JSON.stringify(JSON.parse(antesNinos).slice(0, 15)), 'no toca los datos del niño existente');
   ok(N.formatos['6,22'] === '@', 'la columna nueva de teléfono queda como texto');
-  ok(C.getLastRow() === 5 + 21 + 26, 'Config: agrega las 22 filas de las 3 listas nuevas y los 4 parámetros de asistencia');
+  ok(C.getLastRow() === 5 + 21 + 28, 'Config: agrega las 22 filas de las 3 listas nuevas, los 4 parámetros de asistencia y los 2 de Pasar lista (v8)');
   ok(JSON.stringify([6, 7, 8, 26].map(f => C.fila(f))) === antesConfig, 'Config: no toca las filas que ya estaban (ni la editada)');
   ok(/Columnas agregadas al final de Niños/.test(inf) && /Creada: Pruebas/.test(inf), 'el informe dice qué agregó');
   ok(!/⚠ A la pestaña/.test(inf) && !/⚠ Config/.test(inf), 'comprobar queda sin avisos de estructura');
   const otra = g0.actualizarEstructura();
-  ok(C.getLastRow() === 5 + 47 && N.getLastColumn() === 22 && /Config: completa/.test(otra), 'correrla otra vez no cambia nada');
+  ok(C.getLastRow() === 5 + 49 && N.getLastColumn() === 22 && /Config: completa/.test(otra), 'correrla otra vez no cambia nada');
 
   // Comprobar avisa de lo nuevo que falte.
   N.poner(5, 18, '');
@@ -1037,6 +1037,79 @@ seccion('Pasar lista: lo que ve el profesor y lo que guarda');
   const hoyLista = { codigo: 'HOY-2000-TELAS', fecha: HOY, marcas: [{ idNino: 'AS-0001', estado: 'Ausente' }] };
   ok(g.llamar('guardarLista', Object.assign({}, hoyLista, { fecha: sumar(HOY, -7), soloHoy: true })).codigo === 'solo_hoy', 'con soloHoy no se corrige otro día');
   ok(g.llamar('guardarLista', Object.assign({}, hoyLista, { fecha: sumar(HOY, 7) })).ok === false, 'nunca un día futuro');
+}
+
+seccion('Pasar lista v8: el Profesor, de 7 días atrás a 7 adelante (ver), y marca o corrige solo hasta hoy');
+{
+  const g = entornoCargado();
+  fijarHora(g, 20, 30);
+  const P = { limiteProfesor: true, soloHoy: true };          // lo que manda el puente para el Profesor
+  claseDelDia(g, 'AYER-1600-PARKOUR', AYER, '16:00', 'Parkour', 10);   // también cae hace 7 y en 7 días (mismo día de la semana)
+  claseDeHoy(g, 'HOY-2000-TELAS', 10);
+  inscripcionPasada(g, 'AS-0001', 'AYER-1600-PARKOUR', HACE(30));
+  inscripcionPasada(g, 'AS-0001', 'HOY-2000-TELAS', HACE(30));
+  asistenciaPasada(g, 'ASI-0801', HACE(8), 'AYER-1600-PARKOUR', 'AS-0001', 'Ausente');
+  asistenciaPasada(g, 'ASI-0802', AYER, 'AYER-1600-PARKOUR', 'AS-0001', 'Ausente');
+  const C = g._libro.getSheetByName('Config');
+  const valorConfig = nombre => { for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 3) === nombre) return C.celda(f, 4); };
+  ok(valorConfig('Días atrás para pasar lista (Profesor)') === 7 && valorConfig('Días adelante para ver la lista (Profesor)') === 7,
+    'Config: 7 días atrás y 7 adelante al instalar (no están en el código)');
+  ok(/AfterSchool\.gs v8/.test(g.comprobar()), 'comprobar() dice la versión del script (v8)');
+  // Leer
+  let r = g.llamar('leerLista', Object.assign({}, P));
+  ok(r.ok && r.resultado.fecha === HOY && r.resultado.desde === HACE(7) && r.resultado.hasta === sumar(HOY, 7) && r.resultado.soloLectura === false,
+    'hoy: la lista, con la ventana desde hace 7 hasta dentro de 7 días y para marcar (' + JSON.stringify(r.resultado && [r.resultado.desde, r.resultado.hasta]) + ')');
+  r = g.llamar('leerLista', Object.assign({ fecha: AYER }, P));
+  ok(r.ok && r.resultado.soloLectura === false && r.resultado.clases.find(c => c.codigo === 'AYER-1600-PARKOUR').ninos[0].estado === 'Ausente', 'ayer: la ve con lo marcado (aunque también venga soloHoy)');
+  ok(g.llamar('leerLista', Object.assign({ fecha: HACE(7) }, P)).ok, 'hace 7 días: todavía sí');
+  r = g.llamar('leerLista', Object.assign({ fecha: HACE(8) }, P));
+  ok(!r.ok && r.codigo === 'fuera_de_plazo', 'hace 8 días: no la ve (fuera_de_plazo)');
+  r = g.llamar('leerLista', Object.assign({ fecha: MANANA }, P));
+  ok(r.ok && r.resultado.soloLectura === true, 'mañana: la ve, solo para leer');
+  r = g.llamar('leerLista', Object.assign({ fecha: sumar(AYER, 7) }, P));
+  const futura = r.ok && r.resultado.clases.find(c => c.codigo === 'AYER-1600-PARKOUR');
+  ok(r.ok && r.resultado.soloLectura === true && futura && futura.ninos.length === 1 && futura.ninos[0].estado === '', 'dentro de 6 días (la misma clase de ayer): ve quién viene, para preparar');
+  r = g.llamar('leerLista', Object.assign({ fecha: sumar(HOY, 8) }, P));
+  ok(!r.ok && r.codigo === 'fuera_de_plazo', 'dentro de 8 días: no');
+  // Guardar
+  let s = g.llamar('seguimiento').resultado;
+  const antes = s.faltasSeguidas.find(x => x.idNino === 'AS-0001');
+  ok(antes && antes.cuantas === 2 && antes.hasta === AYER, '(control) Seguimiento: dos faltas seguidas hasta ayer');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0001', estado: 'Ausente' }] }, P));
+  ok(r.ok && r.resultado.nuevas === 1, 'marca hoy');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: AYER, marcas: [{ idNino: 'AS-0001', estado: 'Presente', nota: 'llegó con su abuela' }] }, P));
+  ok(r.ok && r.resultado.corregidas === 1 && r.resultado.nuevas === 0, 'corrige ayer: actualiza la fila, no agrega otra');
+  const A = g._libro.getSheetByName('Asistencia');
+  let filaAyer = 0; for (let f = 6; f <= A.getLastRow(); f++) if (A.celda(f, 2) === 'ASI-0802') filaAyer = f;
+  ok(A.celda(filaAyer, 8) === 'Presente' && A.celda(filaAyer, 10) === 'prueba', 'la fila queda con lo nuevo y quién corrigió');
+  const H = g._libro.getSheetByName('Historial');
+  const corr = []; for (let f = 6; f <= H.getLastRow(); f++) if (H.celda(f, 4) === 'Corregir asistencia' && H.celda(f, 5) === 'ASI-0802') corr.push(f);
+  ok(corr.length === 1 && /Ausente → Presente/.test(H.celda(corr[0], 6)) && /antes: Ausente, marcado por profe el \d\d\/\d\d\/\d{4} \d\d:\d\d/.test(H.celda(corr[0], 6)) &&
+    H.celda(corr[0], 3) === 'prueba' && H.celda(corr[0], 2) instanceof Date,
+    'la corrección deja rastro: quién y cuándo (Usuario y Fecha) y el registro anterior completo (' + (corr[0] ? H.celda(corr[0], 6) : '') + ')');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: AYER, marcas: [{ idNino: 'AS-0001', estado: 'Presente', nota: 'vino con su abuela' }] }, P));
+  const notas = []; for (let f = 6; f <= H.getLastRow(); f++) if (H.celda(f, 4) === 'Corregir nota' && H.celda(f, 5) === 'ASI-0802') notas.push(H.celda(f, 6));
+  ok(r.ok && notas.length === 1 && /«llegó con su abuela» → «vino con su abuela»/.test(notas[0]) && /antes: Presente «llegó con su abuela», marcado por prueba/.test(notas[0]),
+    'cambiar solo la nota también deja rastro (' + notas[0] + ')');
+  s = g.llamar('seguimiento').resultado;
+  ok(!s.faltasSeguidas.find(x => x.idNino === 'AS-0001'), 'Seguimiento refleja la corrección: ya no hay faltas seguidas');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: MANANA, marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] }, P));
+  ok(!r.ok && r.codigo === 'dia_futuro', 'mañana no se marca (dia_futuro), aunque se vea');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: HACE(8), marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] }, P));
+  ok(!r.ok && r.codigo === 'fuera_de_plazo', 'hace 8 días no se corrige (fuera_de_plazo)');
+  ok(A.celda(6, 2) === 'ASI-0801' && A.celda(6, 8) === 'Ausente', '(control) la de hace 8 días sigue como estaba');
+  // La coordinación, sin cambios: cualquier día pasado, nunca uno futuro.
+  ok(g.llamar('guardarLista', { codigo: 'AYER-1600-PARKOUR', fecha: HACE(8), marcas: [{ idNino: 'AS-0001', estado: 'Falta justificada' }] }).ok, 'la coordinación corrige hace 8 días');
+  r = g.llamar('leerLista', { fecha: MANANA });
+  ok(!r.ok, 'la coordinación no ve días futuros (sin cambios)');
+  r = g.llamar('leerLista', { fecha: AYER });
+  ok(r.ok && r.resultado.desde === '' && r.resultado.hasta === HOY && r.resultado.soloLectura === false, 'la coordinación: sin límite hacia atrás, hasta hoy');
+  // Un script v8 con un puente viejo (solo soloHoy): sigue limitado a hoy.
+  ok(g.llamar('leerLista', { fecha: AYER, soloHoy: true }).codigo === 'solo_hoy', 'solo soloHoy (puente anterior): solo hoy, como antes');
+  // Sin los parámetros en Config: se niega.
+  for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 3) === 'Días atrás para pasar lista (Profesor)') C.poner(f, 4, '');
+  r = g.llamar('leerLista', Object.assign({}, P));
+  ok(!r.ok && r.codigo === 'sin_configuracion' && /Días atrás para pasar lista/.test(r.error), 'sin el parámetro en Config, el Profesor no pasa lista y se dice qué falta');
 }
 
 seccion('Pasar lista: niño fuera de lista y «No hubo clase»');

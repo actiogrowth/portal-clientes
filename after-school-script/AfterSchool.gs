@@ -31,7 +31,12 @@
  * NINGUNA REGLA DE NEGOCIO EN EL CÓDIGO. Cupos en «Clases»; motivos, planes,
  * conceptos, formas de pago y el umbral del amarillo en «Config». Lo único con
  * valores de negocio es INS_CONFIG, que solo se escribe si Config está vacía.
+ *
+ * VERSIÓN v8 (23-oct-2026): Pasar lista del Profesor con ventana de días
+ * (los últimos N para marcar y corregir; los próximos M solo para ver), con
+ * N y M en Config, y el rastro completo de cada corrección en Historial.
  */
+var VERSION_SCRIPT = 'v8';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -169,6 +174,9 @@ var PARAM_FALTAS_SEGUIDAS = 'Faltas seguidas';           // Número: ausencias s
 var PARAM_DIAS_REPONER = 'Días para reponer';            // Número: días hacia atrás de «faltas por reponer»
 var PARAM_DURACION = 'Duración de clase (min)';          // Número: cuándo termina una clase (aviso «sin lista»)
 var PARAM_ASIS_DESDE = 'Asistencia desde';               // Nota: fecha desde la que se avisa «sin lista»
+// 23-oct (v8): ventana del Profesor en Pasar lista
+var PARAM_LISTA_ATRAS = 'Días atrás para pasar lista (Profesor)';      // Número: días hacia atrás que marca y corrige
+var PARAM_LISTA_ADELANTE = 'Días adelante para ver la lista (Profesor)'; // Número: días hacia adelante que ve, sin marcar
 
 /* Valores iniciales de Config. ÚNICO sitio del código con valores de negocio.
    actualizarEstructura() escribe las filas de una lista SOLO si esa lista no
@@ -225,7 +233,10 @@ var INS_CONFIG = [
   [LISTA.param, PARAM_FALTAS_SEGUIDAS, 2, 'Ausencias seguidas (las justificadas no cuentan) que encienden la alerta'],
   [LISTA.param, PARAM_DIAS_REPONER, 30, 'La lista «faltas por reponer» mira estos días hacia atrás'],
   [LISTA.param, PARAM_DURACION, 60, 'Una clase sin lista se avisa cuando termina'],
-  [LISTA.param, PARAM_ASIS_DESDE, '', '']
+  [LISTA.param, PARAM_ASIS_DESDE, '', ''],
+  // 23-oct (v8): el Profesor marca y corrige hasta 7 días atrás y ve 7 días adelante (sin marcar).
+  [LISTA.param, PARAM_LISTA_ATRAS, 7, 'Pasar lista: días hacia atrás que el Profesor puede marcar y corregir (0 = solo hoy)'],
+  [LISTA.param, PARAM_LISTA_ADELANTE, 7, 'Pasar lista: días hacia adelante que el Profesor ve para preparar, sin marcar']
 ];
 
 /* Propiedades del script. */
@@ -524,8 +535,10 @@ function leerConfig_() {
   var t = leerTabla_('config');
   var cfg = { motivos: [], planes: [], conceptos: [], formas: [], umbral: null, conceptoMensual: '',
               motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [], avisos: [],
-              faltasSeguidas: null, diasReponer: null, duracionClase: null, asistenciaDesde: '' };
+              faltasSeguidas: null, diasReponer: null, duracionClase: null, asistenciaDesde: '',
+              listaAtras: null, listaAdelante: null };
   var entero = function (v) { var n = numeroDe_(v); return n >= 1 && Math.floor(n) === n ? n : null; };
+  var enteroCero = function (v) { var n = numeroDe_(v); return n >= 0 && Math.floor(n) === n ? n : null; };
   t.filas.forEach(function (f) {
     var lista = norm_(f['Lista']), valor = texto_(f['Valor']);
     if (!valor) return;
@@ -553,6 +566,8 @@ function leerConfig_() {
       else if (norm_(valor) === norm_(PARAM_DIAS_REPONER)) cfg.diasReponer = entero(f['Número']);
       else if (norm_(valor) === norm_(PARAM_DURACION)) cfg.duracionClase = entero(f['Número']);
       else if (norm_(valor) === norm_(PARAM_ASIS_DESDE)) cfg.asistenciaDesde = aISO_(f['Nota']);
+      else if (norm_(valor) === norm_(PARAM_LISTA_ATRAS)) cfg.listaAtras = enteroCero(f['Número']);
+      else if (norm_(valor) === norm_(PARAM_LISTA_ADELANTE)) cfg.listaAdelante = enteroCero(f['Número']);
     }
   });
   cfg.planes.forEach(function (p) { if (isNaN(p.precio)) p.precio = null; });
@@ -571,6 +586,9 @@ function leerConfig_() {
     if (p[1] === null) cfg.faltan.push('«' + LISTA.param + ' / ' + p[0] + '» con un número entero (1 o más) en la columna Número');
   });
   if (!cfg.asistenciaDesde) cfg.faltan.push('«' + LISTA.param + ' / ' + PARAM_ASIS_DESDE + '» con una fecha en la columna Nota');
+  [[PARAM_LISTA_ATRAS, cfg.listaAtras], [PARAM_LISTA_ADELANTE, cfg.listaAdelante]].forEach(function (p) {
+    if (p[1] === null) cfg.faltan.push('«' + LISTA.param + ' / ' + p[0] + '» con un número entero (0 o más) en la columna Número');
+  });
   return cfg;
 }
 
@@ -670,7 +688,7 @@ function actualizarEstructura() {
 /** Diagnóstico. No escribe nada. */
 function comprobar() {
   var ss = libro_(), l = [];
-  l.push('Archivo: ' + ss.getName());
+  l.push('Archivo: ' + ss.getName() + ' · AfterSchool.gs ' + VERSION_SCRIPT);
   var zArchivo = ss.getSpreadsheetTimeZone(), zScript = Session.getScriptTimeZone();
   l.push('Zona del archivo: ' + zArchivo + ' · zona del script: ' + zScript +
     (zArchivo === zScript ? '' : '   ⚠ DIFIEREN: igualarlas antes de usar'));
@@ -2033,6 +2051,11 @@ function accPagoPrueba_(datos, usuario) {
 // queda en Historial. Quién puede qué día lo decide el puente: api.php manda
 // soloHoy = true para quien no puede corregir otros días (Profesor), y aquí
 // se respeta. Nunca se pasa lista de un día futuro.
+//
+// v8 (23-oct): el puente manda además limiteProfesor = true para el Profesor
+// y entonces manda la VENTANA de Config (no soloHoy): ve y marca desde hoy − N
+// hasta hoy, y ve sin marcar hasta hoy + M. soloHoy queda para que un puente y
+// un script de versiones distintas sigan siendo seguros.
 
 function buscarAsistencia_(t, id) {
   id = texto_(id);
@@ -2049,14 +2072,32 @@ function edadEn_(nac, iso) {
   return meses < 24 ? meses + ' meses' : Math.floor(meses / 12) + ' años';
 }
 
-/** La fecha de una lista: hoy si no viene; nunca futura; con soloHoy, solo hoy. */
-function fechaLista_(datos) {
+/**
+ * La fecha de una lista y lo que se puede hacer ese día: {iso, desde, hasta}
+ * ('' en desde = sin límite hacia atrás). Hoy si no viene fecha.
+ *   · limiteProfesor: la ventana de Config; un día futuro se ve pero no se
+ *     guarda (escribir = true lo rechaza);
+ *   · si no: nunca un día futuro; con soloHoy, solo hoy.
+ */
+function fechaLista_(datos, escribir) {
   var hoy = hoyISO_();
   var iso = texto_(datos.fecha) ? Utilities.formatDate(exigirFecha_(datos.fecha, 'la fecha de la lista'), zona_(), 'yyyy-MM-dd') : hoy;
+  if (datos.limiteProfesor === true) {
+    var cfg = leerConfig_();
+    if (cfg.listaAtras === null || cfg.listaAdelante === null)
+      throw new ErrorUsuario_('Falta en Config «' + LISTA.param + ' / ' + PARAM_LISTA_ATRAS + '» o «' + LISTA.param + ' / ' +
+        PARAM_LISTA_ADELANTE + '» con un número entero (0 o más). Pasar lista no se abre hasta tenerlos.', 'sin_configuracion');
+    var desde = sumarDiasISO_(hoy, -cfg.listaAtras), hasta = sumarDiasISO_(hoy, cfg.listaAdelante);
+    if (iso < desde) throw new ErrorUsuario_('Solo se ve y corrige la lista de los últimos ' + cfg.listaAtras + ' días. ' +
+      'Las de antes las corrige la coordinación.', 'fuera_de_plazo');
+    if (iso > hasta) throw new ErrorUsuario_('Solo se ve la lista de los próximos ' + cfg.listaAdelante + ' días.', 'fuera_de_plazo');
+    if (escribir && iso > hoy) throw new ErrorUsuario_('El ' + fechaCorta_(iso) + ' todavía no llega: su lista se puede ver, pero se marca ese día.', 'dia_futuro');
+    return { iso: iso, desde: desde, hasta: hasta };
+  }
   if (iso > hoy) throw new ErrorUsuario_('No se pasa lista de un día que todavía no llega.');
   if (datos.soloHoy === true && iso !== hoy)
     throw new ErrorUsuario_('Solo se puede pasar y corregir la lista de hoy. Las correcciones de otros días las hace la coordinación.', 'solo_hoy');
-  return iso;
+  return { iso: iso, desde: datos.soloHoy === true ? hoy : '', hasta: hoy };
 }
 
 function exigirDiaDeClase_(c, iso) {
@@ -2100,7 +2141,7 @@ function armarLista_(codigo, iso, ins, pruebas, asis) {
  * visita y lo ya marcado: es lo que ve el profesor (api.php además recorta).
  */
 function accLeerLista_(datos) {
-  var iso = fechaLista_(datos), dia = diaSemana_(iso);
+  var F = fechaLista_(datos, false), iso = F.iso, dia = diaSemana_(iso);
   var ninos = leerTabla_('ninos'), clases = leerTabla_('clases'), ins = leerTabla_('inscripciones');
   var pruebas = leerTabla_('pruebas'), asis = leerTabla_('asistencia'), sin = leerTabla_('sinClase');
   var porId = {};
@@ -2122,7 +2163,8 @@ function accLeerLista_(datos) {
              sinClase: sin.filas.some(function (s) { return texto_(s['Código clase']) === codigo && aISO_(s['Fecha']) === iso; }),
              ninos: chicos, fueraDeLista: fuera };
   }).sort(function (a, b) { return (a.hora + a.servicio).localeCompare(b.hora + b.servicio); });
-  return { fecha: iso, hoy: hoyISO_(), dia: dia, otroDia: datos.soloHoy !== true, estados: ESTADOS_ASIS, clases: lista };
+  return { fecha: iso, hoy: hoyISO_(), dia: dia, otroDia: datos.soloHoy !== true || datos.limiteProfesor === true,
+           desde: F.desde, hasta: F.hasta, soloLectura: iso > hoyISO_(), estados: ESTADOS_ASIS, clases: lista };
 }
 
 /**
@@ -2134,7 +2176,7 @@ function accLeerLista_(datos) {
  * Agendadas o las que ya marcó la lista).
  */
 function accGuardarLista_(datos, usuario) {
-  var iso = fechaLista_(datos);
+  var iso = fechaLista_(datos, true).iso;
   var codigo = texto_(datos.codigo);
   var clases = leerTabla_('clases'), c = buscarClase_(clases, codigo);
   exigirDiaDeClase_(c, iso);
@@ -2178,14 +2220,23 @@ function accGuardarLista_(datos, usuario) {
              'ID visita': o.idVisita || '', 'Estado': o.estado, 'Nombre fuera de lista': o.nombre || '', 'Marcado por': usuario,
              'Hora': ahora, 'Nota': o.nota, 'Resolución': '' };
   };
+  // v8: el registro anterior (estado, nota, quién y cuándo) queda en el detalle
+  // de Historial; la fila de Historial ya dice quién corrigió y cuándo.
+  var cuando = function (v) { return Object.prototype.toString.call(v) === '[object Date]' ? Utilities.formatDate(v, zona_(), 'dd/MM/yyyy HH:mm') : texto_(v); };
   var actualizar = function (a, estado, nota, quien, extra) {
     if (texto_(a['Estado']) === estado && texto_(a['Nota']) === nota && !extra) return;
-    var antes = texto_(a['Estado']), cambios = { 'Estado': estado, 'Nota': nota, 'Marcado por': usuario, 'Hora': ahora };
+    var antes = texto_(a['Estado']), notaAntes = texto_(a['Nota']);
+    var previo = 'antes: ' + (antes || '(sin marcar)') + (notaAntes ? ' «' + notaAntes + '»' : '') +
+      ', marcado por ' + (texto_(a['Marcado por']) || '—') + (cuando(a['Hora']) ? ' el ' + cuando(a['Hora']) : '');
+    var cambios = { 'Estado': estado, 'Nota': nota, 'Marcado por': usuario, 'Hora': ahora };
     Object.keys(extra || {}).forEach(function (k) { cambios[k] = extra[k]; });
     ponerCeldas_(asis, a, cambios);
+    var donde = quien + ' · ' + codigo + ' · ' + fechaCorta_(iso) + ' · ';
     if (antes !== estado) {
       corregidas++;
-      hist.push(['Corregir asistencia', texto_(a['ID asistencia']), quien + ' · ' + codigo + ' · ' + fechaCorta_(iso) + ' · ' + antes + ' → ' + estado]);
+      hist.push(['Corregir asistencia', texto_(a['ID asistencia']), donde + antes + ' → ' + estado + ' · ' + previo]);
+    } else if (notaAntes !== nota) {
+      hist.push(['Corregir nota', texto_(a['ID asistencia']), donde + 'nota «' + notaAntes + '» → «' + nota + '» · ' + previo]);
     }
   };
   plan.forEach(function (p) {

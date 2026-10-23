@@ -67,6 +67,16 @@ página) y `area:pasarlista` (para el puente), pero ningún `as.ver`:
 lista, sin pestañas. `/pasar-lista/` es una página que redirige a
 `/after-school/#lista` conservando `?fecha=&clase=`.
 
+**Por días (23-oct, AfterSchool.gs v8).** Encima de las clases, el día
+(«Viernes 23 oct») con flechas y «Hoy»; la coordinación además tiene el
+calendario. Hasta dónde llegan las flechas lo dice la respuesta de
+`leerLista` (`desde`, `hasta`); un día futuro llega con `soloLectura` y la
+lista se ve sin botones de marcar ni «Guardar». La regla la vuelve a exigir
+el Apps Script en cada lectura y escritura (`limiteProfesor`, que pone
+`pasar-lista/api.php`). El Profesor, que entra directo a Pasar lista, tiene
+en el encabezado una fila propia con «Inicio» y «Procesos»
+(`Marca.cabecera({accesos})`, 44 px, visible también en celular).
+
 ## 2b. Presentación y entrada (21-oct, rediseño con la marca Vida en Arte)
 
 | Pieza | Qué es |

@@ -150,6 +150,13 @@ Parámetros actuales: `Umbral amarillo` (Número: fracción de ocupación), `Con
 21-oct: `Faltas seguidas` (Número, 2), `Días para reponer` (Número, 30), `Duración de clase (min)` (Número, 60) y `Asistencia desde` (Nota: fecha; *Actualizar estructura* pone el día en que se corre).
 Los valores iniciales están en `INS_CONFIG` y solo se escriben si la lista no existe; después manda la hoja.
 
+**Pasar lista del Profesor (23-oct, v8).** Dos parámetros más (Lista
+«Parámetro», columna Número, entero 0 o más): «Días atrás para pasar lista
+(Profesor)» (7 al instalar: hasta cuántos días atrás marca y corrige; 0 =
+solo hoy) y «Días adelante para ver la lista (Profesor)» (7: cuántos días
+hacia adelante ve, sin marcar). Los escribe Actualizar estructura si no
+existen. Sin ellos, el Profesor no pasa lista y la pantalla dice qué falta.
+
 ## Asistencia (21-oct)
 
 Una fila por niño, clase y fecha (los «fuera de lista», una por nombre escrito). Corregir = actualizar la fila; el cambio de estado queda en Historial.

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=ba51953b2d">
+<link rel="stylesheet" href="/comun/vea.css?v=5ef57126b8">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
@@ -71,7 +71,14 @@
 
   <!-- VISTA · PASAR LISTA (21-oct: dentro de After School) -->
   <section id="v-lista" class="vista oculto columna">
-    <div class="semana-nav oculto" id="plFechaBar"><label for="plFecha" style="margin:0">Día</label><input type="date" id="plFecha"></div>
+    <!-- 23-oct: el día con flechas y «Hoy». Hasta dónde se puede ir lo dice el servidor (desde, hasta). -->
+    <div class="pl-dia" id="plDia" role="group" aria-label="Día de la lista">
+      <button class="btn-circulo" id="plAnt" type="button" aria-label="Día anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="pl-dia-fecha" id="plFechaTxt" aria-live="polite"></span>
+      <button class="btn-circulo" id="plSig" type="button" aria-label="Día siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button class="btn sec chico" id="plHoy" type="button">Hoy</button>
+      <input type="date" id="plFecha" class="oculto" aria-label="Elegir el día">
+    </div>
     <div id="plAviso"></div>
     <div class="pl-clases" id="plClases" role="group" aria-label="Clases del día"></div>
     <div id="plCuerpo" class="oculto columna">
@@ -333,7 +340,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="/comun/datos.js?v=b4c990ccbe"></script>
-<script src="/comun/marca.js?v=7cf2ee06cd"></script>
+<script src="/comun/marca.js?v=0b53cee6ca"></script>
 <script>
 'use strict';
 /* ==========================================================================
@@ -1725,8 +1732,7 @@ async function cargarLista(fecha, codigo) {
   LISTA.cargando = false;
   LISTA.datos = r.resultado;
   LISTA.otroDia = !!(r.permisos && r.permisos.puedeOtroDia);
-  $('#plFechaBar').classList.toggle('oculto', !LISTA.otroDia);
-  $('#plFecha').value = LISTA.datos.fecha; $('#plFecha').max = LISTA.datos.hoy;
+  pintarDiaLista();
   const clases = LISTA.datos.clases.filter(c => !c.sinClase);
   // La clase de la hora actual: la hora de la última que ya empezó (si
   // ninguna, la primera del día). Entre las de esa hora, primero una con
@@ -1741,6 +1747,34 @@ async function cargarLista(fecha, codigo) {
   const elegir = pedida || deEsaHora.find(c => conNinos(c) && !c.guardada) || deEsaHora.find(conNinos) || deEsaHora[0] || clases[0];
   if (elegir) abrirClaseLista(elegir.codigo); else { $('#plCuerpo').classList.add('oculto'); avisoLista('No hay clases este día.', 'info'); }
 }
+
+/* El día (23-oct): «Viernes 23 oct», flechas y «Hoy». El Profesor va de
+   desde a hasta (la ventana de Config; los días futuros solo se ven); la
+   coordinación, a cualquier día pasado (también con el calendario). Lo
+   decide y lo vuelve a comprobar el servidor. */
+function diaCorto(iso) {
+  const s = new Date(iso + 'T12:00:00').toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/[.,]/g, '');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function sumarDia(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function pintarDiaLista() {
+  const d = LISTA.datos, hasta = d.hasta || d.hoy;
+  $('#plFechaTxt').textContent = diaCorto(d.fecha) + (d.fecha === d.hoy ? ' · hoy' : '');
+  $('#plAnt').disabled = !!d.desde && d.fecha <= d.desde;
+  $('#plSig').disabled = d.fecha >= hasta;
+  $('#plHoy').disabled = d.fecha === d.hoy;
+  $('#plFecha').classList.toggle('oculto', !LISTA.otroDia);
+  $('#plFecha').value = d.fecha; $('#plFecha').max = hasta; $('#plFecha').min = d.desde || '';
+}
+function irADiaLista(iso) {
+  if (!iso || !LISTA.datos || iso === LISTA.datos.fecha) return;
+  if (LISTA.cambios && !confirm('Hay marcas sin guardar en esta clase. ¿Cambiar de día igual? Se pierden.')) { pintarDiaLista(); return; }
+  LISTA.cambios = false;
+  cargarLista(iso);
+}
+$('#plAnt').onclick = () => irADiaLista(sumarDia(LISTA.datos.fecha, -1));
+$('#plSig').onclick = () => irADiaLista(sumarDia(LISTA.datos.fecha, 1));
+$('#plHoy').onclick = () => irADiaLista(LISTA.datos.hoy);
 
 function pintarClasesLista() {
   const d = LISTA.datos;
@@ -1766,14 +1800,19 @@ function abrirClaseLista(codigo) {
     (vis ? ' · ' + textoVisitas(vis) : '') + (c.guardada ? ' · lista guardada' : '');
   $('#plCuerpo').classList.remove('oculto');
   $('#plFueraForm').classList.add('oculto');
-  avisoLista('');
+  // Un día que todavía no llega: la lista se ve para preparar, no se marca.
+  const soloVer = !!LISTA.datos.soloLectura;
+  $('#plCuerpo').classList.toggle('pl-solo-ver', soloVer);
+  document.querySelector('#plCuerpo .pl-pie').classList.toggle('oculto', soloVer);
+  avisoLista(soloVer ? 'Este día todavía no llega: puedes ver quién viene para preparar la clase. La lista se marca ese día.' : '', 'info');
   pintarClasesLista();
   pintarNinosLista();
 }
 
 function botonesLista(clave, estado) {
+  const soloVer = !!(LISTA.datos && LISTA.datos.soloLectura);
   return '<div class="pl-botones" role="group" aria-label="Asistencia">' + ESTADOS_PL.map(([e, t]) =>
-    '<button type="button" data-k="' + esc(clave) + '" data-e="' + esc(e) + '" aria-pressed="' + (estado === e) + '">' + t + '</button>').join('') + '</div>';
+    '<button type="button" data-k="' + esc(clave) + '" data-e="' + esc(e) + '" aria-pressed="' + (estado === e) + '"' + (soloVer ? ' disabled' : '') + '>' + t + '</button>').join('') + '</div>';
 }
 
 function pintarNinosLista() {
@@ -1817,7 +1856,7 @@ $('#plFueraAgregar').onclick = () => {
   pintarNinosLista();
 };
 $('#plFueraNombre').onkeydown = e => { if (e.key === 'Enter') $('#plFueraAgregar').click(); };
-$('#plFecha').onchange = () => { if ($('#plFecha').value) cargarLista($('#plFecha').value); };
+$('#plFecha').onchange = () => irADiaLista($('#plFecha').value);
 
 $('#plGuardar').onclick = async () => {
   const c = LISTA.actual;
@@ -1850,6 +1889,12 @@ window.addEventListener('beforeunload', e => { if (LISTA.cambios) { e.preventDef
 $('#irInscribir').onclick = () => { mostrarVista('registrar'); $('#buscar').focus(); Marca.toast('Busca al niño (o «+ Nuevo») y marca sus clases.'); };
 $('#irAgendar').onclick = () => { mostrarVista('pruebas'); $('#formPrueba').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 
+/* 23-oct: el Profesor entra directo a Pasar lista; la salida, visible como texto. */
+function accesosProfesor(ses) {
+  const ve = a => ses.areas === '*' || (Array.isArray(ses.areas) && ses.areas.includes(a));
+  return [{ texto: 'Inicio', url: '/' }].concat(ve('procesos') ? [{ texto: 'Procesos', url: '/procesos/' }] : []);
+}
+
 async function iniciar() {
   let ses;
   try { ses = await Datos.sesion(); }
@@ -1857,7 +1902,7 @@ async function iniciar() {
   fijarPermisos(ses.permisosAS || []);
   const pedida = (location.hash || '').slice(1);
   const soloLista = !puede('as.ver') && puede('as.lista.marcar');
-  Marca.cabecera($('#cab'), soloLista ? { sesion: ses, prefijo: 'Pasando lista:' } : { sesion: ses, ruta: Marca.rutaUnidad('afterschool', 'After School') });
+  Marca.cabecera($('#cab'), soloLista ? { sesion: ses, prefijo: 'Pasando lista:', accesos: accesosProfesor(ses) } : { sesion: ses, ruta: Marca.rutaUnidad('afterschool', 'After School') });
   vista = vistaPermitida(pedida) && pedida ? pedida : (ses.inicioAS || 'ocupacion');
   if (soloLista) vista = 'lista';
   // Llegó con una clase pedida (Seguimiento → Pasar lista, o la dirección vieja /pasar-lista/).

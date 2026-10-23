@@ -137,15 +137,35 @@ Solo `usuarios.gestionar` (Administrador, Dirección). Escrituras con cabecera `
 ## Acciones de Pasar lista (`pasar-lista/api.php`)
 
 Puente propio (carpeta `/pasar-lista/`, área `pasarlista`; la pantalla es una pestaña de After School desde D-039). Reutiliza el transporte
-de `after-school/api.php`. **`soloHoy` lo pone el puente**: `true` para quien no tiene
-`as.lista.corregir` (Profesor); el navegador no lo puede cambiar. La respuesta se
-recorta a una lista blanca y nunca lleva el `estado` de After School.
-Agrega `permisos: {puedeOtroDia}`.
+de `after-school/api.php`. **El límite de días lo pone el puente**: para quien no tiene
+`as.lista.corregir` (Profesor) manda `limiteProfesor: true` (y `soloHoy: true`, para que un
+Apps Script anterior a v8 siga limitando a hoy); para los demás, los dos en `false`. Lo que
+mande el navegador se descarta. La respuesta se recorta a una lista blanca y nunca lleva el
+`estado` de After School. Agrega `permisos: {puedeOtroDia}`.
+
+**Ventana del Profesor** (23-oct, AfterSchool.gs v8). Con `limiteProfesor`, el Apps Script
+calcula, con la fecha de hoy en la zona del archivo (Panamá), `desde = hoy − N` y
+`hasta = hoy + M`, con N = «Parámetro / Días atrás para pasar lista (Profesor)» y
+M = «Parámetro / Días adelante para ver la lista (Profesor)» de Config (7 y 7 al
+instalar). Si falta alguno, se niega (`sin_configuracion`).
+
+| Día | Profesor (`limiteProfesor`) | Coordinación AS, Administrador, Dirección |
+|---|---|---|
+| entre `desde` y ayer | ve, marca y corrige | ve, marca y corrige |
+| hoy | ve, marca y corrige | ve, marca y corrige |
+| entre mañana y `hasta` | **solo ve** (`soloLectura: true`); guardar → `dia_futuro` | no lo ve (día futuro) |
+| antes de `desde` / después de `hasta` | no lo ve ni lo guarda (`fuera_de_plazo`) | antes: sí; después: no |
+
+**Cada corrección deja rastro** en Historial («Corregir asistencia» o «Corregir nota»), con
+quién la hizo y cuándo (columnas Usuario y Fecha) y en el detalle el estado y la nota de
+antes, quién los había marcado y a qué hora. La fila de Asistencia queda con lo nuevo
+(«Marcado por» y «Hora» de la corrección). El Seguimiento se calcula al leer, desde
+Asistencia: refleja la corrección sin hacer nada más.
 
 | Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
 |---|---|---|---|---|---|---|
-| `leerLista` | L | as.lista.ver | Pr (solo hoy), Ad Di CA (cualquier día no futuro) | `fecha?` (hoy) | `{fecha, hoy, dia, otroDia, estados[], clases[{codigo, servicio, hora, guardada, sinClase, ninos[{idNino, nombre, edad, presencia, idVisita, estado, nota}], fueraDeLista[{idAsistencia, nombre, estado, nota}]}]}` | `solo_hoy` · día futuro |
-| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (solo hoy), Ad Di CA | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]` | `{fecha, codigo, nuevas, corregidas, visitasMarcadas}` | `solo_hoy` · día futuro · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
+| `leerLista` | L | as.lista.ver | Pr (de `desde` a `hasta`), Ad Di CA (cualquier día no futuro) | `fecha?` (hoy) | `{fecha, hoy, dia, otroDia, desde, hasta, soloLectura, estados[], clases[{codigo, servicio, hora, guardada, sinClase, ninos[{idNino, nombre, edad, presencia, idVisita, estado, nota}], fueraDeLista[{idAsistencia, nombre, estado, nota}]}]}`. `desde`: '' si no hay límite hacia atrás | `fuera_de_plazo` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · día futuro (coordinación) |
+| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (de `desde` a hoy), Ad Di CA (cualquier día no futuro) | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]` | `{fecha, codigo, nuevas, corregidas, visitasMarcadas}` | `fuera_de_plazo` · `dia_futuro` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · día futuro · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
 
 `presencia`: `Inscrito`, `Prueba`, `Reposición`, `Eventual`. `estado`: `Presente`,
 `Llegó tarde`, `Ausente`, `Falta justificada`. Recepción, Comercial, Contabilidad y

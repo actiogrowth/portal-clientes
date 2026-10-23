@@ -9,8 +9,11 @@
  * Cerrojos:
  *   1. requerir_sesion(): sesión y área «pasarlista» (carpeta /pasar-lista/).
  *   2. Solo dos acciones: leerLista (as.lista.ver) y guardarLista (as.lista.marcar).
- *   3. soloHoy lo pone ESTE archivo según el rol (sin as.lista.corregir → true);
- *      lo que mande el navegador se descarta. El Apps Script lo respeta.
+ *   3. El límite de días lo pone ESTE archivo según el rol: sin
+ *      as.lista.corregir (Profesor) → limiteProfesor = true (23-oct: la
+ *      ventana de Config, AfterSchool.gs v8) y soloHoy = true (para que un
+ *      script anterior a v8 siga limitando a hoy). Lo que mande el navegador
+ *      se descarta. El Apps Script lo respeta.
  *   4. La respuesta se recorta a una lista blanca: por niño, solo nombre,
  *      edad, la marca de visita y lo marcado. Nada de contactos ni del
  *      resto de After School, aunque el script mandara más.
@@ -39,7 +42,9 @@ if (!in_array($datos['accion'], ACCIONES_LISTA, true)) fallo('Esta página solo 
 if (!roles_permiten($roles, permiso_de_accion_as($datos['accion']))) fallo('Tu rol no permite pasar lista.', 403, 'sin_permiso');
 
 if (!is_array($datos['datos'] ?? null)) $datos['datos'] = [];
-$datos['datos']['soloHoy'] = !roles_permiten($roles, 'as.lista.corregir');
+$conLimite = !roles_permiten($roles, 'as.lista.corregir');
+$datos['datos']['soloHoy'] = $conLimite;
+$datos['datos']['limiteProfesor'] = $conLimite;
 
 $envio = envio_para($cfg['as_clave'], $usuario, $datos);
 $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio['json'], 'pedir',
@@ -63,7 +68,7 @@ function lista_recortada(string $cuerpo): string {
     $out = $toma($j, ['ok', 'error', 'codigo', 'repetida']);
     $res = $j['resultado'] ?? null;
     if (is_array($res) && isset($res['clases']) && is_array($res['clases'])) {
-        $r = $toma($res, ['fecha', 'hoy', 'dia', 'otroDia', 'estados']);
+        $r = $toma($res, ['fecha', 'hoy', 'dia', 'otroDia', 'desde', 'hasta', 'soloLectura', 'estados']);
         $r['clases'] = array_map(function ($c) use ($toma) {
             $x = $toma($c, ['codigo', 'servicio', 'hora', 'guardada', 'sinClase']);
             $x['ninos'] = array_map(function ($n) use ($toma) {

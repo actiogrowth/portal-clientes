@@ -225,7 +225,7 @@ function googleFalso() {
       else if (j.accion === 'leer') r = { ok: true, resultado: ESTADO() };
       // Pasar lista: el script falso manda DE MÁS (contactos, el estado entero)
       // para comprobar que pasar-lista/api.php lo recorta.
-      else if (j.accion === 'leerLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', hoy: '2026-10-19', dia: 'Lunes', otroDia: true, estados: ['Presente'], secreto: 'x',
+      else if (j.accion === 'leerLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', hoy: '2026-10-19', dia: 'Lunes', otroDia: true, desde: '2026-10-12', hasta: '2026-10-26', soloLectura: false, estados: ['Presente'], secreto: 'x',
         clases: [{ codigo: 'LUN-1630-PARKOUR', servicio: 'Parkour', hora: '16:30', guardada: false, sinClase: false, cupo: 20, modalidad: 'Semana',
           ninos: [{ idNino: 'AS-0001', nombre: 'Inventado Uno', edad: '8 años', presencia: 'Inscrito', idVisita: '', estado: '', nota: '',
                     telefono: '555-0101', correo: 'uno@ejemplo.test', responsable: 'Responsable Uno', nacimiento: '2018-01-01' }],
@@ -868,9 +868,12 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       const pl = (u, accion, datos) => n[u].post('/pasar-lista/api.php', { json: { accion, datos: datos || {} } });
       const ultima = () => google.llamadas[google.llamadas.length - 1];
       let antes = google.llamadas.length;
-      let r = await pl('prueba-profesor-1', 'leerLista', { fecha: '2026-10-01', soloHoy: false });
+      let r = await pl('prueba-profesor-1', 'leerLista', { fecha: '2026-10-01', soloHoy: false, limiteProfesor: false });
       ok(r.status === 200 && r.j.ok && google.llamadas.length === antes + 1, 'Profesor lee la lista');
       ok(ultima().datos.soloHoy === true && ultima().usuario === 'prueba-profesor-1', 'al script le llega soloHoy = true aunque el navegador mande false');
+      ok(ultima().datos.limiteProfesor === true, 'y limiteProfesor = true (la ventana de días de Config, v8) aunque el navegador mande false');
+      ok(r.j.resultado.desde === '2026-10-12' && r.j.resultado.hasta === '2026-10-26' && r.j.resultado.soloLectura === false,
+        'la pantalla recibe la ventana (desde, hasta) y si el día es solo para ver');
       const cl = r.j.resultado.clases[0];
       ok(Object.keys(cl.ninos[0]).sort().join() === 'edad,estado,idNino,idVisita,nombre,nota,presencia', 'por niño solo nombre, edad, marca y lo marcado (' + Object.keys(cl.ninos[0]).join() + ')');
       ok(!/555|correo|ejemplo\.test|Responsable|nacimiento/.test(r.texto), 'ningún contacto ni fecha de nacimiento llega al profesor');
@@ -879,7 +882,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(r.j.permisos && r.j.permisos.puedeOtroDia === false, 'la página sabe que el profesor no puede otro día');
       r = await pl('prueba-profesor-1', 'guardarLista', { codigo: 'LUN-1630-PARKOUR', marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] });
       ok(r.status === 200 && r.j.ok && !('estado' in r.j) && !('secreto' in r.j.resultado) && r.j.resultado.nuevas === 1, 'guardar: el profesor no recibe el estado de After School');
-      ok(ultima().accion === 'guardarLista' && ultima().datos.soloHoy === true, 'guardar también va con soloHoy = true');
+      ok(ultima().accion === 'guardarLista' && ultima().datos.soloHoy === true && ultima().datos.limiteProfesor === true, 'guardar también va con soloHoy y limiteProfesor = true');
       for (const a of ['leer', 'agendarVisita', 'seguimiento', 'noHuboClase', 'accionInventada']) {
         antes = google.llamadas.length;
         r = await pl('prueba-profesor-1', a);
@@ -891,10 +894,21 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       antes = google.llamadas.length;
       r = await n['prueba-profesor-1'].as('leer');
       ok(r.status === 403 && google.llamadas.length === antes, 'el profesor no entra a after-school/api.php');
-      r = await pl('prueba-coord-as', 'leerLista', { fecha: '2026-10-01' });
-      ok(r.status === 200 && ultima().datos.soloHoy === false && r.j.permisos.puedeOtroDia === true, 'Coordinación After School: soloHoy = false (corrige otros días)');
+      r = await pl('prueba-coord-as', 'leerLista', { fecha: '2026-10-01', limiteProfesor: true });
+      ok(r.status === 200 && ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false && r.j.permisos.puedeOtroDia === true,
+        'Coordinación After School: soloHoy y limiteProfesor = false (corrige otros días, sin cambios)');
       await pl('admin-uno', 'guardarLista', { codigo: 'X', marcas: [] });
-      ok(ultima().datos.soloHoy === false, 'Administrador: también otros días');
+      ok(ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false, 'Administrador: también otros días');
+      await pl('prueba-direccion', 'leerLista', {});
+      ok(ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false, 'Dirección: también otros días');
+      // La salida visible del Profesor: Inicio y Procesos en el encabezado de Pasar lista.
+      const asPg = (await n['prueba-profesor-1'].get('/after-school/')).texto;
+      ok(/accesos: accesosProfesor\(ses\)/.test(asPg) && /texto: 'Inicio', url: '\/'/.test(asPg) && /texto: 'Procesos', url: '\/procesos\/'/.test(asPg) &&
+        /id="plAnt"/.test(asPg) && /id="plSig"/.test(asPg) && /id="plHoy"/.test(asPg),
+        'Pasar lista: accesos Inicio y Procesos para el Profesor y flechas de día con «Hoy»');
+      const mj = (await new Nav(base).get('/comun/marca.js')).texto, css = (await new Nav(base).get('/comun/vea.css')).texto;
+      ok(/cab-accesos/.test(mj) && /\.cab-accesos a \{[^}]*min-height: var\(--toque\)/.test(css) && !/\.cab-accesos[^{]*\{[^}]*display: none/.test(css),
+        'los accesos van en su propia fila del encabezado, de 44 px y sin ocultarse en celular');
       for (const u of ['prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
         antes = google.llamadas.length;
         r = await pl(u, 'leerLista');
