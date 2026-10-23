@@ -75,6 +75,8 @@ return [
   'pa_clave' => 'clave-pa-de-prueba',
   'pa_proyectos_cliente' => ['Proyecto 1'],
   'pa_cache_seg' => 300,
+  'procesos_segmentos' => ['Atracción' => ['Marketing'], 'Adquisición' => ['Ventas'], 'Entrega de servicio' => ['Servicio']],
+  'procesos_general' => ['Gerencia'],
   'roles_iniciales' => [
 ${roles}
   ],
@@ -192,7 +194,12 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
     { nombre: 'Plan OCULTO-P1 de prueba (Documento)', unidad: 'Kinder', segmento: 'Ventas', tipo: 'Entregable', fecha: '2026-04-01', enlace: 'https://ejemplo.test/doc-oculto', idEntregable: 'E-003', proyecto: '', visibleCliente: '' },
     { nombre: 'Plan compartido de Proyecto 2 (Presentación)', unidad: 'Gerencia', segmento: 'Finanzas', tipo: 'Entregable', fecha: '2026-10-05', enlace: '/proyecto-actio/archivos/plan-compartido.html', idEntregable: 'E-902', proyecto: '', visibleCliente: '' },
     { nombre: 'Guía OCULTO-SUELTA de prueba', unidad: 'Gerencia', segmento: '', tipo: 'Documento', fecha: '2026-05-02', enlace: 'https://ejemplo.test/guia-oculta', idEntregable: '', proyecto: '', visibleCliente: 'No' },
-    { nombre: 'Guía compartida suelta de Proyecto 2', unidad: 'Gerencia', segmento: '', tipo: 'Capacitación', fecha: '2026-10-06', enlace: 'https://ejemplo.test/guia-p2', idEntregable: '', proyecto: 'Proyecto 2', visibleCliente: 'si' }],
+    { nombre: 'Guía compartida suelta de Proyecto 2', unidad: 'Gerencia', segmento: '', tipo: 'Capacitación', fecha: '2026-10-06', enlace: 'https://ejemplo.test/guia-p2', idEntregable: '', proyecto: 'Proyecto 2', visibleCliente: 'si' },
+    // 23-oct: Procesos (Marketing → Atracción, Servicio → Entrega de servicio; Gerencia → General)
+    { nombre: 'Guía de redes de prueba (Presentación)', unidad: 'After School', segmento: 'Marketing', tipo: 'Documento', fecha: '2026-06-01', enlace: '/biblioteca/guia-redes.html', idEntregable: '', proyecto: '' },
+    { nombre: 'Manual de servicio de prueba', unidad: 'Gerencia', segmento: 'Servicio', tipo: 'Documento', fecha: '2026-06-02', enlace: 'https://ejemplo.test/manual', idEntregable: '', proyecto: '' },
+    { nombre: 'Guion PROCESO-OCULTO de prueba', unidad: 'After School', segmento: 'Marketing', tipo: 'Documento', fecha: '2026-06-03', enlace: 'https://ejemplo.test/oculto', idEntregable: '', proyecto: '', visibleCliente: 'No' },
+    { nombre: 'Guion PROCESO-P2 de prueba', unidad: 'Veranito', segmento: 'Servicio', tipo: 'Documento', fecha: '2026-06-04', enlace: 'https://ejemplo.test/p2', idEntregable: '', proyecto: 'Proyecto 2' }],
   reuniones: [
     { fecha: '2026-07-22', tema: 'Reunión de prueba', minuta: 'https://ejemplo.test/minuta', grabacion: '', proyecto: '' },
     { fecha: '2026-09-01', tema: 'Reunión reservada de Actio', minuta: 'https://ejemplo.test/minuta-reservada', grabacion: '', proyecto: 'Proyecto 2' }],
@@ -304,6 +311,8 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'pasar-lista'), path.join(web, 'pasar-lista'));
   copiar(path.join(fuente, 'comun'), path.join(web, 'comun'));
   copiar(path.join(fuente, 'proyecto-actio'), path.join(web, 'proyecto-actio'));
+  copiar(path.join(fuente, 'procesos'), path.join(web, 'procesos'));
+  copiar(path.join(fuente, 'biblioteca'), path.join(web, 'biblioteca'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
   // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
@@ -493,18 +502,18 @@ async function correr(fuente) {
     seccion('áreas: cada rol abre solo lo suyo (y la URL directa responde sin permiso)');
     {
       const R = {
-        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1 },
-        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1 },
-        'prueba-coord-as':     { as: 1, bd: 1, pl: 1 },
-        'prueba-recepcion':    { as: 1 },
-        'prueba-comercial':    { kinder: 1, as: 1, bd: 1 },
-        'prueba-contabilidad': { as: 1 },
-        'prueba-coord-pre':    { kinder: 1, bd: 1 },
-        'prueba-profesor-1':   { as: 1, pl: 1 }
+        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1 },
+        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1 },
+        'prueba-coord-as':     { as: 1, bd: 1, pl: 1, proc: 1 },
+        'prueba-recepcion':    { as: 1, proc: 1 },
+        'prueba-comercial':    { kinder: 1, as: 1, bd: 1, proc: 1 },
+        'prueba-contabilidad': { as: 1, proc: 1 },
+        'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1 },
+        'prueba-profesor-1':   { as: 1, pl: 1, proc: 1 }
       };
       const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
-        pl: ['/pasar-lista/'] };
+        pl: ['/pasar-lista/'], proc: ['/procesos/'] };
       for (const [u, puede] of Object.entries(R)) {
         for (const [k, rutas] of Object.entries(RUTAS)) for (const ruta of rutas) {
           const r = await n[u].get(ruta);
@@ -515,9 +524,9 @@ async function correr(fuente) {
         ok((await n[u].get('/raiz.txt')).status === 200, u + ': los archivos de la raíz (portada) se abren con sesión');
       }
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School (entra directo a Pasar lista)');
+      ok(/window\.ACCESO = \["afterschool","procesos"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School y Procesos (entra directo a Pasar lista)');
       const co = await n['prueba-comercial'].get('/acceso.php');
-      ok(/window\.ACCESO = \["kinder","afterschool","basededatos"\]/.test(co.texto), 'Comercial: Preschool, After School y Base de Datos');
+      ok(/window\.ACCESO = \["kinder","afterschool","basededatos","procesos"\]/.test(co.texto), 'Comercial: Preschool, After School, Base de Datos y Procesos');
       const di = await n['prueba-direccion'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(di.texto), 'Dirección: todas las tarjetas, Configuración incluida');
     }
@@ -540,7 +549,7 @@ async function correr(fuente) {
           u + ': empieza en ' + e.inicio + ' y After School abre en «' + e.inicioAS + '» (dio ' + (a.j && a.j.inicio) + ', ' + (a.j && a.j.inicioAS) + ')');
       }
       const prof = (await n['prueba-profesor-1'].get('/acceso.php?formato=json')).j;
-      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool"]',
+      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool","procesos"]',
         'Profesor: solo los permisos de Pasar lista (' + JSON.stringify(prof.permisosAS) + ')');
       const coord = (await n['prueba-coord-as'].get('/acceso.php?formato=json')).j;
       ok(coord.permisosAS.includes('as.lista.marcar') && coord.permisosAS.includes('as.ver'), 'Coordinación: Pasar lista es una pestaña más');
@@ -659,8 +668,9 @@ async function correr(fuente) {
       ok(/data-vista="documentos"[^>]*>Documentos</.test(pg.texto) && /data-vista="atencion"[^>]*>Acompañamiento</.test(pg.texto) &&
         /aria-expanded/.test(pg.texto) && !/pa-franja/.test(pg.texto) && !/<style>/.test(pg.texto),
         'ajustes 23-oct: pestañas Documentos y Acompañamiento, desplegables con aria-expanded, cabecera baja y sin estilos propios');
-      ok(/sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"/.test(pg.texto) && !/allow-same-origin/.test(pg.texto),
-        'las presentaciones del portal se abren en un iframe con sandbox y SIN allow-same-origin (no ven la sesión)');
+      const vp = (await new Nav(base).get('/comun/visor-pantalla.js')).texto;
+      ok(/\/comun\/visor-pantalla\.js\?v=[0-9a-f]{10}/.test(pg.texto) && /sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"/.test(vp) && !/allow-same-origin/.test(vp) && !/allow-same-origin/.test(pg.texto),
+        'las presentaciones del portal se abren en un iframe con sandbox y SIN allow-same-origin (no ven la sesión): comun/visor-pantalla.js, el mismo para Procesos');
       // Administrador: todo, con «soloActio» en lo que no es del cliente
       const ad = await leerPA('admin-uno');
       const A = ad.j && ad.j.resultado;
@@ -686,7 +696,7 @@ async function correr(fuente) {
       ok(!/E-901|reservad|OCULTO|NOTA-INTERNA|Medida|Estimada|origenDuracion|"notas"|NO-DEBE-SALIR|"soloActio":true|"ocultoCliente":true|visibleCliente/.test(di.texto),
         'a Dirección nunca le llega una fila «No», ni una de Proyecto 2 sin «Sí», ni lo interno (ni en el texto de la respuesta)');
       ok(Dd && Dd.entregables.map(e => e.id).sort().join() === 'E-001,E-002,E-902', 'Dirección: entregables E-001, E-002 y el de Proyecto 2 con «Sí» (' + (Dd && Dd.entregables.map(e => e.id).join()) + ')');
-      ok(Dd && Dd.documentos.length === 4 && Dd.documentos.some(d => /compartido de Proyecto 2/.test(d.nombre)) && Dd.documentos.some(d => /compartida suelta/.test(d.nombre)),
+      ok(Dd && Dd.documentos.length === 6 && Dd.documentos.some(d => /compartido de Proyecto 2/.test(d.nombre)) && Dd.documentos.some(d => /compartida suelta/.test(d.nombre)),
         'Dirección: los documentos visibles, también los de Proyecto 2 con «Sí» (propio o heredado de su entregable)');
       ok(Dd && Dd.reuniones.length === 1 && Dd.atencion.length === 1 && !/reservad/i.test(JSON.stringify(Dd.reuniones.concat(Dd.atencion))),
         'reuniones y atención: sin cambios (solo los proyectos del cliente)');
@@ -713,27 +723,101 @@ async function correr(fuente) {
       ok(fresco.status === 200 && fresco.j.ok && !fresco.j.copia, 'sin copia, se vuelve a leer del Sheet');
     }
 
-    seccion('Proyecto Actio: presentaciones privadas en /proyecto-actio/archivos/');
+    seccion('biblioteca: las presentaciones privadas abren con la sesión de cualquier rol, nunca sin sesión');
     {
-      const dir = path.join(web, 'proyecto-actio', 'archivos');
-      fs.mkdirSync(dir, { recursive: true });
+      const dir = path.join(web, 'biblioteca');
       fs.writeFileSync(path.join(dir, 'plan-de-prueba.html'), '<!doctype html><title>Presentación de prueba</title><p>CONTENIDO-PRESENTACION</p>');
       fs.writeFileSync(path.join(dir, 'malo.php'), '<?php echo "EJ" . "ECUTADO";');
-      const pres = await n['admin-uno'].get('/proyecto-actio/archivos/plan-de-prueba.html');
-      ok(pres.status === 200 && /CONTENIDO-PRESENTACION/.test(pres.texto) && /^text\/html/.test(pres.tipo), 'Administrador abre la presentación, servida como text/html');
-      ok(/CONTENIDO-PRESENTACION/.test((await n['prueba-direccion'].get('/proyecto-actio/archivos/plan-de-prueba.html')).texto), 'Dirección también');
-      for (const u of ['prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-profesor-1']) {
-        const r = await n[u].get('/proyecto-actio/archivos/plan-de-prueba.html');
-        ok(r.status !== 200 && !/CONTENIDO-PRESENTACION/.test(r.texto), u + ': no abre las presentaciones de Proyecto Actio (' + r.status + ')');
+      fs.writeFileSync(path.join(dir, 'api.php'), '<?php echo "EJ" . "ECUTADO";');
+      for (const u of ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
+        const r = await n[u].get('/biblioteca/plan-de-prueba.html');
+        ok(r.status === 200 && /CONTENIDO-PRESENTACION/.test(r.texto) && /^text\/html/.test(r.tipo), u + ': abre la presentación de /biblioteca/ (' + r.status + ')');
       }
-      const anon = await new Nav(base).get('/proyecto-actio/archivos/plan-de-prueba.html');
+      const anon = await new Nav(base).get('/biblioteca/plan-de-prueba.html');
       ok(anon.status === 302 && /login\.html/.test(anon.location) && !/CONTENIDO-PRESENTACION/.test(anon.texto), 'sin sesión: al login, sin contenido');
-      const lista = await n['admin-uno'].get('/proyecto-actio/archivos/');
-      ok(lista.status !== 200 || !/plan-de-prueba|malo\.php/.test(lista.texto), 'la carpeta no se lista (' + lista.status + ')');
-      const php = await n['admin-uno'].get('/proyecto-actio/archivos/malo.php');
-      ok(php.status !== 200 && !/EJECUTADO|<\?php/.test(php.texto), 'un .php subido ahí no se ejecuta ni se entrega (' + php.status + ')');
-      ok(fs.existsSync(path.join(fuente || REPO, 'proyecto-actio', 'archivos', 'htaccess.txt')), 'la carpeta lleva su propio .htaccess (htaccess.txt en el repo)');
-      fs.unlinkSync(path.join(dir, 'malo.php'));
+      for (const ruta of ['/biblioteca/', '/biblioteca']) {
+        const lista = await n['admin-uno'].get(ruta);
+        ok(lista.status !== 200 || !/plan-de-prueba|malo\.php/.test(lista.texto), ruta + ': la carpeta no se lista (' + lista.status + ')');
+      }
+      for (const ruta of ['/biblioteca/malo.php', '/biblioteca/api.php']) {
+        const php = await n['prueba-recepcion'].get(ruta);
+        ok(php.status !== 200 && !/EJECUTADO|<\?php/.test(php.texto), ruta + ': no se ejecuta ni se entrega (' + php.status + ')');
+      }
+      // Los enlaces viejos del Sheet: 301 a /biblioteca/, que pide sesión.
+      const viejo = await n['prueba-profesor-1'].get('/proyecto-actio/archivos/plan-de-prueba.html');
+      ok(viejo.status === 301 && viejo.location === '/biblioteca/plan-de-prueba.html', '/proyecto-actio/archivos/<x>.html → 301 /biblioteca/<x>.html (' + viejo.status + ' ' + viejo.location + ')');
+      const viejoAnon = await new Nav(base).get('/proyecto-actio/archivos/plan-de-prueba.html');
+      ok(viejoAnon.status === 301 && !/CONTENIDO-PRESENTACION/.test(viejoAnon.texto), 'la redirección no entrega nada por sí sola');
+      for (const ruta of ['/proyecto-actio/archivos/Plan.html', '/proyecto-actio/archivos/../api.php', '/proyecto-actio/archivos/x.php']) {
+        const r = await new Nav(base).get(ruta);
+        ok(r.status !== 301, ruta + ': solo nombres simples en minúsculas se redirigen (' + r.status + ')');
+      }
+      ok(fs.existsSync(path.join(fuente || REPO, 'biblioteca', 'htaccess.txt')), 'la carpeta lleva su propio .htaccess (htaccess.txt en el repo)');
+      fs.unlinkSync(path.join(dir, 'malo.php')); fs.unlinkSync(path.join(dir, 'api.php'));
+    }
+
+    seccion('Procesos: todos los roles; solo documentos visibles para el cliente, de los tres procesos y con los campos de la pantalla');
+    {
+      const leer = u => n[u].post('/procesos/api.php', { json: { accion: 'leer' } });
+      const ESPERADOS = 'Guía de redes de prueba (Presentación)|After School|Atracción,Manual de servicio de prueba|General|Entrega de servicio,Plan de prueba uno (Documento)|Kinder|Adquisición';
+      for (const u of ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
+        const r = await leer(u);
+        const R = r.j && r.j.resultado;
+        ok(r.status === 200 && r.j.ok && R, u + ': lee Procesos (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
+        if (!R) continue;
+        const vistos = R.documentos.map(d => d.nombre + '|' + d.unidad + '|' + d.proceso).sort().join();
+        ok(vistos === ESPERADOS, u + ': recibe solo los documentos visibles de Atracción, Adquisición y Entrega de servicio; Gerencia va como General (' + vistos + ')');
+        ok(R.documentos.every(d => Object.keys(d).sort().join() === 'enlace,fecha,nombre,proceso,unidad'), u + ': solo nombre, unidad, proceso, fecha y enlace');
+        ok(Object.keys(R).sort().join() === 'documentos,generado,procesos', u + ': ni entregables, ni reuniones, ni acompañamiento');
+        ok(JSON.stringify(R.procesos) === '[{"nombre":"Atracción","segmentos":["Marketing"]},{"nombre":"Adquisición","segmentos":["Ventas"]},{"nombre":"Entrega de servicio","segmentos":["Servicio"]}]',
+          u + ': los tres procesos de la configuración, en su orden');
+        ok(!/OCULTO|PROCESO-P2|reservad|compartid|Proyecto 2|NOTA-INTERNA|NO-DEBE-SALIR|Plan de prueba dos|Reunión de prueba|Consulta de prueba|idEntregable|soloActio|ocultoCliente|visibleCliente|segmento"|"tipo"|"proyecto"|Finanzas|Medida|Estimada/.test(r.texto),
+          u + ': nada oculto, nada de Proyecto 2 sin «Sí», ni campos internos, ni en el texto de la respuesta');
+      }
+      const anon = await new Nav(base).post('/procesos/api.php', { json: { accion: 'leer' } });
+      ok(anon.status !== 200 && !/Plan de prueba|Guía de redes/.test(anon.texto), 'sin sesión no hay datos (' + anon.status + ')');
+      const otra = await n['prueba-recepcion'].post('/procesos/api.php', { json: { accion: 'guardar' } });
+      ok(otra.status === 403 && otra.j && otra.j.codigo === 'sin_permiso', 'cualquier acción que no sea «leer» se rechaza');
+      const pg = await n['prueba-profesor-1'].get('/procesos/');
+      ok(pg.status === 200 && /<title>Procesos · Vida en Arte 360/.test(pg.texto) && /\/comun\/visor-pantalla\.js\?v=[0-9a-f]{10}/.test(pg.texto) &&
+        /<link rel="stylesheet" href="\/comun\/vea\.css\?v=[0-9a-f]{10}">/.test(pg.texto) && !/<style>/.test(pg.texto), 'el Profesor abre la página de Procesos (vea.css y visor común versionados, sin estilos propios)');
+      ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por datos.js');
+      // Sin la configuración de Procesos: se niega, nombrando lo que falta (no hay valores escritos en el código).
+      const cfgF = path.join(home, 'portal_config.php'), cfg = fs.readFileSync(cfgF, 'utf8');
+      fs.writeFileSync(cfgF, cfg.replace(/\n  'procesos_segmentos'[^\n]*\n  'procesos_general'[^\n]*/, ''));
+      try {
+        const sin = await leer('prueba-recepcion');
+        ok(sin.status === 500 && sin.j && sin.j.codigo === 'sin_configuracion' && /procesos_segmentos, procesos_general/.test(sin.j.error),
+          'sin procesos_segmentos ni procesos_general en portal_config.php: error «sin_configuracion» que los nombra (' + sin.texto.slice(0, 160) + ')');
+      } finally { fs.writeFileSync(cfgF, cfg); }
+    }
+
+    seccion('portada por marca: logos, Procesos, Administración y la entrada de cada rol');
+    {
+      const portada = (await n['prueba-recepcion'].get('/')).texto;
+      ok(/function portada\(ve\)/.test(portada) && /function paginaMarca\(m, ve\)/.test(portada) && /class="marca-tarjeta/.test(portada) && /url: '\/procesos\/'/.test(portada),
+        'la portada lleva los logos de marca, la tarjeta Procesos y la página de cada marca (?marca=)');
+      const marca = (await new Nav(base).get('/comun/marca.js')).texto;
+      ok(/rutaUnidad/.test(marca) && /areas: \['afterschool', 'veranito', 'cumpleanos'\]/.test(marca) && /areas: \['kinder', 'babyandme'\]/.test(marca),
+        'marca.js: Vida en Arte = After School, Veranito, Cumpleaños; Vida en Arte Kids = Preschool, Baby & Me');
+      const perm = fs.readFileSync(path.join(web, 'permisos.php'), 'utf8');
+      ok(/'vea'\s*=> \['afterschool', 'veranito', 'cumpleanos'\]/.test(perm) && /'kids' => \['kinder', 'babyandme'\]/.test(perm), 'permisos.php reparte las unidades igual que marca.js');
+      const as = (await n['prueba-recepcion'].get('/after-school/')).texto;
+      ok(/Marca\.rutaUnidad\('afterschool', 'After School'\)/.test(as), 'After School: ruta «Inicio / Vida en Arte / After School»');
+      // La entrada, con cualquier combinación de áreas (destino_de_areas).
+      const script = path.join(tmp, 'destino.php');
+      fs.writeFileSync(script, `<?php
+require '${web.replace(/\\/g, '/')}/permisos.php';
+$casos = [['*'], ['afterschool', 'procesos'], ['procesos'], ['afterschool', 'veranito', 'procesos'], ['kinder', 'babyandme'], ['kinder', 'procesos'],
+          ['kinder', 'basededatos', 'procesos'], ['afterschool', 'kinder', 'procesos'], ['basededatos', 'procesos'], []];
+echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v), $casos));
+`);
+      const d = spawnSync(PHP, [script], { encoding: 'utf8' });
+      ok(d.stdout === '/,/after-school/,/,/?marca=vea,/?marca=kids,/kinder/,/,/,/basededatos/,/',
+        'entrada: una sección → directo (Procesos no cuenta); solo unidades de una marca → la página de la marca; si no, la portada (dio ' + d.stdout + d.stderr + ')');
+      const pr = await new Nav(base).entrar('prueba-profesor-1', claves['prueba-profesor-1']);
+      ok(pr.ok && pr.destino === '/after-school/', 'el Profesor sigue entrando directo a Pasar lista aunque también tenga Procesos');
+      ok((await n['prueba-profesor-1'].get('/?marca=vea')).status === 200, 'la página de una marca es la portada (?marca=): la abre cualquiera con sesión');
     }
 
     seccion('After School: cada acción según el rol; las prohibidas no llegan al Apps Script');

@@ -119,6 +119,12 @@
       leer() { return pedir('/proyecto-actio/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' }, tipo: 'texto' }); }
     },
 
+    /* ── Procesos (solo lectura; 23-oct) ───────────────────────────────── */
+    procesos: {
+      /** {resultado: {generado, procesos: [{nombre, segmentos}], documentos: [{nombre, unidad, proceso, fecha, enlace}]}, copia?: {segundos}} */
+      leer() { return pedir('/procesos/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' }, tipo: 'texto' }); }
+    },
+
     /* ── Configuración › Usuarios ───────────────────────────────────────── */
     usuarios: {
       /** {usuarios[], roles[], yo, puedeAdmin, claveMinima} */

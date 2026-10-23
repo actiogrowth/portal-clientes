@@ -188,9 +188,11 @@ Documentos VEA; la regla la aplica `api.php` (ver `ACCIONES_API.md`). La
 pantalla de Administrador marca con «Oculto al cliente» lo que Dirección no
 ve.
 
-**Presentaciones privadas** (23-oct): `/proyecto-actio/archivos/` guarda
-presentaciones `.html` que solo se abren con sesión y con el área
-`proyecto-actio` (las entrega `gate.php`, como `text/html`, sin caché).
+**Presentaciones privadas** (23-oct; **desde la tarde del 23-oct viven en
+`/biblioteca/` y las abre cualquier usuario con sesión: ver 2d**):
+`/proyecto-actio/archivos/` guardaba presentaciones `.html` que solo se
+abrían con sesión y con el área `proyecto-actio` (las entrega `gate.php`,
+como `text/html`, sin caché).
 Segundo cerrojo: `proyecto-actio/archivos/.htaccess` (sin listado, sin
 ejecutar scripts aunque alguien suba un `.php`). Nombres: solo minúsculas,
 números y guiones, terminados en `.html` (`^[a-z0-9][a-z0-9-]*\.html$`); el
@@ -204,8 +206,8 @@ Ojo: un archivo de esta carpeta lo abre cualquier Administrador o
 Dirección que conozca su ruta; «Visible para el cliente» oculta la fila, no
 el archivo.
 
-**Más adelante — sección «Procesos»** (no construida): cada rol verá las
-presentaciones de procesos que le tocan (p. ej. Recepción las de atención,
+**Sección «Procesos»** (construida el 23-oct, ver 2d; esta era la idea
+inicial): cada rol verá las presentaciones de procesos que le tocan (p. ej. Recepción las de atención,
 Coordinación las de su unidad). Reutilizará estas mismas piezas: archivos
 privados del portal, visor aislado y un catálogo en el Sheet con una columna
 de roles.
@@ -232,11 +234,82 @@ de roles.
 ```
 La carpeta `portal_cache/` la crea `api.php` sola junto a `portal_config.php`.
 
+## 2d. Portada por marca y Procesos (23-oct)
+
+**Portada.** `/` ya no lista todas las unidades: arriba, una tarjeta grande
+por marca con su logo (Vida en Arte, Vida en Arte Kids) y debajo, en su
+propia fila, **Procesos**; abajo, Administración como antes. Tocar un logo
+abre la página de la marca, que es la misma portada con `?marca=vea` o
+`?marca=kids` (esta con el tema Kids): sus unidades, con las «Próximamente»
+atenuadas. Cada tarjeta aparece solo si el rol tiene su área; un logo sin
+unidades del rol no aparece. Qué unidad va en qué marca está en dos sitios
+que la prueba compara: `MARCAS` de `comun/marca.js` (pantalla y migas) y
+`MARCAS` de `permisos.php` (entrada directa).
+
+| Marca | Unidades (área) |
+|---|---|
+| Vida en Arte | After School (`afterschool`), Veranito (`veranito`), Cumpleaños (`cumpleanos`) |
+| Vida en Arte Kids | Preschool (`kinder`), Baby & Me (`babyandme`) |
+
+**Entrada** (`destino_inicio` → `destino_de_areas`): una sola sección → directo
+a ella; si todo lo que abre son unidades de una misma marca → la página de
+esa marca; si no, la portada. Procesos no cuenta (`AREAS_SIN_ENTRADA`): todos
+lo tienen y llegan a él desde Inicio. Las páginas de unidad llevan la miga
+«Inicio / <Marca> / <Unidad>» (`Marca.rutaUnidad`): After School, Veranito y
+Preschool.
+
+**Procesos** (`/procesos/`, área `procesos`, todos los roles): la biblioteca
+permanente de Vida en Arte. Cuando termine el contrato, Proyecto Actio se
+apaga y Procesos queda.
+
+```
+ /procesos/index.html   ── datos.js: Datos.procesos.leer()
+        │  POST {accion:'leer'}
+        ▼
+ procesos/api.php       requerir_sesion (área procesos: todos)
+        │               carga proyecto-actio/api.php con PA_SOLO_FUNCIONES:
+        │               la misma lectura, la MISMA copia y pa_recortar
+        │               SIN pa.internos (lo que ve el cliente) para todos;
+        │               después: solo documentos de los tres procesos,
+        │               permiso por fila y lista blanca de 5 campos
+        ▼
+ ProyectoActio.gs → Sheet «Datos — Vida en Arte» (pestaña Documentos VEA)
+```
+
+- UNIDAD → PROCESO → DOCUMENTOS. Primer nivel: las unidades con al menos un
+  documento, con su color e iniciales (`Marca.unidadDoc`, la misma tabla que
+  Proyecto Actio); «Gerencia» va como **General**, al final. Al abrir una
+  unidad (`#u=<unidad>`): Atracción, Adquisición y Entrega de servicio, en el
+  orden de `procesos_segmentos`; un proceso sin documentos no se muestra.
+- Filas: nombre, versión · fecha, Abrir (visor) y Descargar si aplica. Un
+  buscador busca en todas las unidades.
+- Qué segmento es qué proceso y qué unidades van en General viven en
+  `portal_config.php` (`procesos_segmentos`, `procesos_general`): si faltan,
+  el puente responde `sin_configuracion` nombrándolos.
+- Permiso por unidad y proceso **preparado**: `procesos.ver:*` (hoy todos),
+  `procesos.ver:<unidad>` o `procesos.ver:<unidad>:<proceso>`.
+
+**Visor común** (`comun/visor-pantalla.js`): el diálogo a pantalla entera
+(Descargar, Pantalla completa, versiones como pestañas) que antes vivía en
+`proyecto-actio/index.html`. Lo usan Proyecto Actio y Procesos.
+
+**Biblioteca** (`/biblioteca/`): las presentaciones `.html` privadas se
+mudaron de `/proyecto-actio/archivos/`. Las abre **cualquier usuario con
+sesión** (carpeta en `CARPETAS_LIBRES`: sin área). Sin listado; ningún
+script se ejecuta (regla 3d del `.htaccess` de la raíz, que va antes de la
+de los puentes, y `biblioteca/.htaccess`). `gate.php` responde
+`/proyecto-actio/archivos/<nombre>.html` con un 301 a
+`/biblioteca/<nombre>.html`, y el visor ya muestra esa ruta vieja desde
+`/biblioteca/`: los enlaces del Sheet no se rompen. **Ojo**: un archivo de la
+biblioteca lo abre cualquiera con sesión que conozca su ruta; «Visible para
+el cliente» oculta la fila, no el archivo. Lo que sea solo de Actio no va en
+la biblioteca.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
-| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`, `comun/`) | Commit → Actio sube los archivos al cPanel |
+| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`, `comun/`, `proyecto-actio/`, `procesos/`, `biblioteca/`) | Commit → Actio sube los archivos al cPanel |
 | Estilos, capa de datos y logos | `comun/` → `/comun/` en el servidor (pública, sin datos) | Su `htaccess.txt` se sube renombrado a `.htaccess` **dentro** de `comun/` |
 | Maquetas de referencia del diseño | `docs/diseno/` (ignorada por git: traen nombres de ejemplo) | Solo en el equipo; no entran al repo ni se publican |
 | Raíz del portal en el servidor | `/home/…/portal.vidaenarte.com/` | Se sube desde `portal-raiz/` (el `.htaccess` es `htaccess.txt` renombrado) |
@@ -274,7 +347,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/roturas.js` | Rompe cada regla del `.gs` y exige que la prueba anterior falle. |
 | `after-school-script/pruebas/prueba-api-transporte.php` (+ `correr-prueba-transporte.js`) | El transporte de `api.php`: redirecciones, reintentos, tiempos. |
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
-| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
+| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
 
 Los datos de prueba son siempre inventados.

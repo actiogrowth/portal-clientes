@@ -335,8 +335,14 @@ campo `visibleCliente` (`true` | `false` | `null`) en `entregables` y
 `documentos`.
 
 **Enlace.** Una dirección `https://…` (Drive, Google Docs, Gamma, otra
-página) o una ruta del portal `/proyecto-actio/archivos/<nombre>.html` para
-las presentaciones privadas que se suben al portal.
+página) o una ruta del portal `/biblioteca/<nombre>.html` para las
+presentaciones privadas que se suben al portal (23-oct; la ruta vieja
+`/proyecto-actio/archivos/<nombre>.html` sigue funcionando: lleva allá).
+
+**Segmento** (Documentos VEA) decide en qué proceso de **Procesos** aparece
+un documento (23-oct), según `procesos_segmentos` de `portal_config.php`:
+Marketing → Atracción, Ventas → Adquisición, Servicio → Entrega de servicio.
+Un documento de otro segmento (Finanzas, vacío…) no aparece en Procesos.
 
 **Unidad de negocio.** El dato dice «Kinder»; en pantalla se muestra
 «Preschool» (D-046). El dato no cambia.

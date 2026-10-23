@@ -59,7 +59,7 @@ jobs:
           node-version: '20'
 
       - name: Sintaxis de los PHP
-        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php; do php -l "$f" || exit 1; done
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php; do php -l "$f" || exit 1; done
 
       - name: Proyecto Actio · Apps Script (lectura por títulos, nada interno)
         run: node proyecto-actio-script/pruebas/prueba-proyecto-actio.js

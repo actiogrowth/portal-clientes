@@ -13,48 +13,50 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=dc4eac83ac">
+<link rel="stylesheet" href="/comun/vea.css?v=ba51953b2d">
 </head>
 <body>
-<!-- Portada del portal (21-oct, rediseño con la marca Vida en Arte).
-     Página fija: quién soy y qué tarjetas veo salen de Datos.sesion()
-     (comun/datos.js). Abrir cada sección lo vuelve a comprobar el servidor. -->
+<!-- Portada (21-oct, rediseño; 23-oct, por marca). Página fija: quién soy y
+     qué tarjetas veo salen de Datos.sesion() (comun/datos.js). Abrir cada
+     sección lo vuelve a comprobar el servidor.
+       /              dos logos (Vida en Arte, Vida en Arte Kids), Procesos y
+                      Administración
+       /?marca=vea    la página de una marca: sus unidades
+       /?marca=kids   (con el tema Kids)
+     Cada tarjeta aparece solo si el rol tiene su área; un logo sin unidades
+     del rol no aparece. -->
 <header id="cab"></header>
 <main class="pagina">
   <section class="encabezado">
     <div>
       <p class="ayuda" id="hoy"></p>
       <h1 class="titulo" id="hola">Hola</h1>
-      <p style="font-size:17px;color:var(--texto-2)">¿A dónde quieres ir hoy?</p>
+      <p class="portada-pregunta" id="pregunta">¿A dónde quieres ir hoy?</p>
     </div>
-    <div class="adorno" aria-hidden="true"><i class="b1"></i><i class="r1"></i><i class="b2"></i><i class="r2"></i><i class="b3"></i></div>
+    <div class="adorno" id="adorno" aria-hidden="true"><i class="b1"></i><i class="r1"></i><i class="b2"></i><i class="r2"></i><i class="b3"></i></div>
   </section>
   <div id="avisos"></div>
-  <div id="grupos"></div>
+  <div id="grupos" class="portada-grupos"></div>
   <footer class="ayuda">© 2026 Vida en Arte · Hecho por Actio Growth</footer>
 </main>
-<script src="/comun/datos.js?v=0032db3bee"></script>
-<script src="/comun/marca.js?v=fb40b4e318"></script>
+<script src="/comun/datos.js?v=b4c990ccbe"></script>
+<script src="/comun/marca.js?v=7cf2ee06cd"></script>
 <script>
 'use strict';
-/* Las tarjetas. area: la que pide (permisos.php); url vacía = «Próximamente»
-   (se ve atenuada, sin enlace y no se puede tocar). */
-const GRUPOS = [
-  { id: 'vea', titulo: 'Vida en Arte', unidades: [
-    { nombre: 'After School', url: '/after-school/', area: 'afterschool', color: 'var(--rojo)', icono: 'parkour',
-      desc: 'Ocupación, niños, visitas del día, Pasar lista y seguimiento.' },
-    { nombre: 'Veranito', url: '/veranito/', area: 'veranito', color: 'var(--naranja)', icono: 'sol', oscuro: true, desc: 'Temporada de vacaciones.' },
-    { nombre: 'Cumpleaños', url: '', area: 'cumpleanos', color: 'var(--azul)', icono: 'torta', desc: 'Reservas y eventos.' }
-  ] },
-  { id: 'kids', titulo: 'Vida en Arte Kids', logo: '/comun/logo-kids.png?v=84821d6ddf', unidades: [
-    { nombre: 'Preschool', url: '/kinder/', area: 'kinder', color: '#7E53A2', icono: 'arcoiris', cuadrado: true, desc: 'Tablero de matrícula y ocupación.' },
-    { nombre: 'Baby & Me', url: '', area: 'babyandme', color: '#68A8C9', icono: 'corazon', cuadrado: true, desc: 'Grupos y asistencia.' }
-  ] },
-  { id: 'admin', titulo: 'Administración', fila: true, unidades: [
-    { nombre: 'Base de Datos', url: '/basededatos/', area: 'basededatos', icono: 'datos', desc: 'Clientes de todas las unidades' },
-    { nombre: 'Configuración', url: '/configuracion/', area: 'configuracion', icono: 'usuarios', desc: 'Usuarios y roles' },
-    { nombre: 'Proyecto Actio', url: '/proyecto-actio/', area: 'proyecto-actio', icono: 'sistema', desc: 'Entregables, reuniones y acompañamiento' }
-  ] }
+/* Las tarjetas de cada área. url vacía = «Próximamente» (atenuada, sin enlace,
+   no se puede tocar). A qué marca va cada unidad lo dice Marca.MARCAS. */
+const UNIDADES = {
+  afterschool: { nombre: 'After School', url: '/after-school/', color: 'var(--rojo)', icono: 'parkour', desc: 'Ocupación, niños, visitas del día, Pasar lista y seguimiento.' },
+  veranito:    { nombre: 'Veranito', url: '/veranito/', color: 'var(--naranja)', icono: 'sol', oscuro: true, desc: 'Temporada de vacaciones.' },
+  cumpleanos:  { nombre: 'Cumpleaños', url: '', color: 'var(--azul)', icono: 'torta', desc: 'Reservas y eventos.' },
+  kinder:      { nombre: 'Preschool', url: '/kinder/', color: '#7E53A2', icono: 'arcoiris', cuadrado: true, desc: 'Tablero de matrícula y ocupación.' },
+  babyandme:   { nombre: 'Baby & Me', url: '', color: '#68A8C9', icono: 'corazon', cuadrado: true, desc: 'Grupos y asistencia.' }
+};
+const PROCESOS = { area: 'procesos', nombre: 'Procesos', url: '/procesos/', icono: 'libro', desc: 'Cómo funciona cada unidad: atracción, adquisición y entrega del servicio.' };
+const ADMIN = [
+  { nombre: 'Base de Datos', url: '/basededatos/', area: 'basededatos', icono: 'datos', desc: 'Clientes de todas las unidades' },
+  { nombre: 'Configuración', url: '/configuracion/', area: 'configuracion', icono: 'usuarios', desc: 'Usuarios y roles' },
+  { nombre: 'Proyecto Actio', url: '/proyecto-actio/', area: 'proyecto-actio', icono: 'sistema', desc: 'Entregables, reuniones y acompañamiento' }
 ];
 const ICONOS = {
   parkour: '<circle cx="13" cy="4" r="2"/><path d="M4 22l4-7 3 2 2-5 4 3"/><path d="M9 9l3-1 3 3 4 1"/>',
@@ -64,43 +66,71 @@ const ICONOS = {
   corazon: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/>',
   datos: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
   usuarios: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M17 11h4M19 9v4"/>',
-  sistema: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/>'
+  sistema: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/>',
+  libro: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20v-3"/><path d="M8 7h8M8 11h6"/>'
 };
+const FRANJA_KIDS = ['#D53B2C', '#EC893E', '#FCCC14', '#9DCC4C', '#68A8C9', '#1E63AB', '#7E53A2'];
 const esc = Marca.esc;
+const $ = s => document.querySelector(s);
 const svg = (k, color) => '<svg viewBox="0 0 24 24" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONOS[k] + '</svg>';
 
 function tarjeta(u, fila) {
-  const activa = !!u.url;
   const icono = '<span class="icono" style="background:' + (fila ? 'var(--negro)' : u.color) + (u.cuadrado ? ';border-radius:16px' : '') + '">' +
     svg(u.icono, u.oscuro ? '#111111' : '#FFFFFF') + '</span>';
-  const texto = '<span style="display:flex;flex-direction:column;gap:4px"><span class="nombre">' + esc(u.nombre) + '</span><span class="desc">' + esc(u.desc) + '</span></span>';
-  if (!activa) return '<div class="unidad inactiva' + (fila ? ' fila' : '') + '" aria-disabled="true">' + icono + texto +
+  const texto = '<span class="unidad-txt"><span class="nombre">' + esc(u.nombre) + '</span><span class="desc">' + esc(u.desc) + '</span></span>';
+  if (!u.url) return '<div class="unidad inactiva' + (fila ? ' fila' : '') + '" aria-disabled="true">' + icono + texto +
     '<span class="estado"><span class="chip">Próximamente</span></span></div>';
-  const fuera = /^https?:/.test(u.url);
-  return '<a class="unidad' + (fila ? ' fila' : '') + '" href="' + esc(u.url) + '"' + (fuera ? ' target="_blank" rel="noopener"' : '') + '>' + icono + texto + '</a>';
+  return '<a class="unidad' + (fila ? ' fila' : '') + '" href="' + esc(u.url) + '">' + icono + texto + '</a>';
+}
+const seccion = (titulo, cuerpo, otra) => '<section class="portada-seccion"><div class="seccion-tit"><h2 class="titulo">' + esc(titulo) + '</h2>' +
+  '<div class="raya' + (otra ? ' otra' : '') + '" aria-hidden="true"></div></div>' + cuerpo + '</section>';
+const franja = () => '<div class="franja" aria-hidden="true">' + FRANJA_KIDS.map(c => '<span style="background:' + c + '"></span>').join('') + '</div>';
+
+/* Portada: un logo por marca (solo las que tienen unidades del rol), Procesos y Administración. */
+function portada(ve) {
+  const marcas = Marca.MARCAS.map(m => ({ m, us: m.areas.filter(ve) })).filter(x => x.us.length);
+  const logos = marcas.map(({ m, us }) =>
+    '<a class="marca-tarjeta' + (m.kids ? ' kids' : '') + '" href="' + esc(m.url) + '">' +
+      '<img src="' + esc(m.logo.src) + '" alt="' + esc(m.logo.alt) + '">' + (m.kids ? franja() : '<span class="marca-raya" aria-hidden="true"></span>') +
+      '<span class="marca-unidades">' + us.map(a => esc(UNIDADES[a].nombre)).join(' · ') + '</span>' +
+    '</a>').join('');
+  const admin = ADMIN.filter(u => ve(u.area));
+  return (logos ? '<section class="marcas" aria-label="Marcas">' + logos + '</section>' : '') +
+    (ve(PROCESOS.area) ? '<section class="unidades fila uno" aria-label="Procesos">' + tarjeta(PROCESOS, true) + '</section>' : '') +
+    (admin.length ? seccion('Administración', '<div class="unidades fila">' + admin.map(u => tarjeta(u, true)).join('') + '</div>', true) : '');
 }
 
-function titulo(g, i) {
-  if (g.logo) return '<div class="kids-tit"><img src="' + g.logo + '" alt="' + esc(g.titulo) + '"><div class="franja" aria-hidden="true">' +
-    ['#D53B2C', '#EC893E', '#FCCC14', '#9DCC4C', '#68A8C9', '#1E63AB', '#7E53A2'].map(c => '<span style="background:' + c + '"></span>').join('') + '</div></div>';
-  return '<div class="seccion-tit"><h2 class="titulo">' + esc(g.titulo) + '</h2><div class="raya' + (i % 2 ? ' otra' : '') + '" aria-hidden="true"></div></div>';
+/* Página de una marca: sus unidades del rol. */
+function paginaMarca(m, ve) {
+  const us = m.areas.filter(ve);
+  if (!us.length) return '';
+  // El nombre ya es el título (h1) y el logo va en el encabezado: aquí solo la franja de la marca.
+  const tit = m.kids ? '<div class="kids-tit">' + franja() + '</div>' : '<div class="marca-tit"><div class="raya" aria-hidden="true"></div></div>';
+  return '<section class="portada-seccion">' + tit + '<div class="unidades">' + us.map(a => tarjeta(UNIDADES[a], false)).join('') + '</div></section>';
 }
 
 async function cargar() {
   let s;
   try { s = await Datos.sesion(); }
   catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } $('#avisos').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; return; }
-  Marca.cabecera(document.getElementById('cab'), { sesion: s });
-  document.getElementById('hoy').textContent = Marca.fechaLarga();
-  document.getElementById('hola').textContent = 'Hola, ' + s.usuario;
   const ve = a => s.areas === '*' || (Array.isArray(s.areas) && s.areas.includes(a));
-  const html = GRUPOS.map(g => ({ g, us: g.unidades.filter(u => ve(u.area)) })).filter(x => x.us.length).map((x, i) =>
-    '<section style="display:flex;flex-direction:column;gap:20px">' + titulo(x.g, i) + '<div class="unidades' + (x.g.fila ? ' fila' : '') + '">' + x.us.map(u => tarjeta(u, x.g.fila)).join('') + '</div></section>').join('');
-  document.getElementById('grupos').innerHTML = html ||
+  const m = Marca.MARCAS.find(x => x.id === new URLSearchParams(location.search).get('marca'));
+  if (m) {
+    if (m.kids) document.documentElement.classList.add('tema-kids');
+    document.title = m.nombre + ' · Vida en Arte 360';
+    Marca.cabecera($('#cab'), { sesion: s, ruta: [{ texto: 'Inicio', url: '/' }, { texto: m.nombre }], logo: m.kids ? m.logo : null });
+    $('#hoy').textContent = ''; $('#hola').textContent = m.nombre; $('#pregunta').textContent = '¿Qué unidad abres?';
+    $('#adorno').classList.add('oculto');
+    $('#grupos').innerHTML = paginaMarca(m, ve) ||
+      '<div class="aviso info">Tu usuario no tiene unidades de ' + esc(m.nombre) + '. <a href="/">Volver al inicio</a></div>';
+    return;
+  }
+  Marca.cabecera($('#cab'), { sesion: s });
+  $('#hoy').textContent = Marca.fechaLarga();
+  $('#hola').textContent = 'Hola, ' + s.usuario;
+  $('#grupos').innerHTML = portada(ve) ||
     '<div class="aviso info">Tu usuario todavía no tiene secciones asignadas. Si necesitas entrar a alguna, pídeselo a Dirección.</div>';
-  document.getElementById('grupos').style.cssText = 'display:flex;flex-direction:column;gap:44px';
 }
-const $ = s => document.querySelector(s);
 cargar();
 </script>
 </body>

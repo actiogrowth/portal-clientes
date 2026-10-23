@@ -33,6 +33,11 @@ RewriteRule ^(login\.php|logout\.php|cambiar-clave\.php|acceso\.php|gate\.php|ro
 RewriteRule ^comun/[a-z0-9-]+\.(css|js|png|svg|webmanifest)$ - [L]
 RewriteRule ^comun(/|$) - [F,L]
 
+# 3d. biblioteca/ (23-oct): presentaciones privadas, las entrega gate.php a
+#     cualquiera con sesión. Ningún script se ejecuta ahí, aunque se llame
+#     api.php (la regla 3b lo correría). Va antes de 3b.
+RewriteRule ^biblioteca/.*\.(php|php[0-9]|phtml|phar)$ - [F,L]
+
 # 3b. Los puentes de datos: comprueban sesión y permisos por dentro (requerir_sesion)
 RewriteRule ^[a-z0-9-]+/(api|csv|config)\.php$ - [L]
 

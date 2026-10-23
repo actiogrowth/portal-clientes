@@ -1,8 +1,0 @@
-# proyecto-actio/archivos/ — renombrar a .htaccess DENTRO de esta carpeta.
-# Segunda cerradura (la primera es gate.php, que entrega estas presentaciones
-# solo con sesión y con el área proyecto-actio): aquí nunca se ejecuta un
-# script aunque alguien suba uno, y la carpeta no se lista.
-Options -Indexes -ExecCGI
-<FilesMatch "\.(php|php[0-9]|phtml|phar|pl|py|cgi|sh|shtml)$">
-  Require all denied
-</FilesMatch>

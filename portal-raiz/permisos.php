@@ -11,6 +11,10 @@
  *                        Administrador, y asignar ese rol
  *   pa.internos          Proyecto Actio: ver lo que es solo de Actio (los
  *                        proyectos que no son del cliente, p. ej. Proyecto 2)
+ *   procesos.ver:<…>     Procesos (23-oct): qué documentos recibe. '*' todos;
+ *                        '<unidad>' toda la unidad; '<unidad>:<proceso>' uno
+ *                        solo (ver procesos_permite). Hoy todos los roles
+ *                        tienen 'procesos.ver:*'.
  * '*' concede todo; 'excepto' lo recorta para ese rol.
  * 'inactividad_max' (segundos): la sesión se cierra tras ese tiempo sin uso
  * (con varios roles manda el más corto).
@@ -40,7 +44,7 @@ const ROLES = [
         'descripcion' => 'After School completo, Pasar lista (también otros días), seguimiento de asistencia y la Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:basededatos', 'area:pasarlista', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
                        'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
-                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento'],
+                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento', 'area:procesos', 'procesos.ver:*'],
     ],
     'recepcion' => [
         'inicio_as' => 'pruebas',
@@ -48,25 +52,25 @@ const ROLES = [
         'descripcion' => 'After School completo: inscribir, visitas del día, pagos, bajas, Por revisar y seguimiento. No pasa lista.',
         'permisos' => ['area:afterschool', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
                        'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
-                       'as.seguimiento'],
+                       'as.seguimiento', 'area:procesos', 'procesos.ver:*'],
     ],
     'comercial' => [
         'inicio_as' => 'pruebas',
         'nombre' => 'Comercial',
         'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool y Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
-                       'as.pruebas.agendar', 'as.contactos.prospectos'],
+                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*'],
     ],
     'contabilidad' => [
         'inicio_as' => 'pagos',
         'nombre' => 'Contabilidad',
         'descripcion' => 'After School: Pagos (ver y registrar), pago de las pruebas y Ocupación en lectura. Sin datos de contacto.',
-        'permisos' => ['area:afterschool', 'as.ver', 'as.pagos.ver', 'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago'],
+        'permisos' => ['area:afterschool', 'as.ver', 'as.pagos.ver', 'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'area:procesos', 'procesos.ver:*'],
     ],
     'coordinacion_preescolar' => [
         'nombre' => 'Coordinación Preschool',
         'descripcion' => 'Tablero de Preschool y Base de Datos VEA.',
-        'permisos' => ['area:kinder', 'area:basededatos'],
+        'permisos' => ['area:kinder', 'area:basededatos', 'area:procesos', 'procesos.ver:*'],
     ],
     'profesor' => [
         'inicio_as' => 'lista',
@@ -76,7 +80,8 @@ const ROLES = [
         // afterschool le abre la PÁGINA; sus datos siguen saliendo solo por
         // /pasar-lista/api.php (área pasarlista), que fija soloHoy y recorta.
         // En after-school/api.php no tiene ninguna acción (todas piden as.*).
-        'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar'],
+        // 23-oct: también Procesos, al que llega desde Inicio (no cambia su entrada directa).
+        'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*'],
         'inactividad_max' => 7200,
     ],
 ];
@@ -92,25 +97,62 @@ const CARPETAS_AREA = [
     'configuracion' => 'configuracion',
     'pasar-lista'   => 'pasarlista',
     'proyecto-actio' => 'proyecto-actio',   // 22-oct: solo Administrador y Dirección (nadie más la tiene)
+    'procesos'      => 'procesos',          // 23-oct: todos los roles
 ];
+
+/* 23-oct: carpetas que abre CUALQUIER usuario con sesión, sin área: la
+   biblioteca de presentaciones (la usan Procesos y Proyecto Actio). */
+const CARPETAS_LIBRES = ['biblioteca'];
 
 /* Áreas que la portada conoce (tarjetas). 22-oct: 'proyecto-actio' reemplaza a
    'actio' (la tarjeta Sistema Operativo, que llevaba a GitHub Pages). */
 /* 21-oct (rediseño): 'pasarlista' ya no es tarjeta (Pasar lista está dentro de After School). */
-const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion'];
+const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion', 'procesos'];
+
+/* 23-oct: la portada agrupa las unidades por marca; tocar un logo abre la
+   página de esa marca (la portada con ?marca=). Mismo orden que en comun/marca.js. */
+const MARCAS = [
+    'vea'  => ['afterschool', 'veranito', 'cumpleanos'],
+    'kids' => ['kinder', 'babyandme'],
+];
+/* Áreas que no cuentan para entrar directo: todos los roles tienen Procesos y
+   llegan a ella desde Inicio. */
+const AREAS_SIN_ENTRADA = ['procesos'];
 
 /* Dónde empieza cada área (para entrar directo tras el login si es la única). */
 const AREA_URL = [
     'kinder' => '/kinder/', 'veranito' => '/veranito/', 'afterschool' => '/after-school/',
     'basededatos' => '/basededatos/', 'configuracion' => '/configuracion/', 'proyecto-actio' => '/proyecto-actio/',
+    'procesos' => '/procesos/',
 ];
 
-/** Tras el login: si el usuario abre UNA sola sección del portal, va directo a ella; si no, a la portada. */
+/** Tras el login: si el usuario abre UNA sola sección, va directo a ella; si
+    todo lo que abre son unidades de una misma marca, a la página de esa marca;
+    si no, a la portada. Procesos no cuenta (AREAS_SIN_ENTRADA). */
 function destino_inicio(array $roles): string {
-    $v = areas_visibles($roles);
+    return destino_de_areas(areas_visibles($roles));
+}
+/** Lo mismo a partir de las áreas visibles ('*' o lista); aparte para poder probarlo con cualquier combinación. */
+function destino_de_areas($v): string {
     if ($v === '*') return '/';
-    $conUrl = array_values(array_filter($v, fn($a) => isset(AREA_URL[$a])));
-    return count($conUrl) === 1 && count($v) === 1 ? AREA_URL[$conUrl[0]] : '/';
+    $v = array_values(array_diff($v, AREAS_SIN_ENTRADA));
+    if (count($v) === 1 && isset(AREA_URL[$v[0]])) return AREA_URL[$v[0]];
+    foreach (MARCAS as $marca => $areas) if ($v && !array_diff($v, $areas)) return '/?marca=' . $marca;
+    return '/';
+}
+
+/** Texto de un permiso de Procesos: minúsculas, sin tildes, espacios como guiones («After School» → after-school). */
+function procesos_clave(string $s): string {
+    $s = mb_strtolower(trim($s));
+    $s = strtr($s, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
+    return trim(preg_replace('/[^a-z0-9]+/', '-', $s), '-');
+}
+
+/** ¿Recibe este rol un documento de Procesos de esa unidad y ese proceso? */
+function procesos_permite(array $roles, string $unidad, string $proceso): bool {
+    $u = procesos_clave($unidad); $p = procesos_clave($proceso);
+    return roles_permiten($roles, 'procesos.ver:*') || roles_permiten($roles, 'procesos.ver:' . $u)
+        || roles_permiten($roles, 'procesos.ver:' . $u . ':' . $p);
 }
 
 /** La pestaña de After School con la que abre la página: la del primer rol (en el orden de ROLES) que la defina. */
@@ -143,6 +185,7 @@ function area_de_ruta(string $ruta): ?string {
     $p = strpos($ruta, '/');
     if ($p === false) return null;               // archivo de la raíz
     $carpeta = substr($ruta, 0, $p);
+    if (in_array($carpeta, CARPETAS_LIBRES, true)) return null;   // basta la sesión
     return CARPETAS_AREA[$carpeta] ?? '*';       // carpeta sin asignar: solo area:*
 }
 

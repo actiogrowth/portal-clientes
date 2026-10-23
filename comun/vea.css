@@ -521,6 +521,59 @@ body.pa-visor-abierto { overflow: hidden; }
   .pa-fila-txt { min-width: 0; flex-basis: 100%; }
 }
 
+/* ── Portada por marca (23-oct) ────────────────────────────────────────── */
+.portada-pregunta { font-size: 17px; color: var(--texto-2); }
+.portada-grupos { display: flex; flex-direction: column; gap: 32px; }
+.portada-seccion { display: flex; flex-direction: column; gap: 20px; }
+.unidad-txt { display: flex; flex-direction: column; gap: 4px; }
+/* Dos tarjetas grandes, una por marca, con su logo y las unidades que trae. */
+.marcas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.marca-tarjeta { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; min-height: 220px; padding: 32px 24px;
+  border: 1px solid var(--gris); border-radius: var(--radio); background: var(--blanco); color: var(--texto); text-decoration: none; text-align: center; }
+a.marca-tarjeta:hover { border-color: var(--negro); color: var(--texto); }
+.marca-tarjeta img { height: 56px; width: auto; max-width: 100%; }
+.marca-tarjeta.kids img { height: 104px; }
+.marca-tarjeta .franja { display: flex; width: 70%; height: 6px; border-radius: 3px; overflow: hidden; }
+.marca-tarjeta .franja span { flex: 1; }
+.marca-raya { display: block; width: 70%; height: 4px; background: var(--negro); transform: rotate(-.6deg); }
+.marca-unidades { font-size: 14px; color: var(--texto-2); }
+/* Procesos: una tarjeta sola, en su propia fila. */
+.unidades.fila.uno { grid-template-columns: minmax(0, 1fr); }
+.unidades.fila.uno .unidad .nombre { white-space: normal; }
+/* Página de una marca: el logo como título. */
+.marca-tit { display: flex; align-items: center; gap: 16px; }
+.marca-tit .raya { flex: 1; height: 4px; background: var(--negro); transform: rotate(-.6deg); }
+
+/* ── Procesos (23-oct) ─────────────────────────────────────────────────── */
+.pr-contenido { display: flex; flex-direction: column; gap: 24px; }
+.pr-contenido:empty { display: none; }
+.pr-unidades { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.pr-unidad { display: flex; align-items: center; gap: 16px; min-height: 104px; padding: 18px 20px; border: 1px solid var(--gris); border-radius: var(--radio);
+  background: var(--blanco); color: var(--texto); text-decoration: none; }
+a.pr-unidad:hover { border-color: var(--negro); color: var(--texto); }
+.pa-insignia.pr-insignia { width: 52px; height: 52px; font-size: 16px; }
+.pr-unidad-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pr-unidad-nom { font-size: 28px; line-height: 1; }
+.tema-kids .pr-unidad-nom { font-size: 22px; }
+.pr-titulo-u { display: inline-flex; align-items: center; gap: 14px; }
+.pr-titulo-u .pa-insignia { width: 44px; height: 44px; font-size: 15px; font-family: var(--fuente); letter-spacing: 0; }
+.pr-volver { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; min-height: var(--toque); font-size: 14px; color: var(--texto-2); text-decoration: none; }
+.pr-volver:hover { color: var(--texto); }
+.pr-proceso { display: flex; flex-direction: column; gap: 10px; }
+.pr-proceso-cab { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.pr-proceso-cab h2 { font-size: 28px; }
+.pr-proceso-cab .pa-grupo-n { margin-left: auto; }
+.pr-resultado { display: flex; flex-direction: column; gap: 14px; }
+.pr-resultado-cab { display: flex; align-items: center; gap: 12px; margin: 0; font: inherit; }
+@media (max-width: 640px) {
+  .marca-tarjeta { min-height: 160px; padding: 24px 18px; }
+  .marca-tarjeta img { height: 44px; }
+  .marca-tarjeta.kids img { height: 84px; }
+  .pr-unidad { min-height: 0; padding: 14px 16px; }
+  .pr-unidad-nom { font-size: 24px; }
+  .pr-proceso-cab h2 { font-size: 24px; }
+}
+
 /* ── Configuración ─────────────────────────────────────────────────────── */
 .roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; margin: 6px 0 14px; }
 .rol-opcion { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--gris); border-radius: var(--radio-chico); padding: 10px 12px;

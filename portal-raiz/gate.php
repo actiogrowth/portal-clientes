@@ -35,6 +35,15 @@ if (in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match
     }
 }
 
+/* 23-oct: las presentaciones privadas se mudaron a /biblioteca/. Los enlaces
+   viejos del Sheet siguen funcionando: 301 a la misma presentación allá (que
+   pide sesión como cualquier página). Solo un nombre simple en minúsculas. */
+if (preg_match('#^proyecto-actio/archivos/([a-z0-9][a-z0-9-]*\.html)$#', $directa, $m)) {
+    header('Location: /biblioteca/' . $m[1], true, 301);
+    header('Cache-Control: no-store');
+    exit;
+}
+
 require __DIR__ . '/auth.php';
 requerir_sesion('');   // sesión (y contraseña temporal ya cambiada); el área se mira abajo
 

@@ -195,7 +195,8 @@ transporte con reintentos (`after-school/api.php` cargado con
 - `ocultoCliente` (23-oct): `true` en lo que Dirección NO recibe. Solo para
   Administrador (sello «Oculto al cliente»); a Dirección siempre `false`.
 - `enlace`: una dirección `https://…` o, para las presentaciones privadas del
-  portal, una ruta `/proyecto-actio/archivos/<nombre>.html`.
+  portal, una ruta `/biblioteca/<nombre>.html` (antes
+  `/proyecto-actio/archivos/<nombre>.html`, que redirige allá).
 
 ### Recorte (lo hace `api.php`, no el script ni la pantalla)
 
@@ -229,3 +230,71 @@ La respuesta completa del script (antes del recorte) se guarda
 el recorte se aplica en cada pedido. Si Google no responde y la copia tiene
 menos de un día, se entrega la copia con `copia.segundos` (la pantalla dice
 de cuándo son los datos).
+
+## Acciones de Procesos (`procesos/api.php`) — 23-oct
+
+La **biblioteca permanente** de Vida en Arte: los mismos documentos del
+catálogo («Documentos VEA» del Sheet «Datos — Vida en Arte»), ordenados por
+UNIDAD → PROCESO → DOCUMENTOS para que el equipo aprenda cómo funciona cada
+unidad. Cuando termine el contrato, Proyecto Actio se apaga y Procesos queda.
+**Solo lectura.**
+
+Puente propio, área `procesos` (todos los roles). Reutiliza el Apps Script de
+Proyecto Actio (acción `leer`), su transporte y **su misma copia** en
+`portal_cache/proyecto-actio.json`: cargar Procesos no vuelve a llamar a
+Google si Proyecto Actio ya leyó hace menos de `pa_cache_seg`.
+
+Configuración en `portal_config.php` (además de `pa_exec`, `pa_clave` y
+`pa_proyectos_cliente`, que comparte con Proyecto Actio):
+
+```
+'procesos_segmentos' => [            // proceso => segmentos del Sheet que cuentan como ese proceso,
+    'Atracción'           => ['Marketing'],     // en el orden en que se muestran
+    'Adquisición'         => ['Ventas'],
+    'Entrega de servicio' => ['Servicio'],
+],
+'procesos_general' => ['Gerencia'],  // unidades cuyos documentos van en «General», al final
+```
+
+| Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
+|---|---|---|---|---|---|---|
+| `leer` | L | area:procesos (+ `procesos.ver:…` por fila) | todos | — | ver abajo | `sin_configuracion` (falta `pa_exec`, `pa_clave`, `pa_proyectos_cliente`, `procesos_segmentos` o `procesos_general`) |
+
+### `leer` → `resultado`
+
+```
+{ generado: "2026-10-23T15:04:05Z",
+  procesos: [{ nombre: "Atracción", segmentos: ["Marketing"] }, …],   // los de la configuración, en su orden
+  documentos: [{ nombre, unidad, proceso, fecha, enlace }]
+}
+// y, si salió de la copia del servidor: copia: { segundos }
+```
+
+- **Solo documentos.** Nunca entregables con su estado, reuniones,
+  acompañamiento, proyecto, `idEntregable`, tipo ni sellos internos.
+- **Solo lo visible para el cliente**, con la misma regla que Dirección en
+  Proyecto Actio (la misma función, `pa_recortar` sin `pa.internos`, para
+  TODOS los roles, también Administrador): «Sí» → sale aunque sea de
+  Proyecto 2; «No» → nunca; vacío → solo los proyectos de
+  `pa_proyectos_cliente`; un documento vacío hereda la de su entregable.
+- **Solo los tres procesos.** `proceso` sale de la columna Segmento con
+  `procesos_segmentos` (sin mayúsculas ni tildes); un documento de otro
+  segmento (Finanzas, vacío…) no sale.
+- `unidad`: la del Sheet, o `General` si está en `procesos_general`.
+- **Permiso por fila** (preparado; hoy todos los roles tienen
+  `procesos.ver:*`): una fila sale si el rol tiene `procesos.ver:*`,
+  `procesos.ver:<unidad>` o `procesos.ver:<unidad>:<proceso>` (en minúsculas,
+  sin tildes, espacios como guiones: `procesos.ver:after-school:atraccion`,
+  `procesos.ver:general`).
+- `enlace`: `https://…` o una presentación privada `/biblioteca/<nombre>.html`
+  (las rutas viejas `/proyecto-actio/archivos/<nombre>.html` el visor las
+  muestra desde `/biblioteca/`).
+
+## Biblioteca de presentaciones (`/biblioteca/`) — 23-oct
+
+Las presentaciones `.html` privadas pasan de `/proyecto-actio/archivos/` a
+`/biblioteca/`: las abre **cualquier usuario con sesión** (sin área), servidas
+por `gate.php`; sin listado, sin ejecutar scripts (regla propia en el
+`.htaccess` de la raíz y `biblioteca/.htaccess`), nombre simple en minúsculas.
+`/proyecto-actio/archivos/<nombre>.html` responde **301 → `/biblioteca/<nombre>.html`**
+(lo hace `gate.php`), para no romper los enlaces del Sheet.

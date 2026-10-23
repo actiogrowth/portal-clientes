@@ -19,7 +19,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=dc4eac83ac">
+<link rel="stylesheet" href="/comun/vea.css?v=ba51953b2d">
 </head>
 <body>
 <header id="cab"></header>
@@ -56,24 +56,10 @@
   </section>
 </main>
 
-<!-- VISOR: el documento se ve en la misma página. -->
-<div class="pa-visor oculto" id="visor" role="dialog" aria-modal="true" aria-labelledby="visorTit">
-  <div class="pa-visor-cab">
-    <div class="pa-visor-tit"><b id="visorTit"></b><span id="visorSub"></span></div>
-    <div class="pa-visor-acciones">
-      <a class="btn sec chico" id="visorDescargar" target="_blank" rel="noopener">Descargar</a>
-      <button class="btn sec chico" id="visorCompleta" type="button">Pantalla completa</button>
-      <button class="btn-circulo" id="visorCerrar" type="button" aria-label="Cerrar el documento">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-  </div>
-  <div class="pestanas pa-versiones" id="visorVersiones" role="tablist" aria-label="Versiones"></div>
-  <div class="pa-visor-cuerpo" id="visorCuerpo"></div>
-</div>
-
-<script src="/comun/datos.js?v=0032db3bee"></script>
-<script src="/comun/marca.js?v=fb40b4e318"></script>
-<script src="/comun/visor.js?v=a241db0d73"></script>
+<script src="/comun/datos.js?v=b4c990ccbe"></script>
+<script src="/comun/marca.js?v=7cf2ee06cd"></script>
+<script src="/comun/visor.js?v=3de76954cc"></script>
+<script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -87,22 +73,8 @@ const mesLargo = k => MESES_LARGOS[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
 const decimal = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');   // siempre un decimal: 1,0 · 12,5
 const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
 
-/* Cada unidad con su color (texto negro sobre los claros: contraste ≥ 4.5).
-   La unidad se muestra como se llama hoy (D-046); el dato no cambia. */
-const UNIDADES = {
-  kinder:        { nombre: 'Preschool',    ini: 'PS', fondo: '#7E53A2', texto: '#FFFFFF' },
-  preschool:     { nombre: 'Preschool',    ini: 'PS', fondo: '#7E53A2', texto: '#FFFFFF' },
-  veranito:      { nombre: 'Veranito',     ini: 'VE', fondo: '#FFA615', texto: '#111111' },
-  'after school': { nombre: 'After School', ini: 'AS', fondo: '#D71C0E', texto: '#FFFFFF' },
-  gerencia:      { nombre: 'Gerencia',     ini: 'GE', fondo: '#111111', texto: '#FFFFFF' },
-  cumpleanos:    { nombre: 'Cumpleaños',   ini: 'CU', fondo: '#1974A8', texto: '#FFFFFF' },
-  'baby & me':   { nombre: 'Baby & Me',    ini: 'BM', fondo: '#68A8C9', texto: '#111111' },
-  'baby and me': { nombre: 'Baby & Me',    ini: 'BM', fondo: '#68A8C9', texto: '#111111' }
-};
-function unidad(u) {
-  const n = String(u || '').trim();
-  return UNIDADES[norm(n)] || { nombre: n || 'Sin unidad', ini: (n || '?').slice(0, 2).toUpperCase(), fondo: '#6B6B6B', texto: '#FFFFFF' };
-}
+/* Cada unidad con su color e iniciales: comun/marca.js (la comparte con Procesos). */
+const unidad = Marca.unidadDoc;
 
 /* Estado del entregable en tres palabras. */
 function estadoDe(e) {
@@ -361,46 +333,8 @@ function mostrarVista(v) {
 }
 document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.onclick = () => mostrarVista(b.dataset.vista));
 
-/* ── Visor ───────────────────────────────────────────────────────────────── */
-let versionesVisor = [], volverFoco = null;
-/* Abre el visor en la versión pedida (1 clic desde la fila); las demás quedan
-   como pestañas. Un enlace que no se puede incrustar se abre en pestaña nueva. */
-function abrirVisor(titulo, sub, versiones, pedida) {
-  versionesVisor = versiones.filter(v => Visor.vista(v.enlace).modo !== 'nada');
-  if (!versionesVisor.length) return;
-  const i = Math.max(0, versionesVisor.findIndex(v => v.version === pedida));
-  if (Visor.vista(versionesVisor[i].enlace).modo === 'nueva') { window.open(versionesVisor[i].enlace, '_blank', 'noopener'); return; }
-  volverFoco = document.activeElement;
-  $('#visorTit').textContent = titulo; $('#visorSub').textContent = sub || '';
-  $('#visorVersiones').innerHTML = versionesVisor.length > 1 ? versionesVisor.map((v, k) =>
-    '<button role="tab" type="button" data-v="' + k + '">' + esc(v.version) + '</button>').join('') : '';
-  $('#visorVersiones').querySelectorAll('[data-v]').forEach(b => b.onclick = () => verVersion(+b.dataset.v));
-  $('#visor').classList.remove('oculto'); document.body.classList.add('pa-visor-abierto');
-  verVersion(i);
-  $('#visorCerrar').focus();
-}
-function verVersion(i) {
-  const v = versionesVisor[i], x = Visor.vista(v.enlace), des = Visor.descarga(v.enlace);
-  $('#visorVersiones').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-selected', +b.dataset.v === i ? 'true' : 'false'));
-  $('#visorDescargar').classList.toggle('oculto', !des);
-  if (des) $('#visorDescargar').href = des;
-  $('#visorCompleta').classList.toggle('oculto', x.modo !== 'incrustar' || !document.fullscreenEnabled);
-  $('#visorCuerpo').innerHTML = x.modo === 'incrustar'
-    ? '<iframe src="' + esc(x.url) + '" title="' + esc(v.version + ': ' + (v.nombre || '')) + '" allow="fullscreen; autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"' +
-      // Presentación del portal: sus scripts corren, pero aislada en un origen propio: no ve la sesión ni esta página.
-      (x.aislado ? ' sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"' : '') + '></iframe>'
-    : '<div class="pantalla"><h2>' + esc(v.version) + '</h2><p>Este enlace no se puede mostrar aquí: se abre en una pestaña nueva.</p>' +
-      '<a class="btn negro" href="' + esc(x.url) + '" target="_blank" rel="noopener">Abrir en una pestaña nueva</a></div>';
-}
-function cerrarVisor() {
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  $('#visor').classList.add('oculto'); document.body.classList.remove('pa-visor-abierto');
-  $('#visorCuerpo').innerHTML = '';
-  if (volverFoco) volverFoco.focus();
-}
-$('#visorCerrar').onclick = cerrarVisor;
-$('#visorCompleta').onclick = () => { const f = $('#visorCuerpo'); if (f.requestFullscreen) f.requestFullscreen().catch(() => {}); };
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('#visor').classList.contains('oculto') && !document.fullscreenElement) cerrarVisor(); });
+/* ── Visor: comun/visor-pantalla.js (el mismo de Procesos) ───────────────── */
+const abrirVisor = VisorPantalla.abrir;
 
 /* ── Arranque ────────────────────────────────────────────────────────────── */
 (async function iniciar() {

@@ -36,13 +36,8 @@
  *     'pa_cache_seg'         => 300,              // opcional
  */
 define('AS_SOLO_FUNCIONES', true);
-require dirname(__DIR__) . '/after-school/api.php';
-require dirname(__DIR__) . '/auth.php';
-requerir_sesion();
-
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: private, no-store');
-header('X-Content-Type-Options: nosniff');
+require_once dirname(__DIR__) . '/after-school/api.php';
+require_once dirname(__DIR__) . '/auth.php';
 
 /* Lo único que sale de cada tabla, en este orden. */
 const PA_CAMPOS = [
@@ -54,30 +49,59 @@ const PA_CAMPOS = [
 const PA_CACHE_SEG = 300;          // si portal_config.php no dice otra cosa
 const PA_COPIA_MAX_SEG = 86400;    // una copia más vieja que esto no se usa ni aunque Google falle
 
+/* 23-oct: procesos/api.php carga este archivo con PA_SOLO_FUNCIONES para usar
+   la misma lectura, la misma copia y el mismo recorte (pa_*). */
 if (!defined('PA_SOLO_FUNCIONES')) {
+    requerir_sesion();
+    pa_cabeceras();
+    $cfg = pa_config([]);
+    pa_exigir_leer();
+    $internos = roles_permiten(roles_actuales(), 'pa.internos');
+    $l = pa_leer_catalogo($cfg);
+    echo pa_recortar($l['cuerpo'], $internos, $cfg['pa_proyectos_cliente'], $l['edad']);
+    exit;
+}
+
+function pa_cabeceras(): void {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+}
+
+/** portal_config.php con lo de Proyecto Actio y, además, las claves $extra; si falta algo, corta nombrándolo. */
+function pa_config(array $extra): array {
     $rutaConfig = dirname(__DIR__, 2) . '/portal_config.php';
     if (!is_file($rutaConfig)) fallo('falta portal_config.php en el servidor');
     $cfg = require $rutaConfig;
     $cliente = is_array($cfg) ? ($cfg['pa_proyectos_cliente'] ?? null) : null;
     if (!is_array($cfg) || empty($cfg['pa_exec']) || empty($cfg['pa_clave']) || !is_array($cliente) || !$cliente)
         fallo('portal_config.php no tiene pa_exec, pa_clave y pa_proyectos_cliente para Proyecto Actio', 500, 'sin_configuracion');
+    $faltan = array_values(array_filter($extra, fn($k) => !isset($cfg[$k]) || !is_array($cfg[$k]) || !$cfg[$k]));
+    if ($faltan) fallo('portal_config.php no tiene ' . implode(', ', $faltan), 500, 'sin_configuracion');
+    return $cfg;
+}
 
+/** Solo POST {accion: 'leer'}. */
+function pa_exigir_leer(): void {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') fallo('solo POST', 405);
     $datos = json_decode(file_get_contents('php://input'), true);
-    if (!is_array($datos) || ($datos['accion'] ?? '') !== 'leer') fallo('Proyecto Actio solo se lee.', 403, 'sin_permiso');
+    if (!is_array($datos) || ($datos['accion'] ?? '') !== 'leer') fallo('Solo se puede leer.', 403, 'sin_permiso');
+}
 
-    $usuario = usuario_actual();
-    $internos = roles_permiten(roles_actuales(), 'pa.internos');
+/**
+ * La respuesta completa del script ({cuerpo, edad}): de la copia si tiene
+ * menos de pa_cache_seg; si no, de Google; si Google falla, la copia de menos
+ * de un día. Si no hay nada que dar, responde el error y corta.
+ */
+function pa_leer_catalogo(array $cfg): array {
     $archivo = dirname(__DIR__, 2) . '/portal_cache/proyecto-actio.json';
     $ttl = isset($cfg['pa_cache_seg']) ? max(0, (int) $cfg['pa_cache_seg']) : PA_CACHE_SEG;
-
     $copia = pa_leer_copia($archivo);
     $edad = $copia ? time() - $copia['t'] : null;
     if ($copia && $edad < $ttl) {
-        echo pa_recortar($copia['cuerpo'], $internos, $cliente, $edad);
-        exit;
+        return ['cuerpo' => $copia['cuerpo'], 'edad' => $edad];
     }
-    $envio = envio_para($cfg['pa_clave'], $usuario, ['accion' => 'leer', 'datos' => []]);
+    $envio = envio_para($cfg['pa_clave'], usuario_actual(), ['accion' => 'leer', 'datos' => []]);
     $res = llamar_apps_script('leer', $cfg['pa_exec'], $envio['json'], 'pedir',
         function ($s) { usleep((int) ($s * 1000000)); },
         function ($linea) { error_log('proyecto-actio: ' . $linea); },
@@ -85,16 +109,15 @@ if (!defined('PA_SOLO_FUNCIONES')) {
     $j = $res['http'] === 200 ? json_decode($res['cuerpo'], true) : null;
     if (is_array($j) && ($j['ok'] ?? false) === true) {
         pa_guardar_copia($archivo, $res['cuerpo']);
-        echo pa_recortar($res['cuerpo'], $internos, $cliente, null);
-        exit;
+        return ['cuerpo' => $res['cuerpo'], 'edad' => null];
     }
     if ($copia && $edad < PA_COPIA_MAX_SEG) {        // Google no respondió: la copia, diciendo de cuándo es
         error_log('proyecto-actio: el Sheet no respondió; se entrega la copia de hace ' . $edad . ' s');
-        echo pa_recortar($copia['cuerpo'], $internos, $cliente, $edad);
-        exit;
+        return ['cuerpo' => $copia['cuerpo'], 'edad' => $edad];
     }
     http_response_code($res['http'] === 200 ? 502 : $res['http']);
     echo is_array($j) ? json_encode(['ok' => false, 'error' => (string) ($j['error'] ?? 'El Sheet respondió con un error.'), 'codigo' => (string) ($j['codigo'] ?? '')], JSON_UNESCAPED_UNICODE) : $res['cuerpo'];
+    exit;
 }
 
 /* ─── Copia en el servidor ─────────────────────────────────────────────── */

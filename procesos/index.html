@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Procesos · Vida en Arte 360</title>
+<!-- Procesos (23-oct): la biblioteca permanente de Vida en Arte. UNIDAD →
+  PROCESO → DOCUMENTOS. Solo lectura. Lee SOLO a través de la capa de datos
+  (/comun/datos.js → procesos/api.php), que ya manda únicamente lo visible
+  para el cliente, de los tres procesos y con los campos de esta pantalla.
+    /procesos/               las unidades (con su color e iniciales)
+    /procesos/#u=<unidad>    los procesos de una unidad y sus documentos
+  El buscador busca en todas las unidades. -->
+<!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
+<link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
+<link rel="apple-touch-icon" href="/comun/app-icono-180.png?v=56fff6a358">
+<meta name="apple-mobile-web-app-title" content="VEA 360">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/comun/vea.css?v=ba51953b2d">
+</head>
+<body>
+<header id="cab"></header>
+<main class="pagina pa">
+  <section class="encabezado encabezado-as">
+    <div>
+      <h1 class="titulo" id="titulo">Procesos</h1>
+      <p class="ayuda" id="sub">Cómo funciona cada unidad de Vida en Arte.</p>
+    </div>
+    <label class="pa-buscar" id="buscarCaja">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555555" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="search" id="buscar" placeholder="Buscar en todas las unidades" aria-label="Buscar en todas las unidades" autocomplete="off">
+    </label>
+  </section>
+
+  <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo la biblioteca de Vida en Arte.</p></div>
+  <div id="contenido" class="pr-contenido" aria-live="polite"></div>
+</main>
+
+<script src="/comun/datos.js?v=b4c990ccbe"></script>
+<script src="/comun/marca.js?v=7cf2ee06cd"></script>
+<script src="/comun/visor.js?v=3de76954cc"></script>
+<script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = Marca.esc, norm = Marca.normal, unidad = Marca.unidadDoc;
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const fecha = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? +iso.slice(8, 10) + ' ' + MESES[+iso.slice(5, 7) - 1] + ' ' + iso.slice(0, 4) : '';
+const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
+/* Orden de las unidades; las que no están aquí van después, por nombre, y General siempre al final. */
+const ORDEN = ['Preschool', 'After School', 'Veranito', 'Cumpleaños', 'Baby & Me'];
+const clave = nombre => norm(nombre).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const ICONO = {
+  Abrir: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  Descargar: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  Volver: '<path d="M15 18l-6-6 6-6"/>'
+};
+const icono = k => '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONO[k] + '</svg>';
+
+let D = null, copia = null, sesion = null, busqueda = '';
+
+function pantalla(html) { $('#pantalla').innerHTML = html; $('#pantalla').classList.remove('oculto'); $('#contenido').innerHTML = ''; }
+
+/* La versión bajo el nombre: Video si el nombre o el enlace lo dicen; si no, la del visor. */
+function versionDoc(d) {
+  if (/\(\s*video[^()]*\)\s*$/i.test(d.nombre || '') || /^https?:\/\/([^/]+\.)?(loom\.com|youtube\.com|youtu\.be|vimeo\.com)\//i.test(d.enlace || '')) return 'Video';
+  return Visor.vista(d.enlace).modo !== 'nada' ? Visor.version(d.nombre, d.enlace) : '';
+}
+
+/* Las unidades con al menos un documento, en orden; General al final. */
+function unidades() {
+  const nombres = [...new Set(D.documentos.map(d => unidad(d.unidad).nombre))];
+  const pos = n => n === 'General' ? 1e6 : (ORDEN.includes(n) ? ORDEN.indexOf(n) : 1000);
+  return nombres.sort((a, b) => pos(a) - pos(b) || a.localeCompare(b, 'es'));
+}
+const docsDe = nom => D.documentos.filter(d => unidad(d.unidad).nombre === nom);
+const insignia = u => '<span class="pa-insignia" style="background:' + u.fondo + ';color:' + u.texto + '" aria-hidden="true">' + esc(u.ini) + '</span>';
+
+function fila(d) {
+  const i = D.documentos.indexOf(d), puede = Visor.vista(d.enlace).modo !== 'nada', des = Visor.descarga(d.enlace);
+  const sub = [versionDoc(d), fecha(d.fecha)].filter(Boolean).join(' · ');
+  return '<div class="pa-fila-e"><div class="pa-fila-e-txt"><span class="pa-fila-e-nom">' + esc(Visor.nombreBase(d.nombre)) + '</span>' +
+    (sub ? '<span class="ayuda">' + esc(sub) + '</span>' : '') + '</div><div class="pa-versiones-fila">' +
+    (puede ? '<button type="button" class="pa-boton" data-doc="' + i + '">' + icono('Abrir') + 'Abrir</button>' : '<span class="pa-por-cargar">Sin enlace</span>') +
+    (des ? '<a class="pa-boton" href="' + esc(des) + '" target="_blank" rel="noopener">' + icono('Descargar') + 'Descargar</a>' : '') +
+    '</div></div>';
+}
+const porNombre = (a, b) => Visor.nombreBase(a.nombre).localeCompare(Visor.nombreBase(b.nombre), 'es');
+
+/* Un proceso con sus documentos; sin documentos no se muestra. */
+function bloqueProceso(p, docs) {
+  const ds = docs.filter(d => d.proceso === p.nombre).sort(porNombre);
+  if (!ds.length) return '';
+  return '<section class="pr-proceso"><div class="pr-proceso-cab"><h2 class="titulo">' + esc(p.nombre) + '</h2>' +
+    (p.segmentos && p.segmentos.length ? '<span class="ayuda">' + esc(p.segmentos.join(' · ')) + '</span>' : '') +
+    '<span class="pa-grupo-n">' + plural(ds.length, 'documento', 'documentos') + '</span></div>' +
+    '<div class="pa-filas">' + ds.map(fila).join('') + '</div></section>';
+}
+
+/* ── Vistas ──────────────────────────────────────────────────────────────── */
+function pintarUnidades() {
+  const us = unidades();
+  cabecera(null);
+  $('#titulo').textContent = 'Procesos';
+  $('#sub').textContent = 'Cómo funciona cada unidad de Vida en Arte.' +
+    (copia && copia.segundos > 60 ? ' Datos de hace ' + Math.round(copia.segundos / 60) + ' min.' : '');
+  if (!us.length) { $('#contenido').innerHTML = '<div class="tarjeta"><p class="ayuda">Todavía no hay documentos en Procesos.</p></div>'; return; }
+  $('#contenido').innerHTML = '<div class="pr-unidades">' + us.map(nom => {
+    const ds = docsDe(nom), u = unidad(ds[0].unidad);
+    const procesos = D.procesos.filter(p => ds.some(d => d.proceso === p.nombre)).map(p => p.nombre);
+    return '<a class="pr-unidad" href="#u=' + esc(clave(nom)) + '">' + insignia(u).replace('pa-insignia', 'pa-insignia pr-insignia') +
+      '<span class="pr-unidad-txt"><span class="titulo pr-unidad-nom">' + esc(nom) + '</span>' +
+      '<span class="ayuda">' + esc(procesos.join(' · ')) + '</span>' +
+      '<span class="pa-grupo-n">' + plural(ds.length, 'documento', 'documentos') + '</span></span></a>';
+  }).join('') + '</div>';
+}
+
+function pintarUnidad(nom) {
+  const ds = docsDe(nom);
+  if (!ds.length) { location.hash = ''; return; }
+  const u = unidad(ds[0].unidad);
+  cabecera(nom);
+  $('#titulo').innerHTML = '<span class="pr-titulo-u">' + insignia(u) + esc(nom) + '</span>';
+  $('#sub').textContent = plural(ds.length, 'documento', 'documentos');
+  $('#contenido').innerHTML = '<a class="pr-volver" href="#">' + icono('Volver') + 'Todas las unidades</a>' +
+    D.procesos.map(p => bloqueProceso(p, ds)).join('');
+}
+
+function pintarBusqueda(q) {
+  cabecera(null);
+  $('#titulo').textContent = 'Procesos';
+  const vistos = D.documentos.filter(d => norm(d.nombre + ' ' + d.proceso + ' ' + unidad(d.unidad).nombre).includes(q));
+  $('#sub').textContent = vistos.length ? plural(vistos.length, 'documento coincide', 'documentos coinciden') + ' con «' + busqueda.trim() + '»' : '';
+  if (!vistos.length) { $('#contenido').innerHTML = '<div class="tarjeta"><p class="ayuda">Ningún documento coincide con «' + esc(busqueda.trim()) + '».</p></div>'; return; }
+  $('#contenido').innerHTML = unidades().filter(nom => vistos.some(d => unidad(d.unidad).nombre === nom)).map(nom => {
+    const ds = vistos.filter(d => unidad(d.unidad).nombre === nom);
+    return '<section class="pr-resultado"><h2 class="pr-resultado-cab">' + insignia(unidad(ds[0].unidad)) + '<span class="titulo pa-grupo-nom">' + esc(nom) + '</span></h2>' +
+      D.procesos.map(p => bloqueProceso(p, ds)).join('') + '</section>';
+  }).join('');
+}
+
+function pintar() {
+  if (!D) return;
+  const q = norm(busqueda);
+  if (q) { pintarBusqueda(q); return; }
+  const k = (location.hash.match(/^#u=([a-z0-9-]+)$/) || [])[1];
+  const nom = k && unidades().find(n => clave(n) === k);
+  if (nom) pintarUnidad(nom); else pintarUnidades();
+}
+
+function cabecera(nom) {
+  Marca.cabecera($('#cab'), { sesion, ruta: [{ texto: 'Inicio', url: '/' }].concat(nom ? [{ texto: 'Procesos', url: '/procesos/' }, { texto: nom }] : [{ texto: 'Procesos' }]) });
+}
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-doc]');
+  if (!b) return;
+  const d = D.documentos[+b.dataset.doc];
+  VisorPantalla.abrir(Visor.nombreBase(d.nombre), [unidad(d.unidad).nombre, d.proceso].filter(Boolean).join(' · '),
+    [{ version: Visor.version(d.nombre, d.enlace), nombre: d.nombre, enlace: d.enlace }]);
+});
+$('#buscar').addEventListener('input', () => { busqueda = $('#buscar').value; pintar(); });
+window.addEventListener('hashchange', () => { busqueda = ''; $('#buscar').value = ''; pintar(); window.scrollTo(0, 0); });
+
+async function cargar() {
+  try {
+    const j = await Datos.procesos.leer();
+    D = j.resultado; copia = j.copia || null;
+  } catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    pantalla('<h2>No se pudo leer Procesos</h2><p>La página no muestra nada hasta poder leer los datos, para no dar a entender que no hay documentos.</p><pre>' +
+      esc(e.message) + '</pre><button class="btn" id="reintentar" type="button">Reintentar</button>');
+    $('#reintentar').onclick = () => { pantalla('<h2>Cargando…</h2>'); cargar(); };
+    return;
+  }
+  $('#pantalla').classList.add('oculto');
+  pintar();
+}
+
+(async function iniciar() {
+  try { sesion = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
+  cabecera(null);
+  cargar();
+})();
+</script>
+</body>
+</html>

@@ -19,13 +19,18 @@ igual(V.vista('https://ejemplo.test/tablero/'), { modo: 'nueva', url: 'https://e
 igual(V.vista(''), { modo: 'nada', url: '' }, 'sin enlace → nada');
 igual(V.vista('javascript:alert(1)'), { modo: 'nada', url: '' }, 'un enlace que no es http(s) nunca se abre');
 
-console.log('· presentaciones privadas del portal (/proyecto-actio/archivos/)');
-igual(V.vista('/proyecto-actio/archivos/palanca-1-anuncios.html'), { modo: 'incrustar', url: '/proyecto-actio/archivos/palanca-1-anuncios.html', aislado: true }, 'se incrustan aisladas (sandbox)');
+console.log('· presentaciones privadas del portal (/biblioteca/; antes /proyecto-actio/archivos/)');
+igual(V.vista('/biblioteca/palanca-1-anuncios.html'), { modo: 'incrustar', url: '/biblioteca/palanca-1-anuncios.html', aislado: true }, 'se incrustan aisladas (sandbox)');
+igual(V.vista('/proyecto-actio/archivos/palanca-1-anuncios.html'), { modo: 'incrustar', url: '/biblioteca/palanca-1-anuncios.html', aislado: true }, 'la ruta vieja del Sheet se muestra desde /biblioteca/');
+igual(V.vista('/biblioteca/Palanca 1.html'), { modo: 'nada', url: '' }, 'en /biblioteca/ tampoco: nombre con espacios o mayúsculas');
+igual(V.vista('/biblioteca/../api.php'), { modo: 'nada', url: '' }, 'en /biblioteca/ tampoco: una ruta con ..');
+igual(V.vista('/biblioteca/sub/x.html'), { modo: 'nada', url: '' }, 'sin subcarpetas');
 igual(V.vista('/proyecto-actio/archivos/Palanca 1.html'), { modo: 'nada', url: '' }, 'un nombre con espacios o mayúsculas no se abre');
 igual(V.vista('/proyecto-actio/archivos/../api.php'), { modo: 'nada', url: '' }, 'una ruta con .. no se abre');
 igual(V.vista('/proyecto-actio/archivos/x.php'), { modo: 'nada', url: '' }, 'solo .html');
 igual(V.vista('/after-school/'), { modo: 'nada', url: '' }, 'otra ruta del portal no se incrusta');
 ok(V.version('Plan', '/proyecto-actio/archivos/plan-de-prueba.html') === 'Presentación', 'cuentan como Presentación');
+ok(V.version('Plan', '/biblioteca/plan-de-prueba.html') === 'Presentación', 'también las de /biblioteca/');
 ok(V.descarga('/proyecto-actio/archivos/plan-de-prueba.html') === '', 'sin botón de descarga');
 ok(V.vista('https://drive.google.com/file/d/A/view').aislado === undefined, 'lo de Google no se marca aislado (su propio dominio ya lo aísla)');
 

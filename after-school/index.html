@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=dc4eac83ac">
+<link rel="stylesheet" href="/comun/vea.css?v=ba51953b2d">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
@@ -332,8 +332,8 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="/comun/datos.js?v=0032db3bee"></script>
-<script src="/comun/marca.js?v=fb40b4e318"></script>
+<script src="/comun/datos.js?v=b4c990ccbe"></script>
+<script src="/comun/marca.js?v=7cf2ee06cd"></script>
 <script>
 'use strict';
 /* ==========================================================================
@@ -1857,7 +1857,7 @@ async function iniciar() {
   fijarPermisos(ses.permisosAS || []);
   const pedida = (location.hash || '').slice(1);
   const soloLista = !puede('as.ver') && puede('as.lista.marcar');
-  Marca.cabecera($('#cab'), soloLista ? { sesion: ses, prefijo: 'Pasando lista:' } : { sesion: ses, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'After School' }] });
+  Marca.cabecera($('#cab'), soloLista ? { sesion: ses, prefijo: 'Pasando lista:' } : { sesion: ses, ruta: Marca.rutaUnidad('afterschool', 'After School') });
   vista = vistaPermitida(pedida) && pedida ? pedida : (ses.inicioAS || 'ocupacion');
   if (soloLista) vista = 'lista';
   // Llegó con una clase pedida (Seguimiento → Pasar lista, o la dirección vieja /pasar-lista/).

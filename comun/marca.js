@@ -42,6 +42,45 @@
     clearTimeout(t); t = setTimeout(() => el.classList.remove('ver'), 3200);
   }
 
+  /* 23-oct: las dos marcas y qué áreas (unidades) tiene cada una. Tocar el
+     logo en la portada abre la página de la marca (la portada con ?marca=).
+     El mismo reparto está en MARCAS de permisos.php (entrada directa); la
+     prueba del portal compara los dos. */
+  const MARCAS = [
+    { id: 'vea', nombre: 'Vida en Arte', url: '/?marca=vea', logo: { src: '/comun/logo-vea.png?v=03a73eb9c2', alt: 'Vida en Arte' },
+      areas: ['afterschool', 'veranito', 'cumpleanos'] },
+    { id: 'kids', nombre: 'Vida en Arte Kids', url: '/?marca=kids', logo: { src: '/comun/logo-kids.png?v=84821d6ddf', alt: 'Vida en Arte Kids' },
+      areas: ['kinder', 'babyandme'], kids: true }
+  ];
+  const marcaDe = area => MARCAS.find(m => m.areas.includes(area)) || null;
+
+  /** Miga de pan de una página de unidad: «Inicio / <Marca> / <Unidad>». */
+  function rutaUnidad(area, nombre) {
+    const m = marcaDe(area);
+    return [{ texto: 'Inicio', url: '/' }].concat(m ? [{ texto: m.nombre, url: m.url }] : [], [{ texto: nombre }]);
+  }
+
+  /* Cada unidad del catálogo (columna «Unidad de negocio» del Sheet) con su
+     color e iniciales; texto negro sobre los claros (contraste ≥ 4.5). Se
+     muestra como se llama hoy (D-046); el dato no cambia. La usan Proyecto
+     Actio y Procesos. */
+  const UNIDADES_DOC = {
+    kinder:         { nombre: 'Preschool',    ini: 'PS', fondo: '#7E53A2', texto: '#FFFFFF' },
+    preschool:      { nombre: 'Preschool',    ini: 'PS', fondo: '#7E53A2', texto: '#FFFFFF' },
+    veranito:       { nombre: 'Veranito',     ini: 'VE', fondo: '#FFA615', texto: '#111111' },
+    'after school': { nombre: 'After School', ini: 'AS', fondo: '#D71C0E', texto: '#FFFFFF' },
+    gerencia:       { nombre: 'Gerencia',     ini: 'GE', fondo: '#111111', texto: '#FFFFFF' },
+    general:        { nombre: 'General',      ini: 'GE', fondo: '#111111', texto: '#FFFFFF' },
+    cumpleanos:     { nombre: 'Cumpleaños',   ini: 'CU', fondo: '#1974A8', texto: '#FFFFFF' },
+    'baby & me':    { nombre: 'Baby & Me',    ini: 'BM', fondo: '#68A8C9', texto: '#111111' },
+    'baby and me':  { nombre: 'Baby & Me',    ini: 'BM', fondo: '#68A8C9', texto: '#111111' }
+  };
+  const normal = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  function unidadDoc(u) {
+    const n = String(u || '').trim();
+    return UNIDADES_DOC[normal(n)] || { nombre: n || 'Sin unidad', ini: (n || '?').slice(0, 2).toUpperCase(), fondo: '#6B6B6B', texto: '#FFFFFF' };
+  }
+
   /** «Martes 21 de octubre» */
   function fechaLarga(iso) {
     const d = iso ? new Date(iso + 'T12:00:00') : new Date();
@@ -49,5 +88,5 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  window.Marca = { esc, cabecera, toast, fechaLarga };
+  window.Marca = { esc, cabecera, toast, fechaLarga, MARCAS, marcaDe, rutaUnidad, unidadDoc, normal };
 })();

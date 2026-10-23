@@ -1,0 +1,10 @@
+# biblioteca/ — renombrar a .htaccess DENTRO de esta carpeta (23-oct-2026).
+# Presentaciones .html privadas de Vida en Arte (las muestran Procesos y
+# Proyecto Actio). Las entrega gate.php a cualquier usuario con sesión.
+# Segunda cerradura (la primera es la regla 3d del .htaccess de la raíz):
+# aquí nunca se ejecuta un script aunque alguien suba uno, y la carpeta no se
+# lista.
+Options -Indexes -ExecCGI
+<FilesMatch "\.(php|php[0-9]|phtml|phar|pl|py|cgi|sh|shtml)$">
+  Require all denied
+</FilesMatch>

@@ -4,8 +4,8 @@
  *   PHP=php node pruebas-portal/roturas-portal.js
  *
  * Cada rotura se aplica sobre una copia de portal-raiz/, after-school/,
- * configuracion/, pasar-lista/ y comun/ en una carpeta temporal; el repo no
- * se toca.
+ * configuracion/, pasar-lista/, comun/, proyecto-actio/, procesos/ y
+ * biblioteca/ en una carpeta temporal; el repo no se toca.
  */
 const fs = require('fs');
 const os = require('os');
@@ -13,17 +13,32 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
+  // 23-oct: Procesos, biblioteca y portada por marca
+  ['Procesos manda lo que no es para el cliente (recorte de Administrador)', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], roles_permiten(roles_actuales(), 'pa.internos'),"],
+  ['Procesos manda lo interno a todos', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], true,"],
+  ['Procesos manda documentos de otros segmentos (Finanzas, vacío)', 'procesos/api.php', "        if ($proceso === null) continue;", ""],
+  ['Procesos sin lista blanca de campos', 'procesos/api.php', "$docs[] = array_intersect_key($fila, array_flip(PROCESOS_CAMPOS));", "$docs[] = $d;"],
+  ['Procesos no junta Gerencia en General', 'procesos/api.php', "        if (in_array(pa_norm(strtr($unidad, PROCESOS_TILDES)), $esGeneral, true)) $unidad = 'General';\n", ""],
+  ['Procesos funciona sin su configuración (valores en el código)', 'procesos/api.php', "$cfg = pa_config(['procesos_segmentos', 'procesos_general']);", "$cfg = pa_config([]) + ['procesos_segmentos' => ['Atracción' => ['Marketing'], 'Adquisición' => ['Ventas'], 'Entrega de servicio' => ['Servicio']], 'procesos_general' => ['Gerencia']];"],
+  ['el Profesor no abre Procesos', 'portal-raiz/permisos.php', "'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*'],", "'as.lista.ver', 'as.lista.marcar'],"],
+  ['la biblioteca pide un área (solo Administrador y Dirección)', 'portal-raiz/permisos.php', "    if (in_array($carpeta, CARPETAS_LIBRES, true)) return null;   // basta la sesión\n", ""],
+  ['las presentaciones de la biblioteca se abren sin sesión', 'portal-raiz/gate.php', "if (in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match(", "if (str_starts_with($directa, 'biblioteca/') || in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match("],
+  ['un api.php subido a la biblioteca se ejecuta', 'portal-raiz/htaccess.txt', "RewriteRule ^biblioteca/.*\\.(php|php[0-9]|phtml|phar)$ - [F,L]\n", ""],
+  ['los enlaces viejos de /proyecto-actio/archivos/ ya no llevan a la biblioteca', 'portal-raiz/gate.php', "    header('Location: /biblioteca/' . $m[1], true, 301);", "    header('Location: /', true, 301);"],
+  ['Procesos cuenta para la entrada directa (el Profesor iría a la portada)', 'portal-raiz/permisos.php', "    $v = array_values(array_diff($v, AREAS_SIN_ENTRADA));\n", ""],
+  ['solo unidades de una marca no lleva a la página de la marca', 'portal-raiz/permisos.php', "    foreach (MARCAS as $marca => $areas) if ($v && !array_diff($v, $areas)) return '/?marca=' . $marca;\n", ""],
+  ['Veranito queda en la marca Kids', 'portal-raiz/permisos.php', "    'vea'  => ['afterschool', 'veranito', 'cumpleanos'],\n    'kids' => ['kinder', 'babyandme'],", "    'vea'  => ['afterschool', 'cumpleanos'],\n    'kids' => ['kinder', 'babyandme', 'veranito'],"],
   // 22-oct: Proyecto Actio
   ['Dirección recibe filas «No»', 'proyecto-actio/api.php', "$alCliente = $v === 'si' ? true : ($v === 'no' ? false : !$soloActio);", "$alCliente = $v === 'si' ? true : !$soloActio;"],
   ['no se respeta «Sí» (solo la regla por proyecto)', 'proyecto-actio/api.php', "$alCliente = $v === 'si' ? true : ($v === 'no' ? false : !$soloActio);", "$alCliente = $v === 'no' ? false : !$soloActio;"],
   ['un documento no hereda la visibilidad de su entregable', 'proyecto-actio/api.php', "if ($v === '' && $tabla === 'documentos') $v = $visEntregable[(string) ($f['idEntregable'] ?? '')] ?? '';", ""],
   ['a Dirección le llega soloActio', 'proyecto-actio/api.php', "$fila['soloActio'] = $internos && $soloActio;", "$fila['soloActio'] = $soloActio;"],
-  ['las presentaciones se abren sin sandbox', 'proyecto-actio/index.html', " sandbox=\"allow-scripts allow-popups allow-popups-to-escape-sandbox\"", ""],
-  ['las presentaciones con allow-same-origin (verían la sesión)', 'proyecto-actio/index.html', "allow-scripts allow-popups allow-popups-to-escape-sandbox", "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"],
+  ['las presentaciones se abren sin sandbox', 'comun/visor-pantalla.js', " sandbox=\"allow-scripts allow-popups allow-popups-to-escape-sandbox\"", ""],
+  ['las presentaciones con allow-same-origin (verían la sesión)', 'comun/visor-pantalla.js', "allow-scripts allow-popups allow-popups-to-escape-sandbox", "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"],
   ['Dirección recibe Proyecto 2 (sin recorte en el servidor)', 'proyecto-actio/api.php', "if (!$alCliente && !$internos) continue;", ""],
   ['Dirección tiene pa.internos', 'portal-raiz/permisos.php', "'excepto' => ['usuarios.admin', 'pa.internos'],", "'excepto' => ['usuarios.admin'],"],
   ['Proyecto Actio sin lista blanca (salen las Notas)', 'proyecto-actio/api.php', "foreach ($campos as $c) $fila[$c] = $f[$c] ?? '';", "$fila = $f;"],
@@ -36,8 +51,8 @@ const ROTURAS = [
   // permisos.php
   ['Dirección puede tocar cuentas de Administrador (sin «excepto»)', 'portal-raiz/permisos.php', "'excepto' => ['usuarios.admin', 'pa.internos'],", "'excepto' => ['pa.internos'],"],
   ['las carpetas sin asignar quedan abiertas', 'portal-raiz/permisos.php', "    return CARPETAS_AREA[$carpeta] ?? '*';", "    return CARPETAS_AREA[$carpeta] ?? null;"],
-  ['Comercial con After School completo', 'portal-raiz/permisos.php', "'area:basededatos', 'as.ver', 'as.pruebas.ver',\n                       'as.pruebas.agendar', 'as.contactos.prospectos'],", "'area:basededatos', 'as.ver', 'as.pruebas.ver', 'as.completo',\n                       'as.pruebas.agendar', 'as.contactos.prospectos'],"],
-  ['Contabilidad recibe contactos', 'portal-raiz/permisos.php', "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago'],", "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'as.contactos.todos'],"],
+  ['Comercial con After School completo', 'portal-raiz/permisos.php', "'area:basededatos', 'as.ver', 'as.pruebas.ver',\n                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*'],", "'area:basededatos', 'as.ver', 'as.pruebas.ver', 'as.completo',\n                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*'],"],
+  ['Contabilidad recibe contactos', 'portal-raiz/permisos.php', "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'area:procesos', 'procesos.ver:*'],", "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'as.contactos.todos', 'area:procesos', 'procesos.ver:*'],"],
   ['una acción sin permiso propio solo pide as.ver', 'portal-raiz/permisos.php', "    return PERMISO_ACCION_AS[$accion] ?? 'as.completo';", "    return PERMISO_ACCION_AS[$accion] ?? 'as.ver';"],
   ['Comercial ve contactos de cualquier niño', 'portal-raiz/permisos.php', "if ($esNino && !($politica === 'prospectos' && ($valor->estado ?? '') === 'Prospecto')) {", "if ($esNino && $politica !== 'prospectos') {"],
   // auth.php
@@ -86,7 +101,7 @@ const ROTURAS = [
   ['el Profesor no tiene tope de inactividad', 'portal-raiz/permisos.php', "        'inactividad_max' => 7200,\n", ""],
   ['el tope de inactividad no se mira', 'portal-raiz/auth.php', "    if ($max !== null && isset($_SESSION['ultimo']) && time() - (int) $_SESSION['ultimo'] > $max) return null;", ""],
   ['el uso no renueva el plazo', 'portal-raiz/auth.php', "    $_SESSION['ultimo'] = time();   // última actividad (para el tope de inactividad)\n", ""],
-  ['Recepción pasa lista', 'portal-raiz/permisos.php', "'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',\n                       'as.seguimiento'],", "'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',\n                       'as.seguimiento', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar'],"],
+  ['Recepción pasa lista', 'portal-raiz/permisos.php', "'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',\n                       'as.seguimiento', 'area:procesos', 'procesos.ver:*'],", "'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',\n                       'as.seguimiento', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*'],"],
   ['Recepción resuelve fuera de lista', 'portal-raiz/permisos.php', "    'resolverFueraDeLista' => 'as.lista.corregir',", "    'resolverFueraDeLista' => 'as.seguimiento',"],
   ['Comercial agenda reposiciones', 'portal-raiz/permisos.php', "    'agendarVisita'        => 'as.visitas.agendar',", "    'agendarVisita'        => 'as.pruebas.agendar',"],
   ['la carpeta pasar-lista no tiene área', 'portal-raiz/permisos.php', "    'pasar-lista'   => 'pasarlista',\n", ""],
@@ -94,13 +109,13 @@ const ROTURAS = [
   ['destino_inicio siempre manda a la portada', 'portal-raiz/permisos.php', "    if ($v === '*') return '/';", "    return '/';"],
   ['After School abre siempre en Ocupación (inicio_as)', 'portal-raiz/permisos.php', "        'inicio_as' => 'lista',", "        'inicio_as' => 'ocupacion',"],
   ['Contabilidad abre en otra pestaña', 'portal-raiz/permisos.php', "        'inicio_as' => 'pagos',", "        'inicio_as' => 'pruebas',"],
-  ['el Profesor no abre After School', 'portal-raiz/permisos.php', "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar']", "'permisos' => ['area:pasarlista', 'as.lista.ver', 'as.lista.marcar']"],
-  ['el Profesor recibe Ocupación', 'portal-raiz/permisos.php', "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar']", "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.ver', 'as.lista.ver', 'as.lista.marcar']"],
+  ['el Profesor no abre After School', 'portal-raiz/permisos.php', "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar',", "'permisos' => ['area:pasarlista', 'as.lista.ver', 'as.lista.marcar',"],
+  ['el Profesor recibe Ocupación', 'portal-raiz/permisos.php', "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar',", "'permisos' => ['area:afterschool', 'area:pasarlista', 'as.ver', 'as.lista.ver', 'as.lista.marcar',"],
   ['acceso.php no da la pestaña de entrada', 'portal-raiz/acceso.php', "'inicioAS' => inicio_as($roles)", "'inicioAS' => 'ocupacion'"],
   ['requerir_sesion manda a login.php (vuelve el bucle)', 'portal-raiz/auth.php', "/login.html?r=", "/login.php?r="],
   ['gate.php no entrega login.html sin sesión (bucle con el .htaccess anterior)', 'portal-raiz/gate.php', "if (in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match(", "if (preg_match("],
-  ['gate.php entrega cualquier cosa de comun/ sin sesión', 'portal-raiz/gate.php', "preg_match('#^comun/[a-z0-9-]+\\.(css|js|png|svg)$#', $directa)", "preg_match('#^comun/#', $directa)"],
-  ['la regla de comun/ deja pasar PHP', 'portal-raiz/htaccess.txt', "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg)$ - [L]", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|php)$ - [L]"],
+  ['gate.php entrega cualquier cosa de comun/ sin sesión', 'portal-raiz/gate.php', "preg_match('#^comun/[a-z0-9-]+\\.(css|js|png|svg|webmanifest)$#', $directa)", "preg_match('#^comun/#', $directa)"],
+  ['la regla de comun/ deja pasar PHP', 'portal-raiz/htaccess.txt', "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|webmanifest)$ - [L]", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|webmanifest|php)$ - [L]"],
   ['sin el cierre [F] de comun/ (listado y PHP pasan al gate o a los puentes)', 'portal-raiz/htaccess.txt', "RewriteRule ^comun(/|$) - [F,L]\n", ""],
   // (Quitar login.html de la regla 3 no se ve desde fuera: gate.php la entrega igual, a propósito. Se prueba esa copia arriba.)
   ['/pasar-lista/ ya no lleva a After School', 'pasar-lista/index.html', "location.replace('/after-school/' + q + '#lista');", "location.replace('/');"],
