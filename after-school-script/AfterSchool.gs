@@ -34,7 +34,8 @@
  *
  * VERSIÓN v8 (23-oct-2026): Pasar lista del Profesor con ventana de días
  * (los últimos N para marcar y corregir; los próximos M solo para ver), con
- * N y M en Config, y el rastro completo de cada corrección en Historial.
+ * N y M en Config; la coordinación también ve los próximos M días; nadie
+ * marca un día futuro; y el rastro completo de cada corrección en Historial.
  */
 var VERSION_SCRIPT = 'v8';
 
@@ -2055,7 +2056,9 @@ function accPagoPrueba_(datos, usuario) {
 // v8 (23-oct): el puente manda además limiteProfesor = true para el Profesor
 // y entonces manda la VENTANA de Config (no soloHoy): ve y marca desde hoy − N
 // hasta hoy, y ve sin marcar hasta hoy + M. soloHoy queda para que un puente y
-// un script de versiones distintas sigan siendo seguros.
+// un script de versiones distintas sigan siendo seguros. Los días futuros
+// (hasta hoy + M) los ve también la coordinación, sin marcar: NADIE marca un
+// día que todavía no llega.
 
 function buscarAsistencia_(t, id) {
   id = texto_(id);
@@ -2075,29 +2078,34 @@ function edadEn_(nac, iso) {
 /**
  * La fecha de una lista y lo que se puede hacer ese día: {iso, desde, hasta}
  * ('' en desde = sin límite hacia atrás). Hoy si no viene fecha.
- *   · limiteProfesor: la ventana de Config; un día futuro se ve pero no se
- *     guarda (escribir = true lo rechaza);
- *   · si no: nunca un día futuro; con soloHoy, solo hoy.
+ *   · NADIE marca un día futuro (escribir = true lo rechaza para todos).
+ *   · Los días futuros se VEN hasta hoy + M (Config), para cualquier rol: la
+ *     coordinación tiene como mínimo lo que tiene el Profesor.
+ *   · limiteProfesor: además, hacia atrás solo hasta hoy − N (Config).
+ *   · soloHoy sin limiteProfesor (puente anterior a v8): solo hoy.
+ *   · Coordinación (sin límites): cualquier día pasado.
  */
 function fechaLista_(datos, escribir) {
   var hoy = hoyISO_();
   var iso = texto_(datos.fecha) ? Utilities.formatDate(exigirFecha_(datos.fecha, 'la fecha de la lista'), zona_(), 'yyyy-MM-dd') : hoy;
-  if (datos.limiteProfesor === true) {
-    var cfg = leerConfig_();
-    if (cfg.listaAtras === null || cfg.listaAdelante === null)
-      throw new ErrorUsuario_('Falta en Config «' + LISTA.param + ' / ' + PARAM_LISTA_ATRAS + '» o «' + LISTA.param + ' / ' +
-        PARAM_LISTA_ADELANTE + '» con un número entero (0 o más). Pasar lista no se abre hasta tenerlos.', 'sin_configuracion');
-    var desde = sumarDiasISO_(hoy, -cfg.listaAtras), hasta = sumarDiasISO_(hoy, cfg.listaAdelante);
-    if (iso < desde) throw new ErrorUsuario_('Solo se ve y corrige la lista de los últimos ' + cfg.listaAtras + ' días. ' +
-      'Las de antes las corrige la coordinación.', 'fuera_de_plazo');
-    if (iso > hasta) throw new ErrorUsuario_('Solo se ve la lista de los próximos ' + cfg.listaAdelante + ' días.', 'fuera_de_plazo');
-    if (escribir && iso > hoy) throw new ErrorUsuario_('El ' + fechaCorta_(iso) + ' todavía no llega: su lista se puede ver, pero se marca ese día.', 'dia_futuro');
-    return { iso: iso, desde: desde, hasta: hasta };
+  if (escribir && iso > hoy) throw new ErrorUsuario_('El ' + fechaCorta_(iso) + ' todavía no llega: su lista se puede ver, pero se marca ese día.', 'dia_futuro');
+  var profesor = datos.limiteProfesor === true;
+  if (!profesor && datos.soloHoy === true) {
+    if (iso !== hoy) throw new ErrorUsuario_('Solo se puede pasar y corregir la lista de hoy. Las correcciones de otros días las hace la coordinación.', 'solo_hoy');
+    return { iso: iso, desde: hoy, hasta: hoy };
   }
-  if (iso > hoy) throw new ErrorUsuario_('No se pasa lista de un día que todavía no llega.');
-  if (datos.soloHoy === true && iso !== hoy)
-    throw new ErrorUsuario_('Solo se puede pasar y corregir la lista de hoy. Las correcciones de otros días las hace la coordinación.', 'solo_hoy');
-  return { iso: iso, desde: datos.soloHoy === true ? hoy : '', hasta: hoy };
+  // La ventana de Config. El Profesor la necesita siempre; a la coordinación, sin
+  // el parámetro de días adelante, no se le bloquean los días pasados: solo no ve los futuros.
+  var cfg = leerConfig_();
+  if ((profesor && (cfg.listaAtras === null || cfg.listaAdelante === null)) || (iso > hoy && cfg.listaAdelante === null))
+    throw new ErrorUsuario_('Falta en Config «' + LISTA.param + ' / ' + PARAM_LISTA_ATRAS + '» o «' + LISTA.param + ' / ' +
+      PARAM_LISTA_ADELANTE + '» con un número entero (0 o más).' + (profesor ? ' Pasar lista no se abre hasta tenerlos.' : ''), 'sin_configuracion');
+  var desde = profesor ? sumarDiasISO_(hoy, -cfg.listaAtras) : '';
+  var hasta = cfg.listaAdelante === null ? hoy : sumarDiasISO_(hoy, cfg.listaAdelante);
+  if (desde && iso < desde) throw new ErrorUsuario_('Solo se ve y corrige la lista de los últimos ' + cfg.listaAtras + ' días. ' +
+    'Las de antes las corrige la coordinación.', 'fuera_de_plazo');
+  if (iso > hasta) throw new ErrorUsuario_('Solo se ve la lista de los próximos ' + cfg.listaAdelante + ' días.', 'fuera_de_plazo');
+  return { iso: iso, desde: desde, hasta: hasta };
 }
 
 function exigirDiaDeClase_(c, iso) {

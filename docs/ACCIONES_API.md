@@ -153,8 +153,16 @@ instalar). Si falta alguno, se niega (`sin_configuracion`).
 |---|---|---|
 | entre `desde` y ayer | ve, marca y corrige | ve, marca y corrige |
 | hoy | ve, marca y corrige | ve, marca y corrige |
-| entre mañana y `hasta` | **solo ve** (`soloLectura: true`); guardar → `dia_futuro` | no lo ve (día futuro) |
-| antes de `desde` / después de `hasta` | no lo ve ni lo guarda (`fuera_de_plazo`) | antes: sí; después: no |
+| entre mañana y `hasta` | **solo ve** (`soloLectura: true`); guardar → `dia_futuro` | **solo ve**, igual que el Profesor; guardar → `dia_futuro` |
+| antes de `desde` | no lo ve ni lo guarda (`fuera_de_plazo`) | ve, marca y corrige (sin límite hacia atrás) |
+| después de `hasta` | no lo ve (`fuera_de_plazo`) | no lo ve (`fuera_de_plazo`) |
+
+**Regla general** (23-oct): Coordinación AS, Administrador y Dirección tienen
+como mínimo las mismas vistas y permisos que el Profesor. **Nadie marca un día
+futuro**: el Apps Script lo rechaza para todos los roles (`dia_futuro`), antes
+de mirar la clase. Para la coordinación, `hasta` = hoy + M; si faltara ese
+parámetro en Config, sigue corrigiendo los días pasados y solo no ve los
+futuros.
 
 **Cada corrección deja rastro** en Historial («Corregir asistencia» o «Corregir nota»), con
 quién la hizo y cuándo (columnas Usuario y Fecha) y en el detalle el estado y la nota de
@@ -164,8 +172,8 @@ Asistencia: refleja la corrección sin hacer nada más.
 
 | Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
 |---|---|---|---|---|---|---|
-| `leerLista` | L | as.lista.ver | Pr (de `desde` a `hasta`), Ad Di CA (cualquier día no futuro) | `fecha?` (hoy) | `{fecha, hoy, dia, otroDia, desde, hasta, soloLectura, estados[], clases[{codigo, servicio, hora, guardada, sinClase, ninos[{idNino, nombre, edad, presencia, idVisita, estado, nota}], fueraDeLista[{idAsistencia, nombre, estado, nota}]}]}`. `desde`: '' si no hay límite hacia atrás | `fuera_de_plazo` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · día futuro (coordinación) |
-| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (de `desde` a hoy), Ad Di CA (cualquier día no futuro) | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]` | `{fecha, codigo, nuevas, corregidas, visitasMarcadas}` | `fuera_de_plazo` · `dia_futuro` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · día futuro · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
+| `leerLista` | L | as.lista.ver | Pr (de `desde` a `hasta`), Ad Di CA (cualquier día pasado y hasta `hasta`) | `fecha?` (hoy) | `{fecha, hoy, dia, otroDia, desde, hasta, soloLectura, estados[], clases[{codigo, servicio, hora, guardada, sinClase, ninos[{idNino, nombre, edad, presencia, idVisita, estado, nota}], fueraDeLista[{idAsistencia, nombre, estado, nota}]}]}`. `desde`: '' si no hay límite hacia atrás | `fuera_de_plazo` · `sin_configuracion` · `solo_hoy` (script anterior a v8) |
+| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (de `desde` a hoy), Ad Di CA (cualquier día no futuro) | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]` | `{fecha, codigo, nuevas, corregidas, visitasMarcadas}` | `fuera_de_plazo` · `dia_futuro` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
 
 `presencia`: `Inscrito`, `Prueba`, `Reposición`, `Eventual`. `estado`: `Presente`,
 `Llegó tarde`, `Ausente`, `Falta justificada`. Recepción, Comercial, Contabilidad y

@@ -997,7 +997,8 @@ seccion('Pasar lista: lo que ve el profesor y lo que guarda');
   r = g.llamar('leerLista', { fecha: AYER, soloHoy: true });
   ok(!r.ok && r.codigo === 'solo_hoy', 'con soloHoy, otro día → rechazo');
   ok(g.llamar('leerLista', { fecha: AYER }).ok, 'sin soloHoy (coordinación), otro día sí');
-  ok(!g.llamar('leerLista', { fecha: MANANA }).ok, 'un día futuro, nunca');
+  r = g.llamar('leerLista', { fecha: MANANA });
+  ok(r.ok && r.resultado.soloLectura === true, 'un día futuro: la coordinación lo ve, solo para leer (v8)');
 
   // Guardar
   const marcas = [{ idNino: 'AS-0001', estado: 'Presente' }, { idNino: 'AS-0005', estado: 'Ausente' }, { idNino: pr.idNino, estado: 'Llegó tarde' }];
@@ -1098,12 +1099,24 @@ seccion('Pasar lista v8: el Profesor, de 7 días atrás a 7 adelante (ver), y ma
   r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: HACE(8), marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] }, P));
   ok(!r.ok && r.codigo === 'fuera_de_plazo', 'hace 8 días no se corrige (fuera_de_plazo)');
   ok(A.celda(6, 2) === 'ASI-0801' && A.celda(6, 8) === 'Ausente', '(control) la de hace 8 días sigue como estaba');
-  // La coordinación, sin cambios: cualquier día pasado, nunca uno futuro.
+  // La coordinación: como mínimo lo del Profesor (ve los próximos días sin marcar) y además cualquier día pasado.
   ok(g.llamar('guardarLista', { codigo: 'AYER-1600-PARKOUR', fecha: HACE(8), marcas: [{ idNino: 'AS-0001', estado: 'Falta justificada' }] }).ok, 'la coordinación corrige hace 8 días');
-  r = g.llamar('leerLista', { fecha: MANANA });
-  ok(!r.ok, 'la coordinación no ve días futuros (sin cambios)');
+  asistenciaPasada(g, 'ASI-0803', sumar(AYER, -14), 'AYER-1600-PARKOUR', 'AS-0001', 'Ausente');
+  r = g.llamar('guardarLista', { codigo: 'AYER-1600-PARKOUR', fecha: sumar(AYER, -14), marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] });
+  ok(r.ok && r.resultado.corregidas === 1, 'y hace más de 10 días (sin límite hacia atrás)');
   r = g.llamar('leerLista', { fecha: AYER });
-  ok(r.ok && r.resultado.desde === '' && r.resultado.hasta === HOY && r.resultado.soloLectura === false, 'la coordinación: sin límite hacia atrás, hasta hoy');
+  ok(r.ok && r.resultado.desde === '' && r.resultado.hasta === sumar(HOY, 7) && r.resultado.soloLectura === false,
+    'la coordinación: sin límite hacia atrás y hasta dentro de 7 días, como el Profesor');
+  r = g.llamar('leerLista', { fecha: sumar(AYER, 7) });
+  const futuraC = r.ok && r.resultado.clases.find(c => c.codigo === 'AYER-1600-PARKOUR');
+  ok(r.ok && r.resultado.soloLectura === true && futuraC && futuraC.ninos.length === 1, 'la coordinación ve la lista de un día futuro, solo para leer');
+  ok(g.llamar('leerLista', { fecha: sumar(HOY, 8) }).codigo === 'fuera_de_plazo', 'y no más allá de la ventana (dentro de 8 días: no)');
+  for (const [quien, extra] of [['la coordinación', {}], ['Dirección o Administrador (mismo trato en el script)', { soloHoy: false, limiteProfesor: false }]]) {
+    r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: sumar(AYER, 7), marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] }, extra));
+    ok(!r.ok && r.codigo === 'dia_futuro', quien + ': un día futuro no se marca aunque se arme la petición a mano (dia_futuro)');
+  }
+  r = g.llamar('guardarLista', { codigo: 'HOY-2000-TELAS', fecha: MANANA, marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] });
+  ok(!r.ok && r.codigo === 'dia_futuro', 'mañana tampoco, ni en otra clase: el día se mira antes que la clase');
   // Un script v8 con un puente viejo (solo soloHoy): sigue limitado a hoy.
   ok(g.llamar('leerLista', { fecha: AYER, soloHoy: true }).codigo === 'solo_hoy', 'solo soloHoy (puente anterior): solo hoy, como antes');
   // Sin los parámetros en Config: se niega.

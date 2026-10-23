@@ -71,7 +71,8 @@ lista, sin pestañas. `/pasar-lista/` es una página que redirige a
 («Viernes 23 oct») con flechas y «Hoy»; la coordinación además tiene el
 calendario. Hasta dónde llegan las flechas lo dice la respuesta de
 `leerLista` (`desde`, `hasta`); un día futuro llega con `soloLectura` y la
-lista se ve sin botones de marcar ni «Guardar». La regla la vuelve a exigir
+lista se ve sin botones de marcar ni «Guardar», para el Profesor y para la
+coordinación (que ve, como mínimo, lo mismo que el Profesor). La regla la vuelve a exigir
 el Apps Script en cada lectura y escritura (`limiteProfesor`, que pone
 `pasar-lista/api.php`). El Profesor, que entra directo a Pasar lista, tiene
 en el encabezado una fila propia con «Inicio» y «Procesos»
