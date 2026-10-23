@@ -377,7 +377,7 @@ async function correr(fuente) {
       const a = await nav['admin-uno'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(a.texto), 'acceso.php: un Administrador ve todas las tarjetas');
       const g = await nav['cuenta-general'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","basededatos"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School y Base de Datos (Pasar lista ya no es tarjeta) (' + g.texto.split('\n')[0] + ')');
+      ok(/window\.ACCESO = \["afterschool","basededatos","procesos"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School, Base de Datos y Procesos (Pasar lista ya no es tarjeta) (' + g.texto.split('\n')[0] + ')');
       // Un cambio posterior en usuarios.php ya no cuenta.
       fs.writeFileSync(path.join(web, 'usuarios.php'), '<?php return [];');
       const n = new Nav(base);
@@ -669,7 +669,7 @@ async function correr(fuente) {
         /aria-expanded/.test(pg.texto) && !/pa-franja/.test(pg.texto) && !/<style>/.test(pg.texto),
         'ajustes 23-oct: pestañas Documentos y Acompañamiento, desplegables con aria-expanded, cabecera baja y sin estilos propios');
       const vp = (await new Nav(base).get('/comun/visor-pantalla.js')).texto;
-      ok(/\/comun\/visor-pantalla\.js\?v=[0-9a-f]{10}/.test(pg.texto) && /sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"/.test(vp) && !/allow-same-origin/.test(vp) && !/allow-same-origin/.test(pg.texto),
+      ok(/\/comun\/visor-pantalla\.js\?v=[0-9a-f]{10}/.test(pg.texto) && /sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"/.test(vp) && !/sandbox="[^"]*allow-same-origin/.test(vp) && !/sandbox="[^"]*allow-same-origin/.test(pg.texto),
         'las presentaciones del portal se abren en un iframe con sandbox y SIN allow-same-origin (no ven la sesión): comun/visor-pantalla.js, el mismo para Procesos');
       // Administrador: todo, con «soloActio» en lo que no es del cliente
       const ad = await leerPA('admin-uno');
@@ -784,12 +784,16 @@ async function correr(fuente) {
       ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por datos.js');
       // Sin la configuración de Procesos: se niega, nombrando lo que falta (no hay valores escritos en el código).
       const cfgF = path.join(home, 'portal_config.php'), cfg = fs.readFileSync(cfgF, 'utf8');
-      fs.writeFileSync(cfgF, cfg.replace(/\n  'procesos_segmentos'[^\n]*\n  'procesos_general'[^\n]*/, ''));
+      const sinProcesos = cfg.split('\n').filter(l => !/'procesos_(segmentos|general)'/.test(l)).join('\n');
+      ok(sinProcesos !== cfg && !/procesos_/.test(sinProcesos), '(control) la configuración de prueba sin las dos entradas de Procesos');
+      // Si el PHP de pruebas guarda los archivos compilados (opcache), solo vuelve a mirar el archivo pasados ~2 s.
+      const esperarCambio = () => new Promise(res => setTimeout(res, 2100));
+      fs.writeFileSync(cfgF, sinProcesos); await esperarCambio();
       try {
         const sin = await leer('prueba-recepcion');
         ok(sin.status === 500 && sin.j && sin.j.codigo === 'sin_configuracion' && /procesos_segmentos, procesos_general/.test(sin.j.error),
           'sin procesos_segmentos ni procesos_general en portal_config.php: error «sin_configuracion» que los nombra (' + sin.texto.slice(0, 160) + ')');
-      } finally { fs.writeFileSync(cfgF, cfg); }
+      } finally { fs.writeFileSync(cfgF, cfg); await esperarCambio(); }
     }
 
     seccion('portada por marca: logos, Procesos, Administración y la entrada de cada rol');
