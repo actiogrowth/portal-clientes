@@ -217,7 +217,7 @@ function googleFalso() {
     req.on('data', d => { cuerpo += d; });
     req.on('end', () => {
       let j = {}; try { j = JSON.parse(cuerpo); } catch (e) { }
-      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {} });
+      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {}, t: Date.now() });
       let r;
       if (j.key === 'clave-pa-de-prueba') {
         PA.llamadas++;
@@ -943,9 +943,10 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
          esperar a Google cuando termina el primero (≈ 2 esperas); si se suelta,
          los dos esperan juntos (≈ 1). Con el inicio y el fin de cada uno. */
       const aLaVez = async (pedidos) => {
-        const t0 = Date.now();
+        const t0 = Date.now(), desde = google.llamadas.length;
         const rs = await Promise.all(pedidos.map(async p => { const r = await p(); r.fin = Date.now() - t0; return r; }));
-        return { rs, ms: Date.now() - t0, fines: rs.map(r => r.fin).join(' y ') + ' ms' };
+        const llegadas = google.llamadas.slice(desde).map(l => (l.t - t0) + ' (' + l.accion + ')').join(', ');
+        return { rs, ms: Date.now() - t0, fines: rs.map(r => r.fin).join(' y ') + ' ms; llegaron a Google a los ' + llegadas + ' ms' };
       };
       const uno = async p => { const t0 = Date.now(); const r = await p(); return { r, ms: Date.now() - t0 }; };
       const lista = u => () => n[u].post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
