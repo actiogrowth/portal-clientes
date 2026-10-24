@@ -341,7 +341,7 @@ async function correr(fuente) {
   let salidaPhp = '';
   const srv = spawn(PHP, ['-S', '127.0.0.1:' + puerto, '-t', web, path.join(tmp, 'enrutador.php')], {
     // 23-oct: varios procesos a la vez, como el servidor real (si no, php -S atiende de a uno y no se vería la fila de la sesión).
-    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo, PHP_CLI_SERVER_WORKERS: '4' }) });
+    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo, PHP_CLI_SERVER_WORKERS: '6' }) });
   srv.stdout.on('data', d => { salidaPhp += d; });
   srv.stderr.on('data', d => { salidaPhp += d; });
   const base = 'http://127.0.0.1:' + puerto;
@@ -939,27 +939,40 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
     seccion('sesión suelta: los pedidos del mismo usuario no hacen fila mientras se espera a Google');
     {
       const ESPERA = 800;   // ms por pedido a Google (corto: la prueba corre una vez por cada rotura)
-      const aLaVez = async (pedidos) => { const t0 = Date.now(); const rs = await Promise.all(pedidos.map(p => p())); return { rs, ms: Date.now() - t0 }; };
+      /* Dos pedidos a la vez: si la sesión queda tomada, el segundo empieza a
+         esperar a Google cuando termina el primero (≈ 2 esperas); si se suelta,
+         los dos esperan juntos (≈ 1). Con el inicio y el fin de cada uno. */
+      const aLaVez = async (pedidos) => {
+        const t0 = Date.now();
+        const rs = await Promise.all(pedidos.map(async p => { const r = await p(); r.fin = Date.now() - t0; return r; }));
+        return { rs, ms: Date.now() - t0, fines: rs.map(r => r.fin).join(' y ') + ' ms' };
+      };
+      const uno = async p => { const t0 = Date.now(); const r = await p(); return { r, ms: Date.now() - t0 }; };
       const lista = u => () => n[u].post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
+      const asLeer = u => () => n[u].as('leer');
+      const procesos = u => () => n[u].post('/procesos/api.php', { json: { accion: 'leer' } });
       LENTO.ms = ESPERA;
       try {
-        // Control: tres usuarios distintos a la vez no hacen fila (el servidor de pruebas atiende varios pedidos).
-        let x = await aLaVez(['prueba-profesor-1', 'prueba-coord-as', 'admin-uno'].map(lista));
-        ok(x.rs.every(r => r.status === 200) && x.ms < 2 * ESPERA, '(control) tres usuarios distintos a la vez: ' + x.ms + ' ms (menos de ' + 2 * ESPERA + ')');
-        // Pasar lista: tres lecturas del MISMO usuario (la precarga de días).
-        x = await aLaVez([lista('prueba-profesor-1'), lista('prueba-profesor-1'), lista('prueba-profesor-1')]);
-        ok(x.rs.every(r => r.status === 200 && r.j.ok) && x.ms < 2 * ESPERA,
-          'Pasar lista: tres lecturas a la vez del mismo usuario tardan ' + x.ms + ' ms, no se suman (con la sesión tomada serían ' + 3 * ESPERA + ' o más)');
-        ok(x.rs.every(r => r.j.tiempos && r.j.tiempos.total_ms - r.j.tiempos.script_ms < ESPERA),
-          'y en ninguna el servidor del portal suma tiempo que no sea de Google (' + x.rs.map(r => r.j.tiempos && (r.j.tiempos.total_ms + '/' + r.j.tiempos.script_ms)).join(' · ') + ')');
-        // After School, Proyecto Actio y Procesos: lo mismo.
-        x = await aLaVez([1, 2, 3].map(() => () => n['prueba-coord-as'].as('leer')));
-        ok(x.rs.every(r => r.status === 200) && x.ms < 2 * ESPERA, 'After School: tres lecturas a la vez del mismo usuario: ' + x.ms + ' ms');
+        const solo = await uno(lista('prueba-profesor-1'));
+        ok(solo.r.status === 200 && solo.ms >= ESPERA, '(control) un pedido solo tarda una espera: ' + solo.ms + ' ms');
+        const tope = solo.ms + ESPERA / 2;   // dos a la vez sin fila: como uno solo; con fila: dos esperas
+        let x = await aLaVez([lista('prueba-profesor-1'), lista('prueba-coord-as')]);
+        ok(x.rs.every(r => r.status === 200) && x.ms < tope, '(control) dos usuarios distintos a la vez no hacen fila: terminan a los ' + x.fines + ' (tope ' + tope + ')');
+        x = await aLaVez([lista('prueba-profesor-1'), lista('prueba-profesor-1')]);
+        ok(x.rs.every(r => r.status === 200 && r.j.ok) && x.ms < tope,
+          'Pasar lista: dos lecturas a la vez del mismo usuario no hacen fila: terminan a los ' + x.fines + ' (con la sesión tomada, la segunda tardaría ' + 2 * ESPERA + ' o más)');
+        ok(x.rs.every(r => r.j.tiempos && r.j.tiempos.total_ms - r.j.tiempos.script_ms < ESPERA / 2),
+          'y el servidor del portal no suma tiempo que no sea de Google (' + x.rs.map(r => r.j.tiempos && (r.j.tiempos.total_ms + '/' + r.j.tiempos.script_ms)).join(' · ') + ')');
+        x = await aLaVez([asLeer('prueba-coord-as'), asLeer('prueba-coord-as')]);
+        ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'After School: dos lecturas a la vez del mismo usuario: terminan a los ' + x.fines);
         fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });   // sin copia: van a Google
-        x = await aLaVez([1, 2].map(() => () => n['admin-uno'].post('/procesos/api.php', { json: { accion: 'leer' } })).concat([() => n['admin-uno'].post('/proyecto-actio/api.php', { json: { accion: 'leer' } })]));
-        ok(x.rs.every(r => r.status === 200) && x.ms < 2 * ESPERA, 'Procesos y Proyecto Actio: tres lecturas a la vez del mismo usuario: ' + x.ms + ' ms');
+        x = await aLaVez([procesos('admin-uno'), procesos('admin-uno')]);
+        ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'Procesos: dos lecturas a la vez del mismo usuario: terminan a los ' + x.fines);
+        fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });
+        x = await aLaVez([() => n['admin-uno'].post('/proyecto-actio/api.php', { json: { accion: 'leer' } }), lista('admin-uno')]);
+        ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'Proyecto Actio y Pasar lista a la vez, del mismo usuario: terminan a los ' + x.fines);
       } finally { LENTO.ms = 0; }
-      // La seguridad no cambia: sin sesión, nada; y el uso sigue renovando la sesión.
+      // La seguridad no cambia: sin sesión, nada; y la sesión sigue abierta después.
       const antes = google.llamadas.length;
       const anon = await new Nav(base).post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
       ok(anon.status !== 200 && google.llamadas.length === antes, 'sin sesión sigue rechazando y no llega a Google');
