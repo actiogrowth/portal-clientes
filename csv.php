@@ -3,6 +3,9 @@
    en el portal. Las direcciones viven en portal_config.php, en el servidor. */
 require dirname(__DIR__) . '/auth.php';
 requerir_sesion();
+// 23-oct: soltar la sesión antes de esperar a Google (si no, los pedidos del mismo
+// usuario hacen fila). Desde aquí la sesión no se usa.
+session_write_close();
 
 header('Cache-Control: private, no-store');
 
