@@ -340,12 +340,21 @@ async function correr(fuente) {
   const puerto = 20000 + Math.floor(Math.random() * 20000);
   let salidaPhp = '';
   const srv = spawn(PHP, ['-S', '127.0.0.1:' + puerto, '-t', web, path.join(tmp, 'enrutador.php')], {
-    // 23-oct: varios procesos a la vez, como el servidor real (si no, php -S atiende de a uno y no se vería la fila de la sesión).
-    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo, PHP_CLI_SERVER_WORKERS: '6' }) });
+    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo }) });
   srv.stdout.on('data', d => { salidaPhp += d; });
   srv.stderr.on('data', d => { salidaPhp += d; });
   const base = 'http://127.0.0.1:' + puerto;
   for (let i = 0; i < 50; i++) { try { await fetch(base + '/login.php'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
+  /* 23-oct: un SEGUNDO servidor sobre el mismo portal y la misma carpeta de sesiones. php -S atiende de a un
+     pedido por proceso: con un pedido en cada servidor y la misma cookie, lo único que puede ponerlos en fila
+     es el candado del archivo de sesión (la prueba «sesión suelta»). */
+  const puerto2 = puerto + 1;
+  const srv2 = spawn(PHP, ['-S', '127.0.0.1:' + puerto2, '-t', web, path.join(tmp, 'enrutador.php')], {
+    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo }) });
+  srv2.stdout.on('data', d => { salidaPhp += d; });
+  srv2.stderr.on('data', d => { salidaPhp += d; });
+  const base2 = 'http://127.0.0.1:' + puerto2;
+  for (let i = 0; i < 50; i++) { try { await fetch(base2 + '/login.php'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
 
   const cuentasF = path.join(home, 'portal_usuarios.json');
   const leerCuentas = () => JSON.parse(fs.readFileSync(cuentasF, 'utf8'));
@@ -939,38 +948,40 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
     seccion('sesión suelta: los pedidos del mismo usuario no hacen fila mientras se espera a Google');
     {
       const ESPERA = 800;   // ms por pedido a Google (corto: la prueba corre una vez por cada rotura)
-      /* Dos pedidos a la vez: si la sesión queda tomada, el segundo empieza a
-         esperar a Google cuando termina el primero (≈ 2 esperas); si se suelta,
-         los dos esperan juntos (≈ 1). Con el inicio y el fin de cada uno. */
+      /* Dos pedidos a la vez, cada uno en un servidor distinto (base y base2)
+         con LA MISMA cookie: si la sesión queda tomada, el segundo llega a
+         Google cuando el primero termina (≈ 2 esperas); si se suelta, los dos
+         esperan juntos (≈ 1). Con el fin de cada uno y su llegada a Google. */
+      const gemelo = u => { const g2 = new Nav(base2); g2.cookies = n[u].cookies; return g2; };
       const aLaVez = async (pedidos) => {
         const t0 = Date.now(), desde = google.llamadas.length;
         const rs = await Promise.all(pedidos.map(async p => { const r = await p(); r.fin = Date.now() - t0; return r; }));
         const llegadas = google.llamadas.slice(desde).map(l => (l.t - t0) + ' (' + l.accion + ')').join(', ');
         return { rs, ms: Date.now() - t0, fines: rs.map(r => r.fin).join(' y ') + ' ms; llegaron a Google a los ' + llegadas + ' ms' };
       };
-      const uno = async p => { const t0 = Date.now(); const r = await p(); return { r, ms: Date.now() - t0 }; };
-      const lista = u => () => n[u].post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
-      const asLeer = u => () => n[u].as('leer');
-      const procesos = u => () => n[u].post('/procesos/api.php', { json: { accion: 'leer' } });
+      const lista = nav => () => nav.post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
+      const procesos = nav => () => nav.post('/procesos/api.php', { json: { accion: 'leer' } });
+      const pa = nav => () => nav.post('/proyecto-actio/api.php', { json: { accion: 'leer' } });
+      const sinCopia = () => fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });   // sin copia: van a Google
       LENTO.ms = ESPERA;
       try {
-        const solo = await uno(lista('prueba-profesor-1'));
-        ok(solo.r.status === 200 && solo.ms >= ESPERA, '(control) un pedido solo tarda una espera: ' + solo.ms + ' ms');
-        const tope = solo.ms + ESPERA / 2;   // dos a la vez sin fila: como uno solo; con fila: dos esperas
-        let x = await aLaVez([lista('prueba-profesor-1'), lista('prueba-coord-as')]);
+        const t0 = Date.now(), solo = await lista(n['prueba-profesor-1'])();
+        const unSolo = Date.now() - t0, tope = unSolo + ESPERA / 2;   // sin fila: como uno solo; con fila: dos esperas
+        ok(solo.status === 200 && unSolo >= ESPERA, '(control) un pedido solo tarda una espera: ' + unSolo + ' ms');
+        let x = await aLaVez([lista(n['prueba-profesor-1']), lista(gemelo('prueba-coord-as'))]);
         ok(x.rs.every(r => r.status === 200) && x.ms < tope, '(control) dos usuarios distintos a la vez no hacen fila: terminan a los ' + x.fines + ' (tope ' + tope + ')');
-        x = await aLaVez([lista('prueba-profesor-1'), lista('prueba-profesor-1')]);
+        x = await aLaVez([lista(n['prueba-profesor-1']), lista(gemelo('prueba-profesor-1'))]);
         ok(x.rs.every(r => r.status === 200 && r.j.ok) && x.ms < tope,
           'Pasar lista: dos lecturas a la vez del mismo usuario no hacen fila: terminan a los ' + x.fines + ' (con la sesión tomada, la segunda tardaría ' + 2 * ESPERA + ' o más)');
         ok(x.rs.every(r => r.j.tiempos && r.j.tiempos.total_ms - r.j.tiempos.script_ms < ESPERA / 2),
           'y el servidor del portal no suma tiempo que no sea de Google (' + x.rs.map(r => r.j.tiempos && (r.j.tiempos.total_ms + '/' + r.j.tiempos.script_ms)).join(' · ') + ')');
-        x = await aLaVez([asLeer('prueba-coord-as'), asLeer('prueba-coord-as')]);
+        x = await aLaVez([() => n['prueba-coord-as'].as('leer'), () => gemelo('prueba-coord-as').as('leer')]);
         ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'After School: dos lecturas a la vez del mismo usuario: terminan a los ' + x.fines);
-        fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });   // sin copia: van a Google
-        x = await aLaVez([procesos('admin-uno'), procesos('admin-uno')]);
+        sinCopia();
+        x = await aLaVez([procesos(n['admin-uno']), procesos(gemelo('admin-uno'))]);
         ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'Procesos: dos lecturas a la vez del mismo usuario: terminan a los ' + x.fines);
-        fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });
-        x = await aLaVez([() => n['admin-uno'].post('/proyecto-actio/api.php', { json: { accion: 'leer' } }), lista('admin-uno')]);
+        sinCopia();
+        x = await aLaVez([pa(n['admin-uno']), lista(gemelo('admin-uno'))]);
         ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'Proyecto Actio y Pasar lista a la vez, del mismo usuario: terminan a los ' + x.fines);
       } finally { LENTO.ms = 0; }
       // La seguridad no cambia: sin sesión, nada; y la sesión sigue abierta después.
@@ -1187,6 +1198,7 @@ echo implode(',', $r);
     }
   } finally {
     srv.kill();
+    srv2.kill();
     google.s.close();
   }
   console.log('\n' + (fallos ? '✗ ' + fallos + ' de ' + total + ' comprobaciones fallaron' : '✓ ' + total + ' comprobaciones pasan'));
