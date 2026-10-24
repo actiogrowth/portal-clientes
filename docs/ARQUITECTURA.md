@@ -91,6 +91,40 @@ pestañas → vuelta. PHP suma milisegundos; casi todo el tiempo es Google. La
 respuesta trae `tiempos: {script_ms, total_ms}` (y la cabecera
 `Server-Timing`); la pantalla lo escribe en la consola del navegador.
 
+**Demora de Pasar lista (23-oct): diagnóstico y opciones.**
+
+*Medido en producción* (total / servidor del portal / esperando a Google, en
+ms): 19-oct 2784/2710/2710 · 22-oct 3554/3478/3477 · 23-oct 8360/8281/2636 ·
+22-oct 8849/8776/3915 · 24-oct 11882/11803/3033 · 21-oct 8002/7929/4821 ·
+20-oct 11600/11524/4030. Con un pedido solo, el portal no suma nada; con la
+precarga (tres pedidos a la vez) el portal sumaba 5–9 s: era la **fila de la
+sesión**, ya corregida (D-068). Lo que queda es Google: **2,6–4,8 s por
+lectura**.
+
+*Qué hay dentro de esos segundos* (por lo que hace el código; los números de
+cada pestaña los da `MedirLectura.gs`, que se ejecuta desde el editor):
+arranque del Apps Script como aplicación web; dos idas y vueltas (el POST y la
+respuesta en `googleusercontent`); y la lectura **entera** de 7 pestañas
+(Niños, Clases, Inscripciones, Pruebas, Asistencia, Clases sin dictar,
+Config). Asistencia crece todos los días y se lee completa aunque la lista
+sea de un solo día.
+
+*Opciones (propuestas, NO construidas; la solución de fondo es la Fase 1,
+Firebase):*
+
+| | Qué | Ahorro esperado | Esfuerzo | Riesgo |
+|---|---|---|---|---|
+| A | Leer de Asistencia solo las filas recientes (la lista mira un día y la ventana es de 7): las últimas N filas, o una pestaña de archivo para lo de hace más de 3 meses | crece con el tiempo: hoy poco, en meses lo más grande | bajo | bajo, si Asistencia sigue en orden de escritura |
+| B | Leer solo las columnas que usa la lista (Niños: ID, nombre, apellidos, nacimiento; Inscripciones: niño, clase, alta, baja) | 20–40 % de la lectura de esas pestañas | bajo | bajo (el mapa de títulos ya existe) |
+| C | Copia corta en el Apps Script (CacheService, 2–5 min) de lo que no cambia durante la clase: Clases, Niños, Config, Inscripciones; Asistencia y Pruebas siempre frescas; la copia se borra en cada escritura que toca esas pestañas | lo mayor hoy: deja de leer 4 de las 7 pestañas en la mayoría de los pedidos | medio | un cambio hecho a mano en el Sheet tarda hasta 5 min en verse |
+| D | Todas las pestañas en una sola llamada (servicio avanzado de Sheets, `batchGet`) | menos idas y vueltas dentro de Google | medio | hay que activar el servicio avanzado en el proyecto |
+| E | Mantener despierto el Apps Script (un activador cada 5–10 min) | quita el arranque en frío (el primer pedido tras un rato sin uso) | bajo | consume cuota de ejecuciones |
+| F | Copia en el servidor del portal de la respuesta de un día FUTURO (solo lectura) por 1–2 min | los días futuros vuelven al instante | bajo | ninguno para marcar (los días que se marcan siguen frescos) |
+
+Recomendación: correr `MedirLectura.gs` primero; con sus números, empezar por
+**C + B** (lo que más ahorra con poco riesgo) y **A** cuando Asistencia
+pese. Nada de esto se construye sin la aprobación de Marco.
+
 ## 2b. Presentación y entrada (21-oct, rediseño con la marca Vida en Arte)
 
 | Pieza | Qué es |

@@ -32,6 +32,7 @@ const PROCESOS_TILDES = ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú
 
 $cfg = pa_config(['procesos_segmentos', 'procesos_general']);
 pa_exigir_leer();
+session_write_close();   // 23-oct: soltar la sesión antes de esperar a Google (ver pasar-lista/api.php)
 $l = pa_leer_catalogo($cfg);
 echo procesos_respuesta(pa_recortar($l['cuerpo'], false, $cfg['pa_proyectos_cliente'], $l['edad']),
     $cfg['procesos_segmentos'], $cfg['procesos_general'], roles_actuales());

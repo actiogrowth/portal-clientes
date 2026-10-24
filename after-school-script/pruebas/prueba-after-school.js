@@ -1289,6 +1289,22 @@ seccion('seguimiento: faltas seguidas, faltas por reponer y clases sin lista');
   ok(!g2.llamar('seguimiento').resultado.clasesSinLista.find(x => x.codigo === 'AYER-1600-TELAS'), 'con la lista guardada, ya no se avisa');
 }
 
+seccion('MedirLectura.gs: mide cada pestaña y la lista entera, sin escribir nada');
+{
+  const g = entornoCargado();
+  claseDeHoy(g, 'HOY-2000-TELAS', 10);
+  inscripcionPasada(g, 'AS-0001', 'HOY-2000-TELAS', AYER);
+  require('vm').runInContext(require('fs').readFileSync(require('path').join(__dirname, '..', 'MedirLectura.gs'), 'utf8'), g, { filename: 'MedirLectura.gs' });
+  const foto = () => JSON.stringify(g._libro.hojas.map(h => [h.nombre, h.datos]));
+  const antes = foto();
+  const informe = g.medirPasarLista();
+  ok(foto() === antes, 'no escribe nada en el Sheet');
+  ok(['Niños', 'Clases', 'Inscripciones', 'Pruebas', 'Asistencia', 'Clases sin dictar', 'Config'].every(n => informe.indexOf(n) >= 0) &&
+    /Suma de las 7 pestañas que lee la lista: \d+ ms/.test(informe) && /Lista completa del \d{4}-\d\d-\d\d: \d+ ms \(\d+ clases, \d+ niños\)/.test(informe) &&
+    /AfterSchool\.gs v9/.test(informe), 'el informe trae cada pestaña, la suma y la lista completa de hoy y de ayer');
+  ok(g._registro.some(s => s.indexOf('Lista completa') >= 0), 'y queda en el registro de ejecución');
+}
+
 seccion('filas más allá de la 1000');
 {
   const g = entornoCargado();

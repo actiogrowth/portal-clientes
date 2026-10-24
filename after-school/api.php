@@ -389,6 +389,9 @@ if (!defined('AS_SOLO_FUNCIONES')) {
         fallo('Tu rol no permite hacer esto en After School (' . $datos['accion'] . ').', 403, 'sin_permiso');
     }
 
+    // 23-oct: soltar la sesión antes de esperar a Google (si no, los pedidos
+    // del mismo usuario hacen fila). Desde aquí $_SESSION solo se lee.
+    session_write_close();
     $envio = envio_para($cfg['as_clave'], $usuario, $datos);
 
     $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio['json'], 'pedir',

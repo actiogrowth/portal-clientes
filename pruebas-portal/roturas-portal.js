@@ -94,6 +94,11 @@ const ROTURAS = [
   ['api.php manda los pagos a quien no ve Pagos', 'after-school/api.php', "    if (!roles_permiten($roles, 'as.pagos.ver')) {\n        foreach", "    if (false) {\n        foreach"],
   // 21-oct: Pasar lista, permisos nuevos e inactividad
   ['pasar-lista respeta el soloHoy del navegador', 'pasar-lista/api.php', "$datos['datos']['soloHoy'] = $conLimite;", "$datos['datos']['soloHoy'] = ($datos['datos']['soloHoy'] ?? false) === true;"],
+  // 23-oct: la sesión se suelta antes de esperar a Google
+  ['Pasar lista deja la sesión tomada mientras espera a Google', 'pasar-lista/api.php', "\nsession_write_close();\n", "\n"],
+  ['After School deja la sesión tomada mientras espera a Google', 'after-school/api.php', "    session_write_close();\n", ""],
+  ['Procesos deja la sesión tomada mientras espera a Google', 'procesos/api.php', "session_write_close();   // 23-oct", "//"],
+  ['Proyecto Actio deja la sesión tomada mientras espera a Google', 'proyecto-actio/api.php', "    session_write_close();   // 23-oct", "    //"],
   // 23-oct (ajustes): quitar marcas, tiempos y cambio de día seguro
   ['pasar-lista no deja pasar «quitadas»', 'pasar-lista/api.php', "'nuevas', 'corregidas', 'quitadas', 'visitasMarcadas'", "'nuevas', 'corregidas', 'visitasMarcadas'"],
   ['pasar-lista no dice cuánto tardó', 'pasar-lista/api.php', "    if ($tiempos) $out['tiempos'] = $tiempos;\n", ""],

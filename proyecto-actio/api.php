@@ -57,6 +57,7 @@ if (!defined('PA_SOLO_FUNCIONES')) {
     $cfg = pa_config([]);
     pa_exigir_leer();
     $internos = roles_permiten(roles_actuales(), 'pa.internos');
+    session_write_close();   // 23-oct: soltar la sesión antes de esperar a Google (ver pasar-lista/api.php)
     $l = pa_leer_catalogo($cfg);
     echo pa_recortar($l['cuerpo'], $internos, $cfg['pa_proyectos_cliente'], $l['edad']);
     exit;

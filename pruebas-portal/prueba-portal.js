@@ -207,6 +207,8 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
     { fecha: '2026-09-02', tipo: 'Llamada', duracionMin: 12, asunto: 'Consulta de prueba', unidad: '', enlace: '', proyecto: '', notas: 'NOTA-INTERNA', origenDuracion: 'Medida' },
     { fecha: '2026-09-03', tipo: 'Reunión virtual', duracionMin: 45, asunto: 'Asunto reservado de Actio', unidad: '', enlace: '', proyecto: 'Proyecto 2', notas: 'NOTA-INTERNA-2', origenDuracion: 'Estimada' }] });
 const PA = { llamadas: 0, falla: false };
+/* 23-oct: Google lento a propósito (ms por pedido), para ver si los pedidos del mismo usuario hacen fila. */
+const LENTO = { ms: 0 };
 
 function googleFalso() {
   const llamadas = [];
@@ -233,8 +235,10 @@ function googleFalso() {
       else if (j.accion === 'guardarLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', codigo: 'LUN-1630-PARKOUR', nuevas: 1, corregidas: 0, quitadas: 2, visitasMarcadas: 0, secreto: 'x' } };
       else if (j.accion === 'listarPagos') r = { ok: true, resultado: { mes: '2026-10', pagos: [{ id: 'PG-0001', idNino: 'AS-0001', monto: 50 }] } };
       else r = { ok: true, resultado: { id: 'AS-0003', estado: 'Prospecto', telefono: '555-0301' }, estado: ESTADO() };
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(r));
+      setTimeout(() => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(r));
+      }, LENTO.ms);
     });
   });
   return new Promise(resolve => s.listen(0, '127.0.0.1', () => resolve({ s, llamadas })));
@@ -336,7 +340,8 @@ async function correr(fuente) {
   const puerto = 20000 + Math.floor(Math.random() * 20000);
   let salidaPhp = '';
   const srv = spawn(PHP, ['-S', '127.0.0.1:' + puerto, '-t', web, path.join(tmp, 'enrutador.php')], {
-    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo }) });
+    // 23-oct: varios procesos a la vez, como el servidor real (si no, php -S atiende de a uno y no se vería la fila de la sesión).
+    env: Object.assign({}, process.env, { PORTAL_WEB: web, PORTAL_HTACCESS: htActivo, PHP_CLI_SERVER_WORKERS: '4' }) });
   srv.stdout.on('data', d => { salidaPhp += d; });
   srv.stderr.on('data', d => { salidaPhp += d; });
   const base = 'http://127.0.0.1:' + puerto;
@@ -929,6 +934,37 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         r = await pl(u, 'leerLista');
         ok(r.status === 403 && google.llamadas.length === antes, u + ' no pasa lista');
       }
+    }
+
+    seccion('sesión suelta: los pedidos del mismo usuario no hacen fila mientras se espera a Google');
+    {
+      const ESPERA = 800;   // ms por pedido a Google (corto: la prueba corre una vez por cada rotura)
+      const aLaVez = async (pedidos) => { const t0 = Date.now(); const rs = await Promise.all(pedidos.map(p => p())); return { rs, ms: Date.now() - t0 }; };
+      const lista = u => () => n[u].post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
+      LENTO.ms = ESPERA;
+      try {
+        // Control: tres usuarios distintos a la vez no hacen fila (el servidor de pruebas atiende varios pedidos).
+        let x = await aLaVez(['prueba-profesor-1', 'prueba-coord-as', 'admin-uno'].map(lista));
+        ok(x.rs.every(r => r.status === 200) && x.ms < 2 * ESPERA, '(control) tres usuarios distintos a la vez: ' + x.ms + ' ms (menos de ' + 2 * ESPERA + ')');
+        // Pasar lista: tres lecturas del MISMO usuario (la precarga de días).
+        x = await aLaVez([lista('prueba-profesor-1'), lista('prueba-profesor-1'), lista('prueba-profesor-1')]);
+        ok(x.rs.every(r => r.status === 200 && r.j.ok) && x.ms < 2 * ESPERA,
+          'Pasar lista: tres lecturas a la vez del mismo usuario tardan ' + x.ms + ' ms, no se suman (con la sesión tomada serían ' + 3 * ESPERA + ' o más)');
+        ok(x.rs.every(r => r.j.tiempos && r.j.tiempos.total_ms - r.j.tiempos.script_ms < ESPERA),
+          'y en ninguna el servidor del portal suma tiempo que no sea de Google (' + x.rs.map(r => r.j.tiempos && (r.j.tiempos.total_ms + '/' + r.j.tiempos.script_ms)).join(' · ') + ')');
+        // After School, Proyecto Actio y Procesos: lo mismo.
+        x = await aLaVez([1, 2, 3].map(() => () => n['prueba-coord-as'].as('leer')));
+        ok(x.rs.every(r => r.status === 200) && x.ms < 2 * ESPERA, 'After School: tres lecturas a la vez del mismo usuario: ' + x.ms + ' ms');
+        fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });   // sin copia: van a Google
+        x = await aLaVez([1, 2].map(() => () => n['admin-uno'].post('/procesos/api.php', { json: { accion: 'leer' } })).concat([() => n['admin-uno'].post('/proyecto-actio/api.php', { json: { accion: 'leer' } })]));
+        ok(x.rs.every(r => r.status === 200) && x.ms < 2 * ESPERA, 'Procesos y Proyecto Actio: tres lecturas a la vez del mismo usuario: ' + x.ms + ' ms');
+      } finally { LENTO.ms = 0; }
+      // La seguridad no cambia: sin sesión, nada; y el uso sigue renovando la sesión.
+      const antes = google.llamadas.length;
+      const anon = await new Nav(base).post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
+      ok(anon.status !== 200 && google.llamadas.length === antes, 'sin sesión sigue rechazando y no llega a Google');
+      const yo = await n['prueba-profesor-1'].get('/acceso.php?formato=json');
+      ok(yo.status === 200 && yo.j && yo.j.usuario === 'prueba-profesor-1', 'la sesión sigue abierta después de soltarla en cada pedido');
     }
 
     seccion('Profesor: la sesión se cierra tras 2 horas sin uso');

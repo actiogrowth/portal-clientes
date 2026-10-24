@@ -46,6 +46,11 @@ $conLimite = !roles_permiten($roles, 'as.lista.corregir');
 $datos['datos']['soloHoy'] = $conLimite;
 $datos['datos']['limiteProfesor'] = $conLimite;
 
+/* 23-oct: la sesión ya se comprobó (y se anotó el uso): se suelta ANTES de
+   esperar a Google. Si no, PHP la deja tomada hasta el final y los pedidos
+   del mismo usuario hacen fila (la precarga de días sumaba 5–9 s). Desde
+   aquí $_SESSION solo se lee. */
+session_write_close();
 $envio = envio_para($cfg['as_clave'], $usuario, $datos);
 $t0 = microtime(true);
 $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio['json'], 'pedir',
