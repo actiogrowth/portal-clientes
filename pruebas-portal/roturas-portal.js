@@ -94,13 +94,20 @@ const ROTURAS = [
   ['api.php manda los pagos a quien no ve Pagos', 'after-school/api.php', "    if (!roles_permiten($roles, 'as.pagos.ver')) {\n        foreach", "    if (false) {\n        foreach"],
   // 21-oct: Pasar lista, permisos nuevos e inactividad
   ['pasar-lista respeta el soloHoy del navegador', 'pasar-lista/api.php', "$datos['datos']['soloHoy'] = $conLimite;", "$datos['datos']['soloHoy'] = ($datos['datos']['soloHoy'] ?? false) === true;"],
+  // 23-oct (ajustes): quitar marcas, tiempos y cambio de día seguro
+  ['pasar-lista no deja pasar «quitadas»', 'pasar-lista/api.php', "'nuevas', 'corregidas', 'quitadas', 'visitasMarcadas'", "'nuevas', 'corregidas', 'visitasMarcadas'"],
+  ['pasar-lista no dice cuánto tardó', 'pasar-lista/api.php', "    if ($tiempos) $out['tiempos'] = $tiempos;\n", ""],
+  ['la pantalla pinta la respuesta de un pedido anterior', 'after-school/index.html', "  if (n !== LISTA.pedido) return;                         // respuesta de un pedido anterior", ""],
+  ['las flechas cuentan desde la última respuesta (dos toques)', 'after-school/index.html', "$('#plSig').onclick = () => irADiaLista(sumarDia(diaActual(), 1));", "$('#plSig').onclick = () => irADiaLista(sumarDia((LISTA.datos || {}).fecha || diaActual(), 1));"],
+  ['tocar otra vez no quita la marca', 'after-school/index.html', "b.getAttribute('aria-pressed') === 'true' ? '' : b.dataset.e", "b.dataset.e"],
+  ['al guardar no se mandan las marcas quitadas', 'after-school/index.html', "  if (q.quitar.length) datos.quitar = q.quitar;\n", ""],
   // 23-oct: ventana del Profesor (AfterSchool.gs v8)
   ['pasar-lista respeta el limiteProfesor del navegador', 'pasar-lista/api.php', "$datos['datos']['limiteProfesor'] = $conLimite;", "$datos['datos']['limiteProfesor'] = ($datos['datos']['limiteProfesor'] ?? false) === true;"],
   ['pasar-lista no manda la ventana al script (el Profesor queda solo hoy)', 'pasar-lista/api.php', "$datos['datos']['limiteProfesor'] = $conLimite;\n", ""],
   ['la pantalla no recibe la ventana ni si el día es solo para ver', 'pasar-lista/api.php', "'otroDia', 'desde', 'hasta', 'soloLectura', 'estados'", "'otroDia', 'estados'"],
   ['el Profesor no ve Inicio ni Procesos en Pasar lista', 'after-school/index.html', "accesos: accesosProfesor(ses)", "accesos: []"],
   ['pasar-lista deja pasar otras acciones', 'pasar-lista/api.php', "if (!in_array($datos['accion'], ACCIONES_LISTA, true)) fallo(", "if (false) fallo("],
-  ['pasar-lista no recorta la respuesta', 'pasar-lista/api.php', "if ($res['http'] === 200) $res['cuerpo'] = lista_recortada($res['cuerpo']);", ""],
+  ['pasar-lista no recorta la respuesta', 'pasar-lista/api.php', "if ($res['http'] === 200) $res['cuerpo'] = lista_recortada($res['cuerpo'], $tiempos);", ""],
   ['la lista blanca deja pasar contactos', 'pasar-lista/api.php', "return $toma($n, ['idNino', 'nombre', 'edad', 'presencia', 'idVisita', 'estado', 'nota']);", "return $n;"],
   ['after-school/api.php acepta Pasar lista', 'after-school/api.php', "    if (in_array($datos['accion'], ['leerLista', 'guardarLista'], true)) {", "    if (false) {"],
   ['el Profesor no tiene tope de inactividad', 'portal-raiz/permisos.php', "        'inactividad_max' => 7200,\n", ""],

@@ -47,17 +47,24 @@ $datos['datos']['soloHoy'] = $conLimite;
 $datos['datos']['limiteProfesor'] = $conLimite;
 
 $envio = envio_para($cfg['as_clave'], $usuario, $datos);
+$t0 = microtime(true);
 $res = llamar_apps_script($datos['accion'], $cfg['as_exec'], $envio['json'], 'pedir',
     function ($s) { usleep((int) ($s * 1000000)); },
     function ($linea) { error_log($linea); },
     function () { return microtime(true); },
     $envio['conId']);
-if ($res['http'] === 200) $res['cuerpo'] = lista_recortada($res['cuerpo']);
+/* 23-oct: cuánto tardó (para saber de dónde viene la demora): «script» es la
+   ida y vuelta a Google (el Apps Script y la red), «total» todo el pedido en
+   este servidor. Pasar lista no tiene copia temporal: cada lectura va a Google. */
+$ms = function ($desde) { return (int) round((microtime(true) - $desde) * 1000); };
+$tiempos = ['script_ms' => $ms($t0), 'total_ms' => $ms((float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? $t0))];
+header('Server-Timing: script;dur=' . $tiempos['script_ms'] . ', total;dur=' . $tiempos['total_ms']);
+if ($res['http'] === 200) $res['cuerpo'] = lista_recortada($res['cuerpo'], $tiempos);
 http_response_code($res['http']);
 echo $res['cuerpo'];
 
 /** Solo lo que la pantalla de Pasar lista necesita (lista blanca). */
-function lista_recortada(string $cuerpo): string {
+function lista_recortada(string $cuerpo, array $tiempos = []): string {
     $j = json_decode($cuerpo, true);
     if (!is_array($j)) return $cuerpo;
     $toma = function ($o, array $claves) {
@@ -81,8 +88,9 @@ function lista_recortada(string $cuerpo): string {
         }, $res['clases']);
         $out['resultado'] = $r;
     } elseif (is_array($res)) {
-        $out['resultado'] = $toma($res, ['fecha', 'codigo', 'nuevas', 'corregidas', 'visitasMarcadas']);
+        $out['resultado'] = $toma($res, ['fecha', 'codigo', 'nuevas', 'corregidas', 'quitadas', 'visitasMarcadas']);
     }
     $out['permisos'] = ['puedeOtroDia' => roles_permiten(roles_actuales(), 'as.lista.corregir')];
+    if ($tiempos) $out['tiempos'] = $tiempos;
     return json_encode($out, JSON_UNESCAPED_UNICODE);
 }

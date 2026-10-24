@@ -164,6 +164,19 @@ de mirar la clase. Para la coordinación, `hasta` = hoy + M; si faltara ese
 parámetro en Config, sigue corrigiendo los días pasados y solo no ve los
 futuros.
 
+**Quitar una marca** (23-oct, AfterSchool.gs v9). `quitar` lleva los niños
+cuya marca guardada se quita (en la pantalla: tocar otra vez el estado ya
+elegido) y `quitarFuera`, los «fuera de lista» que se quitan. Con las mismas
+reglas de día que marcar (Profesor: de `desde` a hoy; coordinación: cualquier
+día pasado; nadie: un día futuro). La fila se **borra** de Asistencia y queda
+en Historial «Quitar asistencia» con quién, cuándo y lo que decía antes. Si
+era una visita que la lista había marcado sola (Asistió / No asistió), la
+visita vuelve a «Agendada». No se quita: un niño que no está en la lista, ni
+el mismo niño en `marcas` y en `quitar`, ni una falta que ya tiene una
+reposición en pie, ni un «fuera de lista» que la coordinación ya resolvió.
+Un niño sin marca guardada en `quitar` no hace nada. La lista puede llevar
+solo quitas.
+
 **Cada corrección deja rastro** en Historial («Corregir asistencia» o «Corregir nota»), con
 quién la hizo y cuándo (columnas Usuario y Fecha) y en el detalle el estado y la nota de
 antes, quién los había marcado y a qué hora. La fila de Asistencia queda con lo nuevo
@@ -173,7 +186,7 @@ Asistencia: refleja la corrección sin hacer nada más.
 | Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
 |---|---|---|---|---|---|---|
 | `leerLista` | L | as.lista.ver | Pr (de `desde` a `hasta`), Ad Di CA (cualquier día pasado y hasta `hasta`) | `fecha?` (hoy) | `{fecha, hoy, dia, otroDia, desde, hasta, soloLectura, estados[], clases[{codigo, servicio, hora, guardada, sinClase, ninos[{idNino, nombre, edad, presencia, idVisita, estado, nota}], fueraDeLista[{idAsistencia, nombre, estado, nota}]}]}`. `desde`: '' si no hay límite hacia atrás | `fuera_de_plazo` · `sin_configuracion` · `solo_hoy` (script anterior a v8) |
-| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (de `desde` a hoy), Ad Di CA (cualquier día no futuro) | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]` | `{fecha, codigo, nuevas, corregidas, visitasMarcadas}` | `fuera_de_plazo` · `dia_futuro` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
+| `guardarLista` | E (sin `estado`) | as.lista.marcar | Pr (de `desde` a hoy), Ad Di CA (cualquier día no futuro) | `fecha?`, `codigo`, `marcas[{idNino, estado, nota?}]`, `fueraDeLista[{idAsistencia?, nombre, estado, nota?}]`, `quitar[idNino]?`, `quitarFuera[idAsistencia]?` (v9) | `{fecha, codigo, nuevas, corregidas, quitadas, visitasMarcadas}` | `fuera_de_plazo` · `dia_futuro` · `sin_configuracion` · `solo_hoy` (script anterior a v8) · clase de otro día · «No hubo clase» · niño fuera de la lista · repetido · estado inválido · lista vacía · fuera de lista sin nombre |
 
 `presencia`: `Inscrito`, `Prueba`, `Reposición`, `Eventual`. `estado`: `Presente`,
 `Llegó tarde`, `Ausente`, `Falta justificada`. Recepción, Comercial, Contabilidad y

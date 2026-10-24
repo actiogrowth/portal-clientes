@@ -353,64 +353,52 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
 }
 
 /* ── Pasar lista ───────────────────────────────────────────────────────── */
-.pl-clases { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
-.pl-clase { flex-shrink: 0; min-height: var(--toque-lista); padding: 0 18px; border-radius: var(--radio-chico); border: 2px solid var(--gris);
-  background: var(--blanco); color: var(--texto); font-size: 15px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+/* 23-oct (ajustes): compacta en TODAS las pantallas (los profesores usan
+   tablet): filas de ~54 px para que en una tablet vertical quepan al menos 8
+   niños sin desplazarse; nombres en Poppins 16 px / 600 y la edad debajo en
+   13 px; los botones de estado siguen de 44 px de alto (dedo). */
+#v-lista.columna { gap: 12px; }
+#plAviso:empty { display: none; }
+.pl-clases { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.pl-clase { flex-shrink: 0; min-height: var(--toque); padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--gris);
+  background: var(--blanco); color: var(--texto); font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .pl-clase[aria-pressed="true"] { border-color: var(--negro); background: var(--negro); color: var(--blanco); font-weight: 600; }
 .pl-clase .hecha { font-size: 12px; font-weight: 600; }
-.pl-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pl-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pl-titulo { font-size: 28px; line-height: 1; }
 .pl-cab .cuenta { text-align: right; }
-.pl-cab .cuenta b { font-family: var(--titulos); font-size: 40px; line-height: 1; display: block; font-weight: 400; }
-.pl-ninos { display: flex; flex-direction: column; gap: 10px; }
-.pl-nino { border: 1px solid var(--gris); border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.pl-nino .ini { width: 48px; height: 48px; border-radius: 50%; background: var(--rosa); color: var(--rojo-oscuro); font-weight: 600;
+.pl-cab .cuenta b { font-family: var(--titulos); font-size: 28px; line-height: 1; display: block; font-weight: 400; }
+.pl-ninos { display: flex; flex-direction: column; gap: 4px; }
+.pl-nino { border: 1px solid var(--gris); border-radius: 12px; padding: 4px 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pl-nino .ini { width: 34px; height: 34px; border-radius: 50%; background: var(--rosa); color: var(--rojo-oscuro); font-size: 13px; font-weight: 600;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.pl-nino .datos { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 2px; }
-.pl-nino .datos b { font-size: 18px; }
-.pl-nino .datos span { font-size: 14px; color: var(--texto-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pl-marca { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--arena); color: var(--cafe); }
+.pl-nino .datos { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 0; }
+.pl-nino .datos b { font-family: var(--fuente); font-size: 16px; font-weight: 600; line-height: 1.25; letter-spacing: 0; text-transform: none; }
+.pl-nino .datos span { font-size: 13px; color: var(--texto-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pl-marca { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--arena); color: var(--cafe); }
 .pl-marca.fuera { background: var(--celeste); color: var(--negro); }
-.pl-botones { display: flex; gap: 6px; flex-wrap: wrap; }
-.pl-botones button { min-height: var(--toque-lista); min-width: 84px; padding: 0 10px; border-radius: var(--radio-chico); border: 2px solid var(--gris);
+.pl-botones { display: flex; gap: 4px; }
+.pl-botones button { min-height: var(--toque); min-width: 72px; padding: 0 8px; border-radius: 10px; border: 1.5px solid var(--gris);
   background: var(--blanco); color: var(--texto); font-size: 14px; font-weight: 600; cursor: pointer; }
 .pl-botones button[aria-pressed="true"][data-e="Presente"] { background: var(--presente); border-color: var(--presente); color: var(--blanco); }
 .pl-botones button[aria-pressed="true"][data-e="Llegó tarde"] { background: var(--tarde); border-color: var(--tarde); color: var(--negro); }
 .pl-botones button[aria-pressed="true"][data-e="Ausente"] { background: var(--ausente); border-color: var(--ausente); color: var(--blanco); }
 .pl-botones button[aria-pressed="true"][data-e="Falta justificada"] { background: var(--justificada); border-color: var(--justificada); color: var(--blanco); }
-.pl-pie { position: sticky; bottom: 0; background: var(--blanco); border-top: 1px solid var(--gris); padding: 14px 0 calc(14px + env(safe-area-inset-bottom, 0px));
-  display: flex; flex-direction: column; gap: 10px; }
-.pl-pie .fila { display: flex; gap: 10px; flex-wrap: wrap; }
-.pl-pie .fila > * { flex: 1; min-width: 200px; }
-.pl-pie .btn { min-height: 56px; border-radius: 16px; }
-.pl-pie .guardar { min-height: 64px; border-radius: 18px; font-size: 18px; }
-.pl-fuera { display: flex; gap: 8px; }
-.pl-fuera input { flex: 1; min-height: var(--toque-lista); }
+.pl-pie { position: sticky; bottom: 0; background: var(--blanco); border-top: 1px solid var(--gris); padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pl-pie .fila { display: flex; gap: 8px; flex: 2 1 360px; }
+.pl-pie .fila > * { flex: 1; min-width: 0; }
+.pl-pie .btn { min-height: var(--toque); border-radius: 999px; }
+.pl-pie .guardar { flex: 1 1 200px; min-height: 48px; font-size: 16px; border-radius: 999px; }
+.pl-fuera { display: flex; gap: 8px; flex-basis: 100%; order: 1; }
+.pl-fuera input { flex: 1; min-height: var(--toque); }
 
-/* Computador con mouse (coordinación): versión compacta, filas de ~44px y
-   botones de ~36px. En pantallas táctiles y para el Profesor queda grande. */
 /* Computador con mouse (también el Profesor): las clases del día en varias
    líneas, sin desplazamiento ni barra, y la lista con ancho máximo para que
    los botones queden cerca de los nombres. */
 @media (pointer: fine) {
   #v-lista { max-width: 900px; }
   .pl-clases { flex-wrap: wrap; overflow-x: visible; padding-bottom: 0; }
-}
-@media (pointer: fine) {
-  body:not(.solo-lista) .pl-clase { min-height: 40px; border-width: 1.5px; }
-  body:not(.solo-lista) .pl-ninos { gap: 6px; }
-  body:not(.solo-lista) .pl-nino { padding: 4px 10px; gap: 10px; border-radius: 12px; min-height: 44px; }
-  body:not(.solo-lista) .pl-nino .ini { width: 30px; height: 30px; font-size: 12px; }
-  body:not(.solo-lista) .pl-nino .datos { flex-direction: row; align-items: center; gap: 10px; }
-  body:not(.solo-lista) .pl-nino .datos b { font-size: 15px; }
-  body:not(.solo-lista) .pl-nino .datos span { font-size: 13px; }
-  body:not(.solo-lista) .pl-botones { gap: 4px; }
-  body:not(.solo-lista) .pl-botones button { min-height: 36px; min-width: 76px; border-radius: 10px; font-size: 13px; border-width: 1.5px; }
-  body:not(.solo-lista) .pl-cab .cuenta b { font-size: 32px; }
-  body:not(.solo-lista) #plTitulo { font-size: 40px !important; }
-  body:not(.solo-lista) .pl-pie { padding: 10px 0; }
-  body:not(.solo-lista) .pl-pie .btn { min-height: 44px; border-radius: 999px; }
-  body:not(.solo-lista) .pl-pie .guardar { min-height: 48px; font-size: 16px; }
-  body:not(.solo-lista) .pl-fuera input { min-height: var(--toque); }
 }
 
 /* ── Proyecto Actio (22-oct; 23-oct: cabecera baja, Documentos, desplegables) ── */
@@ -524,7 +512,7 @@ body.pa-visor-abierto { overflow: hidden; }
 /* ── Accesos del encabezado (23-oct): el Profesor en Pasar lista ve «Inicio»
    y «Procesos» como texto, en una fila propia que no se oculta en celular. */
 .cab-accesos { border-top: 1px solid #EFEFEF; }
-.cab-accesos-in { max-width: 1200px; margin: 0 auto; padding: 6px 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+.cab-accesos-in { max-width: 1200px; margin: 0 auto; padding: 4px 20px; display: flex; gap: 8px; flex-wrap: wrap; }
 .cab-accesos a { min-height: var(--toque); display: inline-flex; align-items: center; padding: 0 18px; border: 1px solid var(--gris);
   border-radius: 999px; color: var(--texto); font-size: 15px; font-weight: 600; text-decoration: none; }
 .cab-accesos a:hover { border-color: var(--negro); color: var(--texto); }
@@ -621,7 +609,7 @@ a.pr-unidad:hover { border-color: var(--negro); color: var(--texto); }
 @media (max-width: 640px) {
   .pagina { padding: 20px 14px 48px; gap: 18px; }
   .cab-in { padding: 10px 14px; }
-  .cab-accesos-in { padding: 6px 14px; }
+  .cab-accesos-in { padding: 4px 14px; }
   .pl-dia-fecha { min-width: 0; flex: 1; font-size: 16px; }
   .cab-quien .rol { display: none; }
   .cab-in { flex-wrap: nowrap; }
@@ -640,14 +628,11 @@ a.pr-unidad:hover { border-color: var(--negro); color: var(--texto); }
   .adorno { display: none; }
   .unidad { min-height: 0; padding: 18px; gap: 12px; }
   .unidad .icono { width: 48px; height: 48px; }
-  .pl-nino { gap: 10px; }
-  .pl-nino .ini { width: 40px; height: 40px; }
+  /* Pasar lista en celular: el nombre arriba y los cuatro estados en una fila debajo. */
   .pl-nino .datos { min-width: 0; }
-  .pl-pie { padding-top: 10px; gap: 8px; }
-  .pl-pie .fila > * { min-width: 0; font-size: 14px; padding: 0 10px; white-space: normal; line-height: 1.2; }
-  .pl-pie .btn { min-height: 52px; }
-  .pl-botones { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); }
-  .pl-botones button { min-width: 0; }
+  .pl-pie .fila > * { font-size: 14px; padding: 0 10px; white-space: normal; line-height: 1.2; }
+  .pl-botones { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
+  .pl-botones button { min-width: 0; padding: 0 4px; font-size: 13px; }
   .encabezado .acciones-cab { width: 100%; }
   .encabezado .acciones-cab .btn { flex: 1; }
 }

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=5ef57126b8">
+<link rel="stylesheet" href="/comun/vea.css?v=1c5ea26b14">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
@@ -83,7 +83,7 @@
     <div class="pl-clases" id="plClases" role="group" aria-label="Clases del día"></div>
     <div id="plCuerpo" class="oculto columna">
       <div class="pl-cab">
-        <div><h2 class="titulo" id="plTitulo" style="font-size:clamp(36px,6vw,56px)"></h2><p class="ayuda" id="plSub"></p></div>
+        <div><h2 class="titulo pl-titulo" id="plTitulo"></h2><p class="ayuda" id="plSub"></p></div>
         <div class="cuenta"><b id="plCuenta">0/0</b><span class="ayuda">marcados</span></div>
       </div>
       <div class="pl-ninos" id="plNinos"></div>
@@ -1718,21 +1718,121 @@ function pintarRevisar() {
    Abre con la clase de la hora actual ya elegida.
    ========================================================================== */
 const ESTADOS_PL = [['Presente', 'Presente'], ['Llegó tarde', 'Tarde'], ['Ausente', 'Ausente'], ['Falta justificada', 'Justif.']];
-const LISTA = { datos: null, actual: null, marcas: {}, fuera: [], cambios: false, cargando: false, otroDia: false, ultimo: { clave: '', id: '' } };
-const iniciales = t => t.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
+/* 23-oct (ajustes): cada pedido lleva su número y se descarta la respuesta que
+   no sea del día en pantalla (también si llegan desordenadas). Los días ya
+   leídos quedan en memoria (cache): volver es instantáneo y se refresca por
+   detrás; el día anterior y el siguiente se leen antes de pedirlos. */
+const LISTA = { datos: null, actual: null, marcas: {}, fuera: [], cambios: false, cargando: false, otroDia: false, ultimo: { clave: '', id: '' },
+  dia: '', pedido: 0, cache: {}, enCurso: {}, lim: null };
+/* Nombres en letra normal: un nombre escrito todo en mayúsculas (así vienen
+   de Poliwin) se muestra con mayúscula inicial. El dato no cambia. */
+const MENORES = ['de', 'del', 'la', 'las', 'los', 'y', 'e'];
+function nombreLegible(s) {
+  s = String(s || '').trim();
+  if (!s || s !== s.toUpperCase() || !/[A-ZÁÉÍÓÚÑ]{2}/.test(s)) return s;
+  return s.toLowerCase().split(/(\s+|-)/).map((p, i) => i && MENORES.includes(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join('');
+}
+const iniciales = t => nombreLegible(t).split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
 function horaLocal() { const d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
 function avisoLista(html, tipo) { $('#plAviso').innerHTML = html ? '<div class="aviso ' + (tipo || 'mal') + '">' + html + '</div>' : ''; }
 
-async function cargarLista(fecha, codigo) {
+/* El día (23-oct): «Viernes 23 oct», flechas y «Hoy». El Profesor va de
+   desde a hasta (la ventana de Config; los días futuros solo se ven); la
+   coordinación, a cualquier día pasado y, como el Profesor, a los próximos
+   días sin marcar (también con el calendario). Lo decide y lo vuelve a
+   comprobar el servidor. */
+function diaCorto(iso) {
+  const s = new Date(iso + 'T12:00:00').toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/[.,]/g, '');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function sumarDia(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+const diaActual = () => LISTA.dia || (LISTA.lim && LISTA.lim.hoy) || '';
+const dentroDeLimites = iso => { const L = LISTA.lim; return !!L && !(L.desde && iso < L.desde) && iso <= (L.hasta || L.hoy); };
+function pintarDiaLista(dia) {
+  const L = LISTA.lim, d = dia || diaActual();
+  $('#plFechaTxt').textContent = d ? diaCorto(d) + (L && d === L.hoy ? ' · hoy' : '') : 'Hoy';
+  $('#plAnt').disabled = !L || !d || !dentroDeLimites(sumarDia(d, -1));
+  $('#plSig').disabled = !L || !d || !dentroDeLimites(sumarDia(d, 1));
+  $('#plHoy').disabled = !L || d === L.hoy;
+  $('#plFecha').classList.toggle('oculto', !LISTA.otroDia);
+  if (L) { $('#plFecha').value = d; $('#plFecha').max = L.hasta || L.hoy; $('#plFecha').min = L.desde || ''; }
+}
+
+/* Una lectura del servidor (una sola a la vez por día). Queda en memoria con
+   la fecha que DICE LA RESPUESTA, y anota en la consola cuánto tardó. */
+function leerDia(dia) {
+  if (LISTA.enCurso[dia]) return LISTA.enCurso[dia];
+  const t0 = performance.now();
+  const p = Datos.lista.leer(dia).then(r => {
+    const f = r.resultado && r.resultado.fecha;
+    if (f) LISTA.cache[f] = { r, t: Date.now() };
+    const t = r.tiempos || {};
+    console.info('Pasar lista · ' + (f || dia || 'hoy') + ': ' + Math.round(performance.now() - t0) + ' ms en total; ' +
+      (t.total_ms !== undefined ? t.total_ms + ' ms en el servidor del portal, de ellos ' + t.script_ms + ' ms esperando a Google (Apps Script).' : 'sin medición del servidor.'));
+    return r;
+  }).finally(() => { delete LISTA.enCurso[dia]; });
+  LISTA.enCurso[dia] = p;
+  return p;
+}
+
+/* Deja la pantalla vacía y en «cargando» al instante: nunca queda la lista de otro día. */
+function limpiarLista(dia) {
+  LISTA.datos = null; LISTA.actual = null; LISTA.marcas = {}; LISTA.fuera = []; LISTA.cambios = false;
+  $('#plClases').innerHTML = ''; $('#plNinos').innerHTML = '';
+  $('#plCuerpo').classList.add('oculto'); $('#plCuerpo').classList.remove('pl-solo-ver');
+  avisoLista('Leyendo la lista' + (dia ? ' del ' + esc(diaCorto(dia)) : '') + '…', 'info');
+  pintarDiaLista(dia);
+}
+
+/**
+ * Muestra el día pedido. Con el día en memoria, al instante y después se
+ * refresca por detrás (sin pisar marcas sin guardar). Sin él, limpia y lee.
+ * sinLimpiar: tras guardar, deja lo que hay en pantalla mientras relee.
+ */
+async function cargarLista(fecha, codigo, sinLimpiar) {
+  const dia = fecha || '';
+  const n = ++LISTA.pedido;
+  LISTA.dia = dia;
+  const previa = dia && LISTA.cache[dia];
+  if (previa) pintarRespuesta(previa.r, codigo);
+  else if (!sinLimpiar) limpiarLista(dia);
   LISTA.cargando = true;
-  $('#plClases').innerHTML = '<p class="ayuda">Leyendo las clases…</p>';
   let r;
-  try { r = await Datos.lista.leer(fecha || ''); }
-  catch (e) { LISTA.cargando = false; if (e.codigo === 'sesion') { Datos.aLogin(); return; } $('#plClases').innerHTML = ''; avisoLista(esc(e.message)); return; }
+  try { r = await leerDia(dia); }
+  catch (e) {
+    if (n !== LISTA.pedido) return;                       // ya se pidió otro día
+    LISTA.cargando = false;
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    if (!previa) { $('#plClases').innerHTML = ''; $('#plCuerpo').classList.add('oculto'); avisoLista(esc(e.message)); }
+    return;
+  }
+  if (n !== LISTA.pedido) return;                         // respuesta de un pedido anterior: se descarta (quedó en memoria)
   LISTA.cargando = false;
+  if (dia && r.resultado.fecha !== dia) return;           // no es el día en pantalla
+  const actual = LISTA.actual && LISTA.actual.codigo;
+  if (previa && LISTA.cambios) { precargarVecinos(); return; }   // hay marcas sin guardar: no se pisan
+  if (!previa || JSON.stringify(previa.r.resultado) !== JSON.stringify(r.resultado) || !LISTA.datos)
+    pintarRespuesta(r, codigo || actual);
+  precargarVecinos();
+}
+
+/* El día anterior y el siguiente, si están en los límites y no se leyeron. */
+function precargarVecinos() {
+  const d = diaActual();
+  if (!d) return;
+  [sumarDia(d, -1), sumarDia(d, 1)].forEach(x => {
+    if (dentroDeLimites(x) && !LISTA.cache[x] && !LISTA.enCurso[x]) leerDia(x).catch(() => {});
+  });
+}
+
+/* Pinta UNA respuesta: el modo «solo ver» y los botones salen de ESTA respuesta, nunca del estado anterior. */
+function pintarRespuesta(r, codigo) {
   LISTA.datos = r.resultado;
+  LISTA.dia = r.resultado.fecha;
   LISTA.otroDia = !!(r.permisos && r.permisos.puedeOtroDia);
-  pintarDiaLista();
+  LISTA.lim = { hoy: r.resultado.hoy, desde: r.resultado.desde || '', hasta: r.resultado.hasta || r.resultado.hoy };
+  pintarDiaLista(LISTA.datos.fecha);
+  LISTA.actual = null;
   const clases = LISTA.datos.clases.filter(c => !c.sinClase);
   // La clase de la hora actual: la hora de la última que ya empezó (si
   // ninguna, la primera del día). Entre las de esa hora, primero una con
@@ -1745,36 +1845,20 @@ async function cargarLista(fecha, codigo) {
   const conNinos = c => c.ninos.length + c.fueraDeLista.length > 0;
   pintarClasesLista();
   const elegir = pedida || deEsaHora.find(c => conNinos(c) && !c.guardada) || deEsaHora.find(conNinos) || deEsaHora[0] || clases[0];
-  if (elegir) abrirClaseLista(elegir.codigo); else { $('#plCuerpo').classList.add('oculto'); avisoLista('No hay clases este día.', 'info'); }
+  if (elegir) abrirClaseLista(elegir.codigo);
+  else { LISTA.marcas = {}; LISTA.fuera = []; LISTA.cambios = false; $('#plCuerpo').classList.add('oculto'); avisoLista('No hay clases este día.', 'info'); }
 }
 
-/* El día (23-oct): «Viernes 23 oct», flechas y «Hoy». El Profesor va de
-   desde a hasta (la ventana de Config; los días futuros solo se ven); la
-   coordinación, a cualquier día pasado (también con el calendario). Lo
-   decide y lo vuelve a comprobar el servidor. */
-function diaCorto(iso) {
-  const s = new Date(iso + 'T12:00:00').toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/[.,]/g, '');
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-function sumarDia(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
-function pintarDiaLista() {
-  const d = LISTA.datos, hasta = d.hasta || d.hoy;
-  $('#plFechaTxt').textContent = diaCorto(d.fecha) + (d.fecha === d.hoy ? ' · hoy' : '');
-  $('#plAnt').disabled = !!d.desde && d.fecha <= d.desde;
-  $('#plSig').disabled = d.fecha >= hasta;
-  $('#plHoy').disabled = d.fecha === d.hoy;
-  $('#plFecha').classList.toggle('oculto', !LISTA.otroDia);
-  $('#plFecha').value = d.fecha; $('#plFecha').max = hasta; $('#plFecha').min = d.desde || '';
-}
 function irADiaLista(iso) {
-  if (!iso || !LISTA.datos || iso === LISTA.datos.fecha) return;
+  if (!iso || iso === diaActual() || !dentroDeLimites(iso)) return;
   if (LISTA.cambios && !confirm('Hay marcas sin guardar en esta clase. ¿Cambiar de día igual? Se pierden.')) { pintarDiaLista(); return; }
   LISTA.cambios = false;
   cargarLista(iso);
 }
-$('#plAnt').onclick = () => irADiaLista(sumarDia(LISTA.datos.fecha, -1));
-$('#plSig').onclick = () => irADiaLista(sumarDia(LISTA.datos.fecha, 1));
-$('#plHoy').onclick = () => irADiaLista(LISTA.datos.hoy);
+/* Las flechas cuentan desde el día EN PANTALLA (no desde la última respuesta): un toque basta siempre. */
+$('#plAnt').onclick = () => irADiaLista(sumarDia(diaActual(), -1));
+$('#plSig').onclick = () => irADiaLista(sumarDia(diaActual(), 1));
+$('#plHoy').onclick = () => { if (LISTA.lim) irADiaLista(LISTA.lim.hoy); };
 
 function pintarClasesLista() {
   const d = LISTA.datos;
@@ -1812,33 +1896,48 @@ function abrirClaseLista(codigo) {
 function botonesLista(clave, estado) {
   const soloVer = !!(LISTA.datos && LISTA.datos.soloLectura);
   return '<div class="pl-botones" role="group" aria-label="Asistencia">' + ESTADOS_PL.map(([e, t]) =>
-    '<button type="button" data-k="' + esc(clave) + '" data-e="' + esc(e) + '" aria-pressed="' + (estado === e) + '"' + (soloVer ? ' disabled' : '') + '>' + t + '</button>').join('') + '</div>';
+    '<button type="button" data-k="' + esc(clave) + '" data-e="' + esc(e) + '" aria-pressed="' + (estado === e) + '"' +
+    (estado === e ? ' title="Toca otra vez para quitar la marca"' : '') + (soloVer ? ' disabled' : '') + '>' + t + '</button>').join('') + '</div>';
 }
 
 function pintarNinosLista() {
   const c = LISTA.actual;
   $('#plNinos').innerHTML = c.ninos.map(n => '<div class="pl-nino"><span class="ini" aria-hidden="true">' + esc(iniciales(n.nombre)) + '</span>' +
-      '<div class="datos"><b>' + esc(n.nombre) + '</b><span>' + esc(n.edad) + (n.presencia !== 'Inscrito' ? ' <span class="pl-marca">' + esc(n.presencia) + '</span>' : '') + '</span></div>' +
+      '<div class="datos"><b>' + esc(nombreLegible(n.nombre)) + '</b><span>' + esc(n.edad) + (n.presencia !== 'Inscrito' ? ' <span class="pl-marca">' + esc(n.presencia) + '</span>' : '') + '</span></div>' +
       botonesLista('n:' + n.idNino, LISTA.marcas[n.idNino]) + '</div>').join('') +
     LISTA.fuera.map((f, i) => '<div class="pl-nino"><span class="ini" aria-hidden="true">' + esc(iniciales(f.nombre)) + '</span>' +
-      '<div class="datos"><b>' + esc(f.nombre) + '</b><span><span class="pl-marca fuera">Fuera de lista</span></span></div>' +
+      '<div class="datos"><b>' + esc(nombreLegible(f.nombre)) + '</b><span><span class="pl-marca fuera">Fuera de lista</span></span></div>' +
       botonesLista('f:' + i, f.estado) + '</div>').join('') ||
     '<div class="aviso info">Esta clase no tiene niños este día. Si vino alguien, agrégalo abajo.</div>';
   $('#plNinos').querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
-    const k = b.dataset.k;
-    if (k.startsWith('n:')) LISTA.marcas[k.slice(2)] = b.dataset.e; else LISTA.fuera[+k.slice(2)].estado = b.dataset.e;
+    if (LISTA.datos.soloLectura) return;
+    // Tocar otra vez el estado ya elegido lo quita (vuelve a «sin marcar»).
+    const k = b.dataset.k, nuevo = b.getAttribute('aria-pressed') === 'true' ? '' : b.dataset.e;
+    if (k.startsWith('n:')) { if (nuevo) LISTA.marcas[k.slice(2)] = nuevo; else delete LISTA.marcas[k.slice(2)]; }
+    else LISTA.fuera[+k.slice(2)].estado = nuevo;
     LISTA.cambios = true;
-    b.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    b.parentNode.querySelectorAll('button').forEach(x => {
+      const si = x === b && !!nuevo;
+      x.setAttribute('aria-pressed', si ? 'true' : 'false');
+      if (si) x.title = 'Toca otra vez para quitar la marca'; else x.removeAttribute('title');
+    });
     pintarCuentaLista();
   });
   pintarCuentaLista();
 }
 
+/* Lo que se quita al guardar: marcas que estaban guardadas y ya no están. */
+const quitasLista = c => ({
+  quitar: c.ninos.filter(n => n.estado && !LISTA.marcas[n.idNino]).map(n => n.idNino),
+  quitarFuera: LISTA.fuera.filter(f => f.idAsistencia && !f.estado).map(f => f.idAsistencia)
+});
+
 function pintarCuentaLista() {
   const c = LISTA.actual, total = c.ninos.length + LISTA.fuera.length;
   const hechos = c.ninos.filter(n => LISTA.marcas[n.idNino]).length + LISTA.fuera.filter(f => f.estado).length;
+  const q = quitasLista(c), quitas = q.quitar.length + q.quitarFuera.length;
   $('#plCuenta').textContent = hechos + '/' + total;
-  $('#plGuardar').disabled = !hechos;
+  $('#plGuardar').disabled = !hechos && !quitas;
   $('#plGuardar').textContent = c.guardada && !LISTA.cambios ? '✓ Lista guardada' : 'Guardar lista';
 }
 
@@ -1859,10 +1958,12 @@ $('#plFueraNombre').onkeydown = e => { if (e.key === 'Enter') $('#plFueraAgregar
 $('#plFecha').onchange = () => irADiaLista($('#plFecha').value);
 
 $('#plGuardar').onclick = async () => {
-  const c = LISTA.actual;
-  const datos = { fecha: LISTA.datos.fecha, codigo: c.codigo,
+  const c = LISTA.actual, fecha = LISTA.datos.fecha, q = quitasLista(c);
+  const datos = { fecha, codigo: c.codigo,
     marcas: c.ninos.filter(n => LISTA.marcas[n.idNino]).map(n => ({ idNino: n.idNino, estado: LISTA.marcas[n.idNino] })),
     fueraDeLista: LISTA.fuera.filter(f => f.estado).map(f => f.idAsistencia ? { idAsistencia: f.idAsistencia, nombre: f.nombre, estado: f.estado } : { nombre: f.nombre, estado: f.estado }) };
+  if (q.quitar.length) datos.quitar = q.quitar;
+  if (q.quitarFuera.length) datos.quitarFuera = q.quitarFuera;
   // Mismo contenido → mismo ID de solicitud (un reintento no duplica).
   const clave = JSON.stringify(datos);
   if (LISTA.ultimo.clave !== clave) LISTA.ultimo = { clave, id: Datos.idSolicitud() };
@@ -1871,7 +1972,8 @@ $('#plGuardar').onclick = async () => {
     await Datos.lista.guardar(datos, LISTA.ultimo.id);
     LISTA.cambios = false;
     Marca.toast('Lista guardada: ' + c.servicio + ' ' + c.hora);
-    await cargarLista(LISTA.datos.fecha, c.codigo);
+    delete LISTA.cache[fecha];                    // lo de memoria ya no vale: se relee sin borrar la pantalla
+    if (diaActual() === fecha) await cargarLista(fecha, c.codigo, true);
     if (E && puede('as.seguimiento')) cargarSeguimiento();
   } catch (e) {
     if (e.codigo === 'sesion') { Datos.aLogin(); return; }

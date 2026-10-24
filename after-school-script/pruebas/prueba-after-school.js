@@ -1055,7 +1055,7 @@ seccion('Pasar lista v8: el Profesor, de 7 días atrás a 7 adelante (ver), y ma
   const valorConfig = nombre => { for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 3) === nombre) return C.celda(f, 4); };
   ok(valorConfig('Días atrás para pasar lista (Profesor)') === 7 && valorConfig('Días adelante para ver la lista (Profesor)') === 7,
     'Config: 7 días atrás y 7 adelante al instalar (no están en el código)');
-  ok(/AfterSchool\.gs v8/.test(g.comprobar()), 'comprobar() dice la versión del script (v8)');
+  ok(/AfterSchool\.gs v9/.test(g.comprobar()), 'comprobar() dice la versión del script (v9)');
   // Leer
   let r = g.llamar('leerLista', Object.assign({}, P));
   ok(r.ok && r.resultado.fecha === HOY && r.resultado.desde === HACE(7) && r.resultado.hasta === sumar(HOY, 7) && r.resultado.soloLectura === false,
@@ -1123,6 +1123,86 @@ seccion('Pasar lista v8: el Profesor, de 7 días atrás a 7 adelante (ver), y ma
   for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 3) === 'Días atrás para pasar lista (Profesor)') C.poner(f, 4, '');
   r = g.llamar('leerLista', Object.assign({}, P));
   ok(!r.ok && r.codigo === 'sin_configuracion' && /Días atrás para pasar lista/.test(r.error), 'sin el parámetro en Config, el Profesor no pasa lista y se dice qué falta');
+}
+
+seccion('Pasar lista v9: quitar una marca (se borra de Asistencia y queda en Historial)');
+{
+  const g = entornoCargado();
+  fijarHora(g, 20, 30);
+  const P = { limiteProfesor: true, soloHoy: true };
+  claseDelDia(g, 'AYER-1600-PARKOUR', AYER, '16:00', 'Parkour', 10);
+  claseDeHoy(g, 'HOY-2000-TELAS', 10);
+  inscripcionPasada(g, 'AS-0001', 'HOY-2000-TELAS', HACE(30));
+  inscripcionPasada(g, 'AS-0005', 'HOY-2000-TELAS', HACE(30));
+  inscripcionPasada(g, 'AS-0001', 'AYER-1600-PARKOUR', HACE(30));
+  const pr = g.llamar('agendarPrueba', { codigo: 'HOY-2000-TELAS', fecha: HOY, nino: NINO_NUEVO }).resultado;
+  const A = g._libro.getSheetByName('Asistencia'), H = g._libro.getSheetByName('Historial');
+  const filasDe = (codigo, fecha) => { const out = []; for (let f = 6; f <= A.getLastRow(); f++) if (A.celda(f, 4) === codigo && iso(A.celda(f, 3)) === fecha) out.push(A.celda(f, 5) || A.celda(f, 9)); return out; };
+  const histDe = accion => { const out = []; for (let f = 6; f <= H.getLastRow(); f++) if (H.celda(f, 4) === accion) out.push({ usuario: H.celda(f, 3), fecha: H.celda(f, 2), id: H.celda(f, 5), detalle: H.celda(f, 6) }); return out; };
+  // Antes de guardar: quitar algo sin marca guardada no hace nada (y una lista solo con eso no está vacía).
+  let r = g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', quitar: ['AS-0005'] }, P));
+  ok(r.ok && r.resultado.quitadas === 0 && filasDe('HOY-2000-TELAS', HOY).length === 0, 'quitar lo que nunca se guardó: no hace nada');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0001', estado: 'Presente' }, { idNino: 'AS-0005', estado: 'Ausente', nota: 'avisó' }, { idNino: pr.idNino, estado: 'Presente' }],
+    fueraDeLista: [{ nombre: 'Niño Escrito A Mano', estado: 'Presente' }] }, P));
+  ok(r.ok && r.resultado.nuevas === 4 && filasDe('HOY-2000-TELAS', HOY).length === 4, '(control) se guardan 3 marcas y 1 fuera de lista');
+  ok(g.llamar('leer').resultado.pruebas.find(x => x.id === pr.id).estado === 'Asistió', '(control) la prueba quedó Asistió por la lista');
+  const fuera = g.llamar('leerLista', Object.assign({}, P)).resultado.clases.find(c => c.codigo === 'HOY-2000-TELAS').fueraDeLista[0];
+  // Después de guardar: quitar.
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0001', estado: 'Presente' }], quitar: ['AS-0005', pr.idNino], quitarFuera: [fuera.idAsistencia] }, P));
+  ok(r.ok && r.resultado.quitadas === 3 && r.resultado.corregidas === 0 && r.resultado.nuevas === 0, 'quita 2 marcas guardadas y el fuera de lista (' + JSON.stringify(r.resultado || r.error) + ')');
+  ok(filasDe('HOY-2000-TELAS', HOY).join() === 'AS-0001', 'las tres filas se borraron de Asistencia; la que sigue marcada queda');
+  const q = histDe('Quitar asistencia');
+  ok(q.length === 3 && q.every(x => x.usuario === 'prueba' && x.fecha instanceof Date), 'Historial: «Quitar asistencia» con quién y cuándo, una por marca');
+  ok(q.some(x => /AS-0005 · HOY-2000-TELAS · .* · quitada · antes: Ausente «avisó», marcado por prueba el \d\d\/\d\d\/\d{4} \d\d:\d\d/.test(x.detalle)), 'y lo que decía antes (' + (q[0] && q[0].detalle) + ')');
+  ok(q.some(x => /fuera de lista · .* antes: Presente/.test(x.detalle)), 'también el fuera de lista');
+  let cl = g.llamar('leerLista', Object.assign({}, P)).resultado.clases.find(c => c.codigo === 'HOY-2000-TELAS');
+  ok(cl.ninos.find(n => n.idNino === 'AS-0005').estado === '' && cl.fueraDeLista.length === 0, 'la lista vuelve sin esas marcas («sin marcar»)');
+  ok(g.llamar('leer').resultado.pruebas.find(x => x.id === pr.id).estado === 'Agendada', 'la prueba que había marcado la lista vuelve a Agendada');
+  ok(!g.llamar('seguimiento').resultado.fueraDeLista.length, 'Seguimiento: el fuera de lista quitado ya no está por resolver');
+  // Seguimiento de faltas: quitar una falta corta la alerta.
+  asistenciaPasada(g, 'ASI-0901', sumar(AYER, -7), 'AYER-1600-PARKOUR', 'AS-0001', 'Ausente');
+  g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: AYER, marcas: [{ idNino: 'AS-0001', estado: 'Ausente' }] }, P));
+  g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', quitar: ['AS-0001'] }, P));
+  ok((g.llamar('seguimiento').resultado.faltasSeguidas.find(x => x.idNino === 'AS-0001') || {}).cuantas === 2, '(control) dos faltas seguidas');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: AYER, quitar: ['AS-0001'] }, P));
+  ok(r.ok && r.resultado.quitadas === 1 && !g.llamar('seguimiento').resultado.faltasSeguidas.find(x => x.idNino === 'AS-0001'), 'el Profesor quita la falta de ayer: Seguimiento ya no la cuenta');
+  // Reglas
+  ok(!g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', quitar: ['AS-0002'] }, P)).ok, 'un niño que no está en la lista no se quita');
+  ok(!g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0005', estado: 'Presente' }], quitar: ['AS-0005'] }, P)).ok, 'marcar y quitar el mismo niño a la vez → rechazo');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'AYER-1600-PARKOUR', fecha: sumar(AYER, -7), quitar: ['AS-0001'] }, P));
+  ok(!r.ok && r.codigo === 'fuera_de_plazo' && filasDe('AYER-1600-PARKOUR', sumar(AYER, -7)).length === 1, 'el Profesor no quita fuera de su ventana (hace 8 días)');
+  r = g.llamar('guardarLista', { codigo: 'AYER-1600-PARKOUR', fecha: sumar(AYER, -7), quitar: ['AS-0001'] });
+  ok(r.ok && r.resultado.quitadas === 1 && filasDe('AYER-1600-PARKOUR', sumar(AYER, -7)).length === 0, 'la coordinación sí (cualquier día pasado)');
+  r = g.llamar('guardarLista', { codigo: 'AYER-1600-PARKOUR', fecha: sumar(AYER, 7), quitar: ['AS-0001'] });
+  ok(!r.ok && r.codigo === 'dia_futuro', 'nadie quita en un día futuro');
+  // Una falta con reposición en pie no se quita.
+  g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', marcas: [{ idNino: 'AS-0005', estado: 'Ausente' }] }, P));
+  const falta = g.llamar('leerLista', Object.assign({}, P)).resultado.clases.find(c => c.codigo === 'HOY-2000-TELAS');
+  const idFalta = g.llamar('asistenciaNino', { idNino: 'AS-0005' }).resultado.asistencias.find(x => x.fecha === HOY).id;
+  claseDelDia(g, 'MIE-1700-TELAS', proximo('Miércoles', true), '17:00', 'Telas', 10);
+  ok(g.llamar('agendarVisita', { tipo: 'Reposición', codigo: 'MIE-1700-TELAS', fecha: proximo('Miércoles', true), idNino: 'AS-0005', reponeAsistencia: idFalta }).ok && falta, '(control) reposición agendada para esa falta');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', quitar: ['AS-0005'] }, P));
+  ok(!r.ok && /reposición en pie/.test(r.error), 'una falta con reposición en pie no se quita');
+  // Un fuera de lista que la coordinación ya resolvió no se quita desde la lista.
+  g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', fueraDeLista: [{ nombre: 'Otro Escrito', estado: 'Presente' }] }, P));
+  const f2 = g.llamar('seguimiento').resultado.fueraDeLista[0];
+  ok(f2 && g.llamar('resolverFueraDeLista', { idAsistencia: f2.idAsistencia, resolucion: 'descartar' }).ok, '(control) la coordinación descarta un fuera de lista');
+  r = g.llamar('guardarLista', Object.assign({ codigo: 'HOY-2000-TELAS', quitarFuera: [f2.idAsistencia] }, P));
+  ok(!r.ok && /ya resolvió/.test(r.error), 'un fuera de lista ya resuelto no se quita desde la lista');
+}
+
+seccion('borrarFilas_: borra de abajo hacia arriba y pone al día la copia en memoria');
+{
+  const g = entornoCargado();
+  ['ASI-0951', 'ASI-0952', 'ASI-0953', 'ASI-0954'].forEach((id, i) => asistenciaPasada(g, id, HACE(10 + i), 'LUN-1630-PARKOUR', 'AS-0001', 'Presente'));
+  const A = g._libro.getSheetByName('Asistencia');
+  const t = g.leerTabla_('asistencia');
+  const de = id => t.filas.find(f => f['ID asistencia'] === id);
+  g.borrarFilas_(t, [de('ASI-0951'), de('ASI-0953')]);
+  ok(t.filas.map(f => f['ID asistencia']).join() === 'ASI-0952,ASI-0954', 'la copia en memoria ya no tiene las borradas');
+  ok(t.filas.every(f => A.celda(f._fila, 2) === f['ID asistencia']), 'y cada fila que queda apunta a su fila real (las de abajo subieron)');
+  const fresca = (() => { const out = []; for (let f = 6; f <= A.getLastRow(); f++) out.push(A.celda(f, 2)); return out.join(); })();
+  ok(fresca === 'ASI-0952,ASI-0954' && t.ultimaFila === A.getLastRow(), 'en la hoja quedan las otras dos, y la última fila coincide (' + fresca + ')');
 }
 
 seccion('Pasar lista: niño fuera de lista y «No hubo clase»');

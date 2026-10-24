@@ -101,6 +101,18 @@ class Hoja {
     });
     return { setNumberFormat: fmt => { rangos.forEach(r => { for (let i = 0; i < r.nf; i++) for (let j = 0; j < r.nc; j++) this.formatos[(r.f + i) + ',' + (r.c + j)] = fmt; }); } };
   }
+  /* Como Sheets: la fila desaparece y las de abajo suben una (datos y formatos). */
+  deleteRow(f) {
+    if (!(f >= 1)) throw new Error('deleteRow fuera de la hoja: ' + f);
+    const mover = obj => {
+      const nuevo = {};
+      for (const k in obj) { const [r, c] = k.split(',').map(Number); if (r === f) continue; nuevo[(r > f ? r - 1 : r) + ',' + c] = obj[k]; }
+      return nuevo;
+    };
+    this.datos = mover(this.datos); this.formatos = mover(this.formatos);
+    this.filasBorradas = (this.filasBorradas || 0) + 1;
+    return this;
+  }
   setFrozenRows() {}
   setColumnWidth() {}
   /* Para las pruebas: la fila como texto plano. */

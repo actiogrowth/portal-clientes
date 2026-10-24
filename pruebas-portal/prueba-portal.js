@@ -230,7 +230,7 @@ function googleFalso() {
           ninos: [{ idNino: 'AS-0001', nombre: 'Inventado Uno', edad: '8 años', presencia: 'Inscrito', idVisita: '', estado: '', nota: '',
                     telefono: '555-0101', correo: 'uno@ejemplo.test', responsable: 'Responsable Uno', nacimiento: '2018-01-01' }],
           fueraDeLista: [{ idAsistencia: 'ASI-0001', nombre: 'Escrito', estado: 'Presente', nota: '', telefono: '555-0999' }] }] } };
-      else if (j.accion === 'guardarLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', codigo: 'LUN-1630-PARKOUR', nuevas: 1, corregidas: 0, visitasMarcadas: 0, secreto: 'x' } };
+      else if (j.accion === 'guardarLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', codigo: 'LUN-1630-PARKOUR', nuevas: 1, corregidas: 0, quitadas: 2, visitasMarcadas: 0, secreto: 'x' } };
       else if (j.accion === 'listarPagos') r = { ok: true, resultado: { mes: '2026-10', pagos: [{ id: 'PG-0001', idNino: 'AS-0001', monto: 50 }] } };
       else r = { ok: true, resultado: { id: 'AS-0003', estado: 'Prospecto', telefono: '555-0301' }, estado: ESTADO() };
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -883,6 +883,12 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       r = await pl('prueba-profesor-1', 'guardarLista', { codigo: 'LUN-1630-PARKOUR', marcas: [{ idNino: 'AS-0001', estado: 'Presente' }] });
       ok(r.status === 200 && r.j.ok && !('estado' in r.j) && !('secreto' in r.j.resultado) && r.j.resultado.nuevas === 1, 'guardar: el profesor no recibe el estado de After School');
       ok(ultima().accion === 'guardarLista' && ultima().datos.soloHoy === true && ultima().datos.limiteProfesor === true, 'guardar también va con soloHoy y limiteProfesor = true');
+      // 23-oct (ajustes): quitar marcas y cuánto tarda cada pedido.
+      r = await pl('prueba-profesor-1', 'guardarLista', { codigo: 'LUN-1630-PARKOUR', quitar: ['AS-0001'], quitarFuera: ['ASI-0001'] });
+      ok(r.status === 200 && r.j.resultado.quitadas === 2 && JSON.stringify(ultima().datos.quitar) === '["AS-0001"]' && JSON.stringify(ultima().datos.quitarFuera) === '["ASI-0001"]' &&
+        ultima().datos.limiteProfesor === true, 'quitar marcas: llega al script con la ventana del Profesor y vuelve «quitadas»');
+      ok(r.j.tiempos && Number.isInteger(r.j.tiempos.script_ms) && Number.isInteger(r.j.tiempos.total_ms) && r.j.tiempos.total_ms >= r.j.tiempos.script_ms,
+        'la respuesta dice cuánto tardó: en el servidor del portal y esperando a Google (' + JSON.stringify(r.j.tiempos) + ')');
       for (const a of ['leer', 'agendarVisita', 'seguimiento', 'noHuboClase', 'accionInventada']) {
         antes = google.llamadas.length;
         r = await pl('prueba-profesor-1', a);
@@ -906,6 +912,15 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/accesos: accesosProfesor\(ses\)/.test(asPg) && /texto: 'Inicio', url: '\/'/.test(asPg) && /texto: 'Procesos', url: '\/procesos\/'/.test(asPg) &&
         /id="plAnt"/.test(asPg) && /id="plSig"/.test(asPg) && /id="plHoy"/.test(asPg),
         'Pasar lista: accesos Inicio y Procesos para el Profesor y flechas de día con «Hoy»');
+      // 23-oct (ajustes): el cambio de día nunca pinta la respuesta de otro día ni pide dos toques.
+      ok(/if \(n !== LISTA\.pedido\) return;\s+\/\/ respuesta de un pedido anterior/.test(asPg) && /if \(dia && r\.resultado\.fecha !== dia\) return;/.test(asPg) &&
+        /function limpiarLista\(dia\)/.test(asPg) && /irADiaLista\(sumarDia\(diaActual\(\), 1\)\)/.test(asPg) && /LISTA\.datos = r\.resultado;/.test(asPg),
+        'Pasar lista: cada pedido lleva su número y su fecha, se limpia al cambiar de día, y las flechas cuentan desde el día en pantalla');
+      ok(/LISTA\.cache\[f\] = \{ r, t: Date\.now\(\) \}/.test(asPg) && /function precargarVecinos\(\)/.test(asPg), 'los días leídos quedan en memoria y se precargan el anterior y el siguiente');
+      ok(/b\.getAttribute\('aria-pressed'\) === 'true' \? '' : b\.dataset\.e/.test(asPg) && /datos\.quitar = q\.quitar/.test(asPg), 'tocar otra vez un estado lo quita y al guardar va en «quitar»');
+      const cssPl = (await new Nav(base).get('/comun/vea.css')).texto;
+      ok(/\.pl-botones button \{[^}]*min-height: var\(--toque\)/.test(cssPl) && /\.pl-nino \.datos b \{[^}]*font-size: 16px; font-weight: 600/.test(cssPl) && !/--toque-lista\)/.test(cssPl),
+        'Pasar lista compacta en todas las pantallas: botones de 44 px y nombres en 16 px / 600');
       const mj = (await new Nav(base).get('/comun/marca.js')).texto, css = (await new Nav(base).get('/comun/vea.css')).texto;
       ok(/cab-accesos/.test(mj) && /\.cab-accesos a \{[^}]*min-height: var\(--toque\)/.test(css) && !/\.cab-accesos[^{]*\{[^}]*display: none/.test(css),
         'los accesos van en su propia fila del encabezado, de 44 px y sin ocultarse en celular');

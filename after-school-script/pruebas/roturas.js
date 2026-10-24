@@ -97,6 +97,16 @@ const ROTURAS = [
   ['la reposición se cobra', "  if (tipoVisita_(f) === TIPO_VISITA.reposicion) throw new ErrorUsuario_('La reposición no se cobra.');", ""],
   // 21-oct: Pasar lista
   ['la lista deja otro día con soloHoy', "    if (iso !== hoy) throw new ErrorUsuario_('Solo se puede pasar y corregir la lista de hoy.", "    if (false) throw new ErrorUsuario_('Solo se puede pasar y corregir la lista de hoy."],
+  // 23-oct (v9): quitar una marca
+  ['quitar no borra la fila de Asistencia', "  borrarFilas_(asis, porQuitar.map(function (p) { return p.a; }));", ""],
+  ['quitar no deja rastro en Historial', "    hist.push(['Quitar asistencia',", "    if (false) hist.push(['Quitar asistencia',"],
+  ['quitar no guarda lo que decía antes', "' · quitada · ' + previoDe(p.a)]);", "' · quitada']);"],
+  ['se quita una falta con reposición en pie', "    exigirSinReposicion(a);\n", ""],
+  ['la visita que marcó la lista no vuelve a Agendada', "    ponerCeldas_(pruebas, v, { 'Estado': ESTADO_PRUEBA.agendada, 'Resultado por lista': '' });", ""],
+  ['borrar filas no pone al día la copia en memoria', "    tabla.filas.forEach(function (f) { f._fila -= nums.filter(function (n) { return n < f._fila; }).length; });", ""],
+  ['borra las filas de arriba hacia abajo (se corren y borra otra)', "var nums = filas.map(function (f) { return f._fila; }).sort(function (a, b) { return b - a; });", "var nums = filas.map(function (f) { return f._fila; }).sort(function (a, b) { return a - b; });"],
+  ['marca y quita el mismo niño a la vez', "    if (vistos[id]) throw new ErrorUsuario_('El niño ' + id + ' viene para marcar y para quitar a la vez.');", ""],
+  ['quita un niño que no está en la lista', "    var id = texto_(q), e = esperados[id];\n    if (!e) throw", "    var id = texto_(q), e = esperados[id] || {};\n    if (false) throw"],
   // 23-oct (v8): ventana de días (Profesor) y días futuros solo para ver (todos)
   ['alguien marca un día futuro', "  if (escribir && iso > hoy) throw", "  if (false) throw"],
   ['solo el Profesor no marca días futuros (la coordinación sí)', "  if (escribir && iso > hoy) throw", "  if (escribir && iso > hoy && datos.limiteProfesor === true) throw"],
@@ -122,7 +132,8 @@ const ROTURAS = [
   ['el resultado a mano no le quita la visita a la lista', "  cambios['Resultado por lista'] = '';", ""],
   ['se pasa lista en una clase con «No hubo clase»', "    throw new ErrorUsuario_('La clase ' + codigo + ' del ' + fechaCorta_(iso) + ' está marcada «No hubo clase».');", ""],
   ['«No hubo clase» en una clase con lista', "    throw new ErrorUsuario_('La clase ' + codigo + ' del ' + fechaCorta_(iso) + ' ya tiene lista guardada.');", ""],
-  ['un fuera de lista se resuelve dos veces', "  if (texto_(a['Resolución'])) throw", "  if (false) throw"],
+  ['un fuera de lista se resuelve dos veces', "  if (texto_(a['Resolución'])) throw new ErrorUsuario_(idA", "  if (false) throw new ErrorUsuario_(idA"],
+  ['se quita desde la lista un fuera de lista que la coordinación ya resolvió', "    if (texto_(a['Resolución'])) throw new ErrorUsuario_('La coordinación ya resolvió", "    if (false) throw new ErrorUsuario_('La coordinación ya resolvió"],
   ['el fuera de lista creado nace Activo', "idNino = agregarNino_(ninos, valores, ESTADO.eventual);\n    hist.push(['Crear eventual', idNino, nombreDe_(valores) + ' · desde '", "idNino = agregarNino_(ninos, valores, ESTADO.activo);\n    hist.push(['Crear eventual', idNino, nombreDe_(valores) + ' · desde '"],
   // 21-oct: seguimiento
   ['la falta justificada cuenta en la racha', "      if (x.estado === ESTADO_ASIS.ausente) racha.push(x);", "      if (x.estado === ESTADO_ASIS.ausente || x.estado === ESTADO_ASIS.justificada) racha.push(x);"],

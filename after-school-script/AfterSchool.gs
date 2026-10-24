@@ -36,8 +36,11 @@
  * (los últimos N para marcar y corregir; los próximos M solo para ver), con
  * N y M en Config; la coordinación también ve los próximos M días; nadie
  * marca un día futuro; y el rastro completo de cada corrección en Historial.
+ *
+ * VERSIÓN v9 (23-oct-2026): quitar una marca ya guardada (la fila se borra de
+ * Asistencia y queda «Quitar asistencia» en Historial con lo que decía).
  */
-var VERSION_SCRIPT = 'v8';
+var VERSION_SCRIPT = 'v9';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -418,6 +421,22 @@ function ponerCeldas_(tabla, fila, cambios) {
   if (contiguas) tabla.hoja.getRange(fila._fila, cols[0].c, 1, cols.length).setValues([cols.map(function (x) { return x.v; })]);
   else cols.forEach(function (x) { tabla.hoja.getRange(fila._fila, x.c).setValue(x.v); });
   cols.forEach(function (x) { fila[x.t] = x.v; });
+}
+
+/**
+ * Borra filas ya leídas (v9: quitar una marca de Asistencia). De abajo hacia
+ * arriba, para que borrar una no corra el número de las otras; después pone
+ * al día la copia en memoria (las filas de más abajo suben). Se llama DESPUÉS
+ * de las demás escrituras de la misma acción.
+ */
+function borrarFilas_(tabla, filas) {
+  var nums = filas.map(function (f) { return f._fila; }).sort(function (a, b) { return b - a; });
+  nums.forEach(function (n) { tabla.hoja.deleteRow(n); });
+  if (tabla.filas) {
+    tabla.filas = tabla.filas.filter(function (f) { return filas.indexOf(f) < 0; });
+    tabla.filas.forEach(function (f) { f._fila -= nums.filter(function (n) { return n < f._fila; }).length; });
+  }
+  if (tabla.ultimaFila !== null && tabla.ultimaFila !== undefined) tabla.ultimaFila -= nums.length;
 }
 
 function texto_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
@@ -2195,9 +2214,12 @@ function accGuardarLista_(datos, usuario) {
   var L = armarLista_(codigo, iso, ins, pruebas, asis);
   var esperados = {};
   L.lista.forEach(function (x) { esperados[x.idNino] = x; });
-  var marcas = Object.prototype.toString.call(datos.marcas) === '[object Array]' ? datos.marcas : [];
-  var fuera = Object.prototype.toString.call(datos.fueraDeLista) === '[object Array]' ? datos.fueraDeLista : [];
-  if (!marcas.length && !fuera.length) throw new ErrorUsuario_('La lista está vacía: marca al menos un niño.');
+  var esLista = function (v) { return Object.prototype.toString.call(v) === '[object Array]'; };
+  var marcas = esLista(datos.marcas) ? datos.marcas : [];
+  var fuera = esLista(datos.fueraDeLista) ? datos.fueraDeLista : [];
+  // v9: quitar marcas ya guardadas (tocar otra vez el estado elegido).
+  var quitar = esLista(datos.quitar) ? datos.quitar : [], quitarFuera = esLista(datos.quitarFuera) ? datos.quitarFuera : [];
+  if (!marcas.length && !fuera.length && !quitar.length && !quitarFuera.length) throw new ErrorUsuario_('La lista está vacía: marca al menos un niño.');
   var estadoDe = function (v) {
     var e = enLista_(v, ESTADOS_ASIS);
     if (!e) throw new ErrorUsuario_('Estado de asistencia inválido: «' + texto_(v) + '».');
@@ -2219,6 +2241,32 @@ function accGuardarLista_(datos, usuario) {
     } else if (!texto_(x && x.nombre)) throw new ErrorUsuario_('Escribe el nombre del niño que no está en la lista.');
     return { a: a, nombre: texto_(x.nombre), estado: estadoDe(x.estado), nota: texto_(x.nota) };
   });
+  // v9: lo que se quita. Una falta con reposición en pie no se quita (la reposición quedaría sin su falta).
+  var exigirSinReposicion = function (a) {
+    var id = texto_(a['ID asistencia']);
+    var r = pruebas.filas.filter(function (f) { return texto_(f['Repone asistencia']) === id && texto_(f['Estado']) !== ESTADO_PRUEBA.cancelada; })[0];
+    if (r) throw new ErrorUsuario_('La falta del ' + fechaCorta_(iso) + ' tiene una reposición en pie (' + texto_(r['ID prueba']) +
+      '): no se puede quitar la marca. Si hace falta, la coordinación cancela antes la reposición.');
+  };
+  var porQuitar = [];
+  quitar.forEach(function (q) {
+    var id = texto_(q), e = esperados[id];
+    if (!e) throw new ErrorUsuario_('El niño ' + (id || '(sin ID)') + ' no está en la lista de ' + codigo + ' del ' + fechaCorta_(iso) + '.');
+    if (vistos[id]) throw new ErrorUsuario_('El niño ' + id + ' viene para marcar y para quitar a la vez.');
+    vistos[id] = true;
+    var a = L.marcas[id];
+    if (!a) return;                                   // no tenía marca guardada: nada que quitar
+    exigirSinReposicion(a);
+    porQuitar.push({ a: a, e: e, quien: id });
+  });
+  quitarFuera.forEach(function (q) {
+    var id = texto_(q), a = L.fuera.filter(function (f) { return texto_(f['ID asistencia']) === id; })[0];
+    if (!a) throw new ErrorUsuario_('La asistencia ' + (id || '(sin ID)') + ' no es de esta lista.');
+    if (planFuera.some(function (p) { return p.a === a; })) throw new ErrorUsuario_('La asistencia ' + id + ' viene para marcar y para quitar a la vez.');
+    if (texto_(a['Resolución'])) throw new ErrorUsuario_('La coordinación ya resolvió a «' + texto_(a['Nombre fuera de lista']) + '»: su marca no se quita desde la lista.');
+    if (porQuitar.some(function (p) { return p.a === a; })) return;
+    porQuitar.push({ a: a, e: null, quien: 'fuera de lista' });
+  });
 
   // Todo validado: ahora se escribe.
   var ahora = ahora_(), fecha = fechaDeTexto_(iso), sig = siguienteId_(asis.filas, 'ID asistencia', PREFIJO.asistencia);
@@ -2231,11 +2279,15 @@ function accGuardarLista_(datos, usuario) {
   // v8: el registro anterior (estado, nota, quién y cuándo) queda en el detalle
   // de Historial; la fila de Historial ya dice quién corrigió y cuándo.
   var cuando = function (v) { return Object.prototype.toString.call(v) === '[object Date]' ? Utilities.formatDate(v, zona_(), 'dd/MM/yyyy HH:mm') : texto_(v); };
+  var previoDe = function (a) {
+    var antes = texto_(a['Estado']), notaAntes = texto_(a['Nota']);
+    return 'antes: ' + (antes || '(sin marcar)') + (notaAntes ? ' «' + notaAntes + '»' : '') +
+      ', marcado por ' + (texto_(a['Marcado por']) || '—') + (cuando(a['Hora']) ? ' el ' + cuando(a['Hora']) : '');
+  };
   var actualizar = function (a, estado, nota, quien, extra) {
     if (texto_(a['Estado']) === estado && texto_(a['Nota']) === nota && !extra) return;
     var antes = texto_(a['Estado']), notaAntes = texto_(a['Nota']);
-    var previo = 'antes: ' + (antes || '(sin marcar)') + (notaAntes ? ' «' + notaAntes + '»' : '') +
-      ', marcado por ' + (texto_(a['Marcado por']) || '—') + (cuando(a['Hora']) ? ' el ' + cuando(a['Hora']) : '');
+    var previo = previoDe(a);
     var cambios = { 'Estado': estado, 'Nota': nota, 'Marcado por': usuario, 'Hora': ahora };
     Object.keys(extra || {}).forEach(function (k) { cambios[k] = extra[k]; });
     ponerCeldas_(asis, a, cambios);
@@ -2266,10 +2318,19 @@ function accGuardarLista_(datos, usuario) {
     else nuevas.push(fila({ presencia: PRESENCIA.fuera, nombre: p.nombre, estado: p.estado, nota: p.nota }));
   });
   agregarFilas_(asis, 'asistencia', nuevas);
+  // v9: quitar va al final (borrar filas corre el número de las de abajo). El registro completo queda en Historial.
+  porQuitar.forEach(function (p) {
+    hist.push(['Quitar asistencia', texto_(p.a['ID asistencia']), p.quien + ' · ' + codigo + ' · ' + fechaCorta_(iso) + ' · quitada · ' + previoDe(p.a)]);
+    var v = p.e && p.e.visita;
+    if (!v || texto_(v['Resultado por lista']) !== SI || texto_(v['Estado']) === ESTADO_PRUEBA.cancelada) return;
+    ponerCeldas_(pruebas, v, { 'Estado': ESTADO_PRUEBA.agendada, 'Resultado por lista': '' });   // la había marcado la lista: vuelve a Agendada
+    hist.push(['Resultado por lista', texto_(v['ID prueba']), p.quien + ' · ' + codigo + ' · ' + fechaCorta_(iso) + ' · vuelve a ' + ESTADO_PRUEBA.agendada + ' (se quitó la marca)']);
+  });
+  borrarFilas_(asis, porQuitar.map(function (p) { return p.a; }));
   hist.unshift(['Pasar lista', codigo, fechaCorta_(iso) + ' · ' + nuevas.length + ' nuevas · ' + corregidas + ' corregidas' +
-    (visitasMarcadas ? ' · ' + visitasMarcadas + ' visita(s) marcadas' : '')]);
+    (porQuitar.length ? ' · ' + porQuitar.length + ' quitadas' : '') + (visitasMarcadas ? ' · ' + visitasMarcadas + ' visita(s) marcadas' : '')]);
   historialVarios_(usuario, hist);
-  return { fecha: iso, codigo: codigo, nuevas: nuevas.length, corregidas: corregidas, visitasMarcadas: visitasMarcadas };
+  return { fecha: iso, codigo: codigo, nuevas: nuevas.length, corregidas: corregidas, quitadas: porQuitar.length, visitasMarcadas: visitasMarcadas };
 }
 
 /** «No hubo clase» (feriado…): la clase de ese día no se avisa como «sin lista». Queda en Historial. */

@@ -78,6 +78,19 @@ el Apps Script en cada lectura y escritura (`limiteProfesor`, que pone
 en el encabezado una fila propia con «Inicio» y «Procesos»
 (`Marca.cabecera({accesos})`, 44 px, visible también en celular).
 
+**Ajustes tras producción (23-oct, v9).** Cambio de día: cada pedido lleva
+un número (`LISTA.pedido`) y su fecha; al cambiar de día la lista se borra al
+instante y queda «Leyendo la lista…»; la respuesta que no sea del día en
+pantalla se descarta. Los días leídos quedan en memoria (`LISTA.cache`) y se
+leen antes el día anterior y el siguiente (`precargarVecinos`). Desmarcar:
+tocar otra vez el estado; al guardar, `quitar` / `quitarFuera` (ver
+`ACCIONES_API.md`). **De dónde viene la demora:** Pasar lista no tiene copia
+temporal (la lista cambia mientras se pasa): cada lectura es PHP → Apps Script
+(dos pasos, POST y la respuesta en `googleusercontent`) → lectura de 7
+pestañas → vuelta. PHP suma milisegundos; casi todo el tiempo es Google. La
+respuesta trae `tiempos: {script_ms, total_ms}` (y la cabecera
+`Server-Timing`); la pantalla lo escribe en la consola del navegador.
+
 ## 2b. Presentación y entrada (21-oct, rediseño con la marca Vida en Arte)
 
 | Pieza | Qué es |
