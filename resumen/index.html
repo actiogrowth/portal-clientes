@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es" class="vidrio">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Resumen de Dirección · Vida en Arte 360</title>
+<!-- Resumen de Dirección (26-oct). Solo Dirección y Administrador (área
+  «resumen», que no tiene nadie más). Sin puente propio: arma las cifras con
+  lecturas que ya existen (After School «leer» y «seguimiento», Equipo
+  «leer») y con reglas que ya están en docs/ACCIONES_API.md › Resumen. Una
+  cifra que necesitaría una definición nueva NO está (ocupación como un solo
+  porcentaje, inscripciones del mes). Finanzas: «Próximamente», sin números. -->
+<!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
+<link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
+<link rel="apple-touch-icon" href="/comun/app-icono-180.png?v=56fff6a358">
+<meta name="apple-mobile-web-app-title" content="VEA 360">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/comun/vea.css?v=403ecddb33">
+</head>
+<body>
+<header id="cab"></header>
+<main class="pagina rs">
+  <section class="encabezado">
+    <div>
+      <p class="ayuda" id="hoy"></p>
+      <h1 class="titulo" id="saludo">Hola</h1>
+      <p class="portada-pregunta" id="cuantas">Leyendo lo de hoy…</p>
+    </div>
+  </section>
+  <div id="avisos"></div>
+  <section class="rs-cifras" id="cifras" aria-label="Cifras"></section>
+  <div class="rs-fila">
+    <section class="rs-atencion vidrio-tarjeta" aria-labelledby="tAtencion">
+      <h2 class="titulo" id="tAtencion">Lo que necesita tu atención</h2>
+      <div id="atencion"><p class="ayuda">Leyendo…</p></div>
+    </section>
+    <section class="rs-finanzas vidrio-tarjeta" aria-labelledby="tFinanzas">
+      <h2 class="titulo" id="tFinanzas">Finanzas</h2>
+      <p class="ayuda">Entradas y salidas, cobros y pagos por aprobar.</p>
+      <span class="chip">Próximamente</span>
+    </section>
+  </div>
+</main>
+
+<script src="/comun/datos.js?v=c918c02f12"></script>
+<script src="/comun/marca.js?v=0b53cee6ca"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = Marca.esc;
+const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
+function sumarDia(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+const DIAS_TENDENCIA = 7;
+
+/* Mini tendencia: una línea de los últimos días (sin ejes; el número grande es el de hoy). */
+function linea(valores, color) {
+  if (!valores.length) return '';
+  const max = Math.max(1, ...valores), paso = 200 / Math.max(1, valores.length - 1);
+  const d = valores.map((v, i) => (i ? 'L' : 'M') + Math.round(i * paso) + ' ' + Math.round(30 - v / max * 26)).join(' ');
+  return '<svg class="rs-linea" viewBox="0 0 200 34" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function cifra(c) {
+  return '<a class="rs-cifra vidrio-tarjeta" href="' + esc(c.url) + '"><span class="rs-cifra-tit">' + esc(c.titulo) + '</span>' +
+    '<span class="titulo rs-cifra-num">' + (c.valor === null ? '—' : esc(c.valor)) + '</span>' + (c.serie ? linea(c.serie, c.color) : '') +
+    '<span class="ayuda">' + esc(c.nota) + '</span></a>';
+}
+
+(async function iniciar() {
+  let s;
+  try { s = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
+  Marca.cabecera($('#cab'), { sesion: s, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Resumen de Dirección' }] });
+  const h = new Date().getHours();
+  $('#saludo').textContent = (h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches') + ', ' + (s ? s.usuario : '');
+  $('#hoy').textContent = Marca.fechaLarga();
+
+  // Las tres lecturas a la vez (la sesión ya no las pone en fila).
+  const [as, seg, eq] = await Promise.allSettled([Datos.afterSchool('leer', {}), Datos.afterSchool('seguimiento', {}), Datos.equipo.leer()]);
+  const falla = [as, seg, eq].map((x, i) => x.status === 'rejected' ? ['After School', 'Seguimiento', 'Equipo'][i] + ': ' + x.reason.message : '').filter(Boolean);
+  if ([as, seg, eq].some(x => x.status === 'rejected' && x.reason.codigo === 'sesion')) { Datos.aLogin(); return; }
+  if (falla.length) $('#avisos').innerHTML = '<div class="aviso ojo">No se pudo leer todo: ' + esc(falla.join(' · ')) + '. Esas cifras salen con «—».</div>';
+  const E = as.status === 'fulfilled' ? as.value.resultado : null, SEG = seg.status === 'fulfilled' ? seg.value.resultado : null, EQ = eq.status === 'fulfilled' ? eq.value.resultado : null;
+  const hoy = (E && E.hoy) || (SEG && SEG.hoy) || (EQ && EQ.hoy) || '';
+  const dias = hoy ? Array.from({ length: DIAS_TENDENCIA }, (_, i) => sumarDia(hoy, i - DIAS_TENDENCIA + 1)) : [];
+
+  // Contratos por validar: puestos en Borrador.
+  const borradores = EQ ? EQ.puestos.filter(p => Marca.normal(p.estado) === 'borrador') : null;
+  // Clases de hoy sin lista (Seguimiento, R112); tendencia: cada uno de los últimos 7 días.
+  const sinLista = SEG ? SEG.clasesSinLista : null;
+  const sinListaHoy = sinLista ? sinLista.filter(c => c.fecha === hoy).length : null;
+  // Pruebas pendientes de resultado: ya pasaron y siguen «Agendada» (After School › Pruebas).
+  const pend = E ? (E.pruebas || []).filter(p => p.estado === 'Agendada' && p.fecha < E.hoy) : null;
+  // Listas sin revisar (Equipo): un puesto y un período con marcas y sin revisión de ese período.
+  const sinRevisar = EQ ? Object.entries(EQ.fichas).flatMap(([id, f]) => [...new Set(f.marcas.map(m => m.periodo))]
+    .filter(per => !f.revisiones.some(r => r.periodo === per)).map(per => ({ id, per }))) : null;
+
+  $('#cifras').innerHTML = [
+    { titulo: 'Contratos por validar', valor: borradores ? borradores.length : null, nota: 'Puestos en Borrador', url: '/procesos/#equipo', color: '#111111' },
+    { titulo: 'Clases de hoy sin lista', valor: sinListaHoy, serie: sinLista ? dias.map(d => sinLista.filter(c => c.fecha === d).length) : null, nota: 'Últimos 7 días', url: '/after-school/#seguimiento', color: '#B3261E' },
+    { titulo: 'Pruebas sin resultado', valor: pend ? pend.length : null, serie: pend ? dias.map(d => pend.filter(p => p.fecha === d).length) : null, nota: 'Por día de la visita, últimos 7 días', url: '/after-school/#pruebas', color: '#8A4B0F' },
+    { titulo: 'Listas sin revisar', valor: sinRevisar ? sinRevisar.length : null, nota: 'Períodos con marcas y sin revisión', url: '/equipo/#revisar', color: '#1974A8' }
+  ].map(cifra).join('');
+
+  const nombre = id => ((EQ && EQ.puestos.find(p => p.id === id)) || {}).puesto || id;
+  const items = [
+    borradores && borradores.length ? { t: plural(borradores.length, 'contrato de posición por validar', 'contratos de posición por validar'), d: 'Procesos › Equipo', url: '/procesos/#equipo', c: '#111111' } : null,
+    sinListaHoy ? { t: plural(sinListaHoy, 'clase de hoy sin lista', 'clases de hoy sin lista'), d: 'After School › Seguimiento', url: '/after-school/#seguimiento', c: '#B3261E' } : null,
+    pend && pend.length ? { t: plural(pend.length, 'prueba sin resultado', 'pruebas sin resultado'), d: 'After School › Pruebas', url: '/after-school/#pruebas', c: '#8A4B0F' } : null,
+    sinRevisar && sinRevisar.length ? { t: plural(sinRevisar.length, 'lista de verificación sin revisar', 'listas de verificación sin revisar'),
+      d: [...new Set(sinRevisar.map(x => nombre(x.id)))].join(' · '), url: '/equipo/#revisar', c: '#1974A8' } : null
+  ].filter(Boolean);
+  $('#cuantas').textContent = items.length ? 'Hoy hay ' + plural(items.length, 'cosa que necesita tu atención.', 'cosas que necesitan tu atención.') : 'Hoy no hay nada pendiente.';
+  $('#atencion').innerHTML = items.length ? items.map(x => '<a class="rs-item" href="' + esc(x.url) + '"><span class="rs-punto" style="background:' + x.c + '" aria-hidden="true"></span>' +
+    '<span class="rs-item-txt"><b>' + esc(x.t) + '</b><span class="ayuda">' + esc(x.d) + '</span></span>' +
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>').join('')
+    : '<p class="ayuda">Nada pendiente en lo que mide el portal.</p>';
+})();
+</script>
+</body>
+</html>

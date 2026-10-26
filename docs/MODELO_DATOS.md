@@ -217,6 +217,32 @@ Idempotencia de las escrituras (16-oct). Sin datos de niños: solo la huella.
 
 Se buscan solo las **últimas 500 filas** (un reintento llega en segundos).
 
+## Sheet «Procesos — Vida en Arte» (26-oct)
+
+Otro archivo, de Actio, con su propio Apps Script (`procesos-script/Procesos.gs`).
+Lo edita Actio a mano; el portal solo **escribe** en Aceptaciones, Marcas y
+Revisiones (siempre al final). Las columnas se buscan **por título** (el
+script toma como fila de títulos la primera de las 10 de arriba que tenga
+«Puesto ID» o «ID»); se saltan las filas vacías. Si falta una columna, el
+script la nombra en `faltan` (lo ven Dirección y Administrador).
+
+| Pestaña | Columnas | Notas |
+|---|---|---|
+| Léeme | — | Texto para quien edita; el script no la lee. |
+| Puestos | ID, Puesto, Área, Unidad, Reporta a, Cantidad, Estado, Versión, Fecha versión, Verifica, Cómo verifica | Estado: Por cargar · Borrador · Validado · Abierto al equipo. «Reporta a» es el ID del jefe. «Verifica»: quién y cada cuánto («Dirección, cada semana»; cuenta lo que va antes de la coma). |
+| Contratos | Puesto ID, Sección, Orden, Texto | Sección: Resultado · Trabajo · Estándar. |
+| Listas | Puesto ID, Orden, Qué se verifica, Evidencia, Cada cuánto | Cada cuánto: Diario · Semanal · Mensual · Por temporada · Cuando aplica · Por persona nueva. |
+| Procesos | Puesto ID, Proceso, Descripción, Enlace, Estado | Los procesos de cada puesto (vacía al 26-oct). |
+| Asignaciones | Usuario del portal, Puesto ID, Desde, Hasta | Un usuario o un rol («Usuario del rol Coordinación After School»). Desde y Hasta vacíos = sin límite. |
+| Aceptaciones | Fecha y hora, Usuario, Puesto ID, Versión | La escribe el portal. Vale solo la de la versión vigente del puesto. |
+| Marcas | Fecha y hora, Usuario, Puesto ID, Orden del punto, Período, Resultado, Nota | La escribe el portal. Resultado: Cumplido · No. Una corrección es otra fila del mismo período (vale la última; las anteriores quedan de rastro). |
+| Revisiones | Fecha y hora, Revisor, Puesto ID, Período, Sorpresa, Resultado, Nota | La escribe el portal. Sorpresa: Sí · No. |
+
+**Período** (texto, formato `@`): Diario, Cuando aplica y Por persona nueva →
+la fecha (`2026-10-26`); Semanal → la semana ISO (`2026-S44`); Mensual → el
+mes (`2026-10`); Por temporada → el año (`2026`). Lo pone el script con la
+fecha de hoy del Sheet; solo se marca el período en curso.
+
 ---
 
 ## Equivalente propuesto en Postgres / Supabase

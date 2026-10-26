@@ -30,7 +30,7 @@ RewriteRule ^(login\.php|logout\.php|cambiar-clave\.php|acceso\.php|gate\.php|ro
 #     subcarpetas; TODO lo demás dentro de comun/ (un .php, el listado de la
 #     carpeta) se rechaza con 403. Va antes de 3b para que un comun/api.php
 #     subido por error tampoco se ejecute.
-RewriteRule ^comun/[a-z0-9-]+\.(css|js|png|svg|webmanifest)$ - [L]
+RewriteRule ^comun/[a-z0-9-]+\.(css|js|png|jpg|svg|webmanifest)$ - [L]
 RewriteRule ^comun(/|$) - [F,L]
 
 # 3d. biblioteca/ (23-oct): presentaciones privadas, las entrega gate.php a

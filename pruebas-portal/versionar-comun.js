@@ -26,8 +26,8 @@ const REPO = path.join(__dirname, '..');
 const COMUN = path.join(REPO, 'comun');
 const PAGINAS = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html',
   'after-school/index.html', 'configuracion/index.html', 'pasar-lista/index.html', 'veranito/index.html', 'proyecto-actio/index.html',
-  'procesos/index.html'];
-const REF = /(["']|url\()\/comun\/([a-z0-9-]+\.(?:css|js|png|svg|webmanifest))(\?v=[0-9a-f]*)?/g;
+  'procesos/index.html', 'equipo/index.html', 'resumen/index.html'];
+const REF = /(["']|url\()\/comun\/([a-z0-9-]+\.(?:css|js|png|jpg|svg|webmanifest))(\?v=[0-9a-f]*)?/g;
 
 const normalizar = b => Buffer.from(b.toString('latin1').replace(/\r\n/g, '\n'), 'latin1');
 const hash = archivo => crypto.createHash('sha256').update(normalizar(fs.readFileSync(path.join(COMUN, archivo)))).digest('hex').slice(0, 10);
@@ -53,7 +53,7 @@ function problemas(texto, hashes) {
    primero se versionan por dentro y después se calcula su propio hash, hasta
    que nada cambie. */
 function hashesDeComun(escribir) {
-  const archivos = fs.readdirSync(COMUN).filter(f => /^[a-z0-9-]+\.(css|js|png|svg|webmanifest)$/.test(f));
+  const archivos = fs.readdirSync(COMUN).filter(f => /^[a-z0-9-]+\.(css|js|png|jpg|svg|webmanifest)$/.test(f));
   let hashes = {};
   for (let vuelta = 0; vuelta < 5; vuelta++) {
     hashes = Object.fromEntries(archivos.map(f => [f, hash(f)]));

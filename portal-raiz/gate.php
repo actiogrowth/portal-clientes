@@ -22,9 +22,9 @@ if (in_array($directa, ['login.php', 'logout.php', 'cambiar-clave.php', 'acceso.
    Con el .htaccess nuevo esto lo hace Apache directo (reglas 3 y 3c); esta
    copia es para que nada se rompa si el servidor tuviera un .htaccess anterior. */
 $PUBLICO_TIPOS = ['css' => 'text/css; charset=utf-8', 'js' => 'application/javascript; charset=utf-8',
-                  'png' => 'image/png', 'svg' => 'image/svg+xml', 'html' => 'text/html; charset=utf-8',
+                  'png' => 'image/png', 'jpg' => 'image/jpeg', 'svg' => 'image/svg+xml', 'html' => 'text/html; charset=utf-8',
                   'webmanifest' => 'application/manifest+json; charset=utf-8'];
-if (in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match('#^comun/[a-z0-9-]+\.(css|js|png|svg|webmanifest)$#', $directa)) {
+if (in_array($directa, ['login.html', 'cambiar-clave.html'], true) || preg_match('#^comun/[a-z0-9-]+\.(css|js|png|jpg|svg|webmanifest)$#', $directa)) {
     $archivo = __DIR__ . '/' . $directa;
     if (is_file($archivo)) {
         header('Content-Type: ' . $PUBLICO_TIPOS[strtolower(pathinfo($archivo, PATHINFO_EXTENSION))]);

@@ -11,6 +11,10 @@
  *                        Administrador, y asignar ese rol
  *   pa.internos          Proyecto Actio: ver lo que es solo de Actio (los
  *                        proyectos que no son del cliente, p. ej. Proyecto 2)
+ *   equipo.todo          Procesos › Equipo (26-oct): ver todos los puestos y fichas en
+ *                        cualquier estado (Dirección y Administrador, por '*').
+ *   equipo.ficha:<ID>    preparado: ver la ficha de ese puesto aunque no lo ocupe ni
+ *                        sea su jefe (hoy no lo tiene ningún rol).
  *   procesos.ver:<…>     Procesos (23-oct): qué documentos recibe. '*' todos;
  *                        '<unidad>' toda la unidad; '<unidad>:<proceso>' uno
  *                        solo (ver procesos_permite). Hoy todos los roles
@@ -44,7 +48,7 @@ const ROLES = [
         'descripcion' => 'After School completo, Pasar lista (también otros días), seguimiento de asistencia y la Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:basededatos', 'area:pasarlista', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
                        'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
-                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento', 'area:procesos', 'procesos.ver:*'],
+                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
     ],
     'recepcion' => [
         'inicio_as' => 'pruebas',
@@ -52,25 +56,25 @@ const ROLES = [
         'descripcion' => 'After School completo: inscribir, visitas del día, pagos, bajas, Por revisar y seguimiento. No pasa lista.',
         'permisos' => ['area:afterschool', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
                        'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
-                       'as.seguimiento', 'area:procesos', 'procesos.ver:*'],
+                       'as.seguimiento', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
     ],
     'comercial' => [
         'inicio_as' => 'pruebas',
         'nombre' => 'Comercial',
         'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool y Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
-                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*'],
+                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
     ],
     'contabilidad' => [
         'inicio_as' => 'pagos',
         'nombre' => 'Contabilidad',
         'descripcion' => 'After School: Pagos (ver y registrar), pago de las pruebas y Ocupación en lectura. Sin datos de contacto.',
-        'permisos' => ['area:afterschool', 'as.ver', 'as.pagos.ver', 'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'area:procesos', 'procesos.ver:*'],
+        'permisos' => ['area:afterschool', 'as.ver', 'as.pagos.ver', 'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
     ],
     'coordinacion_preescolar' => [
         'nombre' => 'Coordinación Preschool',
         'descripcion' => 'Tablero de Preschool y Base de Datos VEA.',
-        'permisos' => ['area:kinder', 'area:basededatos', 'area:procesos', 'procesos.ver:*'],
+        'permisos' => ['area:kinder', 'area:basededatos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
     ],
     'profesor' => [
         'inicio_as' => 'lista',
@@ -81,7 +85,7 @@ const ROLES = [
         // /pasar-lista/api.php (área pasarlista), que fija soloHoy y recorta.
         // En after-school/api.php no tiene ninguna acción (todas piden as.*).
         // 23-oct: también Procesos, al que llega desde Inicio (no cambia su entrada directa).
-        'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*'],
+        'permisos' => ['area:afterschool', 'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
         'inactividad_max' => 7200,
     ],
 ];
@@ -98,6 +102,8 @@ const CARPETAS_AREA = [
     'pasar-lista'   => 'pasarlista',
     'proyecto-actio' => 'proyecto-actio',   // 22-oct: solo Administrador y Dirección (nadie más la tiene)
     'procesos'      => 'procesos',          // 23-oct: todos los roles
+    'equipo'        => 'equipo',            // 26-oct: Mi lista, Revisar y el puente de Equipo; todos los roles
+    'resumen'       => 'resumen',           // 26-oct: Resumen de Dirección; solo Administrador y Dirección (nadie más la tiene)
 ];
 
 /* 23-oct: carpetas que abre CUALQUIER usuario con sesión, sin área: la
@@ -107,7 +113,7 @@ const CARPETAS_LIBRES = ['biblioteca'];
 /* Áreas que la portada conoce (tarjetas). 22-oct: 'proyecto-actio' reemplaza a
    'actio' (la tarjeta Sistema Operativo, que llevaba a GitHub Pages). */
 /* 21-oct (rediseño): 'pasarlista' ya no es tarjeta (Pasar lista está dentro de After School). */
-const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion', 'procesos'];
+const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion', 'procesos', 'equipo', 'resumen'];
 
 /* 23-oct: la portada agrupa las unidades por marca; tocar un logo abre la
    página de esa marca (la portada con ?marca=). Mismo orden que en comun/marca.js. */
@@ -117,13 +123,13 @@ const MARCAS = [
 ];
 /* Áreas que no cuentan para entrar directo: todos los roles tienen Procesos y
    llegan a ella desde Inicio. */
-const AREAS_SIN_ENTRADA = ['procesos'];
+const AREAS_SIN_ENTRADA = ['procesos', 'equipo'];   // 26-oct: Equipo también (todos lo tienen)
 
 /* Dónde empieza cada área (para entrar directo tras el login si es la única). */
 const AREA_URL = [
     'kinder' => '/kinder/', 'veranito' => '/veranito/', 'afterschool' => '/after-school/',
     'basededatos' => '/basededatos/', 'configuracion' => '/configuracion/', 'proyecto-actio' => '/proyecto-actio/',
-    'procesos' => '/procesos/',
+    'procesos' => '/procesos/', 'equipo' => '/equipo/', 'resumen' => '/resumen/',
 ];
 
 /** Tras el login: si el usuario abre UNA sola sección, va directo a ella; si

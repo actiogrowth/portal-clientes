@@ -125,6 +125,18 @@
       leer() { return pedir('/procesos/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' }, tipo: 'texto' }); }
     },
 
+    /* ── Equipo (26-oct): puestos, fichas, Mi lista, Revisar ─────────────── */
+    equipo: {
+      /** {resultado: {hoy, yo, puestos[], fichas{}, mios[], revisar[]}} — ya recortado para quien pregunta */
+      leer() { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); },
+      aceptar(puesto, version) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'aceptar', datos: { puesto, version } } }); },
+      /** marcas: [{orden, resultado: 'Cumplido' | 'No', nota}] — el período lo pone el servidor */
+      marcar(puesto, marcas) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'marcar', datos: { puesto, marcas } } }); },
+      revisar(puesto, periodo, sorpresa, resultado, nota) {
+        return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'revisar', datos: { puesto, periodo, sorpresa, resultado, nota } } });
+      }
+    },
+
     /* ── Configuración › Usuarios ───────────────────────────────────────── */
     usuarios: {
       /** {usuarios[], roles[], yo, puedeAdmin, claveMinima} */

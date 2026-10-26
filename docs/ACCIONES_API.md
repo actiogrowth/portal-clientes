@@ -339,3 +339,96 @@ por `gate.php`; sin listado, sin ejecutar scripts (regla propia en el
 `.htaccess` de la raíz y `biblioteca/.htaccess`), nombre simple en minúsculas.
 `/proyecto-actio/archivos/<nombre>.html` responde **301 → `/biblioteca/<nombre>.html`**
 (lo hace `gate.php`), para no romper los enlaces del Sheet.
+
+## Acciones de Equipo (`equipo/api.php`) — 26-oct
+
+**Procesos › Equipo**: los puestos de Vida en Arte (organigrama), la ficha de
+cada puesto (contrato de posición, lista de verificación, procesos), la
+aceptación del contrato, «Mi lista» y la revisión. **Fuente única**: el Sheet
+«Procesos — Vida en Arte» (lo edita Actio; reglas en su pestaña Léeme). El
+portal lo lee siempre de ahí y SOLO escribe en Aceptaciones, Marcas y
+Revisiones. Columnas por título, nunca por letra.
+
+Puente propio, área `equipo` (todos los roles). Habla con un Apps Script
+aparte, `procesos-script/Procesos.gs` (clave `PR_CLAVE_API`), con el sobre de
+siempre (`{key, usuario, accion, datos}`) y el transporte de After School.
+Suelta la sesión antes de esperar a Google (D-068). Copia del Sheet en
+`portal_cache/equipo.json` (fuera de la web), `pr_cache_seg` segundos (60 si
+no se configura); se borra tras cada escritura. Configuración en
+`portal_config.php`: `pr_exec`, `pr_clave` y, opcional, `pr_cache_seg`.
+
+**El recorte lo hace el puente, no el script ni la pantalla.** El script
+devuelve el Sheet entero al puente; el puente arma la respuesta de cada
+persona con lo que le toca. El navegador nunca recibe lo que no le toca.
+
+| Acción | Tipo | Quién | Parámetros | `resultado` | Errores propios |
+|---|---|---|---|---|---|
+| `leer` | L | todos (lo que ve cada uno, abajo) | — | ver abajo | `sin_configuracion` |
+| `aceptar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `version` | `{puesto, version}` | `sin_permiso` · `no_abierto` · `version_vieja` |
+| `marcar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `marcas[{orden, resultado: "Cumplido"\|"No", nota?}]` | `{puesto, marcas[{orden, periodo}]}` | `sin_permiso` · `no_abierto` · punto que no es del puesto · resultado inválido |
+| `revisar` | E | quien figura en «Verifica» del puesto y su jefe, solo «Abierto al equipo» | `puesto`, `periodo`, `sorpresa: "Sí"\|"No"`, `resultado: "Cumplido"\|"No"`, `nota?` | `{puesto, periodo}` | `sin_permiso` · `no_abierto` · período inválido |
+
+### Quién ve qué (lo arma el puente)
+
+| | Dirección, Administrador (`equipo.todo`) | Resto |
+|---|---|---|
+| Organigrama | todos los puestos, con estado, área, unidad, cantidad y versión | solo el NOMBRE y el área de cada puesto; el estado es «En construcción» salvo «Abierto al equipo» |
+| Ficha (contrato, lista, procesos, verifica) | todas, en cualquier estado | solo de puestos «Abierto al equipo» que ocupa **o** de los que es **jefe** (ocupa el puesto de «Reporta a», o el de más arriba) |
+| Aceptaciones | todas | las suyas |
+| Marcas y revisiones | todas | de los puestos cuya ficha ve |
+
+- **Quién ocupa un puesto** (Asignaciones, filas vigentes: «Desde» ≤ hoy y
+  «Hasta» vacío o ≥ hoy): «Usuario del portal» es un usuario
+  (`coordinacion-as`) o un rol, escrito «Usuario del rol <Rol>» o solo el
+  nombre del rol (`Coordinación After School`): todos los usuarios con ese
+  rol. Una persona puede ocupar varios puestos.
+- **Quién verifica**: la parte de «Verifica» antes de la coma
+  («Dirección, cada semana» → el rol Dirección), más el jefe.
+- **Aceptación vigente**: la última de esa persona para ese puesto con la
+  **Versión actual** del puesto. Si la Versión sube, la anterior deja de valer
+  y la pantalla pide aceptar la nueva.
+- **Período de una marca** (lo calcula el script con la fecha de hoy y «Cada
+  cuánto» del punto; solo se marca el período en curso): Diario, Cuando aplica,
+  Por persona nueva → `AAAA-MM-DD`; Semanal → `AAAA-Sss` (semana ISO);
+  Mensual → `AAAA-MM`; Por temporada → `AAAA`. Corregir = una marca nueva en
+  el mismo período; vale la última y la anterior queda.
+- **Lista sin revisar** (la usa el Resumen de Dirección): un puesto y un
+  período con al menos una marca y ninguna revisión de ese período.
+
+### `leer` → `resultado`
+
+```
+{ hoy, yo: { usuario, todo: true|false },
+  puestos: [{ id, puesto, area, reportaA, estado, ficha: true|false,
+              // solo con equipo.todo: unidad, cantidad, version, fechaVersion, estadoReal
+           }],
+  fichas: { "<id>": { version, fechaVersion, verifica, comoVerifica,
+                      contrato: { resultado: [..], trabajo: [..], estandares: [..] },
+                      lista: [{ orden, texto, evidencia, frecuencia, periodo }],
+                      procesos: [{ proceso, descripcion, enlace, estado }],
+                      ocupo: bool, jefe: bool, verifico: bool,
+                      aceptada: bool, aceptadaVersion: n|null,
+                      marcas: [{ fecha, usuario, orden, periodo, resultado, nota }],
+                      revisiones: [{ fecha, revisor, periodo, sorpresa, resultado, nota }] } },
+  mios: ["<id>", ...],          // puestos que ocupo y están «Abierto al equipo»
+  revisar: ["<id>", ...]        // puestos que verifico o de los que soy jefe, abiertos
+}
+```
+
+## Resumen de Dirección (`/resumen/`) — 26-oct
+
+Solo Dirección y Administrador (área `resumen`, que no tiene nadie más). No
+tiene puente propio: arma sus cifras en el navegador con lecturas que ya
+existen (After School `leer` y `seguimiento`, Equipo `leer`), con las reglas
+que ya están en este documento y en `REGLAS_NEGOCIO.md`:
+
+| Cifra | Regla que usa |
+|---|---|
+| Contratos por validar | puestos con Estado «Borrador» (Equipo) |
+| Clases de hoy sin lista | `seguimiento.clasesSinLista` del día de hoy (R112); tendencia: los últimos 7 días |
+| Pruebas pendientes de resultado | visitas que ya pasaron y siguen «Agendada» (After School › Pruebas › Pendientes de resultado); tendencia: por día de la visita, últimos 7 días |
+| Listas sin revisar | la definición de arriba (Equipo) |
+
+Finanzas: tarjeta «Próximamente», sin números. **Fuera por falta de
+definición** (no se inventan): ocupación de After School como un solo
+porcentaje e inscripciones del mes.

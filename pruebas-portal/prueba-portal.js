@@ -77,6 +77,8 @@ return [
   'pa_cache_seg' => 300,
   'procesos_segmentos' => ['Atracción' => ['Marketing'], 'Adquisición' => ['Ventas'], 'Entrega de servicio' => ['Servicio']],
   'procesos_general' => ['Gerencia'],
+  'pr_exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
+  'pr_clave' => 'clave-pr-de-prueba',
   'roles_iniciales' => [
 ${roles}
   ],
@@ -206,6 +208,40 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
   atencion: [
     { fecha: '2026-09-02', tipo: 'Llamada', duracionMin: 12, asunto: 'Consulta de prueba', unidad: '', enlace: '', proyecto: '', notas: 'NOTA-INTERNA', origenDuracion: 'Medida' },
     { fecha: '2026-09-03', tipo: 'Reunión virtual', duracionMin: 45, asunto: 'Asunto reservado de Actio', unidad: '', enlace: '', proyecto: 'Proyecto 2', notas: 'NOTA-INTERNA-2', origenDuracion: 'Estimada' }] });
+/* Equipo (26-oct): el Sheet «Procesos» de MENTIRA, entero, como lo devuelve
+   Procesos.gs. Cada puesto lleva textos marcados (SECRETO-…, TEXTO-…,
+   MARCA-…) para buscar en la respuesta que algo no se haya colado.
+   JEF lo ocupa el rol Coordinación After School; REC, Recepción (y una
+   asignación vencida a OTR); PRO, el Profesor (y BOR, que no está abierto);
+   OTR, Contabilidad. JEF está en versión 2 y su aceptación es de la 1. */
+const PR_DATOS = () => {
+  const P = (id, puesto, reportaA, estado, version) => ({ id, puesto, area: 'After School', unidad: 'UNIDAD-' + id, reportaA, cantidad: 'CANTIDAD-' + id,
+    estado, version, fechaVersion: '2026-10-01', verifica: 'Dirección, cada semana', comoVerifica: 'COMO-' + id });
+  const ids = ['JEF', 'REC', 'PRO', 'OTR', 'BOR', 'VAL'];
+  return { generado: '2026-10-26T12:00:00Z', hoy: '2026-10-26', faltan: ['FALTA-DE-PRUEBA'],
+    puestos: [P('DIR', 'Dirección de prueba', '', 'Por cargar', null), P('JEF', 'Jefatura de prueba', 'DIR', 'Abierto al equipo', 2),
+      P('REC', 'Recepción de prueba', 'JEF', 'Abierto al equipo', 1), P('PRO', 'Profesor de prueba', 'JEF', 'abierto al equipo', 1),
+      P('OTR', 'Otro puesto de prueba', 'DIR', 'Abierto al equipo', 1), P('BOR', 'Puesto en borrador', 'JEF', 'Borrador', 1),
+      P('VAL', 'Puesto validado', 'JEF', 'Validado', 1)],
+    contratos: ids.map(id => ({ puesto: id, seccion: 'Resultado', orden: 1, texto: (['OTR', 'BOR', 'VAL'].includes(id) ? 'SECRETO-' : 'TEXTO-') + id }))
+      .concat([{ puesto: 'PRO', seccion: 'Estándar', orden: 1, texto: 'ESTANDAR-PRO' }, { puesto: 'PRO', seccion: 'Trabajo', orden: 1, texto: 'TRABAJO-PRO' }]),
+    listas: ids.map(id => ({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' })),
+    procesos: [{ puesto: 'OTR', proceso: 'SECRETO-PROCESO-OTR', descripcion: '', enlace: '', estado: '' }],
+    asignaciones: [{ usuario: 'Usuario del rol Coordinación After School', puesto: 'JEF', desde: '', hasta: '' },
+      { usuario: 'prueba-recepcion', puesto: 'REC', desde: '2026-01-01', hasta: '' },
+      { usuario: 'prueba-recepcion', puesto: 'OTR', desde: '2026-01-01', hasta: '2026-09-30' },
+      { usuario: 'prueba-profesor-1', puesto: 'PRO', desde: '', hasta: '' },
+      { usuario: 'prueba-profesor-1', puesto: 'BOR', desde: '', hasta: '' },
+      { usuario: 'Contabilidad', puesto: 'OTR', desde: '', hasta: '' }],
+    aceptaciones: [{ fecha: '2026-10-02T09:00', usuario: 'prueba-coord-as', puesto: 'JEF', version: 1 },
+      { fecha: '2026-10-02T09:00', usuario: 'prueba-recepcion', puesto: 'REC', version: 1 },
+      { fecha: '2026-10-02T09:00', usuario: 'prueba-contabilidad', puesto: 'OTR', version: 1 },
+      { fecha: '2026-10-02T09:00', usuario: 'otra-persona', puesto: 'PRO', version: 1 }],   // de otro: al Profesor no le cuenta
+    marcas: ids.map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
+      .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' }]),
+    revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' }] };
+};
+const PR = { siguiente: null };   // la próxima respuesta a una escritura (por ejemplo, «version_vieja»)
 const PA = { llamadas: 0, falla: false };
 /* 23-oct: Google lento a propósito (ms por pedido), para ver si los pedidos del mismo usuario hacen fila. */
 const LENTO = { ms: 0 };
@@ -224,6 +260,7 @@ function googleFalso() {
         r = PA.falla ? null : (j.accion === 'leer' ? { ok: true, resultado: PA_DATOS() } : { ok: false, error: 'acción desconocida' });
         if (!r) { res.writeHead(500, { 'Content-Type': 'text/html' }); res.end('<html>error</html>'); return; }
       }
+      else if (j.key === 'clave-pr-de-prueba') { r = j.accion === 'leer' ? { ok: true, resultado: PR_DATOS() } : (PR.siguiente || { ok: true, resultado: { puesto: (j.datos || {}).puesto } }); if (j.accion !== 'leer') PR.siguiente = null; }
       else if (j.accion === 'leer') r = { ok: true, resultado: ESTADO() };
       // Pasar lista: el script falso manda DE MÁS (contactos, el estado entero)
       // para comprobar que pasar-lista/api.php lo recorta.
@@ -316,6 +353,8 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'comun'), path.join(web, 'comun'));
   copiar(path.join(fuente, 'proyecto-actio'), path.join(web, 'proyecto-actio'));
   copiar(path.join(fuente, 'procesos'), path.join(web, 'procesos'));
+  copiar(path.join(fuente, 'equipo'), path.join(web, 'equipo'));
+  copiar(path.join(fuente, 'resumen'), path.join(web, 'resumen'));
   copiar(path.join(fuente, 'biblioteca'), path.join(web, 'biblioteca'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
@@ -391,7 +430,7 @@ async function correr(fuente) {
       const a = await nav['admin-uno'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(a.texto), 'acceso.php: un Administrador ve todas las tarjetas');
       const g = await nav['cuenta-general'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","basededatos","procesos"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School, Base de Datos y Procesos (Pasar lista ya no es tarjeta) (' + g.texto.split('\n')[0] + ')');
+      ok(/window\.ACCESO = \["afterschool","basededatos","procesos","equipo"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School, Base de Datos, Procesos y Equipo (Pasar lista ya no es tarjeta) (' + g.texto.split('\n')[0] + ')');
       // Un cambio posterior en usuarios.php ya no cuenta.
       fs.writeFileSync(path.join(web, 'usuarios.php'), '<?php return [];');
       const n = new Nav(base);
@@ -516,18 +555,18 @@ async function correr(fuente) {
     seccion('áreas: cada rol abre solo lo suyo (y la URL directa responde sin permiso)');
     {
       const R = {
-        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1 },
-        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1 },
-        'prueba-coord-as':     { as: 1, bd: 1, pl: 1, proc: 1 },
-        'prueba-recepcion':    { as: 1, proc: 1 },
-        'prueba-comercial':    { kinder: 1, as: 1, bd: 1, proc: 1 },
-        'prueba-contabilidad': { as: 1, proc: 1 },
-        'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1 },
-        'prueba-profesor-1':   { as: 1, pl: 1, proc: 1 }
+        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1 },
+        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1 },
+        'prueba-coord-as':     { as: 1, bd: 1, pl: 1, proc: 1, eq: 1 },
+        'prueba-recepcion':    { as: 1, proc: 1, eq: 1 },
+        'prueba-comercial':    { kinder: 1, as: 1, bd: 1, proc: 1, eq: 1 },
+        'prueba-contabilidad': { as: 1, proc: 1, eq: 1 },
+        'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1, eq: 1 },
+        'prueba-profesor-1':   { as: 1, pl: 1, proc: 1, eq: 1 }
       };
       const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
-        pl: ['/pasar-lista/'], proc: ['/procesos/'] };
+        pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], res: ['/resumen/'] };
       for (const [u, puede] of Object.entries(R)) {
         for (const [k, rutas] of Object.entries(RUTAS)) for (const ruta of rutas) {
           const r = await n[u].get(ruta);
@@ -538,9 +577,9 @@ async function correr(fuente) {
         ok((await n[u].get('/raiz.txt')).status === 200, u + ': los archivos de la raíz (portada) se abren con sesión');
       }
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","procesos"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School y Procesos (entra directo a Pasar lista)');
+      ok(/window\.ACCESO = \["afterschool","procesos","equipo"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School, Procesos y Equipo (entra directo a Pasar lista)');
       const co = await n['prueba-comercial'].get('/acceso.php');
-      ok(/window\.ACCESO = \["kinder","afterschool","basededatos","procesos"\]/.test(co.texto), 'Comercial: Preschool, After School, Base de Datos y Procesos');
+      ok(/window\.ACCESO = \["kinder","afterschool","basededatos","procesos","equipo"\]/.test(co.texto), 'Comercial: Preschool, After School, Base de Datos, Procesos y Equipo');
       const di = await n['prueba-direccion'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(di.texto), 'Dirección: todas las tarjetas, Configuración incluida');
     }
@@ -563,7 +602,7 @@ async function correr(fuente) {
           u + ': empieza en ' + e.inicio + ' y After School abre en «' + e.inicioAS + '» (dio ' + (a.j && a.j.inicio) + ', ' + (a.j && a.j.inicioAS) + ')');
       }
       const prof = (await n['prueba-profesor-1'].get('/acceso.php?formato=json')).j;
-      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool","procesos"]',
+      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool","procesos","equipo"]',
         'Profesor: solo los permisos de Pasar lista (' + JSON.stringify(prof.permisosAS) + ')');
       const coord = (await n['prueba-coord-as'].get('/acceso.php?formato=json')).j;
       ok(coord.permisosAS.includes('as.lista.marcar') && coord.permisosAS.includes('as.ver'), 'Coordinación: Pasar lista es una pestaña más');
@@ -945,6 +984,107 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       }
     }
 
+    seccion('Equipo: cada uno recibe solo los puestos que ocupa o de los que es jefe, y solo si están abiertos');
+    {
+      const eq = (u, accion, datos) => n[u].post('/equipo/api.php', { json: datos ? { accion, datos } : { accion } });
+      const TODOS = 'BOR,DIR,JEF,OTR,PRO,REC,VAL';
+      const CASOS = {
+        'prueba-profesor-1':   { fichas: 'PRO', mios: 'PRO', revisar: '', no: /SECRETO|TEXTO-(JEF|REC)|MARCA-(JEF|REC|OTR|BOR|VAL)|PUNTO-(JEF|REC|OTR|BOR|VAL)|CANTIDAD|UNIDAD-(?!PRO)|COMO-(?!PRO)|FALTA-DE-PRUEBA|quien-(?!PRO)|REVISION|prueba-(recepcion|contabilidad|coord-as)|MARCA-VIEJA|"Borrador"|"Validado"|"Por cargar"/ },
+        'prueba-recepcion':    { fichas: 'REC', mios: 'REC', revisar: '', no: /SECRETO|TEXTO-(JEF|PRO)|MARCA-(JEF|PRO|OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-(contabilidad|coord-as)|"Borrador"|"Validado"/ },
+        'prueba-contabilidad': { fichas: 'OTR', mios: 'OTR', revisar: '', no: /TEXTO-|MARCA-(JEF|REC|PRO|BOR|VAL)|SECRETO-(BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|prueba-(recepcion|coord-as)/ },
+        'prueba-coord-as':     { fichas: 'JEF,PRO,REC', mios: 'JEF', revisar: 'PRO,REC', no: /SECRETO|MARCA-(OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-contabilidad|"Borrador"|"Validado"/ },
+        'prueba-comercial':    { fichas: '', mios: '', revisar: '', no: /SECRETO|TEXTO-|MARCA-|PUNTO-|CANTIDAD|UNIDAD-|COMO-|FALTA-DE-PRUEBA|quien-|REVISION|"Borrador"|"Validado"/ },
+        'prueba-direccion':    { fichas: TODOS, mios: '', revisar: 'JEF,OTR,PRO,REC', no: /MARCA-VIEJA/ },
+        'admin-uno':           { fichas: TODOS, mios: '', revisar: '', no: /MARCA-VIEJA/ }
+      };
+      const lista = a => (a || []).slice().sort().join();
+      for (const [u, e] of Object.entries(CASOS)) {
+        const r = await eq(u, 'leer');
+        const R = r.j && r.j.resultado;
+        ok(r.status === 200 && r.j.ok && R, u + ': lee Equipo (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
+        if (!R) continue;
+        ok(lista(R.puestos.map(p => p.id)) === TODOS, u + ': ve el nombre de todos los puestos del organigrama');
+        ok(lista(Object.keys(R.fichas)) === e.fichas && lista(R.puestos.filter(p => p.ficha).map(p => p.id)) === e.fichas,
+          u + ': fichas solo de ' + (e.fichas || 'ninguno') + ' (dio ' + lista(Object.keys(R.fichas)) + ')');
+        ok(lista(R.mios) === e.mios && lista(R.revisar) === e.revisar, u + ': Mi lista de «' + e.mios + '» y Revisar de «' + e.revisar + '» (dio ' + lista(R.mios) + ' / ' + lista(R.revisar) + ')');
+        ok(!e.no.test(r.texto), u + ': nada de puestos ajenos ni no abiertos en el texto de la respuesta (' + ((r.texto.match(e.no) || [''])[0]) + ')');
+        const todo = u === 'prueba-direccion' || u === 'admin-uno';
+        if (!todo) {
+          ok(R.puestos.every(p => Object.keys(p).sort().join() === 'area,estado,ficha,id,puesto,reportaA'), u + ': del organigrama solo nombre, área, a quién reporta y estado');
+          ok(R.puestos.filter(p => ['DIR', 'BOR', 'VAL'].includes(p.id)).every(p => p.estado === 'En construcción') && R.puestos.find(p => p.id === 'PRO').estado === 'Abierto al equipo',
+            u + ': lo que no está abierto le llega como «En construcción»');
+          ok(R.faltan === undefined, u + ': sin la lista de columnas que faltan');
+        } else {
+          ok(R.puestos.find(p => p.id === 'BOR').estado === 'Borrador' && R.puestos.find(p => p.id === 'JEF').cantidad === 'CANTIDAD-JEF' && lista(R.faltan) === 'FALTA-DE-PRUEBA',
+            u + ': ve el estado real, la cantidad y lo que falta en el Sheet');
+        }
+      }
+      const coord = (await eq('prueba-coord-as', 'leer')).j.resultado;
+      ok(coord.fichas.JEF.aceptada === false && coord.fichas.JEF.aceptadaVersion === 1 && coord.fichas.JEF.version === 2,
+        'versión nueva: la aceptación de la versión 1 ya no vale para la versión 2');
+      const rec = (await eq('prueba-recepcion', 'leer')).j.resultado;
+      ok(rec.fichas.REC.aceptada === true && rec.fichas.REC.ocupo === true && !('OTR' in rec.fichas), 'Recepción: su contrato aceptado; la asignación vencida no cuenta');
+      const pro = (await eq('prueba-profesor-1', 'leer')).j.resultado;
+      ok(JSON.stringify(pro.fichas.PRO.contrato) === '{"resultado":["TEXTO-PRO"],"trabajo":["TRABAJO-PRO"],"estandares":["ESTANDAR-PRO"]}',
+        'el contrato llega en sus tres partes: resultado, trabajo y estándares');
+      ok(pro.fichas.PRO.aceptada === false && pro.fichas.PRO.aceptadaVersion === null, 'Profesor: todavía sin aceptar');
+
+      // Escribir: quién puede, y lo prohibido no llega a Google.
+      const escribe = async (u, accion, datos, status, codigo, que) => {
+        const antes = google.llamadas.length;
+        const r = await eq(u, accion, datos);
+        const llego = google.llamadas.slice(antes).filter(l => l.key === 'clave-pr-de-prueba' && l.accion === accion);
+        ok(r.status === status && (!codigo || (r.j && r.j.codigo === codigo)) && (status === 200 ? llego.length === 1 && llego[0].usuario === u : llego.length === 0),
+          que + ' (' + r.status + ' ' + r.texto.slice(0, 100) + '; llegó a Google: ' + llego.length + ')');
+        return { r, llego };
+      };
+      await escribe('prueba-profesor-1', 'aceptar', { puesto: 'REC', version: 1 }, 403, 'sin_permiso', 'el Profesor no acepta el contrato de un puesto que no ocupa');
+      await escribe('prueba-profesor-1', 'marcar', { puesto: 'REC', marcas: [{ orden: 1, resultado: 'Cumplido' }] }, 403, 'sin_permiso', 'el Profesor no marca la lista de un puesto que no ocupa');
+      await escribe('prueba-profesor-1', 'marcar', { puesto: 'BOR', marcas: [{ orden: 1, resultado: 'Cumplido' }] }, 403, 'no_abierto', 'ni la de un puesto suyo que no está abierto');
+      await escribe('prueba-profesor-1', 'aceptar', { puesto: 'NO-EXISTE', version: 1 }, 403, 'sin_permiso', 'ni de un puesto que no existe');
+      await escribe('prueba-coord-as', 'marcar', { puesto: 'PRO', marcas: [{ orden: 1, resultado: 'Cumplido' }] }, 403, 'sin_permiso', 'el jefe revisa, pero no marca por su equipo');
+      await escribe('prueba-recepcion', 'revisar', { puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'Recepción no revisa a un compañero');
+      await escribe('prueba-profesor-1', 'revisar', { puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'nadie revisa su propia lista');
+      await escribe('prueba-coord-as', 'revisar', { puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'el jefe no revisa puestos fuera de su equipo');
+      await escribe('prueba-profesor-1', 'borrar', { puesto: 'PRO' }, 403, 'sin_permiso', 'una acción que no existe se rechaza');
+      const copia = path.join(home, 'portal_cache', 'equipo.json');
+      ok(fs.existsSync(copia), '(control) hay copia corta del Sheet antes de escribir');
+      const m = await escribe('prueba-profesor-1', 'marcar', { puesto: 'PRO', marcas: [{ orden: 1, resultado: 'Cumplido', nota: 'x' }] }, 200, '', 'el Profesor marca su propia lista');
+      ok(m.llego[0] && m.llego[0].datos.puesto === 'PRO' && !('periodo' in m.llego[0].datos.marcas[0]), 'llega al script tal cual: el período lo pone el script');
+      ok(!fs.existsSync(copia), 'después de escribir se borra la copia: lo nuevo se ve en la próxima lectura');
+      await escribe('prueba-profesor-1', 'aceptar', { puesto: 'PRO', version: 1 }, 200, '', 'el Profesor acepta su contrato');
+      await escribe('prueba-coord-as', 'revisar', { puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'No', nota: 'x' }, 200, '', 'el jefe revisa la lista de su equipo');
+      await escribe('prueba-direccion', 'revisar', { puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'Dirección revisa lo que figura en «Verifica»');
+      PR.siguiente = { ok: false, codigo: 'version_vieja', error: 'Hay una versión nueva de tu contrato.' };
+      await escribe('prueba-coord-as', 'aceptar', { puesto: 'JEF', version: 1 }, 400, 'version_vieja', 'aceptar una versión vieja: el aviso del script llega a la pantalla');
+      const anon = await new Nav(base).post('/equipo/api.php', { json: { accion: 'leer' } });
+      ok(anon.status !== 200 && !/TEXTO-|Jefatura/.test(anon.texto), 'sin sesión no hay datos (' + anon.status + ')');
+      ok(/session_write_close\(\);[^\n]*\n(?:.*\n){0,4}.*eq_sheet\(/.test(fs.readFileSync(path.join(web, 'equipo', 'api.php'), 'utf8')), 'equipo/api.php suelta la sesión antes de esperar a Google');
+    }
+
+    seccion('Resumen de Dirección, Mi lista y estilo vidrio');
+    {
+      for (const u of ['prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
+        ok((await n[u].get('/resumen/')).status === 403, u + ': el Resumen de Dirección responde sin permiso');
+        ok((await n[u].get('/equipo/')).status === 200, u + ': abre Mi lista');
+      }
+      for (const u of ['prueba-direccion', 'admin-uno']) {
+        const r = await n[u].get('/resumen/');
+        ok(r.status === 200 && /<title>Resumen de Dirección/.test(r.texto), u + ': abre el Resumen de Dirección');
+      }
+      const portada = (await n['prueba-direccion'].get('/')).texto;
+      ok(/return \(ve\(RESUMEN\.area\) \?/.test(portada) && /area: 'resumen'/.test(portada) && /id="miLista"/.test(portada), 'portada: la tarjeta del Resumen solo con el área «resumen», y Mi lista cuando hay puestos');
+      const res = (await n['prueba-direccion'].get('/resumen/')).texto;
+      ok(/Próximamente/.test(res) && !/\$\s?\d|\d+\s?(USD|COP)/.test(res), 'Finanzas: «Próximamente», sin números');
+      const clase = async ruta => { const t = (await n['admin-uno'].get(ruta)).texto; return /<html lang="es" class="vidrio">/.test(t) ? 'vidrio' : 'sin'; };
+      for (const ruta of ['/', '/procesos/', '/equipo/', '/resumen/']) ok(await clase(ruta) === 'vidrio', ruta + ' con estilo vidrio');
+      for (const ruta of ['/after-school/', '/pasar-lista/', '/configuracion/']) ok(await clase(ruta) === 'sin', ruta + ' sigue igual, sin vidrio');
+      const f = await new Nav(base).get('/comun/fondo-local.jpg');
+      ok(f.status === 200 && /image\/jpeg/.test(f.tipo || '') , 'la foto de fondo se sirve sin sesión, como imagen (' + f.status + ' ' + f.tipo + ')');
+      const css = fs.readFileSync(path.join(web, 'comun', 'vea.css'), 'utf8');
+      ok(/@supports not \(\(backdrop-filter/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
+    }
+
     seccion('sesión suelta: los pedidos del mismo usuario no hacen fila mientras se espera a Google');
     {
       const ESPERA = 800;   // ms por pedido a Google (corto: la prueba corre una vez por cada rotura)
@@ -962,6 +1102,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       const lista = nav => () => nav.post('/pasar-lista/api.php', { json: { accion: 'leerLista', datos: {} } });
       const procesos = nav => () => nav.post('/procesos/api.php', { json: { accion: 'leer' } });
       const pa = nav => () => nav.post('/proyecto-actio/api.php', { json: { accion: 'leer' } });
+      const equipo = nav => () => nav.post('/equipo/api.php', { json: { accion: 'leer' } });
       const sinCopia = () => fs.rmSync(path.join(home, 'portal_cache'), { recursive: true, force: true });   // sin copia: van a Google
       LENTO.ms = ESPERA;
       try {
@@ -980,6 +1121,9 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         sinCopia();
         x = await aLaVez([procesos(n['admin-uno']), procesos(gemelo('admin-uno'))]);
         ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'Procesos: dos lecturas a la vez del mismo usuario: terminan a los ' + x.fines);
+        sinCopia();
+        x = await aLaVez([equipo(n['prueba-coord-as']), equipo(gemelo('prueba-coord-as'))]);
+        ok(x.rs.every(r => r.status === 200 && r.j.ok) && x.ms < tope, 'Equipo: dos lecturas a la vez del mismo usuario: terminan a los ' + x.fines);
         sinCopia();
         x = await aLaVez([pa(n['admin-uno']), lista(gemelo('admin-uno'))]);
         ok(x.rs.every(r => r.status === 200) && x.ms < tope, 'Proyecto Actio y Pasar lista a la vez, del mismo usuario: terminan a los ' + x.fines);

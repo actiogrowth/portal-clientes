@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="vidrio">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -11,6 +11,8 @@
   para el cliente, de los tres procesos y con los campos de esta pantalla.
     /procesos/               las unidades (con su color e iniciales)
     /procesos/#u=<unidad>    los procesos de una unidad y sus documentos
+    /procesos/#equipo        26-oct: «Por equipo», el organigrama y la ficha
+                             de cada puesto (comun/organigrama.js → /equipo/api.php)
   El buscador busca en todas las unidades. -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
@@ -20,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=1c5ea26b14">
+<link rel="stylesheet" href="/comun/vea.css?v=403ecddb33">
 </head>
 <body>
 <header id="cab"></header>
@@ -30,6 +32,10 @@
       <h1 class="titulo" id="titulo">Procesos</h1>
       <p class="ayuda" id="sub">Cómo funciona cada unidad de Vida en Arte.</p>
     </div>
+    <div class="pr-vistas" role="group" aria-label="Vista de Procesos">
+      <a href="#" id="vistaUnidad" aria-current="page">Por unidad</a>
+      <a href="#equipo" id="vistaEquipo">Por equipo</a>
+    </div>
     <label class="pa-buscar" id="buscarCaja">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555555" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
       <input type="search" id="buscar" placeholder="Buscar en todas las unidades" aria-label="Buscar en todas las unidades" autocomplete="off">
@@ -38,12 +44,14 @@
 
   <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo la biblioteca de Vida en Arte.</p></div>
   <div id="contenido" class="pr-contenido" aria-live="polite"></div>
+  <div id="equipo" class="oculto"></div>
 </main>
 
-<script src="/comun/datos.js?v=b4c990ccbe"></script>
+<script src="/comun/datos.js?v=c918c02f12"></script>
 <script src="/comun/marca.js?v=0b53cee6ca"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
+<script src="/comun/organigrama.js?v=9d7d027269"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -144,7 +152,24 @@ function pintarBusqueda(q) {
   }).join('');
 }
 
+/* «Por unidad» o «Por equipo» (#equipo). */
+function vistaEquipo() {
+  const eq = location.hash === '#equipo';
+  $('#equipo').classList.toggle('oculto', !eq);
+  $('#contenido').classList.toggle('oculto', eq);
+  $('#buscarCaja').classList.toggle('oculto', eq);
+  if (eq) $('#pantalla').classList.add('oculto'); else if (!D && !$('#pantalla').innerHTML.includes('No se pudo')) $('#pantalla').classList.remove('oculto');
+  $('#vistaEquipo').toggleAttribute('aria-current', eq); if (eq) $('#vistaEquipo').setAttribute('aria-current', 'page');
+  $('#vistaUnidad').toggleAttribute('aria-current', !eq); if (!eq) $('#vistaUnidad').setAttribute('aria-current', 'page');
+  if (eq) {
+    Marca.cabecera($('#cab'), { sesion, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Procesos', url: '/procesos/' }, { texto: 'Equipo' }] });
+    Organigrama.mostrar($('#equipo'), { alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
+  }
+  return eq;
+}
+
 function pintar() {
+  if (vistaEquipo()) return;
   if (!D) return;
   const q = norm(busqueda);
   if (q) { pintarBusqueda(q); return; }
@@ -185,6 +210,7 @@ async function cargar() {
 (async function iniciar() {
   try { sesion = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
   cabecera(null);
+  vistaEquipo();   // con #equipo, el organigrama no espera a los documentos
   cargar();
 })();
 </script>

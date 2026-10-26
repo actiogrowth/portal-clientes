@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es" class="vidrio">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Mi lista · Vida en Arte 360</title>
+<!-- Mi lista y Revisar (26-oct). Lee y escribe SOLO por la capa de datos
+  (/comun/datos.js → /equipo/api.php), que ya manda recortado lo que ve esta
+  persona y vuelve a comprobar quién puede marcar o revisar.
+    /equipo/            Mi lista: los puestos que ocupo y están «Abierto al equipo»
+    /equipo/#revisar    Revisar: los puestos que verifico o de los que soy jefe
+  El período de cada marca lo pone el servidor (Procesos.gs): aquí solo se
+  muestra el que está en curso. -->
+<!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
+<link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
+<link rel="apple-touch-icon" href="/comun/app-icono-180.png?v=56fff6a358">
+<meta name="apple-mobile-web-app-title" content="VEA 360">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/comun/vea.css?v=403ecddb33">
+</head>
+<body>
+<header id="cab"></header>
+<main class="pagina ml">
+  <section class="encabezado encabezado-as">
+    <div>
+      <p class="ayuda" id="hoy"></p>
+      <h1 class="titulo" id="titulo">Mi lista</h1>
+    </div>
+    <div class="ml-cuenta vidrio-tarjeta oculto" id="cuenta"><b class="num" id="cuentaNum">0/0</b><span id="cuentaTxt">puntos diarios</span></div>
+  </section>
+  <nav class="pestanas oculto" role="tablist" id="pestanas" aria-label="Mi lista o Revisar">
+    <button role="tab" data-vista="lista" aria-selected="true">Mi lista</button>
+    <button role="tab" data-vista="revisar" aria-selected="false">Revisar</button>
+  </nav>
+  <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo tus puestos.</p></div>
+  <div id="avisos"></div>
+  <section id="v-lista" class="oculto columna">
+    <div class="ml-puestos" role="group" aria-label="Puesto" id="puestos"></div>
+    <div id="contrato"></div>
+    <div class="ml-tarjeta vidrio-tarjeta" id="puntos"></div>
+    <div class="ml-pie"><p class="ml-pie-txt" id="pieTxt"></p><button class="btn negro grande" type="button" id="guardar" disabled>Guardar</button></div>
+  </section>
+  <section id="v-revisar" class="oculto columna">
+    <div class="ml-puestos" role="group" aria-label="Puesto a revisar" id="revPuestos"></div>
+    <div id="revCuerpo"></div>
+  </section>
+</main>
+
+<script src="/comun/datos.js?v=c918c02f12"></script>
+<script src="/comun/marca.js?v=0b53cee6ca"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = Marca.esc, norm = Marca.normal;
+const FRECUENCIAS = ['Diario', 'Semanal', 'Mensual', 'Por temporada', 'Cuando aplica', 'Por persona nueva'];
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+let D = null, sesion = null, vista = 'lista', puesto = '', revPuesto = '', marcas = {}, notas = {}, abiertaNota = {}, guardando = false;
+
+/* «2026-10-28» → «28 de octubre de 2026»; «2026-S44» → «Semana 44 de 2026»; «2026-10» → «Octubre de 2026»; «2026» → «2026». */
+function periodoTexto(p) {
+  let m;
+  if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(p))) return +m[3] + ' de ' + MESES[+m[2] - 1] + ' de ' + m[1];
+  if ((m = /^(\d{4})-S(\d{2})$/.exec(p))) return 'Semana ' + +m[2] + ' de ' + m[1];
+  if ((m = /^(\d{4})-(\d{2})$/.exec(p))) { const s = MESES[+m[2] - 1]; return s.charAt(0).toUpperCase() + s.slice(1) + ' de ' + m[1]; }
+  return p;
+}
+const nombreDe = id => (D.puestos.find(p => p.id === id) || {}).puesto || id;
+/* La última marca de un punto en un período (la de más tarde vale; las anteriores quedan). */
+function ultimaMarca(f, orden, periodo) {
+  return f.marcas.filter(m => +m.orden === +orden && m.periodo === periodo).sort((a, b) => a.fecha.localeCompare(b.fecha)).pop() || null;
+}
+
+async function cargar() {
+  try { D = (await Datos.equipo.leer()).resultado; }
+  catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    $('#pantalla').innerHTML = '<h2>No se pudo leer tu lista</h2><p>La página no muestra nada hasta poder leer los datos.</p><pre>' + esc(e.message) + '</pre><button class="btn" id="reintentar" type="button">Reintentar</button>';
+    $('#pantalla').classList.remove('oculto');
+    $('#reintentar').onclick = () => { $('#pantalla').innerHTML = '<h2>Cargando…</h2>'; cargar(); };
+    return;
+  }
+  $('#pantalla').classList.add('oculto');
+  const hay = D.mios.length, rev = D.revisar.length;
+  $('#pestanas').classList.toggle('oculto', !(hay && rev));
+  if (!hay && !rev) {
+    $('#pantalla').innerHTML = '<h2>Todavía no tienes una lista</h2><p>Tu lista de verificación aparece aquí cuando el puesto que ocupas esté «Abierto al equipo».</p><a class="btn" href="/procesos/#equipo">Ver el equipo</a>';
+    $('#pantalla').classList.remove('oculto');
+    return;
+  }
+  if (!D.mios.includes(puesto)) puesto = D.mios[0] || '';
+  if (!D.revisar.includes(revPuesto)) revPuesto = D.revisar[0] || '';
+  if (location.hash === '#revisar' && rev) vista = 'revisar'; else vista = hay ? 'lista' : 'revisar';
+  mostrar();
+}
+
+function mostrar() {
+  document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.setAttribute('aria-selected', b.dataset.vista === vista ? 'true' : 'false'));
+  $('#v-lista').classList.toggle('oculto', vista !== 'lista');
+  $('#v-revisar').classList.toggle('oculto', vista !== 'revisar');
+  $('#titulo').textContent = vista === 'lista' ? 'Mi lista' : 'Revisar';
+  Marca.cabecera($('#cab'), { sesion, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Procesos', url: '/procesos/#equipo' }, { texto: vista === 'lista' ? 'Mi lista' : 'Revisar' }] });
+  if (vista === 'lista') pintarLista(); else pintarRevisar();
+}
+document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.onclick = () => {
+  if (vista === 'lista' && Object.keys(marcas).length && !confirm('Hay marcas sin guardar. ¿Cambiar igual? Se pierden.')) return;
+  vista = b.dataset.vista; marcas = {}; notas = {}; history.replaceState(null, '', vista === 'revisar' ? '#revisar' : '#'); mostrar();
+});
+
+/* ── Mi lista ────────────────────────────────────────────────────────────── */
+function botonesPuestos(ids, actual, attr) {
+  return ids.map(id => '<button type="button" class="ml-puesto" ' + attr + '="' + esc(id) + '" aria-pressed="' + (id === actual) + '">' + esc(nombreDe(id)) + '</button>').join('');
+}
+
+function pintarLista() {
+  const f = D.fichas[puesto];
+  $('#puestos').innerHTML = D.mios.length > 1 ? botonesPuestos(D.mios, puesto, 'data-puesto') : '';
+  $('#puestos').querySelectorAll('[data-puesto]').forEach(b => b.onclick = () => {
+    if (Object.keys(marcas).length && !confirm('Hay marcas sin guardar en este puesto. ¿Cambiar igual? Se pierden.')) return;
+    puesto = b.dataset.puesto; marcas = {}; notas = {}; abiertaNota = {}; pintarLista();
+  });
+  // El contrato: si no está aceptado (o hay una versión nueva), se pide aquí también.
+  $('#contrato').innerHTML = f.aceptada ? '' : '<div class="aviso ojo ml-aviso">' + (f.aceptadaVersion !== null && f.aceptadaVersion !== undefined
+    ? '<b>Hay una versión nueva de tu contrato</b> de ' + esc(nombreDe(puesto)) + '. '
+    : 'Todavía no aceptaste tu contrato de ' + esc(nombreDe(puesto)) + '. ') + '<a href="/procesos/#equipo">Leerlo y aceptarlo</a></div>';
+  const grupos = FRECUENCIAS.concat([...new Set(f.lista.map(x => x.frecuencia))].filter(x => !FRECUENCIAS.includes(x)))
+    .map(fr => ({ fr, puntos: f.lista.filter(x => x.frecuencia === fr) })).filter(g => g.puntos.length);
+  let diarios = 0, diariosHechos = 0;
+  $('#puntos').innerHTML = grupos.map(g => '<h2 class="ml-grupo">' + esc(g.fr) + (g.puntos[0].periodo && g.fr !== 'Diario' ? ' <span>· ' + esc(periodoTexto(g.puntos[0].periodo)) + '</span>' : '') + '</h2>' +
+    g.puntos.map(x => {
+      const u = ultimaMarca(f, x.orden, x.periodo), k = String(x.orden);
+      const elegido = k in marcas ? marcas[k] : (u ? u.resultado : '');
+      if (g.fr === 'Diario') { diarios++; if (elegido) diariosHechos++; }
+      const nota = k in notas ? notas[k] : (u ? u.nota : '');
+      const boton = (v, cls) => '<button type="button" class="ml-res ' + cls + '" data-orden="' + k + '" data-res="' + v + '" aria-pressed="' + (elegido === v) + '">' + v + '</button>';
+      return '<div class="ml-punto"><div class="ml-punto-txt"><span class="ml-que">' + esc(x.texto) + '</span>' +
+        (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') +
+        (u ? '<span class="ayuda ml-ya">Marcado por ' + esc(u.usuario) + ' · ' + esc(u.fecha.replace('T', ' ')) + (k in marcas ? ' · se corrige al guardar' : '') + '</span>' : '') +
+        (abiertaNota[k] || nota ? '<label class="ml-nota"><span class="sr">Nota</span><input type="text" maxlength="500" data-nota="' + k + '" value="' + esc(nota) + '" placeholder="Nota (opcional)"></label>' : '') + '</div>' +
+        '<div class="ml-botones" role="group" aria-label="' + esc(x.texto) + '">' + boton('Cumplido', 'si') + boton('No', 'no') +
+        (abiertaNota[k] || nota ? '' : '<button type="button" class="ml-res nota" data-abrir-nota="' + k + '">Nota</button>') + '</div></div>';
+    }).join('')).join('') || '<p class="ayuda">Este puesto todavía no tiene lista de verificación.</p>';
+  $('#cuenta').classList.toggle('oculto', !diarios);
+  $('#cuentaNum').textContent = diariosHechos + '/' + diarios;
+  $('#hoy').textContent = Marca.fechaLarga(D.hoy);
+  $('#pieTxt').textContent = 'Cada marca queda con tu usuario y la hora. ' + (f.verifica ? 'La revisa: ' + f.verifica + '.' : '');
+  $('#guardar').disabled = !Object.keys(marcas).length || guardando;
+  $('#puntos').querySelectorAll('[data-res]').forEach(b => b.onclick = () => { marcas[b.dataset.orden] = b.dataset.res; pintarLista(); });
+  $('#puntos').querySelectorAll('[data-abrir-nota]').forEach(b => b.onclick = () => { abiertaNota[b.dataset.abrirNota] = true; pintarLista(); const i = $('[data-nota="' + b.dataset.abrirNota + '"]'); if (i) i.focus(); });
+  $('#puntos').querySelectorAll('[data-nota]').forEach(i => i.oninput = () => {
+    const k = i.dataset.nota; notas[k] = i.value;
+    if (!(k in marcas)) { const x = f.lista.find(y => String(y.orden) === k), u = ultimaMarca(f, x.orden, x.periodo); if (u) marcas[k] = u.resultado; }
+    $('#guardar').disabled = !Object.keys(marcas).length;
+  });
+}
+
+$('#guardar').onclick = async () => {
+  const lista = Object.keys(marcas).map(k => ({ orden: +k, resultado: marcas[k], nota: notas[k] || '' }));
+  if (!lista.length) return;
+  guardando = true; $('#guardar').disabled = true; $('#guardar').textContent = 'Guardando…';
+  try {
+    await Datos.equipo.marcar(puesto, lista);
+    marcas = {}; notas = {}; abiertaNota = {};
+    Marca.toast('Lista guardada');
+    await cargar();
+  } catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    $('#avisos').innerHTML = '<div class="aviso mal">' + esc(e.codigo === 'incierto' || e.codigo === 'red' ? 'No llegó la respuesta. Vuelve a abrir la lista: si se guardó, ya aparece marcado.' : e.message) + '</div>';
+  } finally { guardando = false; $('#guardar').textContent = 'Guardar'; if (vista === 'lista') $('#guardar').disabled = !Object.keys(marcas).length; }
+};
+window.addEventListener('beforeunload', e => { if (Object.keys(marcas).length) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ── Revisar: las marcas del equipo por período, y la revisión ───────────── */
+function pintarRevisar() {
+  const f = D.fichas[revPuesto];
+  $('#revPuestos').innerHTML = D.revisar.length > 1 ? botonesPuestos(D.revisar, revPuesto, 'data-rev') : '';
+  $('#revPuestos').querySelectorAll('[data-rev]').forEach(b => b.onclick = () => { revPuesto = b.dataset.rev; pintarRevisar(); });
+  $('#cuenta').classList.add('oculto');
+  $('#hoy').textContent = Marca.fechaLarga(D.hoy);
+  const periodos = [...new Set(f.marcas.map(m => m.periodo))].sort().reverse();
+  const texto = o => (f.lista.find(x => +x.orden === +o) || {}).texto || ('Punto ' + o);
+  $('#revCuerpo').innerHTML = '<p class="ml-rev-titulo">' + esc(nombreDe(revPuesto)) + (f.comoVerifica ? ' · <span>' + esc(f.comoVerifica) + '</span>' : '') + '</p>' +
+    (periodos.length ? periodos.map(per => {
+      const ordenes = [...new Set(f.marcas.filter(m => m.periodo === per).map(m => +m.orden))].sort((a, b) => a - b);
+      const revs = f.revisiones.filter(r => r.periodo === per);
+      return '<section class="ml-tarjeta vidrio-tarjeta ml-periodo"><h2 class="ml-grupo">' + esc(periodoTexto(per)) + (revs.length ? ' <span class="eq-chip abierto">Revisado</span>' : ' <span class="eq-chip borrador">Sin revisar</span>') + '</h2>' +
+        ordenes.map(o => { const u = ultimaMarca(f, o, per); return '<div class="ml-punto"><div class="ml-punto-txt"><span class="ml-que">' + esc(texto(o)) + '</span>' +
+          '<span class="ayuda">' + esc(u.usuario) + ' · ' + esc(u.fecha.replace('T', ' ')) + (u.nota ? ' · «' + esc(u.nota) + '»' : '') + '</span></div>' +
+          '<span class="ml-estado ' + (u.resultado === 'Cumplido' ? 'si' : 'no') + '">' + esc(u.resultado) + '</span></div>'; }).join('') +
+        revs.map(r => '<p class="ayuda ml-revision">Revisión de ' + esc(r.revisor) + ' · ' + esc(r.fecha.replace('T', ' ')) + ' · ' + esc(r.resultado) + (r.sorpresa === 'Sí' ? ' · sorpresa' : '') + (r.nota ? ' · «' + esc(r.nota) + '»' : '') + '</p>').join('') +
+        '<form class="ml-revisar" data-periodo="' + esc(per) + '"><fieldset><legend>Sorpresa</legend><label><input type="radio" name="s-' + esc(per) + '" value="Sí"> Sí</label><label><input type="radio" name="s-' + esc(per) + '" value="No" checked> No</label></fieldset>' +
+        '<fieldset><legend>Resultado</legend><label><input type="radio" name="r-' + esc(per) + '" value="Cumplido" checked> Cumplido</label><label><input type="radio" name="r-' + esc(per) + '" value="No"> No</label></fieldset>' +
+        '<label class="ml-nota-rev">Nota <input type="text" maxlength="500" name="nota"></label><button type="submit" class="btn negro">Registrar revisión</button></form></section>';
+    }).join('') : '<div class="ml-tarjeta vidrio-tarjeta"><p class="ayuda">Este puesto todavía no tiene marcas en los últimos meses.</p></div>');
+  $('#revCuerpo').querySelectorAll('form[data-periodo]').forEach(fm => fm.onsubmit = async ev => {
+    ev.preventDefault();
+    const per = fm.dataset.periodo, b = fm.querySelector('button');
+    b.disabled = true; b.textContent = 'Guardando…';
+    try {
+      await Datos.equipo.revisar(revPuesto, per, fm.querySelector('[name="s-' + per + '"]:checked').value, fm.querySelector('[name="r-' + per + '"]:checked').value, fm.nota.value);
+      Marca.toast('Revisión registrada'); await cargar();
+    } catch (e) {
+      if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+      b.disabled = false; b.textContent = 'Registrar revisión';
+      $('#avisos').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>';
+    }
+  });
+}
+
+(async function iniciar() {
+  try { sesion = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
+  Marca.cabecera($('#cab'), { sesion, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Mi lista' }] });
+  cargar();
+})();
+</script>
+</body>
+</html>

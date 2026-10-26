@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="vidrio">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=1c5ea26b14">
+<link rel="stylesheet" href="/comun/vea.css?v=403ecddb33">
 </head>
 <body>
 <!-- Portada (21-oct, rediseño; 23-oct, por marca). Página fija: quién soy y
@@ -39,7 +39,7 @@
   <div id="grupos" class="portada-grupos"></div>
   <footer class="ayuda">© 2026 Vida en Arte · Hecho por Actio Growth</footer>
 </main>
-<script src="/comun/datos.js?v=b4c990ccbe"></script>
+<script src="/comun/datos.js?v=c918c02f12"></script>
 <script src="/comun/marca.js?v=0b53cee6ca"></script>
 <script>
 'use strict';
@@ -52,6 +52,9 @@ const UNIDADES = {
   kinder:      { nombre: 'Preschool', url: '/kinder/', color: '#7E53A2', icono: 'arcoiris', cuadrado: true, desc: 'Tablero de matrícula y ocupación.' },
   babyandme:   { nombre: 'Baby & Me', url: '', color: '#68A8C9', icono: 'corazon', cuadrado: true, desc: 'Grupos y asistencia.' }
 };
+/* 26-oct: arriba, el Resumen (solo Dirección y Administrador) y Mi lista (quien ocupa un puesto abierto). */
+const RESUMEN = { area: 'resumen', nombre: 'Resumen de Dirección', url: '/resumen/', icono: 'resumen', desc: 'Lo que necesita tu atención hoy y las cifras de cada unidad.' };
+const MI_LISTA = { area: 'equipo', nombre: 'Mi lista', url: '/equipo/', icono: 'lista', desc: 'La lista de verificación de tus puestos.' };
 const PROCESOS = { area: 'procesos', nombre: 'Procesos', url: '/procesos/', icono: 'libro', desc: 'Cómo funciona cada unidad: atracción, adquisición y entrega del servicio.' };
 const ADMIN = [
   { nombre: 'Base de Datos', url: '/basededatos/', area: 'basededatos', icono: 'datos', desc: 'Clientes de todas las unidades' },
@@ -67,6 +70,8 @@ const ICONOS = {
   datos: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
   usuarios: '<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M17 11h4M19 9v4"/>',
   sistema: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/>',
+  resumen: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  lista: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8l1.5 1.5L13 7"/><path d="M9 14l1.5 1.5L13 13"/><path d="M15 8h1M15 14h1"/>',
   libro: '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20v-3"/><path d="M8 7h8M8 11h6"/>'
 };
 const FRANJA_KIDS = ['#D53B2C', '#EC893E', '#FCCC14', '#9DCC4C', '#68A8C9', '#1E63AB', '#7E53A2'];
@@ -95,7 +100,9 @@ function portada(ve) {
       '<span class="marca-unidades">' + us.map(a => esc(UNIDADES[a].nombre)).join(' · ') + '</span>' +
     '</a>').join('');
   const admin = ADMIN.filter(u => ve(u.area));
-  return (logos ? '<section class="marcas" aria-label="Marcas">' + logos + '</section>' : '') +
+  return (ve(RESUMEN.area) ? '<section class="unidades fila uno" aria-label="Resumen">' + tarjeta(RESUMEN, true) + '</section>' : '') +
+    '<section class="unidades fila uno oculto" aria-label="Mi lista" id="miLista"></section>' +
+    (logos ? '<section class="marcas" aria-label="Marcas">' + logos + '</section>' : '') +
     (ve(PROCESOS.area) ? '<section class="unidades fila uno" aria-label="Procesos">' + tarjeta(PROCESOS, true) + '</section>' : '') +
     (admin.length ? seccion('Administración', '<div class="unidades fila">' + admin.map(u => tarjeta(u, true)).join('') + '</div>', true) : '');
 }
@@ -130,6 +137,13 @@ async function cargar() {
   $('#hola').textContent = 'Hola, ' + s.usuario;
   $('#grupos').innerHTML = portada(ve) ||
     '<div class="aviso info">Tu usuario todavía no tiene secciones asignadas. Si necesitas entrar a alguna, pídeselo a Dirección.</div>';
+  // Mi lista: solo si ocupa un puesto «Abierto al equipo» (lo decide el servidor). No frena la portada.
+  if (ve(MI_LISTA.area)) Datos.equipo.leer().then(j => {
+    const n = j.resultado.mios.length, c = $('#miLista');
+    if (!n || !c) return;
+    c.innerHTML = tarjeta(Object.assign({}, MI_LISTA, { desc: n === 1 ? MI_LISTA.desc.replace('tus puestos', 'tu puesto') : MI_LISTA.desc }), true);
+    c.classList.remove('oculto');
+  }).catch(() => {});
 }
 cargar();
 </script>

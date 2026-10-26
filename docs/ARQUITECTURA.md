@@ -363,11 +363,82 @@ biblioteca lo abre cualquiera con sesión que conozca su ruta; «Visible para
 el cliente» oculta la fila, no el archivo. Lo que sea solo de Actio no va en
 la biblioteca.
 
+## 2e. Equipo, Resumen de Dirección y estilo vidrio (26-oct)
+
+**Fuente única**: el Sheet «Procesos — Vida en Arte» (cuenta de Actio, en la
+misma carpeta que «Datos — Vida en Arte»). Actio edita ahí los puestos, los
+contratos, las listas y las asignaciones; el portal **lee siempre de ahí**
+(ningún texto de contrato está copiado en el código) y **solo escribe** en
+Aceptaciones, Marcas y Revisiones. Pestañas y columnas en
+[MODELO_DATOS.md › Procesos](MODELO_DATOS.md).
+
+```
+pantalla (procesos/#equipo, /equipo/, /resumen/)
+   │  comun/datos.js › Datos.equipo
+   ▼
+equipo/api.php  ── sesión + área «equipo» → suelta la sesión → copia corta (60 s)
+   │  { key, usuario, accion, datos }  (transporte de after-school/api.php)
+   ▼
+procesos-script/Procesos.gs  (Apps Script ligado al Sheet; clave PR_CLAVE_API)
+```
+
+- **El recorte lo hace `equipo/api.php`**: el script devuelve el Sheet entero
+  y el puente arma la respuesta de cada persona (quién ve qué, en
+  [ACCIONES_API.md › Equipo](ACCIONES_API.md)). Sin `equipo.todo`
+  (Dirección y Administrador lo tienen por `*`), del organigrama llegan solo
+  el nombre, el área y a quién reporta cada puesto, con «En construcción» si
+  no está abierto; una ficha, solo de un puesto «Abierto al equipo» que la
+  persona ocupa o del que es jefe.
+- **Ocupar** un puesto: una fila vigente de Asignaciones con el usuario o con
+  el rol («Usuario del rol Coordinación After School» o solo el nombre del
+  rol). Una persona puede ocupar varios puestos. **Jefe**: ocupa el puesto de
+  «Reporta a», o uno de más arriba.
+- **Escribir**: aceptar y marcar solo quien ocupa el puesto; revisar solo
+  quien figura en «Verifica» (hoy «Dirección») o es su jefe; siempre en
+  puestos abiertos. Lo vuelve a mirar el script: estado, versión vigente y el
+  período (lo calcula el script con la fecha de hoy y «Cada cuánto»).
+- Permiso por puesto **preparado**: `equipo.ficha:<ID>` abre la ficha de ese
+  puesto a un rol aunque no lo ocupe (hoy no lo tiene nadie).
+- **Pantallas**: Procesos tiene dos vistas, «Por unidad» (la biblioteca) y
+  «Por equipo» (`#equipo`, organigrama de `comun/organigrama.js` con la ficha
+  en un panel; en celular, a pantalla completa). **Mi lista** (`/equipo/`,
+  pensada para tablet) y **Revisar** (`/equipo/#revisar`). La portada
+  muestra «Mi lista» solo a quien ocupa un puesto abierto.
+- **Resumen de Dirección** (`/resumen/`, área `resumen`: solo Dirección y
+  Administrador). No tiene puente propio: junta lecturas que ya existen
+  (After School `leer` y `seguimiento`, Equipo `leer`). Cifras y lo que quedó
+  fuera, en [ACCIONES_API.md › Resumen](ACCIONES_API.md). Finanzas dice
+  «Próximamente», sin números.
+
+**Estilo vidrio** (`vea.css`, tema por página: `<html class="vidrio">`): foto
+de fondo `comun/fondo-local.jpg` (1600×1200, 40 KB) con un velo oscuro del
+60 %, tarjetas semitransparentes con desenfoque, borde claro y sombra; los
+títulos sobre la foto en blanco con sombra. Lo llevan la portada (y la página
+de cada marca, que es la misma), Procesos, Equipo, Mi lista y Resumen. **No**
+lo llevan Pasar lista, After School, Configuración, los formularios ni la
+Base de Datos. Sin desenfoque en el navegador (`@supports not
+(backdrop-filter…)`) o con «reducir transparencia» del sistema, las tarjetas
+salen sólidas. Contraste medido: texto blanco sobre el punto más claro de la
+foto con el velo, 5,3:1 (AA pide 4,5:1).
+
+**Instalar el Apps Script** (una vez):
+
+1. Abrir el Sheet «Procesos — Vida en Arte» › Extensiones › Apps Script.
+2. Pegar `procesos-script/Procesos.gs` y guardar.
+3. Configuración del proyecto › Propiedades del script: `PR_CLAVE_API` con
+   una clave larga (24 caracteres o más).
+4. Implementar › Nueva implementación › Aplicación web: ejecutar como «yo»,
+   acceso «cualquier usuario». Copiar la dirección `/exec`.
+5. En `portal_config.php` (fuera de la web): `'pr_exec' => '…/exec'`,
+   `'pr_clave' => '…'` (la misma de `PR_CLAVE_API`) y, si se quiere,
+   `'pr_cache_seg' => 60`. Sin `pr_exec` y `pr_clave`, el puente responde
+   `sin_configuracion`.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
 |---|---|---|
-| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`, `comun/`, `proyecto-actio/`, `procesos/`, `biblioteca/`) | Commit → Actio sube los archivos al cPanel |
+| Código de las páginas y PHP | Este repo (`portal-raiz/`, `after-school/`, `configuracion/`, `pasar-lista/`, `comun/`, `proyecto-actio/`, `procesos/`, `biblioteca/`, `equipo/`, `resumen/`) | Commit → Actio sube los archivos al cPanel |
 | Estilos, capa de datos y logos | `comun/` → `/comun/` en el servidor (pública, sin datos) | Su `htaccess.txt` se sube renombrado a `.htaccess` **dentro** de `comun/` |
 | Maquetas de referencia del diseño | `docs/diseno/` (ignorada por git: traen nombres de ejemplo) | Solo en el equipo; no entran al repo ni se publican |
 | Raíz del portal en el servidor | `/home/…/portal.vidaenarte.com/` | Se sube desde `portal-raiz/` (el `.htaccess` es `htaccess.txt` renombrado) |
@@ -378,6 +449,7 @@ la biblioteca.
 | Clave del puente | Propiedad del script `AS_CLAVE_API` y `as_clave` en `portal_config.php` | A mano, las dos iguales |
 | Datos | El Sheet `VEA_AfterSchool_BD` | Solo a través del puente (o a mano, con cuidado) |
 | Catálogo de Proyecto Actio | Sheet «Datos — Vida en Arte» (lo escribe Actio) · Apps Script `proyecto-actio-script/ProyectoActio.gs` · copia en `/home/…/portal_cache/` | Desde el Tablero de Tareas de Actio; el portal nunca escribe |
+| Puestos, contratos y listas del equipo | Sheet «Procesos — Vida en Arte» (lo edita Actio) · Apps Script `procesos-script/Procesos.gs` (clave `PR_CLAVE_API` = `pr_clave`) · copia de 60 s en `/home/…/portal_cache/equipo.json` | Actio edita a mano; el portal solo escribe en Aceptaciones, Marcas y Revisiones |
 | Datos reales para cargas | `datos_privados/` (ignorada por git) | Nunca entran al repo |
 | Especificaciones internas | `Spec*.md` (ignoradas por git) | Notas de trabajo; lo estable va a `docs/` |
 
@@ -405,7 +477,8 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/roturas.js` | Rompe cada regla del `.gs` y exige que la prueba anterior falle. |
 | `after-school-script/pruebas/prueba-api-transporte.php` (+ `correr-prueba-transporte.js`) | El transporte de `api.php`: redirecciones, reintentos, tiempos. |
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
-| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
+| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), Equipo (quién ve, acepta, marca y revisa qué puesto, por rol, buscando en el texto de la respuesta), Resumen solo para Dirección y Administrador, estilo vidrio por página, biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
+| `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 
 Los datos de prueba son siempre inventados.

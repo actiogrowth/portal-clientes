@@ -59,13 +59,19 @@ jobs:
           node-version: '20'
 
       - name: Sintaxis de los PHP
-        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php; do php -l "$f" || exit 1; done
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php; do php -l "$f" || exit 1; done
 
       - name: Proyecto Actio · Apps Script (lectura por títulos, nada interno)
         run: node proyecto-actio-script/pruebas/prueba-proyecto-actio.js
 
       - name: Proyecto Actio · roturas del Apps Script
         run: node proyecto-actio-script/pruebas/roturas.js
+
+      - name: Equipo · Apps Script (Procesos.gs: lectura por títulos, solo escribe en Aceptaciones, Marcas y Revisiones)
+        run: node procesos-script/pruebas/prueba-procesos.js
+
+      - name: Equipo · roturas del Apps Script
+        run: node procesos-script/pruebas/roturas.js
 
       - name: Proyecto Actio · visor por tipo de enlace
         run: node pruebas-portal/prueba-visor.js
