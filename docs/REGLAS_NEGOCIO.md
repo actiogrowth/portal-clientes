@@ -9,6 +9,7 @@ prueba tiene que detectar. Archivos:
 - **TR** = `after-school-script/pruebas/prueba-api-transporte.php` · roturas en `roturas-api.js`
 - **PO** = `pruebas-portal/prueba-portal.js` · roturas en `roturas-portal.js`
 - **PR** = `procesos-script/pruebas/prueba-procesos.js` · roturas en `procesos-script/pruebas/roturas.js`
+- **CI** = `pruebas-portal/prueba-cifras.js` (con sus roturas dentro)
 
 Una regla sin prueba se marca **SIN PRUEBA**.
 
@@ -103,6 +104,8 @@ Una regla sin prueba se marca **SIN PRUEBA**.
 | R122 | (26-oct) Revisar: solo quien figura en «Verifica» del puesto (por el nombre del rol, antes de la coma) o su jefe; nunca la propia lista; revisado, sorpresa Sí/No, resultado Cumplido/No y nota. | `equipo/api.php`, `revisar_` (Procesos.gs) | PO § Equipo · PR § revisar · rotura «cualquiera revisa una lista» |
 | R123 | (26-oct) El Resumen de Dirección lo abren solo Dirección y Administrador (área `resumen`); sus cifras salen de lecturas que ya existen y no muestra ninguna cifra de finanzas. | `permisos.php`, `resumen/index.html` | PO § Resumen · roturas «el Profesor abre el Resumen de Dirección», «la portada muestra el Resumen a todos» |
 | R124 | (26-oct) Estilo vidrio solo en portada, Procesos, Equipo y Resumen; sin desenfoque o con «reducir transparencia», tarjetas sólidas. La foto de fondo es pública (sin datos). | `vea.css`, `htaccess.txt`, `gate.php` | PO § vidrio · roturas «After School toma el estilo vidrio», «Procesos pierde el estilo vidrio», «vidrio sin respaldo cuando no hay desenfoque», «la foto de fondo pide sesión» |
+| R125 | (27-oct) Ocupación After School del Resumen: en la semana de hoy (lunes a domingo), inscritos de cada clase activa con cupo en su día según `leer.ocupacion` ÷ la suma de sus cupos; sin visitas. Tendencia: semanas anteriores que vienen completas, solo si hay dos o más; sin la semana de hoy completa, no hay cifra. | `Cifras.ocupacionAS` (comun/cifras.js) | CI § Ocupación After School · roturas «cuenta las clases inactivas», «cuenta las clases sin cupo válido», «suma las visitas de un día», «una semana incompleta cuenta igual», «tendencia con una sola semana», «la semana empieza el domingo», «la tendencia mira semanas futuras», «la cifra es la de la semana pasada» · PO § Resumen · roturas «el Resumen no muestra la ocupación», «el Resumen no carga comun/cifras.js» |
+| R126 | (27-oct) Un puesto con «Visible solo para» solo existe para esos usuarios o roles, Dirección y Administrador; para el resto (también su jefe) no sale en ninguna respuesta y escribir en él se rechaza. | `eq_para_mi` (equipo/api.php) | PO § Equipo · PR § leer · roturas «un puesto reservado de prueba se ve igual que los demás», «Dirección no ve el puesto reservado de prueba», «ni su usuario ve el puesto reservado de prueba», ««Visible solo para» admite un solo nombre», «no lee «Visible solo para»» |
 
 ## Pagos
 

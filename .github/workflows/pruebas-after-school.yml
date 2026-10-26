@@ -76,6 +76,9 @@ jobs:
       - name: Proyecto Actio · visor por tipo de enlace
         run: node pruebas-portal/prueba-visor.js
 
+      - name: Resumen · Ocupación After School (comun/cifras.js) y sus roturas
+        run: node pruebas-portal/prueba-cifras.js
+
       - name: Versión de los archivos de comun/ en cada página (caché del navegador)
         run: node pruebas-portal/prueba-versiones.js
 

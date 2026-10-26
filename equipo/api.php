@@ -14,7 +14,8 @@
  *      aquí se arma la respuesta de cada persona. Sin equipo.todo
  *      (Dirección y Administrador lo tienen por '*'): del organigrama solo el
  *      nombre y el área de cada puesto; una ficha solo si el puesto está
- *      «Abierto al equipo» y la persona lo ocupa o es su jefe; las marcas y
+ *      «Abierto al equipo» y la persona lo ocupa o es su jefe; un puesto con
+ *      «Visible solo para» no existe para nadie más (27-oct); las marcas y
  *      revisiones, solo de esas fichas; las aceptaciones, solo las suyas.
  *   4. Escribir: aceptar y marcar solo quien OCUPA el puesto; revisar solo
  *      quien figura en «Verifica» o es su jefe. Siempre en puestos abiertos.
@@ -130,6 +131,14 @@ function eq_es_mia(string $quien, string $usuario, array $nombresRol): bool {
     return false;
 }
 
+/** Puesto reservado («Visible solo para», 27-oct): con algo, solo existe para esos usuarios o roles (Dirección y Administrador lo ven por equipo.todo). */
+function eq_para_mi(array $p, string $usuario, array $nombresRol): bool {
+    $para = trim((string) ($p['soloPara'] ?? ''));
+    if ($para === '') return true;
+    foreach (explode(',', $para) as $quien) if (eq_es_mia($quien, $usuario, $nombresRol)) return true;
+    return false;
+}
+
 /**
  * Lo que esta persona ve y puede hacer: puestos (por ID), los que ocupa, los
  * que revisa, y la respuesta ya recortada.
@@ -137,7 +146,7 @@ function eq_es_mia(string $quien, string $usuario, array $nombresRol): bool {
 function eq_vista(array $S, string $usuario, array $roles, array $nombresRol, bool $todo): array {
     $hoy = (string) ($S['hoy'] ?? date('Y-m-d'));
     $puestos = [];
-    foreach ((array) ($S['puestos'] ?? []) as $p) if (is_array($p) && ($p['id'] ?? '') !== '') $puestos[(string) $p['id']] = $p;
+    foreach ((array) ($S['puestos'] ?? []) as $p) if (is_array($p) && ($p['id'] ?? '') !== '' && ($todo || eq_para_mi($p, $usuario, $nombresRol))) $puestos[(string) $p['id']] = $p;
     // Puestos que ocupa (Asignaciones vigentes).
     $ocupo = [];
     foreach ((array) ($S['asignaciones'] ?? []) as $a) {

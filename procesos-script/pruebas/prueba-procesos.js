@@ -25,13 +25,13 @@ const seccion = t => console.log('· ' + t);
 const HOJAS = () => ({
   'Léeme': [['Tema', 'Detalle'], ['Qué es', 'Hoja de prueba']],
   'Puestos': [   // títulos en la fila 2, columnas en otro orden y una de más
-    ['Puestos de prueba', '', '', '', '', '', '', '', '', '', '', ''],
-    ['Puesto', 'ID', 'Estado', 'Área', 'Unidad', 'Reporta a', 'Cantidad', 'Columna de más', 'Versión', 'Fecha versión', 'Verifica', 'Cómo verifica'],
-    ['Dirección inventada', 'DIR', 'Por cargar', 'Dirección', 'Todas', '', '', 'x', '', '', '', ''],
-    ['Coordinación inventada', 'COO', 'Abierto al equipo', 'Unidad A', 'Unidad A', 'DIR', '', 'x', 2, new Date(2026, 9, 20), 'Dirección, cada semana', 'Con el registro de prueba'],
-    ['Recepción inventada', 'REC', 'Abierto al equipo', 'Unidad A', 'Unidad A', 'COO', '2 personas', 'x', '1', '2026-10-20', 'Dirección, cada semana', ''],
-    ['', '', '', '', '', '', '', '', '', '', '', ''],   // una fila vacía en medio: se salta
-    ['Administración inventada', 'ADM', 'Borrador', 'Administración', 'Todas', 'DIR', '', 'x', 1, '', 'Dirección, cada semana', '']
+    ['Puestos de prueba', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Puesto', 'ID', 'Estado', 'Área', 'Unidad', 'Reporta a', 'Cantidad', 'Columna de más', 'Versión', 'Fecha versión', 'Verifica', 'Cómo verifica', 'Visible solo para'],
+    ['Dirección inventada', 'DIR', 'Por cargar', 'Dirección', 'Todas', '', '', 'x', '', '', '', '', ''],
+    ['Coordinación inventada', 'COO', 'Abierto al equipo', 'Unidad A', 'Unidad A', 'DIR', '', 'x', 2, new Date(2026, 9, 20), 'Dirección, cada semana', 'Con el registro de prueba', ''],
+    ['Recepción inventada', 'REC', 'Abierto al equipo', 'Unidad A', 'Unidad A', 'COO', '2 personas', 'x', '1', '2026-10-20', 'Dirección, cada semana', '', ' usuario-de-prueba '],
+    ['', '', '', '', '', '', '', '', '', '', '', '', ''],   // una fila vacía en medio: se salta
+    ['Administración inventada', 'ADM', 'Borrador', 'Administración', 'Todas', 'DIR', '', 'x', 1, '', 'Dirección, cada semana', '', '']
   ],
   'Contratos': [
     ['Puesto ID', 'Sección', 'Orden', 'Texto'],
@@ -130,7 +130,11 @@ seccion('leer: por título, con todas las pestañas');
   ok(R.puestos.length === 4 && coo.puesto === 'Coordinación inventada' && coo.reportaA === 'DIR' && coo.version === 2 && coo.fechaVersion === '2026-10-20',
     'Puestos: títulos en la fila 2, columnas en otro orden; versión como número y fecha como AAAA-MM-DD');
   ok(R.puestos.find(p => p.id === 'REC').version === 1 && R.puestos.find(p => p.id === 'DIR').version === null, 'versión escrita como texto o vacía');
-  ok(!('columna de mas' in coo) && Object.keys(coo).sort().join() === 'area,cantidad,comoVerifica,estado,fechaVersion,id,puesto,reportaA,unidad,verifica,version', 'solo los campos del contrato');
+  ok(!('columna de mas' in coo) && Object.keys(coo).sort().join() === 'area,cantidad,comoVerifica,estado,fechaVersion,id,puesto,reportaA,soloPara,unidad,verifica,version', 'solo los campos del contrato');
+  ok(R.puestos.find(p => p.id === 'REC').soloPara === 'usuario-de-prueba' && coo.soloPara === '', '«Visible solo para» llega tal cual (sin espacios de más); vacía, vacía');
+  const sinCol = HOJAS(); sinCol['Puestos'] = sinCol['Puestos'].map(f => f.slice(0, 12));
+  const rs = cargar(P, sinCol).llamar('leer').resultado;
+  ok(rs.puestos.length === 4 && rs.puestos.every(p => p.soloPara === '') && rs.faltan.length === 1, 'sin la columna «Visible solo para» (opcional): todos vacíos y no se avisa nada');
   ok(R.contratos.length === 5 && R.listas.length === 8 && R.procesos.length === 1 && R.asignaciones[0].desde === '2026-10-01', 'Contratos, Listas, Procesos y Asignaciones');
   ok(R.hoy === '2026-10-28' && R.version === 'v1', 'hoy (en la zona del archivo) y la versión del script');
   const sinMarcas = HOJAS(); delete sinMarcas['Marcas'];

@@ -388,7 +388,9 @@ procesos-script/Procesos.gs  (Apps Script ligado al Sheet; clave PR_CLAVE_API)
   (Dirección y Administrador lo tienen por `*`), del organigrama llegan solo
   el nombre, el área y a quién reporta cada puesto, con «En construcción» si
   no está abierto; una ficha, solo de un puesto «Abierto al equipo» que la
-  persona ocupa o del que es jefe.
+  persona ocupa o del que es jefe. Un puesto con «Visible solo para» (27-oct)
+  solo existe para esos usuarios o roles, Dirección y Administrador: sirve de
+  puesto de prueba.
 - **Ocupar** un puesto: una fila vigente de Asignaciones con el usuario o con
   el rol («Usuario del rol Coordinación After School» o solo el nombre del
   rol). Una persona puede ocupar varios puestos. **Jefe**: ocupa el puesto de
@@ -406,7 +408,8 @@ procesos-script/Procesos.gs  (Apps Script ligado al Sheet; clave PR_CLAVE_API)
   muestra «Mi lista» solo a quien ocupa un puesto abierto.
 - **Resumen de Dirección** (`/resumen/`, área `resumen`: solo Dirección y
   Administrador). No tiene puente propio: junta lecturas que ya existen
-  (After School `leer` y `seguimiento`, Equipo `leer`). Cifras y lo que quedó
+  (After School `leer` y `seguimiento`, Equipo `leer`); la ocupación de
+  After School, con `comun/cifras.js` (27-oct). Cifras y lo que quedó
   fuera, en [ACCIONES_API.md › Resumen](ACCIONES_API.md). Finanzas dice
   «Próximamente», sin números.
 
@@ -479,6 +482,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
 | `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), Equipo (quién ve, acepta, marca y revisa qué puesto, por rol, buscando en el texto de la respuesta), Resumen solo para Dirección y Administrador, estilo vidrio por página, biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
+| `pruebas-portal/prueba-cifras.js` | La ocupación de After School del Resumen (`comun/cifras.js`) con datos inventados, y sus roturas. |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 
 Los datos de prueba son siempre inventados.

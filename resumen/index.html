@@ -9,8 +9,9 @@
   «resumen», que no tiene nadie más). Sin puente propio: arma las cifras con
   lecturas que ya existen (After School «leer» y «seguimiento», Equipo
   «leer») y con reglas que ya están en docs/ACCIONES_API.md › Resumen. Una
-  cifra que necesitaría una definición nueva NO está (ocupación como un solo
-  porcentaje, inscripciones del mes). Finanzas: «Próximamente», sin números. -->
+  cifra que necesitaría una definición nueva NO está (inscripciones del mes).
+  27-oct: Ocupación After School, con la regla de la pestaña Ocupación
+  (comun/cifras.js). Finanzas: «Próximamente», sin números. -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
 <meta name="theme-color" content="#FFFFFF">
@@ -19,7 +20,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=403ecddb33">
+<link rel="stylesheet" href="/comun/vea.css?v=da1b20fe51">
 </head>
 <body>
 <header id="cab"></header>
@@ -47,6 +48,7 @@
 </main>
 
 <script src="/comun/datos.js?v=c918c02f12"></script>
+<script src="/comun/cifras.js?v=ef637d73b6"></script>
 <script src="/comun/marca.js?v=0b53cee6ca"></script>
 <script>
 'use strict';
@@ -94,6 +96,8 @@ function cifra(c) {
   // Pruebas pendientes de resultado: ya pasaron y siguen «Agendada» (After School › Pruebas).
   const pend = E ? (E.pruebas || []).filter(p => p.estado === 'Agendada' && p.fecha < E.hoy) : null;
   // Listas sin revisar (Equipo): un puesto y un período con marcas y sin revisión de ese período.
+  // Ocupación After School: la de la pestaña Ocupación en la semana de hoy (comun/cifras.js).
+  const ocup = E ? Cifras.ocupacionAS(E) : null;
   const sinRevisar = EQ ? Object.entries(EQ.fichas).flatMap(([id, f]) => [...new Set(f.marcas.map(m => m.periodo))]
     .filter(per => !f.revisiones.some(r => r.periodo === per)).map(per => ({ id, per }))) : null;
 
@@ -101,6 +105,8 @@ function cifra(c) {
     { titulo: 'Contratos por validar', valor: borradores ? borradores.length : null, nota: 'Puestos en Borrador', url: '/procesos/#equipo', color: '#111111' },
     { titulo: 'Clases de hoy sin lista', valor: sinListaHoy, serie: sinLista ? dias.map(d => sinLista.filter(c => c.fecha === d).length) : null, nota: 'Últimos 7 días', url: '/after-school/#seguimiento', color: '#B3261E' },
     { titulo: 'Pruebas sin resultado', valor: pend ? pend.length : null, serie: pend ? dias.map(d => pend.filter(p => p.fecha === d).length) : null, nota: 'Por día de la visita, últimos 7 días', url: '/after-school/#pruebas', color: '#8A4B0F' },
+    { titulo: 'Ocupación After School', valor: ocup ? Math.round(ocup.valor * 100) + ' %' : null, serie: ocup && ocup.serie ? ocup.serie : null,
+      nota: ocup ? ocup.inscritos + ' inscritos en ' + ocup.cupos + ' cupos, esta semana' : 'Sin clases activas con cupo', url: '/after-school/#ocupacion', color: '#1E7A3C' },
     { titulo: 'Listas sin revisar', valor: sinRevisar ? sinRevisar.length : null, nota: 'Períodos con marcas y sin revisión', url: '/equipo/#revisar', color: '#1974A8' }
   ].map(cifra).join('');
 

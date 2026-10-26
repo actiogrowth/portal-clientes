@@ -42,7 +42,9 @@ var PERIODOS = { 'diario': 'dia', 'cuando aplica': 'dia', 'por persona nueva': '
 var TABLAS = {
   puestos: { hoja: 'Puestos', obligatorias: ['ID', 'Puesto', 'Estado'], columnas: [
     ['ID', 'id'], ['Puesto', 'puesto'], ['Área', 'area'], ['Unidad', 'unidad'], ['Reporta a', 'reportaA'], ['Cantidad', 'cantidad'],
-    ['Estado', 'estado'], ['Versión', 'version', 'numero'], ['Fecha versión', 'fechaVersion', 'fecha'], ['Verifica', 'verifica'], ['Cómo verifica', 'comoVerifica']] },
+    ['Estado', 'estado'], ['Versión', 'version', 'numero'], ['Fecha versión', 'fechaVersion', 'fecha'], ['Verifica', 'verifica'], ['Cómo verifica', 'comoVerifica'],
+    // 27-oct: opcional. Con algo, el puesto solo existe para esos usuarios o roles, Dirección y Administrador (lo aplica equipo/api.php).
+    ['Visible solo para', 'soloPara']] },
   contratos: { hoja: 'Contratos', obligatorias: ['Puesto ID', 'Sección', 'Texto'], columnas: [
     ['Puesto ID', 'puesto'], ['Sección', 'seccion'], ['Orden', 'orden', 'numero'], ['Texto', 'texto']] },
   listas: { hoja: 'Listas', obligatorias: ['Puesto ID', 'Orden', 'Qué se verifica', 'Cada cuánto'], columnas: [

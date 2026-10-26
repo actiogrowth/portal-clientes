@@ -382,6 +382,12 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
   (`coordinacion-as`) o un rol, escrito «Usuario del rol <Rol>» o solo el
   nombre del rol (`Coordinación After School`): todos los usuarios con ese
   rol. Una persona puede ocupar varios puestos.
+- **Puesto reservado** (27-oct; columna opcional «Visible solo para» de
+  Puestos): si tiene algo, el puesto **no existe** para nadie más que esos
+  usuarios o roles (mismo formato que Asignaciones, separados por coma),
+  Dirección y Administrador: no sale en el organigrama, ni en Mi lista, ni en
+  Revisar, y escribir en él responde «No existe el puesto». Sirve para un
+  puesto de prueba (`PRUEBA`). Vacía o sin la columna: como siempre.
 - **Quién verifica**: la parte de «Verifica» antes de la coma
   («Dirección, cada semana» → el rol Dirección), más el jefe.
 - **Aceptación vigente**: la última de esa persona para ese puesto con la
@@ -428,7 +434,8 @@ que ya están en este documento y en `REGLAS_NEGOCIO.md`:
 | Clases de hoy sin lista | `seguimiento.clasesSinLista` del día de hoy (R112); tendencia: los últimos 7 días |
 | Pruebas pendientes de resultado | visitas que ya pasaron y siguen «Agendada» (After School › Pruebas › Pendientes de resultado); tendencia: por día de la visita, últimos 7 días |
 | Listas sin revisar | la definición de arriba (Equipo) |
+| Ocupación After School (27-oct) | la de la pestaña Ocupación, sin reglas nuevas: en la semana de hoy, la suma de los inscritos de cada clase **activa** en su día (`leer.ocupacion[fecha][clase].i`, R02 y R07: alta ≤ día y sin baja o baja después) dividida por la suma de los `Cupo` de esas mismas clases. Solo inscripciones (las visitas de un día no cuentan). Tendencia: la misma cifra en cada semana anterior que `leer` trae **completa** (todos sus días en `ocupacion`); con menos de dos semanas, sin tendencia. Las semanas futuras no cuentan. La calcula `comun/cifras.js` (`Cifras.ocupacionAS`). |
 
 Finanzas: tarjeta «Próximamente», sin números. **Fuera por falta de
 definición** (no se inventan): ocupación de After School como un solo
-porcentaje e inscripciones del mes.
+porcentaje hasta el 26-oct (la agregó Marco el 27-oct, con la regla de arriba) e inscripciones del mes (sigue fuera).

@@ -213,31 +213,34 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
    MARCA-…) para buscar en la respuesta que algo no se haya colado.
    JEF lo ocupa el rol Coordinación After School; REC, Recepción (y una
    asignación vencida a OTR); PRO, el Profesor (y BOR, que no está abierto);
-   OTR, Contabilidad. JEF está en versión 2 y su aceptación es de la 1. */
+   OTR, Contabilidad. JEF está en versión 2 y su aceptación es de la 1.
+   27-oct: RES es un puesto de PRUEBA reservado («Visible solo para»
+   prueba-recepcion): abierto, de Recepción, y reporta a JEF; ni su jefe lo ve. */
 const PR_DATOS = () => {
-  const P = (id, puesto, reportaA, estado, version) => ({ id, puesto, area: 'After School', unidad: 'UNIDAD-' + id, reportaA, cantidad: 'CANTIDAD-' + id,
-    estado, version, fechaVersion: '2026-10-01', verifica: 'Dirección, cada semana', comoVerifica: 'COMO-' + id });
+  const P = (id, puesto, reportaA, estado, version, soloPara) => ({ id, puesto, area: 'After School', unidad: 'UNIDAD-' + id, reportaA, cantidad: 'CANTIDAD-' + id,
+    estado, version, fechaVersion: '2026-10-01', verifica: 'Dirección, cada semana', comoVerifica: 'COMO-' + id, soloPara: soloPara || '' });
   const ids = ['JEF', 'REC', 'PRO', 'OTR', 'BOR', 'VAL'];
   return { generado: '2026-10-26T12:00:00Z', hoy: '2026-10-26', faltan: ['FALTA-DE-PRUEBA'],
     puestos: [P('DIR', 'Dirección de prueba', '', 'Por cargar', null), P('JEF', 'Jefatura de prueba', 'DIR', 'Abierto al equipo', 2),
       P('REC', 'Recepción de prueba', 'JEF', 'Abierto al equipo', 1), P('PRO', 'Profesor de prueba', 'JEF', 'abierto al equipo', 1),
       P('OTR', 'Otro puesto de prueba', 'DIR', 'Abierto al equipo', 1), P('BOR', 'Puesto en borrador', 'JEF', 'Borrador', 1),
-      P('VAL', 'Puesto validado', 'JEF', 'Validado', 1)],
+      P('VAL', 'Puesto validado', 'JEF', 'Validado', 1), P('RES', 'Puesto RESERVADO de prueba', 'JEF', 'Abierto al equipo', 1, ' Contabilidad-NO , prueba-recepcion ')],
     contratos: ids.map(id => ({ puesto: id, seccion: 'Resultado', orden: 1, texto: (['OTR', 'BOR', 'VAL'].includes(id) ? 'SECRETO-' : 'TEXTO-') + id }))
-      .concat([{ puesto: 'PRO', seccion: 'Estándar', orden: 1, texto: 'ESTANDAR-PRO' }, { puesto: 'PRO', seccion: 'Trabajo', orden: 1, texto: 'TRABAJO-PRO' }]),
-    listas: ids.map(id => ({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' })),
+      .concat([{ puesto: 'RES', seccion: 'Resultado', orden: 1, texto: 'RESERVADO-CONTRATO' }, { puesto: 'PRO', seccion: 'Estándar', orden: 1, texto: 'ESTANDAR-PRO' }, { puesto: 'PRO', seccion: 'Trabajo', orden: 1, texto: 'TRABAJO-PRO' }]),
+    listas: ids.concat(['RES']).map(id => ({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' })),
     procesos: [{ puesto: 'OTR', proceso: 'SECRETO-PROCESO-OTR', descripcion: '', enlace: '', estado: '' }],
     asignaciones: [{ usuario: 'Usuario del rol Coordinación After School', puesto: 'JEF', desde: '', hasta: '' },
       { usuario: 'prueba-recepcion', puesto: 'REC', desde: '2026-01-01', hasta: '' },
       { usuario: 'prueba-recepcion', puesto: 'OTR', desde: '2026-01-01', hasta: '2026-09-30' },
       { usuario: 'prueba-profesor-1', puesto: 'PRO', desde: '', hasta: '' },
       { usuario: 'prueba-profesor-1', puesto: 'BOR', desde: '', hasta: '' },
-      { usuario: 'Contabilidad', puesto: 'OTR', desde: '', hasta: '' }],
+      { usuario: 'Contabilidad', puesto: 'OTR', desde: '', hasta: '' },
+      { usuario: 'prueba-recepcion', puesto: 'RES', desde: '', hasta: '' }],
     aceptaciones: [{ fecha: '2026-10-02T09:00', usuario: 'prueba-coord-as', puesto: 'JEF', version: 1 },
       { fecha: '2026-10-02T09:00', usuario: 'prueba-recepcion', puesto: 'REC', version: 1 },
       { fecha: '2026-10-02T09:00', usuario: 'prueba-contabilidad', puesto: 'OTR', version: 1 },
       { fecha: '2026-10-02T09:00', usuario: 'otra-persona', puesto: 'PRO', version: 1 }],   // de otro: al Profesor no le cuenta
-    marcas: ids.map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
+    marcas: ids.concat(['RES']).map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
       .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' }]),
     revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' }] };
 };
@@ -987,15 +990,16 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
     seccion('Equipo: cada uno recibe solo los puestos que ocupa o de los que es jefe, y solo si están abiertos');
     {
       const eq = (u, accion, datos) => n[u].post('/equipo/api.php', { json: datos ? { accion, datos } : { accion } });
-      const TODOS = 'BOR,DIR,JEF,OTR,PRO,REC,VAL';
+      const TODOS = 'BOR,DIR,JEF,OTR,PRO,REC,VAL', CON_RES = 'BOR,DIR,JEF,OTR,PRO,REC,RES,VAL';
+      const RESERVADO = /RESERVADO|"RES"|PUNTO-RES|MARCA-RES|quien-RES/;
       const CASOS = {
         'prueba-profesor-1':   { fichas: 'PRO', mios: 'PRO', revisar: '', no: /SECRETO|TEXTO-(JEF|REC)|MARCA-(JEF|REC|OTR|BOR|VAL)|PUNTO-(JEF|REC|OTR|BOR|VAL)|CANTIDAD|UNIDAD-(?!PRO)|COMO-(?!PRO)|FALTA-DE-PRUEBA|quien-(?!PRO)|REVISION|prueba-(recepcion|contabilidad|coord-as)|MARCA-VIEJA|"Borrador"|"Validado"|"Por cargar"/ },
-        'prueba-recepcion':    { fichas: 'REC', mios: 'REC', revisar: '', no: /SECRETO|TEXTO-(JEF|PRO)|MARCA-(JEF|PRO|OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-(contabilidad|coord-as)|"Borrador"|"Validado"/ },
+        'prueba-recepcion':    { fichas: 'REC,RES', mios: 'REC,RES', revisar: '', puestos: CON_RES, no: /SECRETO|TEXTO-(JEF|PRO)|MARCA-(JEF|PRO|OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-(contabilidad|coord-as)|"Borrador"|"Validado"/ },
         'prueba-contabilidad': { fichas: 'OTR', mios: 'OTR', revisar: '', no: /TEXTO-|MARCA-(JEF|REC|PRO|BOR|VAL)|SECRETO-(BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|prueba-(recepcion|coord-as)/ },
         'prueba-coord-as':     { fichas: 'JEF,PRO,REC', mios: 'JEF', revisar: 'PRO,REC', no: /SECRETO|MARCA-(OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-contabilidad|"Borrador"|"Validado"/ },
         'prueba-comercial':    { fichas: '', mios: '', revisar: '', no: /SECRETO|TEXTO-|MARCA-|PUNTO-|CANTIDAD|UNIDAD-|COMO-|FALTA-DE-PRUEBA|quien-|REVISION|"Borrador"|"Validado"/ },
-        'prueba-direccion':    { fichas: TODOS, mios: '', revisar: 'JEF,OTR,PRO,REC', no: /MARCA-VIEJA/ },
-        'admin-uno':           { fichas: TODOS, mios: '', revisar: '', no: /MARCA-VIEJA/ }
+        'prueba-direccion':    { fichas: CON_RES, mios: '', revisar: 'JEF,OTR,PRO,REC,RES', puestos: CON_RES, no: /MARCA-VIEJA/ },
+        'admin-uno':           { fichas: CON_RES, mios: '', revisar: '', puestos: CON_RES, no: /MARCA-VIEJA/ }
       };
       const lista = a => (a || []).slice().sort().join();
       for (const [u, e] of Object.entries(CASOS)) {
@@ -1003,7 +1007,8 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         const R = r.j && r.j.resultado;
         ok(r.status === 200 && r.j.ok && R, u + ': lee Equipo (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
         if (!R) continue;
-        ok(lista(R.puestos.map(p => p.id)) === TODOS, u + ': ve el nombre de todos los puestos del organigrama');
+        ok(lista(R.puestos.map(p => p.id)) === (e.puestos || TODOS), u + ': ve el nombre de todos los puestos del organigrama' + (e.puestos ? ', también el reservado' : ', menos el reservado de prueba'));
+        if (!e.puestos) ok(!RESERVADO.test(r.texto), u + ': nada del puesto reservado de prueba en el texto de la respuesta (' + ((r.texto.match(RESERVADO) || [''])[0]) + ')');
         ok(lista(Object.keys(R.fichas)) === e.fichas && lista(R.puestos.filter(p => p.ficha).map(p => p.id)) === e.fichas,
           u + ': fichas solo de ' + (e.fichas || 'ninguno') + ' (dio ' + lista(Object.keys(R.fichas)) + ')');
         ok(lista(R.mios) === e.mios && lista(R.revisar) === e.revisar, u + ': Mi lista de «' + e.mios + '» y Revisar de «' + e.revisar + '» (dio ' + lista(R.mios) + ' / ' + lista(R.revisar) + ')');
@@ -1024,6 +1029,8 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         'versión nueva: la aceptación de la versión 1 ya no vale para la versión 2');
       const rec = (await eq('prueba-recepcion', 'leer')).j.resultado;
       ok(rec.fichas.REC.aceptada === true && rec.fichas.REC.ocupo === true && !('OTR' in rec.fichas), 'Recepción: su contrato aceptado; la asignación vencida no cuenta');
+      ok(rec.fichas.RES && rec.fichas.RES.ocupo === true && rec.fichas.RES.contrato.resultado[0] === 'RESERVADO-CONTRATO' && rec.mios.includes('RES'),
+        'Recepción: el puesto reservado para ella sale en su ficha y en Mi lista («Visible solo para» con espacios y otros nombres)');
       const pro = (await eq('prueba-profesor-1', 'leer')).j.resultado;
       ok(JSON.stringify(pro.fichas.PRO.contrato) === '{"resultado":["TEXTO-PRO"],"trabajo":["TRABAJO-PRO"],"estandares":["ESTANDAR-PRO"]}',
         'el contrato llega en sus tres partes: resultado, trabajo y estándares');
@@ -1047,6 +1054,8 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       await escribe('prueba-profesor-1', 'revisar', { puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'nadie revisa su propia lista');
       await escribe('prueba-coord-as', 'revisar', { puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'el jefe no revisa puestos fuera de su equipo');
       await escribe('prueba-profesor-1', 'borrar', { puesto: 'PRO' }, 403, 'sin_permiso', 'una acción que no existe se rechaza');
+      await escribe('prueba-coord-as', 'revisar', { puesto: 'RES', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'el jefe no revisa el puesto reservado de prueba: para él no existe');
+      await escribe('prueba-profesor-1', 'marcar', { puesto: 'RES', marcas: [{ orden: 1, resultado: 'Cumplido' }] }, 403, 'sin_permiso', 'nadie más marca en el puesto reservado');
       const copia = path.join(home, 'portal_cache', 'equipo.json');
       ok(fs.existsSync(copia), '(control) hay copia corta del Sheet antes de escribir');
       const m = await escribe('prueba-profesor-1', 'marcar', { puesto: 'PRO', marcas: [{ orden: 1, resultado: 'Cumplido', nota: 'x' }] }, 200, '', 'el Profesor marca su propia lista');
@@ -1076,6 +1085,9 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/return \(ve\(RESUMEN\.area\) \?/.test(portada) && /area: 'resumen'/.test(portada) && /id="miLista"/.test(portada), 'portada: la tarjeta del Resumen solo con el área «resumen», y Mi lista cuando hay puestos');
       const res = (await n['prueba-direccion'].get('/resumen/')).texto;
       ok(/Próximamente/.test(res) && !/\$\s?\d|\d+\s?(USD|COP)/.test(res), 'Finanzas: «Próximamente», sin números');
+      ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(res) && /titulo: 'Ocupación After School', valor: ocup \?/.test(res) && /const ocup = E \? Cifras\.ocupacionAS\(E\) : null;/.test(res),
+        'Resumen: «Ocupación After School» con la regla de comun/cifras.js (la de la pestaña Ocupación)');
+      ok(!/titulo: 'Inscripciones del mes'/i.test(res), 'Resumen: «Inscripciones del mes» sigue fuera');
       const clase = async ruta => { const t = (await n['admin-uno'].get(ruta)).texto; return /<html lang="es" class="vidrio">/.test(t) ? 'vidrio' : 'sin'; };
       for (const ruta of ['/', '/procesos/', '/equipo/', '/resumen/']) ok(await clase(ruta) === 'vidrio', ruta + ' con estilo vidrio');
       for (const ruta of ['/after-school/', '/pasar-lista/', '/configuracion/']) ok(await clase(ruta) === 'sin', ruta + ' sigue igual, sin vidrio');

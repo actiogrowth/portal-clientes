@@ -747,7 +747,7 @@ button.eq-puesto:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
 .ml-revisar .btn { min-height: var(--toque); }
 
 /* ── Resumen de Dirección (26-oct) ───────────────────────────────────────── */
-.rs-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.rs-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 16px; }
 .rs-cifra { border: 1px solid var(--gris); border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; background: var(--blanco); color: var(--texto); text-decoration: none; min-height: var(--toque); }
 a.rs-cifra:hover { color: var(--texto); box-shadow: 0 14px 40px rgba(0, 0, 0, .28); }
 .rs-cifra-tit { font-size: 13px; font-weight: 600; color: #3D3D3D; }

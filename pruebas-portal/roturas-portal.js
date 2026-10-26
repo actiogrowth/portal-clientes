@@ -162,6 +162,13 @@ const ROTURAS = [
   ["Procesos pierde el estilo vidrio", "procesos/index.html", "<html lang=\"es\" class=\"vidrio\">", "<html lang=\"es\">"],
   ["vidrio sin respaldo cuando no hay desenfoque", "comun/vea.css", "@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {", "@supports (display: none) {"],
   ["la foto de fondo pide sesión", "portal-raiz/htaccess.txt", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|jpg|svg|webmanifest)$ - [L]", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|webmanifest)$ - [L]"],
+  // 27-oct: puesto reservado de prueba y Ocupación en el Resumen
+  ["un puesto reservado de prueba se ve igual que los demás", "equipo/api.php", "($todo || eq_para_mi($p, $usuario, $nombresRol))", "true"],
+  ["Dirección no ve el puesto reservado de prueba", "equipo/api.php", "($todo || eq_para_mi($p, $usuario, $nombresRol))", "eq_para_mi($p, $usuario, $nombresRol)"],
+  ["ni su usuario ve el puesto reservado de prueba", "equipo/api.php", "    if ($para === '') return true;\n", "    if ($para !== '') return false;\n"],
+  ["«Visible solo para» admite un solo nombre", "equipo/api.php", "foreach (explode(',', $para) as $quien)", "foreach ([$para] as $quien)"],
+  ["el Resumen no muestra la ocupación", "resumen/index.html", "const ocup = E ? Cifras.ocupacionAS(E) : null;", "const ocup = null;"],
+  ["el Resumen no carga comun/cifras.js", "resumen/index.html", "<script src=\"/comun/cifras.js?v=", "<script data-x=\"/comun/cifras.js?v="],
   // htaccess.txt
   ['cuentas.php se puede pedir desde el navegador', 'portal-raiz/htaccess.txt', "auth\\.php|permisos\\.php|cuentas\\.php|", "auth\\.php|permisos\\.php|"],
   ['generar-clave.php sigue abierto sin sesión', 'portal-raiz/htaccess.txt', "login\\.php|logout\\.php|cambiar-clave", "login\\.php|logout\\.php|generar-clave\\.php|cambiar-clave"]

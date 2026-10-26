@@ -13,6 +13,7 @@ const PRUEBA = path.join(__dirname, 'prueba-procesos.js');
 
 // [nombre, texto de hoy, texto roto]
 const ROTURAS = [
+  ['no lee «Visible solo para»', "    ['Visible solo para', 'soloPara']] },", "    ] },"],
   ['acepta cualquier clave', "if (!igualSeguro_(p.key, clave))", "if (false)"],
   ['acepta claves cortas', "if (!clave || clave.length < 24)", "if (!clave)"],
   ['acepta llamadas sin usuario', "if (!usuario) return", "if (false) return"],
