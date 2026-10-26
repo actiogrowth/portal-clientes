@@ -1030,11 +1030,11 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(pro.fichas.PRO.aceptada === false && pro.fichas.PRO.aceptadaVersion === null, 'Profesor: todavía sin aceptar');
 
       // Escribir: quién puede, y lo prohibido no llega a Google.
-      const escribe = async (u, accion, datos, status, codigo, que) => {
+      const escribe = async (u, accion, datos, status, codigo, que, alScript) => {   // alScript: lo rechaza el script, no el puente
         const antes = google.llamadas.length;
         const r = await eq(u, accion, datos);
         const llego = google.llamadas.slice(antes).filter(l => l.key === 'clave-pr-de-prueba' && l.accion === accion);
-        ok(r.status === status && (!codigo || (r.j && r.j.codigo === codigo)) && (status === 200 ? llego.length === 1 && llego[0].usuario === u : llego.length === 0),
+        ok(r.status === status && (!codigo || (r.j && r.j.codigo === codigo)) && (status === 200 || alScript ? llego.length === 1 && llego[0].usuario === u : llego.length === 0),
           que + ' (' + r.status + ' ' + r.texto.slice(0, 100) + '; llegó a Google: ' + llego.length + ')');
         return { r, llego };
       };
@@ -1056,7 +1056,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       await escribe('prueba-coord-as', 'revisar', { puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'No', nota: 'x' }, 200, '', 'el jefe revisa la lista de su equipo');
       await escribe('prueba-direccion', 'revisar', { puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'Dirección revisa lo que figura en «Verifica»');
       PR.siguiente = { ok: false, codigo: 'version_vieja', error: 'Hay una versión nueva de tu contrato.' };
-      await escribe('prueba-coord-as', 'aceptar', { puesto: 'JEF', version: 1 }, 400, 'version_vieja', 'aceptar una versión vieja: el aviso del script llega a la pantalla');
+      await escribe('prueba-coord-as', 'aceptar', { puesto: 'JEF', version: 1 }, 400, 'version_vieja', 'aceptar una versión vieja: el aviso del script llega a la pantalla', true);
       const anon = await new Nav(base).post('/equipo/api.php', { json: { accion: 'leer' } });
       ok(anon.status !== 200 && !/TEXTO-|Jefatura/.test(anon.texto), 'sin sesión no hay datos (' + anon.status + ')');
       ok(/session_write_close\(\);[^\n]*\n(?:.*\n){0,4}.*eq_sheet\(/.test(fs.readFileSync(path.join(web, 'equipo', 'api.php'), 'utf8')), 'equipo/api.php suelta la sesión antes de esperar a Google');
@@ -1082,7 +1082,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       const f = await new Nav(base).get('/comun/fondo-local.jpg');
       ok(f.status === 200 && /image\/jpeg/.test(f.tipo || '') , 'la foto de fondo se sirve sin sesión, como imagen (' + f.status + ' ' + f.tipo + ')');
       const css = fs.readFileSync(path.join(web, 'comun', 'vea.css'), 'utf8');
-      ok(/@supports not \(\(backdrop-filter/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
+      ok(/@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
     }
 
     seccion('sesión suelta: los pedidos del mismo usuario no hacen fila mientras se espera a Google');
