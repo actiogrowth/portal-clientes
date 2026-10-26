@@ -388,7 +388,7 @@ procesos-script/Procesos.gs  (Apps Script ligado al Sheet; clave PR_CLAVE_API)
   (Dirección y Administrador lo tienen por `*`), del organigrama llegan solo
   el nombre, el área y a quién reporta cada puesto, con «En construcción» si
   no está abierto; una ficha, solo de un puesto «Abierto al equipo» que la
-  persona ocupa o del que es jefe. Un puesto con «Visible solo para» (27-oct)
+  persona ocupa o del que es jefe. Un puesto con «Visible solo para» (26-oct)
   solo existe para esos usuarios o roles, Dirección y Administrador: sirve de
   puesto de prueba.
 - **Ocupar** un puesto: una fila vigente de Asignaciones con el usuario o con
@@ -409,7 +409,7 @@ procesos-script/Procesos.gs  (Apps Script ligado al Sheet; clave PR_CLAVE_API)
 - **Resumen de Dirección** (`/resumen/`, área `resumen`: solo Dirección y
   Administrador). No tiene puente propio: junta lecturas que ya existen
   (After School `leer` y `seguimiento`, Equipo `leer`); la ocupación de
-  After School, con `comun/cifras.js` (27-oct). Cifras y lo que quedó
+  After School, con `comun/cifras.js` (26-oct). Cifras y lo que quedó
   fuera, en [ACCIONES_API.md › Resumen](ACCIONES_API.md). Finanzas dice
   «Próximamente», sin números.
 

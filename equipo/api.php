@@ -15,7 +15,7 @@
  *      (Dirección y Administrador lo tienen por '*'): del organigrama solo el
  *      nombre y el área de cada puesto; una ficha solo si el puesto está
  *      «Abierto al equipo» y la persona lo ocupa o es su jefe; un puesto con
- *      «Visible solo para» no existe para nadie más (27-oct); las marcas y
+ *      «Visible solo para» no existe para nadie más (26-oct); las marcas y
  *      revisiones, solo de esas fichas; las aceptaciones, solo las suyas.
  *   4. Escribir: aceptar y marcar solo quien OCUPA el puesto; revisar solo
  *      quien figura en «Verifica» o es su jefe. Siempre en puestos abiertos.
@@ -131,7 +131,7 @@ function eq_es_mia(string $quien, string $usuario, array $nombresRol): bool {
     return false;
 }
 
-/** Puesto reservado («Visible solo para», 27-oct): con algo, solo existe para esos usuarios o roles (Dirección y Administrador lo ven por equipo.todo). */
+/** Puesto reservado («Visible solo para», 26-oct): con algo, solo existe para esos usuarios o roles (Dirección y Administrador lo ven por equipo.todo). */
 function eq_para_mi(array $p, string $usuario, array $nombresRol): bool {
     $para = trim((string) ($p['soloPara'] ?? ''));
     if ($para === '') return true;

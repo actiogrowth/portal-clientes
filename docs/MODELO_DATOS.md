@@ -229,7 +229,7 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 | Pestaña | Columnas | Notas |
 |---|---|---|
 | Léeme | — | Texto para quien edita; el script no la lee. |
-| Puestos | ID, Puesto, Área, Unidad, Reporta a, Cantidad, Estado, Versión, Fecha versión, Verifica, Cómo verifica, Visible solo para (opcional, 27-oct) | «Visible solo para»: vacía o sin la columna, como siempre; con usuarios o roles separados por coma, el puesto solo existe para ellos, Dirección y Administrador (puesto de prueba). Estado: Por cargar · Borrador · Validado · Abierto al equipo. «Reporta a» es el ID del jefe. «Verifica»: quién y cada cuánto («Dirección, cada semana»; cuenta lo que va antes de la coma). |
+| Puestos | ID, Puesto, Área, Unidad, Reporta a, Cantidad, Estado, Versión, Fecha versión, Verifica, Cómo verifica, Visible solo para (opcional, 26-oct) | «Visible solo para»: vacía o sin la columna, como siempre; con usuarios o roles separados por coma, el puesto solo existe para ellos, Dirección y Administrador (puesto de prueba). Estado: Por cargar · Borrador · Validado · Abierto al equipo. «Reporta a» es el ID del jefe. «Verifica»: quién y cada cuánto («Dirección, cada semana»; cuenta lo que va antes de la coma). |
 | Contratos | Puesto ID, Sección, Orden, Texto | Sección: Resultado · Trabajo · Estándar. |
 | Listas | Puesto ID, Orden, Qué se verifica, Evidencia, Cada cuánto | Cada cuánto: Diario · Semanal · Mensual · Por temporada · Cuando aplica · Por persona nueva. |
 | Procesos | Puesto ID, Proceso, Descripción, Enlace, Estado | Los procesos de cada puesto (vacía al 26-oct). |

@@ -162,7 +162,7 @@ const ROTURAS = [
   ["Procesos pierde el estilo vidrio", "procesos/index.html", "<html lang=\"es\" class=\"vidrio\">", "<html lang=\"es\">"],
   ["vidrio sin respaldo cuando no hay desenfoque", "comun/vea.css", "@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {", "@supports (display: none) {"],
   ["la foto de fondo pide sesión", "portal-raiz/htaccess.txt", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|jpg|svg|webmanifest)$ - [L]", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|webmanifest)$ - [L]"],
-  // 27-oct: puesto reservado de prueba y Ocupación en el Resumen
+  // 26-oct: puesto reservado de prueba y Ocupación en el Resumen
   ["un puesto reservado de prueba se ve igual que los demás", "equipo/api.php", "($todo || eq_para_mi($p, $usuario, $nombresRol))", "true"],
   ["Dirección no ve el puesto reservado de prueba", "equipo/api.php", "($todo || eq_para_mi($p, $usuario, $nombresRol))", "eq_para_mi($p, $usuario, $nombresRol)"],
   ["ni su usuario ve el puesto reservado de prueba", "equipo/api.php", "    if ($para === '') return true;\n", "    if ($para !== '') return false;\n"],

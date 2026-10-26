@@ -1,5 +1,5 @@
 /* comun/cifras.js — cifras del Resumen de Dirección que salen de After School
- * (27-oct). Sin reglas nuevas: usa la ocupación que calcula el servidor
+ * (26-oct). Sin reglas nuevas: usa la ocupación que calcula el servidor
  * (leer.ocupacion, R02 y R07) y los cupos de la pestaña Clases, igual que la
  * pestaña Ocupación. Contrato en docs/ACCIONES_API.md › Resumen.
  * Sin datos ni llamadas: recibe el resultado de After School «leer».

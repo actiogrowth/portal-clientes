@@ -214,7 +214,7 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
    JEF lo ocupa el rol Coordinación After School; REC, Recepción (y una
    asignación vencida a OTR); PRO, el Profesor (y BOR, que no está abierto);
    OTR, Contabilidad. JEF está en versión 2 y su aceptación es de la 1.
-   27-oct: RES es un puesto de PRUEBA reservado («Visible solo para»
+   26-oct: RES es un puesto de PRUEBA reservado («Visible solo para»
    prueba-recepcion): abierto, de Recepción, y reporta a JEF; ni su jefe lo ve. */
 const PR_DATOS = () => {
   const P = (id, puesto, reportaA, estado, version, soloPara) => ({ id, puesto, area: 'After School', unidad: 'UNIDAD-' + id, reportaA, cantidad: 'CANTIDAD-' + id,
