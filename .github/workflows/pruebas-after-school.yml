@@ -67,7 +67,7 @@ jobs:
       - name: Proyecto Actio · roturas del Apps Script
         run: node proyecto-actio-script/pruebas/roturas.js
 
-      - name: Equipo · Apps Script (Procesos.gs: lectura por títulos, solo escribe en Aceptaciones, Marcas y Revisiones)
+      - name: Equipo · Apps Script (Procesos.gs, lectura por títulos, solo escribe en Aceptaciones, Marcas y Revisiones)
         run: node procesos-script/pruebas/prueba-procesos.js
 
       - name: Equipo · roturas del Apps Script
