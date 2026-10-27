@@ -57,7 +57,7 @@ const HOJAS = () => ({
   'Aceptaciones': [['Fecha y hora', 'Usuario', 'Puesto ID', 'Versión']],
   'Marcas': [['Fecha y hora', 'Usuario', 'Puesto ID', 'Orden del punto', 'Período', 'Resultado', 'Nota']],
   'Revisiones': [['Fecha y hora', 'Revisor', 'Puesto ID', 'Período', 'Sorpresa', 'Resultado', 'Nota']],
-  // 27-oct: un mes que Sheets ya convirtió en fecha y un año que quedó como número.
+  // 26-oct: un mes que Sheets ya convirtió en fecha y un año que quedó como número.
   'Metas': [['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], ['Ocupación', 'Preschool', new Date(2026, 9, 1), 70, 'Tentativa'],
     ['Bajas', 'After School', 2026, '3', 'Confirmada'], ['Altas', 'Negocio', '2026-10', 12, '']]
 });

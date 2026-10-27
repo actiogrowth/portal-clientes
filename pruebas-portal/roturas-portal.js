@@ -169,7 +169,7 @@ const ROTURAS = [
   ["«Visible solo para» admite un solo nombre", "equipo/api.php", "foreach (explode(',', $para) as $quien)", "foreach ([$para] as $quien)"],
   ["el Resumen hace sus cuentas fuera de comun/cifras.js", "resumen/index.html", "const N = Cifras.resumenNegocio({ periodo, E: AS, pre: R.preschool, metas: R.metas, finanzas: R.finanzas });", "const N = { finanzas: {}, ninos: {}, unidades: [], alertas: [] };"],
   ["el Resumen no carga comun/cifras.js", "resumen/index.html", "<script src=\"/comun/cifras.js?v=", "<script data-x=\"/comun/cifras.js?v="],
-  // 27-oct: Resumen del negocio, Pendientes de hoy, nombres, Procesos y Ocupación
+  // 26-oct: Resumen del negocio, Pendientes de hoy, nombres, Procesos y Ocupación
   ["Pendientes: Recepción recibe las clases sin lista (no pasa lista)", "pendientes/api.php", "roles_permiten($roles, 'as.seguimiento') && roles_permiten($roles, 'as.lista.marcar')", "roles_permiten($roles, 'as.seguimiento')"],
   ["Pendientes: los contratos por validar le llegan a todos", "pendientes/api.php", "'contratos' => roles_permiten($roles, 'equipo.todo'),", "'contratos' => true,"],
   ["Pendientes: las pruebas sin resultado a quien no puede ponerlo", "pendientes/api.php", "'pruebas'   => roles_permiten($roles, permiso_de_accion_as('resultadoPrueba')),", "'pruebas'   => roles_permiten($roles, 'as.ver'),"],

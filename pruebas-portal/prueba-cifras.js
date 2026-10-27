@@ -58,7 +58,7 @@ function comprobar(C, decir) {
   return f;
 }
 
-/* 27-oct: el Resumen del negocio. Preschool con la forma que devuelve resumen/api.php. */
+/* 26-oct: el Resumen del negocio. Preschool con la forma que devuelve resumen/api.php. */
 const PRE = () => ({ anio: 2026, corte: 10, sello: '2026-10-25', capacidad: 80, meses: {
   '2026-08': { activos: 24, altas: 2, bajas: 0 }, '2026-09': { activos: 26, altas: 3, bajas: 1 }, '2026-10': { activos: 28, altas: 4, bajas: 3 } } });
 const METAS = () => [
@@ -132,7 +132,7 @@ const ROTURAS = [
   ['la semana empieza el domingo', '(d.getDay() + 6) % 7', 'd.getDay()'],
   ['la tendencia mira semanas futuras', 'sumarDias(hoy, -7); ; l = sumarDias(l, -7)', 'sumarDias(hoy, 7); ; l = sumarDias(l, 7)'],
   ['la cifra es la de la semana pasada', 'valor: ahora.inscritos / ahora.cupos', 'valor: serie[0]'],
-  // 27-oct: Resumen del negocio
+  // 26-oct: Resumen del negocio
   ['los niños activos del negocio se suman', "activos: { valor: null, motivo: 'Falta la regla para reconocer al mismo niño en dos unidades'", "activos: { valor: unidades.reduce((t, u) => t + (u.activos.valor || 0), 0), motivo: 'Falta la regla para reconocer al mismo niño en dos unidades'"],
   ['After School cuenta dos veces al mismo niño', "new Set((E.ninos || []).filter(n => n.estado === 'Activo').map(n => n.id)).size", "(E.ninos || []).filter(n => n.estado === 'Activo').length"],
   ['After School inventa altas', "return { activos, altas: null, bajas: null,", "return { activos, altas: activos, bajas: null,"],

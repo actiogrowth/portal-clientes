@@ -630,7 +630,7 @@ a.pr-unidad:hover { border-color: var(--negro); color: var(--texto); }
   .vidrio .adorno { filter: none; }
 }
 
-/* ── Procesos: la entrada con dos tarjetas (27-oct) ───────────────────────── */
+/* ── Procesos: la entrada con dos tarjetas (26-oct) ───────────────────────── */
 .pr-miga { font-size: 14px; margin-bottom: 2px; display: none; }
 .pr-miga a { color: inherit; }
 .pr-entradas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
@@ -648,7 +648,7 @@ a.pr-unidad:hover { border-color: var(--negro); color: var(--texto); }
   .pr-entrada-desc { font-size: 15px; }
 }
 
-/* ── Procesos › Equipo: organigrama (27-oct) ───────────────────────────────
+/* ── Procesos › Equipo: organigrama (26-oct) ───────────────────────────────
    Computador y tablet: un lienzo que se arrastra y se acerca; las tarjetas
    van en su lugar exacto (las calcula comun/organigrama.js) y las líneas en
    un SVG debajo. Celular: lista por áreas. */
@@ -787,7 +787,7 @@ body.eq-ficha-abierta { overflow: hidden; }
 .ml-nota-rev { flex: 1 1 200px; flex-direction: column; align-items: stretch !important; font-size: 12px !important; }
 .ml-revisar .btn { min-height: var(--toque); }
 
-/* ── Resumen del negocio (27-oct) ────────────────────────────────────────── */
+/* ── Resumen del negocio (26-oct) ────────────────────────────────────────── */
 .rs-encabezado { align-items: flex-end; }
 .rs-encabezado h1 { font-size: 56px; }
 .rs-periodo { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -861,17 +861,17 @@ a.rs-item:hover { border-color: var(--negro); color: var(--texto); }
   .rs-ocup { min-width: 0; flex: 1 1 150px; }
 }
 
-/* ── Pendientes de hoy en la portada (27-oct) ───────────────────────────── */
+/* ── Pendientes de hoy en la portada (26-oct) ───────────────────────────── */
 .pe-tarjeta { border: 1px solid var(--gris); border-radius: 24px; padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; background: var(--blanco); }
 .pe-tarjeta h2 { font-size: 30px; }
 .pe-tarjeta:focus { outline: none; }
 #peLista { display: flex; flex-direction: column; gap: 10px; }
 
-/* ── After School › Ocupación: el total de la semana (27-oct) ───────────── */
+/* ── After School › Ocupación: el total de la semana (26-oct) ───────────── */
 .oc-total { font-size: 15px; margin: 0; }
 .oc-total b { font-weight: 700; }
 
-/* ── Configuración: nombre y apellido (27-oct) ──────────────────────────── */
+/* ── Configuración: nombre y apellido (26-oct) ──────────────────────────── */
 .cf-nombre { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 14px; max-width: 640px; }
 
 /* ── Configuración ─────────────────────────────────────────────────────── */

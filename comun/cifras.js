@@ -1,4 +1,4 @@
-/* comun/cifras.js — las cifras del Resumen del negocio (26-oct; 27-oct: el
+/* comun/cifras.js — las cifras del Resumen del negocio (26-oct; 26-oct: el
  * Resumen del negocio entero). Sin reglas nuevas: cada cifra usa una regla
  * que ya existe (docs/REGLAS_NEGOCIO.md, citada al lado) y lo que no tiene
  * regla devuelve null con su motivo, para que la pantalla diga
@@ -51,7 +51,7 @@
     return { valor: ahora.inscritos / ahora.cupos, inscritos: ahora.inscritos, cupos: ahora.cupos, serie: serie.length >= 2 ? serie : null };
   }
 
-  /* ── Resumen del negocio (27-oct) ─────────────────────────────────────── */
+  /* ── Resumen del negocio (26-oct) ─────────────────────────────────────── */
 
   /** Períodos: mes «AAAA-MM» o año «AAAA». */
   const esMes = p => /^\d{4}-\d{2}$/.test(p);

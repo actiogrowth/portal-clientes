@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
+<link rel="stylesheet" href="/comun/vea.css?v=83f933a771">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
@@ -48,7 +48,7 @@
 
   <!-- VISTA 1 · OCUPACIÓN (22-oct: compacta, una línea por clase) -->
   <section id="v-ocupacion" class="vista oculto columna oc">
-    <!-- 27-oct: el total de la semana de hoy, con la regla del Resumen del negocio (comun/cifras.js). -->
+    <!-- 26-oct: el total de la semana de hoy, con la regla del Resumen del negocio (comun/cifras.js). -->
     <p class="oc-total" id="ocTotal"></p>
     <div class="resumen-linea" id="resumen" aria-label="Resumen"></div>
     <div class="oc-barra">
@@ -341,9 +341,9 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="/comun/datos.js?v=9bb2cb871c"></script>
-<script src="/comun/marca.js?v=f035d07161"></script>
-<script src="/comun/cifras.js?v=eb2c90b91e"></script>
+<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/marca.js?v=37b691d840"></script>
+<script src="/comun/cifras.js?v=2ca26baf01"></script>
 <script>
 'use strict';
 /* ==========================================================================
@@ -840,7 +840,7 @@ function pintarDiaMovil(dias, semana) {
   $('#ocDia').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase, b.dataset.fecha));
 }
 
-/* 27-oct: «Esta semana: 158 inscritos en 568 cupos · 28 %». Siempre la semana de hoy, como el Resumen (R125). */
+/* 26-oct: «Esta semana: 158 inscritos en 568 cupos · 28 %». Siempre la semana de hoy, como el Resumen (R125). */
 function pintarTotalSemana() {
   const o = Cifras.ocupacionAS(E);
   $('#ocTotal').innerHTML = o ? 'Esta semana: <b>' + o.inscritos + '</b> inscritos en <b>' + o.cupos + '</b> cupos · <b>' + Math.round(o.valor * 100) + ' %</b>' : '';

@@ -20,7 +20,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
+<link rel="stylesheet" href="/comun/vea.css?v=83f933a771">
 </head>
 <body>
 <header id="cab"></header>
@@ -50,8 +50,8 @@
   </section>
 </main>
 
-<script src="/comun/datos.js?v=9bb2cb871c"></script>
-<script src="/comun/marca.js?v=f035d07161"></script>
+<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/marca.js?v=37b691d840"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -69,7 +69,7 @@ function periodoTexto(p) {
   return p;
 }
 const nombreDe = id => (D.puestos.find(p => p.id === id) || {}).puesto || id;
-/* 27-oct: quién marcó o revisó, con su nombre y cargo (el servidor manda solo los de estas fichas). Sin nombre: el usuario, como antes. */
+/* 26-oct: quién marcó o revisó, con su nombre y cargo (el servidor manda solo los de estas fichas). Sin nombre: el usuario, como antes. */
 const quien = u => { const p = D.personas && D.personas[u]; return p && p.nombre ? p.nombre + ' · ' + p.cargo : u; };
 /* La última marca de un punto en un período (la de más tarde vale; las anteriores quedan). */
 function ultimaMarca(f, orden, periodo) {

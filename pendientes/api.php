@@ -1,5 +1,5 @@
 <?php
-/* Puente de «Pendientes de hoy» (27-oct), la tarjeta de la portada. Lo abre
+/* Puente de «Pendientes de hoy» (26-oct), la tarjeta de la portada. Lo abre
  * cualquier rol (carpeta «pendientes» → área equipo, que tienen todos) y a
  * cada uno le devuelve SOLO lo que le toca actuar, decidido aquí con sus
  * permisos (docs/REGLAS_NEGOCIO.md R130):

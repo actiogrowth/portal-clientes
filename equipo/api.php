@@ -21,11 +21,11 @@
  *      quien figura en «Verifica» o es su jefe. Siempre en puestos abiertos.
  *      El script vuelve a mirar el estado, la versión y el período.
  *   5. Suelta la sesión antes de esperar a Google (D-068).
- *   6. 27-oct: «personas» trae nombre y apellido (de las cuentas del portal)
+ *   6. 26-oct: «personas» trae nombre y apellido (de las cuentas del portal)
  *      y el cargo de quienes aparecen en las marcas y revisiones que esta
  *      persona ya ve; nadie más.
  *
- * EQ_SOLO_FUNCIONES (27-oct): con esa constante definida el archivo solo
+ * EQ_SOLO_FUNCIONES (26-oct): con esa constante definida el archivo solo
  * declara sus funciones (eq_sheet, eq_vista…); lo usan resumen/api.php y
  * pendientes/api.php.
  *
@@ -105,7 +105,7 @@ exit;
 
 /* ─── El Sheet (con su copia corta) ────────────────────────────────────── */
 
-/** El Sheet entero. $suave (27-oct): si Google no responde y no hay copia, devuelve null en vez de cortar la respuesta. */
+/** El Sheet entero. $suave (26-oct): si Google no responde y no hay copia, devuelve null en vez de cortar la respuesta. */
 function eq_sheet(array $cfg, string $archivo, int $ttl, string $usuario, bool $suave = false): ?array {
     $c = is_file($archivo) ? json_decode((string) @file_get_contents($archivo), true) : null;
     if (is_array($c) && isset($c['t'], $c['r']) && time() - $c['t'] < $ttl) return $c['r'];
@@ -128,7 +128,7 @@ function eq_sheet(array $cfg, string $archivo, int $ttl, string $usuario, bool $
 }
 
 /**
- * 27-oct: nombre y cargo de quienes aparecen en las marcas y revisiones de
+ * 26-oct: nombre y cargo de quienes aparecen en las marcas y revisiones de
  * la respuesta (solo de esas fichas). Sin nombre cargado, nombre ''.
  * {usuario: {nombre: 'Nombre Apellido', cargo: 'Rol · Rol'}}
  */

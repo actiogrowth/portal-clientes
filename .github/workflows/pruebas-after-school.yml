@@ -50,7 +50,7 @@ jobs:
     # Roles y usuarios del portal: un servidor PHP de verdad (php -S) con las
     # reglas de htaccess.txt, usuarios inventados y un Apps Script falso.
     runs-on: ubuntu-24.04
-    timeout-minutes: 240   # 27-oct: ~158 roturas × ~45 s (cada una corre la prueba entera del portal)
+    timeout-minutes: 240   # 26-oct: ~158 roturas × ~45 s (cada una corre la prueba entera del portal)
     steps:
       - uses: actions/checkout@v4
 

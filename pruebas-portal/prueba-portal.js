@@ -244,10 +244,10 @@ const PR_DATOS = () => {
     marcas: ids.concat(['RES']).map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
       .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' }]),
     revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' }],
-    // 27-oct: Metas (solo las lee resumen/api.php). La segunda no tiene valor: se descarta.
+    // 26-oct: Metas (solo las lee resumen/api.php). La segunda no tiene valor: se descarta.
     metas: [{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: null, estado: '' }] };
 };
-/* 27-oct: las dos tablas de Preschool que lee el Resumen, INVENTADAS, con la forma real: filas de título
+/* 26-oct: las dos tablas de Preschool que lee el Resumen, INVENTADAS, con la forma real: filas de título
    arriba, columna A vacía, montos y nombres (que NUNCA tienen que salir de resumen/api.php). */
 const CSV_ANALISIS = () => {
   const filas = [',,,,,,,,,,,,', ',DATOS PARA ANÁLISIS · formato largo,,,,,,,,,,,', ',,,,,,,,,,,,',
@@ -274,7 +274,7 @@ function googleFalso() {
     let cuerpo = '';
     req.on('data', d => { cuerpo += d; });
     req.on('end', () => {
-      // 27-oct: los CSV publicados de Preschool (GET).
+      // 26-oct: los CSV publicados de Preschool (GET).
       if (req.method === 'GET' && /^\/csv\/(analisis|config)/.test(req.url)) {
         llamadas.push({ accion: 'csv:' + req.url.slice(5), key: '', datos: {}, t: Date.now() });
         res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' }); res.end(req.url.startsWith('/csv/analisis') ? CSV_ANALISIS() : CSV_CONFIG()); return;
@@ -1124,7 +1124,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
     }
 
-    seccion('Resumen del negocio (27-oct): solo Dirección y Administrador; Preschool sin montos ni nombres; metas del Sheet');
+    seccion('Resumen del negocio (26-oct): solo Dirección y Administrador; Preschool sin montos ni nombres; metas del Sheet');
     {
       const rs = u => n[u].post('/resumen/api.php', { json: { accion: 'leer' } });
       for (const u of ['prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
@@ -1153,7 +1153,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'resumen', 'api.php'), 'utf8')), 'resumen/api.php suelta la sesión antes de esperar a Google');
     }
 
-    seccion('Pendientes de hoy (27-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');
+    seccion('Pendientes de hoy (26-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');
     {
       const pe = u => n[u].post('/pendientes/api.php', { json: { accion: 'leer' } });
       const ESPERA = {
@@ -1178,7 +1178,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         'portada: la tarjeta «Pendientes de hoy» muestra solo lo que manda el servidor (sin nada, no aparece)');
     }
 
-    seccion('Nombre y apellido (27-oct): solo el Administrador; saludo, cabecera y Revisar con nombre y cargo');
+    seccion('Nombre y apellido (26-oct): solo el Administrador; saludo, cabecera y Revisar con nombre y cargo');
     {
       const admin = n['admin-uno'], dir = n['prueba-direccion'];
       const nd = await dir.config('nombre', { usuario: 'prueba-recepcion', nombre: 'Otra', apellido: 'Persona' });
@@ -1208,7 +1208,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/id="dnNombre"/.test(conf) && /\(D\.puedeAdmin \? b\('data-nombre', 'Nombre', 'sec', true\) : ''\)/.test(conf), 'Configuración › Usuarios: «Nombre» solo para el Administrador');
     }
 
-    seccion('Procesos con dos tarjetas, organigrama y Ocupación (27-oct)');
+    seccion('Procesos con dos tarjetas, organigrama y Ocupación (26-oct)');
     {
       const pr = (await n['prueba-recepcion'].get('/procesos/')).texto;
       ok(/class="pr-entrada vidrio-tarjeta" href="#documentos"/.test(pr) && /class="pr-entrada vidrio-tarjeta" href="#equipo"/.test(pr) && !/pr-vistas|Por unidad/.test(pr), 'Procesos: dos tarjetas, Documentos y Equipo; sin las pestañas de antes');

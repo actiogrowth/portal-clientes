@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
+<link rel="stylesheet" href="/comun/vea.css?v=83f933a771">
 </head>
 <body>
 <!-- Portada (21-oct, rediseño; 23-oct, por marca). Página fija: quién soy y
@@ -25,7 +25,7 @@
        /?marca=kids   (con el tema Kids)
      Cada tarjeta aparece solo si el rol tiene su área; un logo sin unidades
      del rol no aparece.
-     27-oct: saludo con el nombre (sin nombre, el usuario) y «Pendientes de
+     26-oct: saludo con el nombre (sin nombre, el usuario) y «Pendientes de
      hoy» (/#pendientes): lo que cada rol tiene que atender hoy, decidido en
      el servidor (Datos.pendientes → /pendientes/api.php). -->
 <header id="cab"></header>
@@ -42,8 +42,8 @@
   <div id="grupos" class="portada-grupos"></div>
   <footer class="ayuda">© 2026 Vida en Arte · Hecho por Actio Growth</footer>
 </main>
-<script src="/comun/datos.js?v=9bb2cb871c"></script>
-<script src="/comun/marca.js?v=f035d07161"></script>
+<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/marca.js?v=37b691d840"></script>
 <script>
 'use strict';
 /* Las tarjetas de cada área. url vacía = «Próximamente» (atenuada, sin enlace,
@@ -57,7 +57,7 @@ const UNIDADES = {
 };
 /* 26-oct: arriba, el Resumen (solo Dirección y Administrador) y Mi lista (quien ocupa un puesto abierto). */
 const RESUMEN = { area: 'resumen', nombre: 'Resumen del negocio', url: '/resumen/', icono: 'resumen', desc: 'Rentabilidad, niños y ocupación de cada unidad, mes a mes.' };
-/* 27-oct: Pendientes de hoy. El texto de cada clave; cuáles llegan lo decide el servidor. */
+/* 26-oct: Pendientes de hoy. El texto de cada clave; cuáles llegan lo decide el servidor. */
 const PENDIENTES = {
   sinLista:  { uno: 'clase de hoy sin lista', varios: 'clases de hoy sin lista', donde: 'After School › Seguimiento', color: '#B3261E' },
   pruebas:   { uno: 'prueba sin resultado', varios: 'pruebas sin resultado', donde: 'After School › Visitas del día', color: '#8A4B0F' },

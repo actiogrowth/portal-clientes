@@ -437,7 +437,7 @@ foto con el velo, 5,3:1 (AA pide 4,5:1).
    `'pr_cache_seg' => 60`. Sin `pr_exec` y `pr_clave`, el puente responde
    `sin_configuracion`.
 
-## 2f. Ajustes de Equipo y Resumen del negocio (27-oct)
+## 2f. Ajustes de Equipo y Resumen del negocio (26-oct)
 
 - **Procesos** entra por dos tarjetas: «Documentos» (`/procesos/#documentos`:
   la biblioteca por unidad, con el buscador; los documentos se leen al

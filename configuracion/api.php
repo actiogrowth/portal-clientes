@@ -12,7 +12,7 @@
  *   GET  api.php?accion=listar      → cuentas, roles y el token CSRF
  *   POST api.php  (cabecera X-CSRF) → {accion: crear|roles|desactivar|reactivar|reiniciar|nombre, usuario, roles?, nombre?, apellido?}
  *
- * 27-oct: «nombre» guarda el nombre y el apellido de la persona que usa la
+ * 26-oct: «nombre» guarda el nombre y el apellido de la persona que usa la
  * cuenta (vacíos = se borran). SOLO un Administrador (usuarios.admin), en
  * cualquier cuenta, también la suya. No cambia el usuario para entrar.
  *

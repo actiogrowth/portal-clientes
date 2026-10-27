@@ -1,5 +1,5 @@
 <?php
-/* Puente del Resumen del negocio (27-oct). Solo Dirección y Administrador
+/* Puente del Resumen del negocio (26-oct). Solo Dirección y Administrador
  * (carpeta «resumen» → área resumen, que no tiene nadie más). Contrato en
  * docs/ACCIONES_API.md › Resumen del negocio.
  *

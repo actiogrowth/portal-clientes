@@ -9,7 +9,7 @@
   lectura. Lee SOLO a través de la capa de datos (/comun/datos.js →
   procesos/api.php y equipo/api.php), que ya manda únicamente lo que esta
   persona puede ver.
-    /procesos/               27-oct: dos tarjetas, «Documentos» y «Equipo»
+    /procesos/               26-oct: dos tarjetas, «Documentos» y «Equipo»
     /procesos/#documentos    las unidades (con su color e iniciales) y el buscador
     /procesos/#u=<unidad>    los procesos de una unidad y sus documentos
     /procesos/#equipo        el organigrama y la ficha de cada puesto
@@ -24,7 +24,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
+<link rel="stylesheet" href="/comun/vea.css?v=83f933a771">
 </head>
 <body>
 <header id="cab"></header>
@@ -41,7 +41,7 @@
     </label>
   </section>
 
-  <!-- 27-oct: la entrada de Procesos. -->
+  <!-- 26-oct: la entrada de Procesos. -->
   <section id="entrada" class="pr-entradas oculto" aria-label="Procesos">
     <a class="pr-entrada vidrio-tarjeta" href="#documentos">
       <span class="pr-entrada-icono" style="background:#1974A8" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span>
@@ -61,11 +61,11 @@
   <div id="equipo" class="oculto"></div>
 </main>
 
-<script src="/comun/datos.js?v=9bb2cb871c"></script>
-<script src="/comun/marca.js?v=f035d07161"></script>
+<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/marca.js?v=37b691d840"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
-<script src="/comun/organigrama.js?v=65291c1cca"></script>
+<script src="/comun/organigrama.js?v=461829f3ae"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);

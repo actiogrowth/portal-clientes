@@ -16,7 +16,7 @@
  *   ver_clave     sube con cada cambio o reinicio de contraseña; una sesión
  *                 abierta con otra versión se corta
  *   clases        reservado para Profesor (clases que podrá ver en Pasar lista)
- *   nombre, apellido  27-oct, opcionales: de la persona que usa la cuenta, para
+ *   nombre, apellido  26-oct, opcionales: de la persona que usa la cuenta, para
  *                 el saludo y la cabecera. Solo los edita un Administrador
  *                 (configuracion/api.php › nombre). Viven SOLO aquí, nunca en el
  *                 repo. El usuario para entrar no cambia.

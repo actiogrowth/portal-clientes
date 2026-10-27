@@ -21,7 +21,7 @@
  *    fila de títulos que se encuentre en las primeras filas de cada pestaña.
  *  · La clave vive en las Propiedades del script (PR_CLAVE_API), nunca aquí.
  *
- *  · 27-oct (v2): «leer» trae también la pestaña Metas (las metas del
+ *  · 26-oct (v2): «leer» trae también la pestaña Metas (las metas del
  *    Resumen del negocio; solo las usa resumen/api.php) y actualizarEstructura()
  *    la crea. El portal nunca escribe en Metas.
  *
@@ -32,7 +32,7 @@
  *  dirección /exec no cambia), y correr actualizarEstructura una vez.
  * ═════════════════════════════════════════════════════════════════════════════ */
 
-var VERSION_SCRIPT = 'v2';   // 27-oct: Metas y actualizarEstructura
+var VERSION_SCRIPT = 'v2';   // 26-oct: Metas y actualizarEstructura
 var PROP_CLAVE = 'PR_CLAVE_API';
 var FILAS_PARA_BUSCAR_TITULOS = 10;
 
@@ -67,13 +67,13 @@ var TABLAS = {
   revisiones: { hoja: 'Revisiones', obligatorias: ['Fecha y hora', 'Revisor', 'Puesto ID', 'Período', 'Resultado'], columnas: [
     ['Fecha y hora', 'fecha', 'fechaHora'], ['Revisor', 'revisor'], ['Puesto ID', 'puesto'], ['Período', 'periodo', 'periodo'],
     ['Sorpresa', 'sorpresa'], ['Resultado', 'resultado'], ['Nota', 'nota']] },
-  // 27-oct: metas del Resumen del negocio. Las escribe Vida en Arte; el portal solo las lee
+  // 26-oct: metas del Resumen del negocio. Las escribe Vida en Arte; el portal solo las lee
   // (resumen/api.php). La pestaña la crea actualizarEstructura().
   metas: { hoja: 'Metas', obligatorias: ['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], columnas: [
     ['Cifra', 'cifra'], ['Unidad', 'unidad'], ['Período', 'periodo', 'periodoMeta'], ['Valor', 'valor', 'numero'], ['Estado', 'estado']] }
 };
 
-/* 27-oct: vocabulario de Metas (las listas desplegables que pone actualizarEstructura). */
+/* 26-oct: vocabulario de Metas (las listas desplegables que pone actualizarEstructura). */
 var CIFRAS_META = ['Ocupación', 'Niños activos', 'Altas', 'Bajas', 'Pruebas que se inscriben', 'Facturación', 'Margen de la unidad', 'Margen neto'];
 var UNIDADES_META = ['Negocio', 'Preschool', 'After School', 'Veranito', 'Baby & Me', 'Cumpleaños'];
 var ESTADOS_META = ['Tentativa', 'Confirmada'];
@@ -291,7 +291,7 @@ function revisar_(d, usuario) {
   return { puesto: p.id, periodo: texto_(d.periodo) };
 }
 
-/* ─── Estructura (27-oct; se corre a mano desde el editor) ─────────────── */
+/* ─── Estructura (26-oct; se corre a mano desde el editor) ─────────────── */
 
 /**
  * Crea la pestaña «Metas» (Cifra, Unidad, Período, Valor, Estado) con sus

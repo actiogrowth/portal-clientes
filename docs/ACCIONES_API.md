@@ -132,7 +132,7 @@ Solo `usuarios.gestionar` (Administrador, Dirección). Escrituras con cabecera `
 | `roles` | POST | `usuario`, `roles[]` | `{usuarios}` | No a uno mismo; Dirección no toca cuentas Admin; el último Admin activo no pierde el rol. |
 | `desactivar` / `reactivar` | POST | `usuario` | `{usuarios}` | No desactivarse a uno mismo; Dirección no toca Admin; último Admin activo. |
 | `reiniciar` | POST | `usuario` | `{temporal, usuarios}` | Corta sus sesiones; cambio obligatorio al entrar. |
-| `nombre` (27-oct) | POST | `usuario`, `nombre`, `apellido` | `{usuarios}` | **Solo Administrador** (`usuarios.admin`), en cualquier cuenta. Hasta 40 letras con espacios, guion, apóstrofo o punto; vacío = se borra. El registro anota el cambio sin el nombre. No cambia el usuario para entrar (R131). |
+| `nombre` (26-oct) | POST | `usuario`, `nombre`, `apellido` | `{usuarios}` | **Solo Administrador** (`usuarios.admin`), en cualquier cuenta. Hasta 40 letras con espacios, guion, apóstrofo o punto; vacío = se borra. El registro anota el cambio sin el nombre. No cambia el usuario para entrar (R131). |
 
 
 ## Acciones de Pasar lista (`pasar-lista/api.php`)
@@ -422,7 +422,7 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
 }
 ```
 
-## Resumen del negocio (`/resumen/` y `resumen/api.php`) — 27-oct
+## Resumen del negocio (`/resumen/` y `resumen/api.php`) — 26-oct
 
 Reemplaza al Resumen de Dirección. Solo Dirección y Administrador (carpeta
 `resumen` → área `resumen`, que no tiene nadie más; el puente también). La
@@ -435,7 +435,7 @@ pantalla hace todas las cuentas con `comun/cifras.js`
 
 ```
 {
-  hoy: "2026-10-27",
+  hoy: "2026-10-26",
   metas: [{ cifra, unidad, periodo: "AAAA-MM" | "AAAA", valor: número, estado }],   // pestaña Metas (Procesos.gs); se descartan las filas incompletas
   preschool: { anio, corte (mes del sello), sello: "AAAA-MM-DD", capacidad,
                meses: { "AAAA-MM": { activos, altas, bajas } } } | null,          // solo conteos
@@ -506,7 +506,7 @@ Montos en la moneda de Vida en Arte, números (no texto). El puente los
 leerá del Sheet o del sistema que se elija, con su clave en
 `portal_config.php`, y la pantalla no cambia.
 
-## Pendientes de hoy (`pendientes/api.php`, la portada) — 27-oct
+## Pendientes de hoy (`pendientes/api.php`, la portada) — 26-oct
 
 Lo abre cualquier rol (carpeta `pendientes` → área `equipo`). Cada uno
 recibe **solo lo que le toca actuar**, decidido en el servidor con sus

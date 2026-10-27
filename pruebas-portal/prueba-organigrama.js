@@ -1,4 +1,4 @@
-/* Organigrama de Procesos › Equipo (comun/organigrama.js, 27-oct), con
+/* Organigrama de Procesos › Equipo (comun/organigrama.js, 26-oct), con
  * puestos INVENTADOS, y sus roturas (cada una tiene que hacer fallar alguna
  * comprobación).
  *

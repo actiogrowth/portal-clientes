@@ -18,7 +18,7 @@
    *   accesos: [{texto, url}] (23-oct) enlaces de texto en una fila propia,
    *           visibles en todo tamaño (el Profesor en Pasar lista: Inicio, Procesos)
    */
-  /* 27-oct: el nombre de la persona (Configuración › Usuarios). Sin nombre
+  /* 26-oct: el nombre de la persona (Configuración › Usuarios). Sin nombre
      cargado, el usuario, como antes. */
   const nombreDe = s => s ? (((s.nombre || '') + ' ' + (s.apellido || '')).trim() || s.usuario || '') : '';
   /** «Buenos días, Ana» (sin nombre: «Buenos días, recepcion-as»). */

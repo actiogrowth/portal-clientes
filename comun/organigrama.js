@@ -1,6 +1,6 @@
 /* ==========================================================================
    Vida en Arte · Procesos › Equipo: organigrama y ficha del puesto
-   (26-oct; 27-oct: árbol que se mueve y se acerca, lista en celular y ficha
+   (26-oct; 26-oct: árbol que se mueve y se acerca, lista en celular y ficha
    centrada)
 
    Lo usa /procesos/#equipo. Habla solo con Datos.equipo (→ /equipo/api.php),
