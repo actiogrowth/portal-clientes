@@ -251,8 +251,10 @@ const PR_DATOS = () => {
    arriba, columna A vacía, montos y nombres (que NUNCA tienen que salir de resumen/api.php). */
 const CSV_ANALISIS = () => {
   const filas = [',,,,,,,,,,,,', ',DATOS PARA ANÁLISIS · formato largo,,,,,,,,,,,', ',,,,,,,,,,,,',
-    ',ID niño,Unidad,Mes #,Mes,Año,Pago del mes ($),Activo ese mes,Fecha ingreso,Fecha salida,Grupo,generado_en,Nombre del niño'];
-  const fila = (id, uni, m, act, ing, sal, sello) => ',' + [id, uni, m, 'mes', 2026, m % 2 ? '98765' : '"98.765,00"', act, ing, sal, 'Green Room', sello || '', '"NOMBRE-NINO, CON\nSALTO"'].join(',');
+    ',ID niño,Unidad,Mes #,Mes,Año,Pago del mes ($),Activo ese mes,Fecha ingreso,Fecha salida,Grupo,generado_en,Nombre del niño,Plan,Responsable,Motivo de salida'];
+  // 28-oct: Plan y Responsable no tienen que salir de kinder/csv.php; el monto sale convertido en «Pagó el mes». K-2 no paga en octubre.
+  const fila = (id, uni, m, act, ing, sal, sello) => ',' + [id, uni, m, 'mes', 2026, id === 'K-2' && m === 10 ? '' : m % 2 ? '98765' : '"98.765,00"', act, ing, sal, 'Green Room', sello || '',
+    '"NOMBRE-NINO, CON\nSALTO"', 'PLAN-SECRETO', 'RESPONSABLE-SECRETO', id === 'K-3' ? 'MOTIVO-DE-PRUEBA' : ''].join(',');
   for (let m = 1; m <= 12; m++) {
     filas.push(fila('K-1', 'Kínder', m, m <= 10 ? 1 : 0, '15/01/2026', '', m === 1 ? '2026-10-20 9:05' : ''));
     filas.push(fila('K-2', 'Kinder', m, m >= 9 && m <= 10 ? 1 : 0, '2026-09-03', ''));
@@ -262,7 +264,8 @@ const CSV_ANALISIS = () => {
   }
   return filas.join('\n');
 };
-const CSV_CONFIG = () => 'PARÁMETRO,VALOR\nCapacidad máxima,80\nMeta de niños,50\n\nGRUPO,CAPACIDAD,ACTIVO\nGreen Room,10,Sí\n';
+const CSV_CONFIG = () => 'PARÁMETRO,VALOR\nCapacidad máxima,80\nTarifa plan 4.5 horas,55501\nMeta de niños,50\nCosto real por salón,"55.502"\nPARAMETRO-NUEVO,55503\n\n' +
+  'GRUPO,CAPACIDAD,ACTIVO,COSTO\nGreen Room,10,Sí,55504\n';
 const PR = { siguiente: null };   // la próxima respuesta a una escritura (por ejemplo, «version_vieja»)
 const PA = { llamadas: 0, falla: false };
 /* 23-oct: Google lento a propósito (ms por pedido), para ver si los pedidos del mismo usuario hacen fila. */
@@ -387,6 +390,7 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'pendientes'), path.join(web, 'pendientes'));
   copiar(path.join(fuente, 'biblioteca'), path.join(web, 'biblioteca'));
   areasDeMentira(web);
+  copiar(path.join(fuente, 'kinder'), path.join(web, 'kinder'));   // 28-oct: Preschool de verdad (csv.php sin montos)
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
   // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
   const htActivo = path.join(tmp, 'htaccess-activo');
@@ -594,7 +598,7 @@ async function correr(fuente) {
         'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1, eq: 1 },
         'prueba-profesor-1':   { as: 1, pl: 1, proc: 1, eq: 1 }
       };
-      const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
+      const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php?tabla=config'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
         pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], res: ['/resumen/'] };
       for (const [u, puede] of Object.entries(R)) {
@@ -1124,6 +1128,30 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
     }
 
+    seccion('Preschool operativo (28-oct): kinder/csv.php no entrega montos, ni plan, ni responsable');
+    {
+      const x = n['prueba-coord-pre'];
+      const a = await x.get('/kinder/csv.php?tabla=analisis'), c = await x.get('/kinder/csv.php?tabla=config');
+      ok(a.status === 200 && /text\/csv/.test(a.tipo || '') && c.status === 200, 'Coordinación Preschool lee las dos tablas (' + a.status + ' ' + c.status + ')');
+      ok(!/98765|98\.765|Pago del mes/.test(a.texto), 'R138 «Datos para análisis» sin la columna de pagos ni sus montos');
+      ok(!/PLAN-SECRETO|RESPONSABLE-SECRETO|,Plan|Responsable/.test(a.texto), 'R139 ni el plan ni el responsable salen del servidor');
+      const filas = a.texto.trim().split('\n'), cab = filas[0].split(',');
+      ok(cab[0] === 'ID niño' && cab.includes('Activo ese mes') && cab.includes('Nombre del niño') && cab.includes('Motivo de salida') && cab[cab.length - 1] === 'Pagó el mes',
+        'las columnas que usa el tablero, con «Pagó el mes» al final (' + filas[0] + ')');
+      ok(!/K-4|After School/.test(a.texto) && /K-1/.test(a.texto), 'solo las filas de Kínder');
+      const fila = (id, mes) => (a.texto.match(new RegExp('^' + id + ',[^,]*,' + mes + ',[\\s\\S]*?,(Sí|No)$', 'm')) || [''])[0];
+      ok(/,Sí$/.test(fila('K-1', 10)) && /,No$/.test(fila('K-2', 10)) && /,Sí$/.test(fila('K-1', 9)), 'R138 «Pagó el mes»: Sí con un pago mayor que cero (con punto o con coma), No sin pago');
+      ok(/MOTIVO-DE-PRUEBA/.test(fila('K-3', 10)), 'el motivo de salida pasa tal cual');
+      ok(!/5550[1-4]|Tarifa|Costo|COSTO|PARAMETRO-NUEVO/i.test(c.texto) && /Capacidad máxima,80/.test(c.texto) && /Meta de niños,50/.test(c.texto) && /Green Room,10,Sí/.test(c.texto),
+        'R138 «Config Kínder» sin tarifas, costos ni parámetros nuevos; con capacidad, meta y salones (' + c.texto.replace(/\n/g, ' | ') + ')');
+      ok((await x.get('/kinder/csv.php?tabla=kinder')).status === 400, 'la pestaña «Kínder» (responsable y pagos) ya no se puede pedir');
+      const pg = await x.get('/kinder/');
+      ok(pg.status === 200 && /Plan por registrar/.test(pg.texto) && !/config-local\.js|Pago del mes \(\$\)"\)|dinero\(/.test(pg.texto), 'la página no carga config-local.js ni lee la columna de pagos');
+      const cf = await x.get('/kinder/config.php');
+      ok(/csv\.php\?tabla=analisis/.test(cf.texto) && !/127\.0\.0\.1|\/csv\//.test(cf.texto), 'config.php solo da las rutas del portal, nunca la dirección del Sheet');
+      ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'kinder', 'csv.php'), 'utf8')), 'kinder/csv.php suelta la sesión antes de esperar a Google');
+    }
+
     seccion('Resumen del negocio (26-oct): solo Dirección y Administrador; Preschool sin montos ni nombres; metas del Sheet');
     {
       const rs = u => n[u].post('/resumen/api.php', { json: { accion: 'leer' } });
@@ -1143,6 +1171,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         ok(JSON.stringify(R.metas) === '[{"cifra":"Ocupación","unidad":"Preschool","periodo":"2026-10","valor":70,"estado":"Tentativa"}]', 'las metas del Sheet, sin las filas incompletas');
         ok(R.finanzas === null && !/FALTA-DE-PRUEBA|Jefatura|TEXTO-/.test(r.texto), 'finanzas sin fuente (null) y nada de Equipo en la respuesta');
         ok(google.llamadas.slice(antes).filter(l => /^csv:/.test(l.accion)).length === 2, 'lee las dos tablas de Preschool del portal_config (csv.analisis y csv.config)');
+        ok(P.nota === 'Datos en revisión', 'R140 sin «preschool_nota» en portal_config.php, Preschool lleva la nota «Datos en revisión» (' + P.nota + ')');
       }
       const ad = await rs('admin-uno');
       ok(ad.status === 200 && ad.j.resultado.preschool && ad.j.resultado.preschool.capacidad === 80, 'Administrador también (y con la copia corta, sin volver a pedir)');
@@ -1151,6 +1180,15 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       const eqR = (await n['prueba-direccion'].post('/equipo/api.php', { json: { accion: 'leer' } })).texto;
       ok(!/"metas"|Ocupación/.test(eqR), 'las metas no salen por Equipo');
       ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'resumen', 'api.php'), 'utf8')), 'resumen/api.php suelta la sesión antes de esperar a Google');
+      // 28-oct (R140): la nota se cambia o se quita en portal_config.php, sin tocar el código. En un PHP aparte (opcache).
+      const script = path.join(tmp, 'nota-preschool.php');
+      fs.writeFileSync(script, `<?php
+define('RS_SOLO_FUNCIONES', true);
+require '${web.replace(/\\/g, '/')}/resumen/api.php';
+echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => '']), rs_nota_preschool(['preschool_nota' => ' Otra nota '])], JSON_UNESCAPED_UNICODE);
+`);
+      const nota = spawnSync(PHP, [script], { encoding: 'utf8' });
+      ok(nota.stdout.trim() === '["Datos en revisión","","Otra nota"]', 'R140 la nota sale de portal_config.php › preschool_nota: sin la clave, «Datos en revisión»; vacía, ninguna (' + (nota.stdout + nota.stderr).slice(0, 200) + ')');
     }
 
     seccion('Pendientes de hoy (26-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');

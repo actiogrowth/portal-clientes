@@ -841,6 +841,8 @@ body.eq-ficha-abierta { overflow: hidden; }
 .rs-celda > span { display: block; }
 .rs-celda > .ayuda { font-size: 12px; margin-top: 2px; }
 .rs-curso { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #6B3A00; vertical-align: 1px; }
+/* 28-oct: «Datos en revisión» de una unidad (R140). En la tabla va debajo del nombre, para no ensanchar la columna. */
+.rs-tabla th .rs-revision { display: block; width: max-content; margin: 4px 0 0 16px; }
 .rs-mirar { display: flex; flex-direction: column; gap: 10px; }
 .rs-pendientes { align-self: stretch; justify-content: center; min-height: 48px; }
 .rs-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--blanco); border: 1px solid #ECECEC; min-height: 56px; box-sizing: border-box; color: var(--texto); text-decoration: none; }

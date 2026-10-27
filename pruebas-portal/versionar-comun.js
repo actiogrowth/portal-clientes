@@ -26,7 +26,7 @@ const REPO = path.join(__dirname, '..');
 const COMUN = path.join(REPO, 'comun');
 const PAGINAS = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html',
   'after-school/index.html', 'configuracion/index.html', 'pasar-lista/index.html', 'veranito/index.html', 'proyecto-actio/index.html',
-  'procesos/index.html', 'equipo/index.html', 'resumen/index.html'];
+  'procesos/index.html', 'equipo/index.html', 'resumen/index.html', 'kinder/index.html'];   // 28-oct: Preschool vive aquí
 const REF = /(["']|url\()\/comun\/([a-z0-9-]+\.(?:css|js|png|jpg|svg|webmanifest))(\?v=[0-9a-f]*)?/g;
 
 const normalizar = b => Buffer.from(b.toString('latin1').replace(/\r\n/g, '\n'), 'latin1');

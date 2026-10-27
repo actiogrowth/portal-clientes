@@ -50,7 +50,7 @@ jobs:
     # Roles y usuarios del portal: un servidor PHP de verdad (php -S) con las
     # reglas de htaccess.txt, usuarios inventados y un Apps Script falso.
     runs-on: ubuntu-24.04
-    timeout-minutes: 240   # 26-oct: ~158 roturas × ~45 s (cada una corre la prueba entera del portal)
+    timeout-minutes: 240   # 28-oct: ~170 roturas × ~45 s (cada una corre la prueba entera del portal)
     steps:
       - uses: actions/checkout@v4
 
@@ -59,7 +59,7 @@ jobs:
           node-version: '20'
 
       - name: Sintaxis de los PHP
-        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php resumen/*.php pendientes/*.php; do php -l "$f" || exit 1; done
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php resumen/*.php pendientes/*.php kinder/*.php; do php -l "$f" || exit 1; done
 
       - name: Proyecto Actio · Apps Script (lectura por títulos, nada interno)
         run: node proyecto-actio-script/pruebas/prueba-proyecto-actio.js
@@ -78,6 +78,9 @@ jobs:
 
       - name: Resumen del negocio · cifras (comun/cifras.js) y sus roturas
         run: node pruebas-portal/prueba-cifras.js
+
+      - name: Preschool operativo (kinder/index.html sin montos, pendientes, salidas, plan por registrar) y sus roturas
+        run: node pruebas-portal/prueba-preschool.js
 
       - name: Equipo · organigrama (una fila, lista en celular, ficha) y sus roturas
         run: node pruebas-portal/prueba-organigrama.js

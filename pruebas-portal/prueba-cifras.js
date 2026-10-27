@@ -185,6 +185,21 @@ function reglasAS(C, ok) {
     'un mes que After School tiene solo en parte: el desglose lo dice («desde el 15»)');
   const sinPre = C.resumenNegocio({ periodo: '2026-10', E: conHistoria(), pre: null, metas: [], finanzas: null });
   ok2(sinPre.ninos.altas.valor === null && /Preschool/.test(sinPre.ninos.altas.motivo), 'sin los datos de una unidad, el negocio no suma (dice cuál falta)');
+
+  /* 28-oct (R140): la nota de Preschool que manda el servidor, junto a sus cifras; vacía, nada. */
+  const conNota = Object.assign(PRE(), { nota: 'Datos en revisión' });
+  const Nn = C.resumenNegocio({ periodo: '2026-10', E: conHistoria(), pre: conNota, metas: METAS(), finanzas: null });
+  const preN = Nn.unidades.find(u => u.nombre === 'Preschool'), asN = Nn.unidades.find(u => u.nombre === 'After School');
+  ok2(preN.aviso === 'Datos en revisión' && asN.aviso === '', 'R140 la fila de Preschool lleva la nota «Datos en revisión»; After School, ninguna');
+  ok2(Nn.ninos.altas.desglose[0].aviso === 'Datos en revisión' && Nn.ninos.bajas.desglose[0].aviso === 'Datos en revisión' && !Nn.ninos.altas.desglose[1].aviso,
+    'R140 en las tarjetas, la nota va junto a la cifra de Preschool del desglose (altas y bajas)');
+  const Na = C.resumenNegocio({ periodo: '2026-10', E: conHistoria(), pre: conNota, finanzas: null,
+    metas: [{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 99, estado: '' }, { cifra: 'Bajas', unidad: 'Preschool', periodo: '2026-10', valor: 1, estado: '' }] });
+  const alPre = Na.alertas.filter(a => a.unidad === 'Preschool');
+  ok2(alPre.length === 2 && alPre.every(a => a.aviso === 'Datos en revisión'), 'R140 las alertas de Preschool (ocupación y bajas) también llevan la nota');
+  ok2(C.preschoolEn(conNota, '2026').aviso === 'Datos en revisión', 'R140 la nota vale también en el año');
+  const sinNota = C.resumenNegocio({ periodo: '2026-10', E: conHistoria(), pre: Object.assign(PRE(), { nota: '' }), metas: METAS(), finanzas: null });
+  ok2(sinNota.unidades[0].aviso === '' && !sinNota.ninos.altas.desglose[0].aviso, 'R140 con la nota vacía en la configuración, no sale ninguna');
   return f0;
 }
 
@@ -229,7 +244,13 @@ const ROTURAS = [
   ['cuenta desde antes de «Cifras del Resumen desde»', "const ini = a < desde ? desde : a,", "const ini = a,"],
   ['compara con un período incompleto', "const ok = x => x && !x.parcial && x[campo] != null;", "const ok = x => x && x[campo] != null;"],
   ['el negocio suma sin una unidad', "faltan.length ? null : desglose.reduce((t, x) => t + x.valor, 0)", "desglose.reduce((t, x) => t + (x.valor || 0), 0)"],
-  ['el desglose no dice desde cuándo cuenta After School', "valor: u[campo].valor, desde: u.desde }));", "valor: u[campo].valor }));"],
+  ['el desglose no dice desde cuándo cuenta After School', "valor: u[campo].valor, desde: u.desde, aviso", "valor: u[campo].valor, aviso"],
+  ['la nota de Preschool no llega a la fila', "desde: x && x.desde || '', aviso: x && x.aviso || '' };", "desde: x && x.desde || '', aviso: '' };"],
+  ['la nota no va en el desglose', "desde: u.desde, aviso: u.aviso }));", "desde: u.desde }));"],
+  ['la nota se pone aunque la configuración la quite', "aviso = typeof pre.nota === 'string' ? pre.nota.trim() : '';", "aviso = 'Datos en revisión';"],
+  ['la nota solo vale en el mes', "hasta: ms[ms.length - 1], aviso };", "hasta: ms[ms.length - 1] };"],
+  ['la alerta de ocupación pierde la nota', "meta: o.meta, aviso: u.aviso,", "meta: o.meta,"],
+  ['la alerta de bajas pierde la nota', "meta: b.meta, aviso: u.aviso,", "meta: b.meta,"],
   ['las pruebas del negocio no son las de After School', "pruebas: Object.assign({}, asU.pruebas,", "pruebas: Object.assign({}, asU.pruebas, { valor: null },"]
 ];
 console.log('\n· roturas');

@@ -91,18 +91,19 @@
    * calcula resumen/api.php): activos = «Activo ese mes» del mes (en un año,
    * el último mes con datos); altas y bajas = las del mes (en un año, la
    * suma); ocupación = activos ÷ «Capacidad máxima». null si no hay datos.
+   * aviso (28-oct, R140) = la nota que manda el servidor («Datos en revisión»).
    */
   function preschoolEn(pre, p) {
     if (!pre || !pre.meses) return null;
-    const ocup = a => pre.capacidad ? a / pre.capacidad : null;
+    const ocup = a => pre.capacidad ? a / pre.capacidad : null, aviso = typeof pre.nota === 'string' ? pre.nota.trim() : '';
     if (esMes(p)) {
       const m = pre.meses[p];
-      return m ? { activos: m.activos, altas: m.altas, bajas: m.bajas, ocupacion: ocup(m.activos) } : null;
+      return m ? { activos: m.activos, altas: m.altas, bajas: m.bajas, ocupacion: ocup(m.activos), aviso } : null;
     }
     const ms = Object.keys(pre.meses).filter(k => k.slice(0, 4) === p).sort();
     if (!ms.length) return null;
     const ult = pre.meses[ms[ms.length - 1]];
-    return { activos: ult.activos, altas: ms.reduce((a, k) => a + pre.meses[k].altas, 0), bajas: ms.reduce((a, k) => a + pre.meses[k].bajas, 0), ocupacion: ocup(ult.activos), hasta: ms[ms.length - 1] };
+    return { activos: ult.activos, altas: ms.reduce((a, k) => a + pre.meses[k].altas, 0), bajas: ms.reduce((a, k) => a + pre.meses[k].bajas, 0), ocupacion: ocup(ult.activos), hasta: ms[ms.length - 1], aviso };
   }
 
   /* ── After School: altas, bajas y pruebas que se inscriben (27-oct) ──── */
@@ -259,7 +260,7 @@
       };
       return { nombre: u, datos: !!x, ocupacion: cifra('ocupacion', 'Ocupación'), ocupacionNota: x && x.ocupacionNota || '',
         activos: cifra('activos', 'Niños activos'), altas: cifra('altas', 'Altas'), bajas: cifra('bajas', 'Bajas'), hasta: x && x.hasta || '',
-        pruebas: cifra('pruebas', 'Pruebas que se inscriben'), pruebasNota: x && x.pruebasNota || '', enCurso: !!(x && x.enCurso), desde: x && x.desde || '' };
+        pruebas: cifra('pruebas', 'Pruebas que se inscriben'), pruebasNota: x && x.pruebasNota || '', enCurso: !!(x && x.enCurso), desde: x && x.desde || '', aviso: x && x.aviso || '' };
     });
     const fin = finanzasEn(d.finanzas, p);
     const finanzas = Object.assign({ periodo: p, anterior: finanzasEn(d.finanzas, cmp.anterior), anioAnterior: cmp.anioAnterior ? finanzasEn(d.finanzas, cmp.anioAnterior) : { disponible: false },
@@ -275,7 +276,7 @@
        School, la única unidad con pruebas en el portal. */
     const conDatos = ['Preschool', 'After School'].map(n => unidades.find(u => u.nombre === n));
     const sumaDe = (campo, nombreMeta) => {
-      const desglose = conDatos.map(u => ({ unidad: u.nombre, valor: u[campo].valor, desde: u.desde }));
+      const desglose = conDatos.map(u => ({ unidad: u.nombre, valor: u[campo].valor, desde: u.desde, aviso: u.aviso }));
       const faltan = desglose.filter(x => x.valor === null).map(x => x.unidad);
       const total = k => conDatos.every(u => u[campo][k] != null) ? conDatos.reduce((t, u) => t + u[campo][k], 0) : null;
       return { valor: faltan.length ? null : desglose.reduce((t, x) => t + x.valor, 0), motivo: faltan.length ? 'Faltan los datos de ' + faltan.join(' y ') : '',
@@ -286,7 +287,7 @@
       activos: { valor: null, motivo: 'Falta la regla para reconocer al mismo niño en dos unidades', meta: metaDe(metas, 'Niños activos', 'Negocio', p) },
       altas: sumaDe('altas', 'Altas'),
       bajas: sumaDe('bajas', 'Bajas'),
-      pruebas: Object.assign({}, asU.pruebas, { desglose: [{ unidad: 'After School', valor: asU.pruebas.valor, desde: asU.desde }], nota: asU.pruebasNota, enCurso: asU.enCurso,
+      pruebas: Object.assign({}, asU.pruebas, { desglose: [{ unidad: 'After School', valor: asU.pruebas.valor, desde: asU.desde, aviso: asU.aviso }], nota: asU.pruebasNota, enCurso: asU.enCurso,
         meta: metaDe(metas, 'Pruebas que se inscriben', 'Negocio', p) || asU.pruebas.meta })
     };
     return { periodo: p, nombre: nombrePeriodo(p), comparables: cmp, finanzas, ninos, unidades, alertas: alertas(unidades, finanzas) };
@@ -305,10 +306,10 @@
     for (const u of unidades) {
       const o = u.ocupacion;
       if (o.valor !== null && o.meta && o.valor * 100 < o.meta.valor)
-        out.push({ tipo: 'ocupacion', unidad: u.nombre, valor: o.valor * 100, meta: o.meta, distancia: (o.meta.valor - o.valor * 100) / Math.max(1, o.meta.valor) });
+        out.push({ tipo: 'ocupacion', unidad: u.nombre, valor: o.valor * 100, meta: o.meta, aviso: u.aviso, distancia: (o.meta.valor - o.valor * 100) / Math.max(1, o.meta.valor) });
       const b = u.bajas;
       if (b.valor !== null && b.meta && b.valor > b.meta.valor)
-        out.push({ tipo: 'bajas', unidad: u.nombre, valor: b.valor, meta: b.meta, distancia: (b.valor - b.meta.valor) / Math.max(1, b.meta.valor) });
+        out.push({ tipo: 'bajas', unidad: u.nombre, valor: b.valor, meta: b.meta, aviso: u.aviso, distancia: (b.valor - b.meta.valor) / Math.max(1, b.meta.valor) });
     }
     if (finanzas.disponible && finanzas.margenNeto !== null && finanzas.metaMargenNeto && finanzas.margenNeto * 100 < finanzas.metaMargenNeto.valor)
       out.push({ tipo: 'margen', unidad: 'Negocio', valor: finanzas.margenNeto * 100, meta: finanzas.metaMargenNeto,

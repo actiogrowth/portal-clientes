@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="es" class="tema-kids">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preschool · Vida en Arte Kids</title>
+<!-- 22-oct: marca Vida en Arte Kids. Tipografía, colores, encabezado y
+     tarjetas salen de /comun/vea.css (tema .tema-kids, en <html>); aquí
+     queda solo lo propio de este tablero. -->
+<link rel="stylesheet" href="/comun/vea.css?v=154fbf55d7">
+<style>
+/* ==========================================================================
+   TIPOGRAFIA
+   Poppins para todo, como manda el brand book de VEA Kids. KG Blank Space
+   Solid no se incrusta porque no hay titulo escrito: el logo hace ese papel.
+   Si vuelve un titulo, la fuente vuelve con el.
+   ========================================================================== */
+
+/* ==========================================================================
+   PALETA — brand book de VEA Kids, los ocho valores tal cual.
+   Los salones toman color de la paleta: es su identidad en la escuela,
+   no una categoria de grafico.
+   ========================================================================== */
+:root{
+  /* Los nombres de color que usa el tablero, apuntando al tema Kids de
+     vea.css (--morado, --lima, --celeste, --azul, --rojo, --naranja,
+     --amarillo y --k-gris). Los salones toman color de la paleta: es su
+     identidad en la escuela, no una categoria de grafico. «gris» del tema
+     es el de los bordes; el gris del salon es --k-gris. */
+  --green:var(--lima); --purple:var(--morado); --yellow:var(--amarillo);
+  --blue:var(--celeste); --orange:var(--naranja);
+  /* Blanco no es un color de la paleta —es la ausencia de uno— y por eso el
+     cupo de un salon blanco necesita contorno para tener forma. Ver .cupo.claro. */
+  --red:var(--rojo); --grey:var(--k-gris); --white:#FFFFFF;
+
+  /* Texto: los de vea.css, que pasan 4,5 sobre blanco. El gris de antes
+     (#A3B3B7) daba 2,2 en los pies de las cifras. */
+  --tinta:var(--texto); --tinta2:var(--texto-2); --tinta3:var(--texto-3);
+  --linea:var(--gris); --papel:var(--blanco); --fondo:var(--fondo-suave); --vacio:#DDE4E7;
+  --azul-tenue:#CFE0F0; --rojo-tenue:var(--rosa);
+}
+body{font-size:13.5px;line-height:1.55}
+.num{letter-spacing:-.02em}
+/* Mismo ancho y mismo borde que el encabezado del portal (.cab-in en vea.css). */
+.wrap{max-width:1200px;margin:0 auto;padding:22px 20px 70px}
+
+#aviso{background:var(--amarillo);color:#4A3B00;font-size:11.5px;font-weight:600;
+  padding:9px 20px;text-align:center}
+
+/* ---------- Título de la página (el encabezado lo pinta marca.js) ---------- */
+.k-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  flex-wrap:wrap;padding-bottom:16px;margin-bottom:26px;border-bottom:1px solid var(--linea)}
+.k-cab .titulo{margin-bottom:6px}
+.cab-sub{font-size:12.5px;color:var(--tinta2)}
+.sello{text-align:right;font-size:11.5px;color:var(--tinta2);line-height:1.5}
+.sello b{display:block;color:var(--tinta);font-weight:600;font-size:12px}
+
+/* ---------- Los salones ----------
+   Cada cuadro es un cupo; la capacidad de cada salón sale de «Config Kínder».
+   Se cuenta de un vistazo cuán lleno está cada uno; el nombre y la edad del
+   niño salen al apuntar el cuadro, no impresos: cuarenta nombres a la vez
+   tapan justamente la lectura que hace útil el mapa.
+   ========================================================================== */
+.hero{background:var(--papel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:26px 28px 24px;margin-bottom:14px}
+.hero-tit{font-size:15px;font-weight:600;margin-bottom:3px}
+.hero-sub{font-size:12.5px;color:var(--tinta2);margin-bottom:22px}
+.salones{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+/* El salon abierto NO va en blanco puro: lleva un fondo apenas tenido. Es lo
+   que le da suelo a un cupo blanco, que sobre papel puro no se veria. Tan
+   tenue como para que la vista siga buscando primero los colores de los
+   salones, que es lo que el mapa existe para mostrar. */
+.salon{border:1px solid var(--linea);border-radius:12px;padding:13px 13px 11px;
+  background:#FCFDFD}
+/* Y el cerrado, mas tenue que antes. Al ganar relleno el cupo libre, un
+   contorno marcado aqui competiria con los salones que si tienen niños. Un
+   salon sin abrir no debe pesar lo mismo que uno lleno. */
+.salon.cerrado{background:#F8FAFB;border-style:dashed;border-color:#E6ECEE}
+.s-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  margin-bottom:10px}
+.s-nom{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.s-punto{width:9px;height:9px;border-radius:3px;flex:none}
+.s-cifra{font-size:12px;font-weight:600;color:var(--tinta2)}
+.s-cifra i{font-style:normal;color:var(--tinta3);font-weight:500}
+
+.cupos{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.cupo{aspect-ratio:1;border-radius:4px;background:var(--vacio);
+  border:none;padding:0}
+/* EL CUPO LIBRE TIENE CUERPO, y esa es la diferencia con lleno: relleno, no
+   color. Antes era transparente con contorno, y eso tenia dos problemas a la
+   vez. Uno: un salon con 9 de 10 y otro con 10 de 10 se veian casi iguales,
+   porque el hueco no pesaba nada. Dos: «blanco con contorno» significaba
+   tambien «cupo ocupado de White Room», asi que dentro de ese salon no se
+   distinguia lleno de vacio. Con relleno, lleno y libre se separan por
+   densidad y White Room deja de ser un caso especial. */
+.cupo.libre{background:var(--vacio);box-shadow:none}
+/* El de un salon sin abrir es ahora lo contrario: contorno sin cuerpo. Es el
+   elemento mas parecido al cupo libre de toda la pantalla, y por eso su
+   filete va deliberadamente por debajo del relleno de aquel. */
+.salon.cerrado .cupo{background:transparent;box-shadow:inset 0 0 0 1px #E4EAEC}
+.cupo.ocupado{cursor:pointer;transition:transform .12s}
+.cupo.ocupado:hover,.cupo.ocupado:focus-visible{transform:scale(1.2);
+  outline:2px solid var(--tinta);outline-offset:1px}
+.s-pie{margin-top:11px;font-size:10.5px;color:var(--tinta3);line-height:1.4}
+.s-pie b{font-weight:600;color:var(--tinta2)}
+
+/* ---------- Lecturas ---------- */
+.hero-lect{display:flex;margin-top:22px;padding-top:20px;
+  border-top:1px solid var(--linea);flex-wrap:wrap}
+.lect{flex:1;min-width:150px;padding:0 22px;border-left:1px solid var(--linea)}
+.lect:first-child{padding-left:0;border-left:none}
+.lect-lbl{font-size:11px;color:var(--tinta2);margin-bottom:4px}
+.lect-num{font-size:31px;font-weight:700;letter-spacing:-.035em;line-height:1.05}
+.lect-pie{font-size:10.5px;color:var(--tinta3);margin-top:5px;line-height:1.45}
+
+/* ---------- Meta ---------- */
+.meta{background:var(--papel);border:1px solid var(--linea);border-radius:var(--radio);
+  padding:22px 28px 24px;margin-bottom:34px}
+.meta-top{display:flex;align-items:baseline;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.meta-tit{font-size:14.5px;font-weight:600}
+.meta-tit span{color:var(--tinta2);font-weight:400;font-size:12.5px;margin-left:6px}
+.meta-ritmo{font-size:12.5px;color:var(--tinta2)}
+.meta-ritmo b{color:var(--tinta);font-weight:600}
+.riel{height:34px;background:var(--fondo);border-radius:8px;position:relative;
+  overflow:hidden;display:flex}
+.riel-seg{height:100%}
+.riel-etq{display:flex;justify-content:space-between;margin-top:8px;
+  font-size:10.5px;color:var(--tinta3);gap:12px}
+.riel-etq b{color:var(--tinta2);font-weight:600}
+
+/* ---------- Seccion ---------- */
+.sec{margin-bottom:34px}
+.sec-tit{font-size:15px;font-weight:600;margin-bottom:3px}
+.sec-sub{font-size:12.5px;color:var(--tinta2);margin-bottom:16px;max-width:660px}
+.wrap .tarjeta{padding:24px 28px}   /* la tarjeta es la de vea.css; aquí solo el aire */
+
+/* ---------- Matricula ---------- */
+.mat{position:relative}
+.mat-lienzo{position:relative;height:215px}
+.mat-svg{position:absolute;top:0;left:0;width:100%;height:100%;
+  z-index:3;pointer-events:none;overflow:hidden}
+.mat-cols{display:grid;gap:8px;height:100%;position:relative;z-index:2}
+.mat-col{display:flex;flex-direction:column;position:relative}
+.mat-alta,.mat-baja{position:relative;display:flex;align-items:center;
+  justify-content:center;font-size:10.5px;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.mat-alta{background:var(--azul);border-radius:5px 5px 0 0;color:#fff}
+.mat-baja{background:var(--rojo-tenue);border-radius:0 0 5px 5px;color:#7C241B}
+.mat-alta.mini,.mat-baja.mini{color:transparent}
+.mat-alta.mini::after{content:attr(data-v);position:absolute;top:-15px;
+  color:var(--azul);font-size:10.5px;font-weight:600}
+.mat-baja.mini::after{content:attr(data-v);position:absolute;bottom:-15px;
+  color:#A85348;font-size:10.5px;font-weight:600}
+.mat-cero{position:absolute;left:0;right:0;height:1px;background:var(--linea);z-index:1}
+.mat-ejex{display:grid;gap:8px;margin-top:24px;padding-top:10px;
+  border-top:1px solid var(--linea)}
+.mat-mes{text-align:center;font-size:11px;color:var(--tinta3)}
+.mat-mes.ahora{color:var(--tinta);font-weight:600}
+.wrap .leyenda{gap:8px 20px;margin-top:16px;font-size:11.5px;color:var(--tinta2)}
+.lg{display:flex;align-items:center;gap:7px}
+.lg-m{width:11px;height:11px;border-radius:3px;flex:none}
+.lg-l{width:18px;height:2.5px;border-radius:2px;flex:none;background:var(--tinta)}
+.cierre{margin-top:16px;padding-top:14px;border-top:1px solid var(--linea);
+  font-size:12px;color:var(--tinta2);line-height:1.6}
+.cierre b{color:var(--tinta);font-weight:600}
+
+#globo{position:fixed;z-index:120;background:var(--tinta);color:#fff;
+  border-radius:9px;padding:8px 11px;pointer-events:none;opacity:0;
+  transition:opacity .12s;box-shadow:0 6px 18px rgba(27,36,48,.24);max-width:220px}
+#globo.ver{opacity:1}
+#globo b{display:block;font-size:12.5px;font-weight:600;line-height:1.35}
+#globo span{display:block;font-size:11px;color:#B7C4CB;margin-top:2px}
+
+footer{font-size:11px;color:var(--tinta3);line-height:1.65;
+  border-top:1px solid var(--linea);padding-top:16px}
+
+@media (max-width:940px){ .salones{grid-template-columns:repeat(2,1fr)} }
+/* En celular el encabezado usa 14px de margen (vea.css, 640px): el contenido también. */
+@media (max-width:640px){ .wrap{padding-left:14px;padding-right:14px} }
+@media (max-width:860px){
+  .lect{border-left:none;padding:0;min-width:46%;margin-bottom:16px}
+}
+@media (max-width:560px){
+  .wrap{padding:16px 14px 50px}
+  .hero,.meta,.wrap .tarjeta{padding:18px 16px}
+  .salones{grid-template-columns:1fr}
+  .sello{text-align:left}
+  .mat-lienzo{height:175px}
+  .mat-cols,.mat-ejex{gap:3px}
+  .mat-alta,.mat-baja,.mat-mes{font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<!-- Encabezado estándar del portal (logo Kids, ruta, usuario, Cambiar mi
+     contraseña, Salir): lo pinta /comun/marca.js. La vuelta al portal es
+     «Inicio» o el logo. -->
+<header id="cab"></header>
+
+<!-- ==========================================================================
+     AÑADIDOS AL DISEÑO
+     El diseño no se rediseña. Esto es solo lo que la lectura real necesita y
+     la simulación no tenía: los estados de «este dato no está» y el sello
+     viejo en rojo. Todo con las variables de la paleta, sin colores nuevos.
+     ========================================================================== -->
+<style>
+#aviso[hidden]{display:none}
+#fecha.viejo{color:#a3170c}
+
+.sin-dato{background:#FFF8E6;border:1px solid #F3E3B4;border-radius:10px;
+  padding:14px 16px;color:#5A4A16;font-size:12.5px;line-height:1.6}
+.sin-dato b{color:#4A3B00}
+.sin-dato .porque{display:block;margin-top:6px;color:var(--tinta2);font-size:12px}
+
+.nota-aviso{margin-top:14px;background:#FFF8E6;border:1px solid #F3E3B4;
+  border-radius:10px;padding:11px 14px;color:#5A4A16;font-size:12.5px;line-height:1.6}
+.nota-aviso b{color:#4A3B00}
+
+.ritmo-falta{color:var(--tinta2);font-weight:500}
+
+/* SALÓN CLARO O CASI GRIS: contorno. Un cupo cuyo color es casi blanco no
+   tiene forma sobre la tarjeta, y uno casi gris se confunde con el cupo
+   libre. La clase la pone el pintado midiendo el color, no por una lista
+   de nombres: un salón claro que se agregue mañana cae solo en esta regla. */
+/* UNA SOLA REGLA PARA TODO LO QUE LLEVA CONTORNO.
+   La pone `pintaSalon()`, que es el unico sitio que pinta el color de un
+   salon. El color sale de la variable --contorno, que ese mismo sitio
+   escribe en linea: es el color del propio salon oscurecido. El respaldo
+   --tinta3 solo entra si algo fallara al resolver el color.
+
+   Un grosor por tamaño de elemento, no por sitio: 1,5px en el cuadro del
+   cupo, 1px en todo lo demas —el punto de 9px y las barras—, donde un filete
+   mas grueso se comeria el color en vez de enmarcarlo. */
+.perfilado{box-shadow:inset 0 0 0 1px var(--contorno,var(--tinta3))}
+.cupo.ocupado.perfilado{box-shadow:inset 0 0 0 1.5px var(--contorno,var(--tinta3))}
+/* Muestras de la leyenda del mapa de cupos. Mismo tamaño que .lg-m, con la
+   misma forma que el cupo real que representan. Si un estado cambia arriba,
+   su muestra cambia aquí: una leyenda que no se parece a lo que hay en
+   pantalla es peor que no tenerla. */
+.lg-cupo{border-radius:3px}
+.lg-libre{background:var(--vacio);box-shadow:none}
+.lg-cerrado{background:transparent;box-shadow:inset 0 0 0 1px #E4EAEC}
+
+/* LAS OBSERVACIONES, UNA POR BLOQUE.
+   Antes iban todas dentro del mismo recuadro amarillo separadas por <br>, y
+   se leían como un párrafo corrido: no se veía dónde terminaba una y
+   empezaba la otra, ni cuántas había. Ahora cada una lleva encima lo que es,
+   en dos o tres palabras, y una línea de separación.
+
+   El encabezado no es decoración: permite saber de qué habla cada una sin
+   leer la frase entera, que es lo que hace que se miren cuando son varias.
+   Hoy son tres porque los datos están sanos; un mes mal cargado enciende
+   cinco o seis, y ahí es donde esto se paga. */
+.obs + .obs{margin-top:12px;padding-top:12px;border-top:1px solid #F0E2B8}
+.obs-t{font-weight:600;color:#4A3B00;font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;margin-bottom:3px}
+
+/* El identificador va detrás del nombre y más apagado: sirve para buscar en
+   la hoja, no para leerlo a diario. */
+.quien-id{color:var(--tinta3);font-weight:500}
+
+.s-nom i{font-size:10.5px;font-weight:600;color:var(--tinta3);font-style:normal;
+  border:1px solid var(--linea);border-radius:20px;padding:1px 6px;margin-left:4px}
+
+/* 28-oct · LISTAS OPERATIVAS (salidas, pendientes de pago, plan de cada niño).
+   Una fila por niño: el nombre manda y lo demás va detrás, en gris. En
+   celular la fila se parte en dos renglones; nunca se desplaza de lado. */
+.lista{list-style:none;margin:0;padding:0}
+.lista li{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;
+  flex-wrap:wrap;padding:11px 0;border-bottom:1px solid var(--linea)}
+.lista li:last-child{border-bottom:none}
+.l-quien{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.l-quien .s-punto{display:inline-block;margin-right:7px;vertical-align:1px}
+.l-det{font-size:12px;color:var(--tinta2);text-align:right;overflow-wrap:anywhere}
+.l-det b{color:var(--tinta);font-weight:600}
+.l-grupo{font-size:11px;font-weight:600;color:var(--tinta2);text-transform:uppercase;
+  letter-spacing:.04em;margin:18px 0 2px}
+.l-grupo:first-child{margin-top:0}
+.vacio-ok{font-size:12.5px;color:var(--tinta2)}
+/* «Plan por registrar»: una marca, no un dato. Texto oscuro sobre amarillo
+   claro (contraste 9:1); el amarillo de la paleta nunca va como texto. */
+.marca-pend{display:inline-block;font-size:11px;font-weight:600;color:#4A3B00;
+  background:#FFF1C2;border-radius:20px;padding:2px 9px;white-space:nowrap}
+@media (max-width:560px){ .l-det{text-align:left} }
+</style>
+
+<div id="globo"></div>
+<div id="aviso" hidden></div>
+
+<div class="wrap">
+
+  <div class="k-cab">
+    <div>
+      <h1 class="titulo">Preschool</h1>
+      <div class="cab-sub"><span id="cab-mes">—</span> · Costa del Este, Panamá</div>
+    </div>
+    <div class="sello">
+      <b id="fecha">—</b>
+      Se actualizan solos durante el día
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-tit" id="hero-tit">Los salones</div>
+    <div class="hero-sub" id="hero-sub">Cada cuadro es un cupo.</div>
+    <div class="salones" id="salones"></div>
+    <div class="leyenda" id="salones-leyenda"></div>
+    <div id="salones-aviso"></div>
+
+    <div class="hero-lect">
+      <div class="lect">
+        <div class="lect-lbl">Niños inscritos</div>
+        <div class="lect-num num" id="k-ninos">—</div>
+        <div class="lect-pie" id="k-ninos-pie"></div>
+      </div>
+      <div class="lect">
+        <div class="lect-lbl">Ocupación</div>
+        <div class="lect-num num" id="k-ocu">—</div>
+        <div class="lect-pie" id="k-ocu-pie"></div>
+      </div>
+      <div class="lect">
+        <div class="lect-lbl">Cupos libres</div>
+        <div class="lect-num num" id="k-libres">—</div>
+        <div class="lect-pie" id="k-libres-pie"></div>
+      </div>
+      <div class="lect">
+        <div class="lect-lbl">Pendientes de pago</div>
+        <div class="lect-num num" id="k-pend">—</div>
+        <div class="lect-pie" id="k-pend-pie"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div class="meta-top">
+      <div class="meta-tit" id="meta-tit">Camino a la meta<span id="meta-falta"></span></div>
+      <div class="meta-ritmo" id="meta-ritmo"></div>
+    </div>
+    <div class="riel" id="riel"></div>
+    <div class="riel-etq" id="riel-etq"></div>
+    <div id="meta-aviso"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit">Inscritos: cómo se movió la matrícula</div>
+    <div class="sec-sub">Cuántos niños entraron y cuántos se fueron cada mes, y con
+      cuántos quedó Preschool al cerrar.</div>
+    <div class="tarjeta" id="mat-tarjeta">
+      <div class="mat">
+        <div class="mat-lienzo">
+          <div class="mat-cero" id="mat-cero"></div>
+          <div class="mat-cols" id="mat-cols"></div>
+          <svg class="mat-svg" id="mat-svg"></svg>
+        </div>
+        <div class="mat-ejex" id="mat-ejex"></div>
+      </div>
+      <div class="leyenda">
+        <span class="lg"><span class="lg-l"></span>Niños inscritos al cerrar el mes</span>
+        <span class="lg"><span class="lg-m" style="background:var(--azul)"></span>Entraron ese mes</span>
+        <span class="lg"><span class="lg-m" style="background:var(--rojo-tenue)"></span>Se fueron ese mes</span>
+      </div>
+      <div class="cierre" id="mat-cierre"></div>
+      <div id="mat-aviso"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit" id="sal-tit">Salidas del mes</div>
+    <div class="sec-sub">Quién dejó Preschool este mes y por qué, si el motivo está registrado.</div>
+    <div class="tarjeta" id="salidas"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit">Pendientes de pago</div>
+    <div class="sec-sub">Niños inscritos que tienen algún mes sin pago registrado, y desde
+      qué mes. Los montos están en Finanzas, no aquí.</div>
+    <div class="tarjeta" id="pendientes"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit">Plan de cada niño</div>
+    <div class="sec-sub">El plan de cada niño: 4,5 h, 8 h o Tarde.</div>
+    <div class="tarjeta" id="planes"></div>
+  </div>
+
+  <footer>
+    Fuente: pestañas «Datos para análisis» y «Config Kínder» del Sheet de VEA Kids, que se arman
+    con lo que registra VEAKids. Este tablero solo lee; nunca escribe. Lo financiero (montos,
+    cobros, costos y margen) está en Finanzas: el servidor no le entrega montos a esta página.
+  </footer>
+
+</div>
+
+<!-- DE DÓNDE SALEN LAS DIRECCIONES DE LAS TABLAS: `config.php`, que exige
+     sesión y deja las rutas del propio portal —`csv.php?tabla=…`—, nunca las
+     direcciones del Sheet (viven en `portal_config.php`, fuera de la carpeta
+     publicada). csv.php las entrega SIN MONTOS.
+
+     28-oct: ya no se carga `config-local.js` (las direcciones directas del
+     Sheet): por ahí llegarían al navegador los montos que csv.php quita. La
+     vista previa local sirve su propio csv.php con datos inventados.
+
+     Tiene que cargar ANTES del script principal. -->
+<script src="config.php"></script>
+<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/marca.js?v=37b691d840"></script>
+<script>
+/* El encabezado del portal. Si /comun/ no estuviera (otro servidor), la
+   página sigue igual, sin encabezado: el tablero no depende de él. */
+(function(){
+  if(!window.Marca) return;
+  const cab=document.getElementById("cab");
+  const pintar=s=>Marca.cabecera(cab,{sesion:s,logo:{src:"/comun/logo-kids.png?v=84821d6ddf",alt:"Vida en Arte Kids"},
+    ruta:Marca.rutaUnidad?Marca.rutaUnidad("kinder","Preschool"):[{texto:"Inicio",url:"/"},{texto:"Preschool"}]});
+  pintar(null);
+  if(window.Datos) Datos.sesion().then(pintar).catch(function(){});
+})();
+</script>
+
+<script>
+/* ==========================================================================
+   TABLERO DE KINDER — VEA Kids
+   Lee del Sheet y pinta el diseno aprobado. NUNCA escribe.
+
+       aplicativo  ->  Sheet  ->  este tablero
+        (escribe)      (espejo)     (solo lee)
+
+   No hay modo demostracion. Si un dato no esta, el bloque lo dice y explica
+   que falta; no se muestra un cero ni un promedio inventado.
+   ========================================================================== */
+
+/* ==========================================================================
+   FUENTE DE DATOS — EL UNICO SITIO QUE SABE DE DONDE SALEN
+
+   Hoy: las rutas que deja config.php en window.*_LOCAL (csv.php del
+   portal). Las direcciones reales NO van aqui: este archivo es publico. Si
+   config.php no responde, window.*_LOCAL sale undefined y aqui queda "": el
+   tablero lo dice en pantalla y no se rompe.
+
+   LA COSTURA (18-sep). El tablero va a pasar al dominio del cliente y ahi
+   la lectura va a ser autenticada, de una forma que todavia no esta
+   decidida. Para cambiarla se escribe OTRA fuente con la misma forma que
+   FUENTE_CSV y se asigna a FUENTE, abajo. Nada mas: leerDatos() y todo lo
+   que viene despues no saben de donde salen las filas.
+
+   La forma de una fuente:
+     filas(tabla)       -> promesa de la tabla cruda, como filas de texto:
+                           [["celda","celda",...],...], tal como se ve la
+                           pestaña, con sus titulos y notas de arriba. Si no
+                           puede leer, la promesa falla con un Error cuyo
+                           mensaje dice por que, en palabras.
+     configurada(tabla) -> true si sabe de donde leer esa tabla.
+     queFalta(tabla)    -> como se dice lo que falta para poder leerla.
+     que                -> como se llama lo leido en los mensajes.
+   Las tablas son dos: "config" (Config Kínder) y "analisis" (📊 Datos
+   para análisis). En el portal las entrega csv.php YA SIN MONTOS (28-oct):
+   ni «Pago del mes ($)» ni tarifas ni costos; en su lugar, «Pagó el mes».
+
+   Por que la costura va en filas de texto, y no en el texto crudo ni en
+   los objetos ya interpretados: es lo que cualquier forma de leer una hoja
+   entrega igual —un CSV partido, o los valores de un rango pedido con
+   credenciales— y deja fuera de la fuente todo lo que se sabe del Sheet:
+   donde esta el encabezado, que columna es cual, que fila es de Kinder.
+   ========================================================================== */
+const CSV_ANALISIS = window.CSV_ANALISIS_LOCAL || "";   /* pestaña «📊 Datos para análisis», formato largo, sin montos (csv.php) */
+const CSV_CONFIG   = window.CSV_CONFIG_LOCAL || "";   /* pestaña «Config Kínder», pares parametro/valor, sin tarifas ni costos (csv.php) */
+
+const FUENTE_CSV = {
+  que: "el CSV",
+  direcciones: { config: CSV_CONFIG, analisis: CSV_ANALISIS },
+  nombres: { config: "Config Kínder", analisis: "Datos para análisis" },
+  configurada(tabla){ return !!this.direcciones[tabla]; },
+  queFalta(tabla){ return "la dirección del CSV de «"+this.nombres[tabla]+"»"; },
+  /* LA SESIÓN DEL PORTAL: RECONOCER UNA PÁGINA CUANDO SE PIDIÓ UN CSV.
+     En el dominio del cliente las tablas no se piden al Sheet: las sirve
+     `csv.php`, detrás del login de portal.vidaenarte.com. Si la sesión
+     caduca con el tablero abierto, esa ruta deja de entregar el CSV y
+     responde la página de entrada —o un 401/403—.
+
+     Sin esto, el tablero decía «se leyó el CSV pero ninguna fila contiene
+     “ID niño”» y mandaba a buscar el fallo al Sheet, que es el sitio
+     equivocado: el Sheet está bien y lo que se acabó es la sesión.
+
+     Se reconoce por tres señales, en este orden: el código 401 o 403; que la
+     respuesta se declare HTML; o, si no hay cabecera fiable, que el cuerpo
+     empiece por «<», cosa que una página hace y un CSV no. Un 404 o un 500
+     NO son esto y siguen contándose como lo que son. */
+  sesionCaducada(r, texto){
+    if(r.status===401 || r.status===403) return true;
+    if(!r.ok) return false;
+    const tipo=(r.headers.get("content-type")||"").toLowerCase();
+    if(tipo.indexOf("text/html")>=0) return true;
+    return /^﻿?\s*</.test(texto);
+  },
+  filas(tabla){
+    return fetch(this.direcciones[tabla])
+      .then(r=>r.text().then(texto=>{
+        if(this.sesionCaducada(r,texto)){
+          const e=new Error("la sesión del portal caducó. Vuelve a entrar en el "+
+                            "portal y recarga esta página");
+          e.sesion=true;
+          throw e;
+        }
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        return parseCSV(texto);
+      }))
+      /* El aviso de sesión sale tal cual: envolverlo en «no se pudo leer el
+         CSV (…)» lo volvería a mandar al Sheet. */
+      .catch(e=>{ if(e.sesion) throw e;
+                  throw new Error("no se pudo leer el CSV ("+e.message+")"); });
+  }
+};
+
+/* La fuente en uso. Es la unica linea que cambia el dia de la lectura
+   autenticada. */
+const FUENTE = FUENTE_CSV;
+
+/* ==========================================================================
+   LECTURA
+   ========================================================================== */
+function parseCSV(t){
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===","){ row.push(cur);cur=""; }
+    else if(c==="\n"){ row.push(cur);rows.push(row);row=[];cur=""; }
+    else if(c!=="\r") cur+=c;
+  }
+  if(cur!==""||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+/* Minusculas, sin acentos, sin espacios sobrantes. Con esto «Meta de niños»,
+   «META DE NIÑOS» y « meta de ninos » llegan todas al mismo sitio. El codigo
+   se adapta a como escribe el Sheet, no al reves. */
+function normalizar(s){
+  return String(s==null?"":s)
+    .normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .toLowerCase().replace(/\s+/g," ").trim();
+}
+/* Se lee por NOMBRE de columna, nunca por posicion, y normalizando: si el
+   cliente cambia mayusculas o acentos, el tablero sigue leyendo bien. */
+function col(head,nombre){
+  const q=normalizar(nombre);
+  return head.findIndex(h=>normalizar(h)===q);
+}
+/* La fila de encabezado NO es la primera fila con texto. El Sheet trae
+   titulos y notas arriba —«DATOS PARA ANÁLISIS · formato largo», «Esta hoja
+   se arma sola»— que no estan en blanco y por lo tanto sobreviven cualquier
+   filtro de vacios. Tomar la primera como encabezado hace que despues no se
+   encuentre ninguna columna y se descarten todas las filas EN SILENCIO.
+
+   Por eso se busca: la fila de encabezado es la que contiene el marcador. */
+function buscarCabecera(rows,marcador,desde){
+  const q=normalizar(marcador);
+  for(let i=desde||0;i<rows.length;i++){
+    if(rows[i].some(c=>normalizar(c)===q)) return i;
+  }
+  return -1;
+}
+/* Filas de datos debajo de un encabezado. `pararEnVacia` distingue los dos
+   casos: en «Config Kínder» hay DOS tablas apiladas separadas por filas
+   vacias, asi que la primera vacia termina la tabla; en «Datos para
+   análisis» hay una sola y las vacias sueltas solo se saltan. */
+function cuerpoDe(rows,iCab,pararEnVacia){
+  const out=[];
+  for(let i=iCab+1;i<rows.length;i++){
+    const r=rows[i];
+    const vacia = r.join("").trim()==="";
+    if(vacia){ if(pararEnVacia) break; continue; }
+    if(r.length>1) out.push(r);
+  }
+  return out;
+}
+/* Una tabla localizada por el marcador de su encabezado. */
+function tabla(txt,marcador){
+  const rows=parseCSV(txt);
+  const i=buscarCabecera(rows,marcador,0);
+  if(i<0) return {head:[],rows:[],hallado:false,crudas:rows};
+  return {head:rows[i].map(h=>h.trim()), rows:cuerpoDe(rows,i,false),
+          hallado:true, crudas:rows, iCab:i};
+}
+/* Cada tabla falla por su cuenta: si cae una, las demas siguen. Se
+   distingue no poder leerla de leerla y no encontrar el encabezado: son dos
+   problemas distintos y se arreglan en sitios distintos.
+
+   Una tabla sin configurar devuelve null, no un fallo: lo que falta se dice
+   aparte, en leerDatos. Si la interpretacion revienta, se informa igual que
+   si no se hubiera podido leer. */
+function leerTabla(tabla,marcador,interpretar){
+  if(!FUENTE.configurada(tabla)) return Promise.resolve(null);
+  return FUENTE.filas(tabla)
+    .then(rows=>{
+      if(buscarCabecera(rows,marcador,0)<0)
+        return {ok:false, motivo:"se leyó "+FUENTE.que+" pero ninguna fila contiene «"+
+                marcador+"»: no se encontró el encabezado"};
+      try { return {ok:true, valor:interpretar(rows)}; }
+      catch(e){ return {ok:false, motivo:"no se pudo leer "+FUENTE.que+" ("+e.message+")"}; }
+    }, e=>({ok:false, motivo:e.message}));
+}
+
+/* ==========================================================================
+   AYUDAS
+   ========================================================================== */
+const MES_CORTO=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MES_LARGO=["enero","febrero","marzo","abril","mayo","junio","julio","agosto",
+  "septiembre","octubre","noviembre","diciembre"];
+
+/* El Sheet escribe dd/mm/aaaa. Se acepta tambien el ISO por si la hoja
+   cambia de formato: lo que NO se hace es adivinar entre 3/9 y 9/3, porque
+   a nivel de mes esa confusion mueve un alta medio año.
+
+   No lleva contador adentro. El formato es largo —doce filas por niño— asi
+   que contar aqui multiplica por doce una sola fecha mala: se cuenta mas
+   abajo, ya agrupado por niño. */
+function fecha(s){
+  if(s===null||s===undefined) return null;
+  const t=String(s).trim();
+  if(!t) return null;
+  let m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  return null;
+}
+/* Texto que hay pero no se pudo leer como fecha. */
+function fechaMala(s){
+  return String(s==null?"":s).trim()!=="" && fecha(s)===null;
+}
+function fmtFechaLarga(d){
+  return d? d.getDate()+" de "+MES_LARGO[d.getMonth()] : "—";
+}
+function mesAno(d){
+  if(!d) return "—";
+  const s=MES_LARGO[d.getMonth()];
+  return s.charAt(0).toUpperCase()+s.slice(1)+" de "+d.getFullYear();
+}
+/* «Activo ese mes» lo escribe estabaActivo() del Apps Script como 1 o 0.
+   Se aceptan las formas que puede tomar una casilla al publicarse. */
+function esUno(v){
+  const t=String(v==null?"":v).trim().toLowerCase();
+  return t==="1"||t==="true"||t==="verdadero"||t==="si"||t==="sí"||t==="x";
+}
+/* La columna ACTIVO de la tabla de salones viene como Sí / No. Se devuelve
+   null cuando no dice ninguna de las dos: no es lo mismo «dice que no» que
+   «no dice nada», y el segundo caso hay que avisarlo, no asumirlo. */
+function esSi(v){
+  const t=normalizar(v);
+  if(t==="si"||t==="s"||t==="1"||t==="true"||t==="verdadero"||t==="x"||t==="yes") return true;
+  if(t==="no"||t==="n"||t==="0"||t==="false"||t==="falso") return false;
+  return null;
+}
+/* Un numero que puede venir escrito a la española o a la inglesa.
+   ESTE CRITERIO ES EL MISMO QUE numeroDe() DEL APPS SCRIPT. Si se cambia
+   uno hay que cambiar el otro. */
+function aNumero(v){
+  if(v===null||v===undefined||v==="") return null;
+  if(typeof v==="number") return isNaN(v)?null:v;
+  let s=String(v).trim().replace(/[$\s ]/g,"");
+  if(!/^[-+]?[\d.,]*\d[\d.,]*$/.test(s)) return null;
+  const ic=s.lastIndexOf(","), ip=s.lastIndexOf(".");
+  let dec=-1;
+  if(ic>=0&&ip>=0){ dec=Math.max(ic,ip); }
+  else if(ic>=0||ip>=0){
+    const pos=Math.max(ic,ip), sep=s.charAt(pos);
+    const veces=s.split(sep).length-1, detras=s.length-pos-1;
+    if(veces===1&&detras!==3) dec=pos;
+  }
+  s = dec>=0
+    ? s.slice(0,dec).replace(/[.,]/g,"")+"."+s.slice(dec+1).replace(/[.,]/g,"")
+    : s.replace(/[.,]/g,"");
+  const n=Number(s);
+  return isNaN(n)?null:n;
+}
+const pct    = n => Math.round(n*100)+"%";
+const esc    = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
+                    ">":"&gt;",'"':"&quot;"}[c]));
+/* Años cumplidos a una fecha. La edad se calcula de la fecha de nacimiento,
+   nunca se lee de la columna Edad: esa quedo vieja el mes siguiente. */
+function anios(nac,hasta){
+  if(!nac||!hasta) return null;
+  let a=hasta.getFullYear()-nac.getFullYear();
+  const m=hasta.getMonth()-nac.getMonth();
+  if(m<0||(m===0&&hasta.getDate()<nac.getDate())) a--;
+  return a;
+}
+/* EL RANGO DE EDAD DE UN SALON, Y POR QUE NO SIEMPRE ES UN RANGO.
+   «3 a 5 años» · «4 y 5 años» · «todos de 4 años» · «un niño de 4 años».
+
+   Con un solo niño esto decia «4 años» a secas, y ahi dejaba de leerse como
+   el resumen de un salon para leerse como un dato suelto: el pie dice
+   «4 años · cubre desde 3» y no se entiende de quien habla. Con pocos niños
+   pasa constantemente, y va a pasar en produccion en cuanto abra un salon
+   nuevo.
+
+   Lo que cambia es COMO se dice cuando no hay rango que decir, no el dato.
+
+   Y hay una trampa que obliga a contar dos cosas distintas: cuantos niños
+   hay en el salon y cuantos tienen fecha de nacimiento. No son el mismo
+   numero. Si de cinco niños solo uno tiene fecha, «un niño de 4 años» seria
+   falso, y «todos de 4 años» tambien. Cuando no coinciden, se dice a quien
+   se refiere la edad en vez de dar a entender que son todos. */
+function rangoEdades(lista){
+  const total = lista.length;
+  const e = lista.filter(x=>x!==null&&x!==undefined).sort((a,b)=>a-b);
+  const k = e.length;
+  if(!k) return "";
+  const lo=e[0], hi=e[k-1];
+  const anios = x => x+(x===1?" año":" años");
+
+  /* Un rango de verdad: hay dos edades distintas. Se dice igual que siempre. */
+  if(lo!==hi) return (hi-lo===1) ? lo+" y "+anios(hi) : lo+" a "+anios(hi);
+
+  /* Una sola edad. Aqui es donde «4 años» se leia raro. */
+  if(k===1){
+    return total===1 ? "un niño de "+anios(lo)
+                     : anios(lo)+", el único con fecha de nacimiento";
+  }
+  return k===total ? "todos de "+anios(lo)
+                   : anios(lo)+" los que tienen fecha de nacimiento";
+}
+function mesesEnteros(a,b){
+  return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+}
+/* El diseño escribe los cupos en palabras: «Diez por salón, ochenta en
+   total». Si la capacidad sale de Config Kinder, ese texto tiene que salir
+   de ahi tambien: un titulo que diga ocho sobre una fila de seis salones
+   contradice lo que tiene debajo. Lo que no se sepa decir en palabras se
+   dice en cifras. */
+const PALABRAS={1:"un",2:"dos",3:"tres",4:"cuatro",5:"cinco",6:"seis",7:"siete",
+  8:"ocho",9:"nueve",10:"diez",11:"once",12:"doce",20:"veinte",30:"treinta",
+  40:"cuarenta",50:"cincuenta",60:"sesenta",70:"setenta",80:"ochenta",
+  90:"noventa",100:"cien"};
+function enPalabras(n){ return PALABRAS[n] || String(n); }
+function capitalizar(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+/* La conducta de vacios del archivo anterior, con la piel del diseño nuevo. */
+function sinDato(que,porque){
+  return '<div class="sin-dato"><b>Sin información disponible.</b> No hay de dónde leer '+
+         que+'. No se muestra en cero para no dar una lectura falsa.'+
+         '<span class="porque">'+porque+'</span></div>';
+}
+function nota(texto){
+  return '<div class="nota-aviso">'+texto+'</div>';
+}
+/* VARIAS OBSERVACIONES, CADA UNA EN SU BLOQUE.
+   Recibe {t: qué es, en dos o tres palabras · d: el detalle} y las separa
+   con una línea. El texto de cada una no cambia: cambia que se pueda ver
+   dónde termina una y empieza la otra, y contarlas de un vistazo.
+
+   Sirve igual para una sola —queda un bloque con su encabezado, sin líneas
+   sueltas— que para seis, que es lo que enciende un mes mal cargado. */
+function notaObs(lista){
+  return '<div class="nota-aviso">'+
+    lista.map(o=>'<div class="obs"><div class="obs-t">'+o.t+'</div>'+o.d+'</div>').join("")+
+    '</div>';
+}
+/* CÓMO SE NOMBRA A UN NIÑO EN PANTALLA.
+   El nombre primero, siempre: quien mira el tablero se sabe los nombres, no
+   los identificadores. El identificador va detrás, entre paréntesis, porque
+   es lo que sirve para buscarlo en la hoja. Sin nombre cargado, cae al
+   identificador solo. */
+function quien(n){
+  const nom=(n&&n.nombre||"").trim();
+  return nom ? esc(nom)+' <span class="quien-id">('+esc(n.id)+')</span>' : '<b>'+esc(n.id)+'</b>';
+}
+function quienLlano(n){
+  const nom=(n&&n.nombre||"").trim();
+  return nom ? esc(nom)+' ('+esc(n.id)+')' : esc(n.id);
+}
+
+/* ==========================================================================
+   ESTADO
+   ========================================================================== */
+let CFG=null;            /* pares de Config Kinder. null = no se pudo leer */
+let FILAS=null;          /* filas de «Datos para análisis», Unidad = Kinder */
+let SELLO="";            /* generado_en, «aaaa-mm-dd HH:mm» */
+let FALLOS=[];           /* fuentes que no se pudieron leer */
+let SIN_ANALISIS="";     /* por que no hay de donde leer el analisis; "" si lo hay */
+
+/* El color del salon sale de su nombre contra la paleta de VEA Kids. El
+   Sheet los llama «Green Room», «Purple Room»: para mapear color se
+   normaliza y se quita «room», de modo que «Green Room», «green» y
+   «GREEN ROOM» caen todos en el mismo color.
+
+   Lo que se MUESTRA en pantalla es siempre el nombre tal como viene del
+   Sheet. Esta normalizacion solo elige el color, no renombra nada.
+
+   Un nombre que no mapee se pinta en gris y se avisa: no se falla ni se
+   esconde, para que alguien decida su color. */
+const COLOR_SALON = {
+  green:"--green", purple:"--purple", yellow:"--yellow",
+  blue:"--blue",   orange:"--orange",
+  /* Los tres que faltaban. Rojo y gris salen del brand book; blanco no es un
+     color de la paleta, y por eso su cupo necesita contorno para tener forma.
+     «gray» entra junto a «grey» porque las dos grafías se escriben solas en
+     una hoja que llena una persona, igual que en el aplicativo. */
+  red:"--red",     grey:"--grey",   gray:"--grey",  white:"--white"
+};
+function claveColor(nombre){
+  return normalizar(nombre).replace(/\broom\b/g,"").replace(/\s+/g," ").trim();
+}
+function varColor(nombre){
+  return COLOR_SALON[claveColor(nombre)] || "--gris";
+}
+function colorConocido(nombre){
+  return !!COLOR_SALON[claveColor(nombre)];
+}
+
+/* ¿ES UN SALÓN CLARO?
+   De esto depende que su cupo lleve contorno: si no, sobre la tarjeta no
+   tiene forma.
+
+   Se decide MIDIENDO el color, no con una lista de nombres. Un «Cream Room»
+   que alguien agregue mañana a «Config Kínder» cae solo en esta regla, sin
+   que nadie toque código. Eso es lo que la hace una regla y no una excepción
+   escrita para White Room.
+
+   Por qué hace falta el elemento de sonda: las variables de salón apuntan a
+   otras variables —«--green: var(--lima)»— y getPropertyValue devuelve el
+   texto «var(--lima)», no un color. Pintando el color en un elemento y
+   leyendo su estilo calculado, el navegador resuelve la cadena entera.
+
+   El umbral, con las luminancias de la paleta medidas:
+
+       blanco 1,00 │ amarillo 0,64 │ lima 0,51 │ gris 0,44
+       naranja 0,36 │ celeste 0,35 │ rojo 0,18 │ morado y azul ~0,13
+
+   Queda en 0,75: solo atrapa lo que está cerca del blanco. Amarillo es el
+   siguiente y se queda fuera A PROPÓSITO — es uno de los cinco colores ya
+   aprobados y no se toca. */
+const UMBRAL_CLARO = 0.75;
+
+/* El color resuelto de una variable, en canales 0..1. Cacheado: se pregunta
+   una vez por salon y por pintada. Devuelve null si no se pudo leer. */
+const _rgb = {};
+function rgbDe(varCol){
+  if(varCol in _rgb) return _rgb[varCol];
+  let c = null;
+  try{
+    const sonda = document.createElement("span");
+    sonda.style.cssText = "position:absolute;visibility:hidden;color:var("+varCol+")";
+    document.body.appendChild(sonda);
+    const m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(sonda).color);
+    sonda.remove();
+    if(m) c = m[1].split(",").slice(0,3).map(v=>parseFloat(v)/255);
+  }catch(e){ c = null; }
+  return _rgb[varCol] = c;
+}
+function luminancia(c){
+  const lin = x => x<=0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
+  return 0.2126*lin(c[0]) + 0.7152*lin(c[1]) + 0.0722*lin(c[2]);
+}
+function esClaro(varCol){
+  const c = rgbDe(varCol);
+  if(!c) return false;            /* Ante la duda, oscuro: es la conducta de hoy. */
+  return luminancia(c) > UMBRAL_CLARO;
+}
+
+/* ¿EL COLOR DEL SALON SE CONFUNDE CON UN GRIS DEL SISTEMA?
+   El cupo libre es gris con relleno. Un salon cuyo color se acerque a ese
+   gris produce el mismo problema que White Room producia contra la tarjeta:
+   dos cuadros que significan cosas distintas y se ven igual.
+
+   Hacen falta las DOS condiciones, y la primera es la que hace que esto sea
+   una regla y no una excepcion escrita para Grey Room:
+
+   · Que el color sea casi NEUTRO. El croma de la paleta separa esto sin
+     ninguna duda: gris 0,08 y blanco 0,00, contra 0,31 el siguiente
+     —morado— y 0,50 el lima. Sin esta condicion entraria el lima, que tiene
+     una luminancia parecida a la del cupo libre y aun asi no se confunde con
+     el porque es verde.
+   · Que ademas este CERCA en luminancia. Un «Black Room» seria neutro y no
+     necesitaria contorno ninguno: contrasta 14 a 1 contra el cupo libre.
+
+   Con el umbral en 2,0: gris contra cupo libre da 1,6 y entra; negro daria
+   13,7 y se queda fuera. */
+const UMBRAL_CROMA = 0.12;
+const UMBRAL_CERCA = 2.0;
+function contraste(a,b){
+  const hi=Math.max(a,b), lo=Math.min(a,b);
+  return (hi+0.05)/(lo+0.05);
+}
+function seConfundeConGris(varCol){
+  const c = rgbDe(varCol);
+  if(!c) return false;
+  if(Math.max(c[0],c[1],c[2]) - Math.min(c[0],c[1],c[2]) > UMBRAL_CROMA) return false;
+  const gris = rgbDe("--vacio");   /* el relleno del cupo libre */
+  if(!gris) return false;
+  return contraste(luminancia(c), luminancia(gris)) < UMBRAL_CERCA;
+}
+
+/* CUANDO UN CUPO —O EL PUNTO DEL ENCABEZADO— NECESITA CONTORNO.
+   Las dos razones son la misma cosa vista dos veces: el color no se
+   distingue de lo que tiene al lado. En White Room es la tarjeta; en Grey
+   Room es el cupo libre. Misma solucion para el mismo problema. */
+function necesitaContorno(varCol){
+  return esClaro(varCol) || seConfundeConGris(varCol);
+}
+
+/* DE QUE COLOR ES ESE CONTORNO.
+   No puede ser un gris fijo. El primer intento uso --tinta3, y para White
+   Room funcionaba —gris sobre blanco— pero para Grey Room resulto ser
+   EXACTAMENTE su propio color: el cupo llevaba un contorno invisible contra
+   si mismo. Un contorno que no se ve es peor que no ponerlo, porque el
+   codigo dice que esta.
+
+   La regla que si vale para cualquier color: el contorno es el color DEL
+   PROPIO SALON oscurecido. Asi siempre contrasta con su relleno, sea cual
+   sea, y no hay una lista de parejas que mantener.
+
+   El factor 0,65 da ~2,2 de contraste contra el relleno tanto en blanco como
+   en gris, que es el peso que tenia el contorno aprobado para White Room.
+   Se mantiene el mismo trazo visual para los dos. */
+const _contorno = {};
+function contornoDe(varCol){
+  if(varCol in _contorno) return _contorno[varCol];
+  const c = rgbDe(varCol);
+  const v = c ? "rgb("+c.map(x=>Math.round(x*255*0.65)).join(",")+")" : "";
+  return _contorno[varCol] = v;
+}
+
+/* EL UNICO SITIO QUE PINTA EL COLOR DE UN SALON.
+   Todo lo que lleve el color de un salon —el cupo del mapa, el punto del
+   encabezado, el segmento del riel de la meta, la barra de «Cada salon por
+   dentro», el punto del reparto por plan— pasa por aqui.
+
+   POR QUE ESTA JUNTO. La regla del contorno se escribio una vez y se aplico
+   en dos de los siete sitios; los otros cinco quedaron fuera y el defecto
+   reaparecio tres veces seguidas, cada vez en un sitio nuevo. Una regla
+   repartida en siete copias se corrige en seis. Es lo mismo que paso con los
+   dos creadores de titulo del Apps Script.
+
+   `siempre` es para las barras anchas. Ahi el contorno va en TODAS, tengan o
+   no el problema: un filete sobre una barra ancha no compite con el color, y
+   con todas iguales no hay una excepcion que recordar el dia que abra un
+   salon claro. En los puntos de 9px si manda la regla condicional, porque
+   ahi un filete constante si pesa sobre el color.
+
+   El contorno NUNCA es un gris fijo: es el color del propio salon oscurecido.
+   Un gris fijo sobre el rojo o el morado se ve sucio, y sobre el gris del
+   brand book resulto ser invisible. */
+function pintaSalon(varCol, siempre){
+  const con = siempre || necesitaContorno(varCol);
+  return {
+    clase:  con ? " perfilado" : "",
+    estilo: "background:var("+varCol+")" +
+            (con ? ";--contorno:"+contornoDe(varCol) : "")
+  };
+}
+
+/* Nada de capacidades ni de numero de salones por defecto: los dos salen de
+   la tabla de salones de «Config Kínder», cada salon con su propia fila. Un
+   valor inventado aqui se convertiria en una ocupacion falsa en pantalla. */
+
+/* Un parametro de «Config Kínder», buscado por etiqueta normalizada. Se
+   aceptan varias formas de escribirlo porque la hoja la escribe una persona.
+   Devuelve numero si el valor lo es, y si no el texto tal cual. */
+function p(...etiquetas){
+  if(!CFG || !CFG.param) return null;
+  for(const e of etiquetas){
+    const c=CFG.param[normalizar(e)];
+    if(c && String(c.valor).trim()!==""){
+      const n=aNumero(c.valor);
+      return n===null?String(c.valor).trim():n;
+    }
+  }
+  return null;
+}
+
+/* ==========================================================================
+   CARGA
+   leerDatos() es la unica puerta a los datos: pide las tablas a FUENTE, las
+   interpreta y entrega el resultado ya parseado —
+       { cfg, filas, sello, fallos, sinAnalisis }
+   — sin que le importe de donde salieron. Las tres interpretaciones de
+   abajo saben del Sheet (encabezados, columnas, que fila es de Kinder),
+   nunca de como se leyo.
+   ========================================================================== */
+
+  /* «Config Kínder» son DOS tablas apiladas en la misma pestaña, separadas
+     por filas vacias:
+
+         PARÁMETRO | VALOR          <- parametros sueltos
+         (vacia)
+         GRUPO | CAPACIDAD | ACTIVO <- un salon por fila
+
+     Se leen por separado, y la segunda se localiza por su encabezado GRUPO,
+     nunca por una posicion fija: si el cliente agrega un parametro arriba,
+     la tabla de salones se corre y hay que seguirla. */
+  function interpretarConfig(rows){
+    const cfg={param:{}, salones:[], salonesHallados:false};
+
+    const iP=buscarCabecera(rows,"PARÁMETRO",0);
+    const headP=rows[iP].map(h=>h.trim());
+    const cP=col(headP,"parametro")>=0?col(headP,"parametro"):0;
+    const cV=col(headP,"valor")>=0?col(headP,"valor"):1;
+    cuerpoDe(rows,iP,true).forEach(r=>{
+      const k=(r[cP]||"").trim(); if(!k) return;
+      /* Se guarda la etiqueta tal cual para poder mostrarla, y se indexa
+         normalizada para poder encontrarla. */
+      cfg.param[normalizar(k)]={etiqueta:k, valor:(r[cV]||"").trim()};
+    });
+
+    const iG=buscarCabecera(rows,"GRUPO",iP+1);
+    if(iG>=0){
+      cfg.salonesHallados=true;
+      const headG=rows[iG].map(h=>h.trim());
+      const cG=col(headG,"grupo"), cC=col(headG,"capacidad"), cA=col(headG,"activo");
+      cuerpoDe(rows,iG,true).forEach(r=>{
+        const nom=(r[cG>=0?cG:0]||"").trim(); if(!nom) return;
+        cfg.salones.push({
+          nombre: nom,
+          capacidad: cC>=0 ? aNumero(r[cC]) : null,
+          /* ACTIVO decide si el salon esta abierto. Hasta hoy no se leia y
+             se deducia «abierto = tiene niños», que es otra cosa: un salon
+             recien abierto y todavia vacio estaba marcado como cerrado. */
+          activo: cA>=0 ? esSi(r[cA]) : null
+        });
+      });
+    }
+    return cfg;
+  }
+
+  /* De «Datos para análisis» se toman TODAS las filas de Kinder: el formato
+     es largo —una por niño y mes— y la serie mensual se arma con eso. */
+  function interpretarAnalisis(rows){
+    const iCab=buscarCabecera(rows,"ID niño",0);
+    const head=rows[iCab].map(h=>h.trim());
+    const cuerpo=cuerpoDe(rows,iCab,false);
+    const cId=col(head,"ID niño"),  cUni=col(head,"Unidad"),
+          cMes=col(head,"Mes #"),   cAnio=col(head,"Año"),
+          /* 28-oct: el servidor ya no manda el monto, solo si el mes
+             tiene pago (Sí / No). Sin la columna, pagado queda null. */
+          cPagoSi=col(head,"Pagó el mes"),
+          cMot=col(head,"Motivo de salida"),
+          cAct=col(head,"Activo ese mes"),
+          cIng=col(head,"Fecha ingreso"),  cSal=col(head,"Fecha salida"),
+          cNac=col(head,"Fecha de nacimiento"), cGru=col(head,"Grupo"),
+          cSello=col(head,"generado_en"),
+          /* Se agregó el 14-sep para poder mostrar el nombre en el globo en
+             vez del ID. Si la columna no está, cNom queda en -1 y todo sigue
+             funcionando con el ID. */
+          cNom=col(head,"Nombre del niño");
+    /* El sello lo escribe el script en UNA sola celda, asi que se toma el
+       primer valor que aparezca. */
+    let sello="";
+    if(cSello>=0){
+      for(const r of cuerpo){ const v=(r[cSello]||"").trim(); if(v){ sello=v; break; } }
+    }
+    const out=[];
+    cuerpo.forEach(r=>{
+      if(cUni>=0 && !/k[íi]nder/i.test(r[cUni]||"")) return;
+      const id=(r[cId]||"").trim(); if(!id) return;
+      out.push({
+        id,
+        mes:   Number(r[cMes])||0,
+        anio:  Number(r[cAnio])||0,
+        pagado:cPagoSi>=0?esSi(r[cPagoSi]):null,
+        motivo:cMot>=0?(r[cMot]||"").trim():"",
+        activo:esUno(r[cAct]),
+        ing:   cIng>=0?fecha(r[cIng]):null,
+        sal:   cSal>=0?fecha(r[cSal]):null,
+        nac:   cNac>=0?fecha(r[cNac]):null,
+        /* Se guarda si habia texto que no se pudo leer, para contarlo una
+           sola vez por niño y no doce. */
+        mala:  (cIng>=0&&fechaMala(r[cIng])) || (cSal>=0&&fechaMala(r[cSal])) ||
+               (cNac>=0&&fechaMala(r[cNac])),
+        /* El grupo es de LA FILA, no del niño: un niño puede aparecer sin
+           grupo en unos meses y con grupo en otros. Cual vale se decide mas
+           abajo, con la fila del mes del sello. */
+        grupo: cGru>=0?(r[cGru]||"").trim():"",
+        nombre: cNom>=0?(r[cNom]||"").trim():""
+      });
+    });
+    return {filas:out, sello};
+  }
+
+function leerDatos(){
+  return Promise.all([
+    leerTabla("config",  "PARÁMETRO", interpretarConfig),
+    leerTabla("analisis","ID niño",   interpretarAnalisis)
+  ]).then(([cfg,analisis])=>{
+    const fallos=[];
+    /* Leer la tabla y no encontrar el encabezado son dos fallos distintos y
+       se arreglan en sitios distintos, asi que se dicen por separado. */
+    const recoge=(res,quien)=>{
+      if(res===null) return null;
+      if(res.ok) return res.valor;
+      fallos.push("«"+quien+"»: "+res.motivo);
+      return null;
+    };
+    const c = recoge(cfg,"Config Kínder");
+    const a = recoge(analisis,"Datos para análisis");
+    if(!FUENTE.configurada("config"))   fallos.push("falta "+FUENTE.queFalta("config"));
+    if(!FUENTE.configurada("analisis")) fallos.push("falta "+FUENTE.queFalta("analisis"));
+    return {
+      cfg:    c,
+      filas:  a ? a.filas : null,
+      sello:  a ? a.sello : "",
+      fallos,
+      /* POR QUÉ NO HAY ANÁLISIS, para el bloque principal. Vacío si lo hay.
+         Son dos motivos distintos y el bloque tiene que decir el suyo: que la
+         fuente no sepa de dónde leerlo, o que lo intentara y no pudiera —el
+         caso de la sesión caducada—. Antes, el segundo acababa en «no
+         devolvió ninguna fila de Kínder», que manda a mirar el Sheet. */
+      sinAnalisis: !FUENTE.configurada("analisis")
+                 ? "El tablero todavía no tiene "+FUENTE.queFalta("analisis")+"."
+                 : (analisis && !analisis.ok
+                     ? "«Datos para análisis» no se pudo leer: "+analisis.motivo+"."
+                     : "")
+    };
+  });
+}
+
+/* El tablero guarda lo que entrega leerDatos() en su estado y pinta con
+   eso. Es el unico sitio que la llama. */
+function cargar(){
+  return leerDatos().then(d=>{
+    CFG=d.cfg; FILAS=d.filas; SELLO=d.sello;
+    FALLOS=d.fallos; SIN_ANALISIS=d.sinAnalisis;
+  });
+}
+
+/* ==========================================================================
+   CALCULO
+   Todo se deriva de las filas. Ninguna cifra de pantalla esta tecleada, para
+   que el pie no pueda contradecir la tabla que tiene encima.
+   ========================================================================== */
+function calcular(){
+  const d={ ok:false, motivo:"" };
+
+  d.selloFecha = (function(){
+    const m=/^([0-9]{4})-([0-9]{2})-([0-9]{2})/.exec(SELLO);
+    return m? new Date(+m[1],+m[2]-1,+m[3]) : null;
+  })();
+
+  /* Los parametros salen de «Config Kínder» por etiqueta normalizada, tal
+     como los escribe el cliente. Se aceptan varias redacciones porque la
+     hoja la escribe una persona, no un programa. Tarifas y costos ya no
+     llegan aquí (28-oct): son de Finanzas. */
+  d.meta      = p("Meta de niños","meta_ninos","Meta niños","Meta");
+  d.fechaMeta = fecha(p("Fecha meta","fecha_meta","Fecha de meta"));
+  d.capacidadMaxima = p("Capacidad máxima","capacidad_maxima");
+
+  if(!FILAS || !FILAS.length){
+    d.motivo = SIN_ANALISIS
+      || "«Datos para análisis» no devolvió ninguna fila de Kínder.";
+    return d;
+  }
+
+  /* El mes de corte es el del sello. Los meses posteriores no son historia:
+     son proyeccion de quien todavia no tiene fecha de salida. Se cortan. */
+  const anioDatos = (FILAS.find(f=>f.anio)||{}).anio || null;
+  if(d.selloFecha && anioDatos){
+    if(d.selloFecha.getFullYear() > anioDatos) d.mesCorte = 12;
+    else if(d.selloFecha.getFullYear() < anioDatos) d.mesCorte = 0;
+    else d.mesCorte = d.selloFecha.getMonth()+1;
+  } else {
+    d.mesCorte = null;
+  }
+  d.anioDatos = anioDatos;
+
+  /* Un registro por niño: la fila larga repite ingreso, salida, nacimiento
+     y grupo en los doce meses. */
+  const porNino={};
+  FILAS.forEach(f=>{
+    let n=porNino[f.id];
+    if(!n){ n=porNino[f.id]={id:f.id,nombre:"",ing:null,sal:null,nac:null,motivo:"",grupo:"",mala:false,meses:{}}; }
+    if(f.mala) n.mala=true;
+    /* El nombre se repite en las doce filas; basta el primero que venga. */
+    if(f.nombre && !n.nombre) n.nombre=f.nombre;
+    if(f.ing && !n.ing) n.ing=f.ing;
+    if(f.sal && !n.sal) n.sal=f.sal;
+    if(f.nac && !n.nac) n.nac=f.nac;
+    if(f.motivo && !n.motivo) n.motivo=f.motivo;
+    /* El grupo se guarda POR MES, no una vez por niño. */
+    if(f.mes) n.meses[f.mes]={pagado:f.pagado,activo:f.activo,grupo:f.grupo};
+  });
+  d.porNino=porNino;
+  /* Una fecha ilegible corre un alta o una baja de mes entero, asi que se
+     dice cuantos niños la tienen. Por niño, no por fila. */
+  d.fechasMalas = Object.values(porNino).filter(n=>n.mala).length;
+
+  /* NIÑOS QUE HOY SE CAEN DEL TABLERO SIN DEJAR RASTRO.
+     Tienen filas en la hoja —y a veces salon— pero figuran inactivos los
+     DOCE meses, asi que no entran en ninguna cifra. No se cuentan como
+     inscritos ni se suman a nada: solo se nombran, para que se vean.
+
+     El tablero NO interpreta por que estan asi. Dice lo que consta. */
+  d.nuncaActivos = Object.values(porNino).filter(n=>{
+    const ms=Object.values(n.meses);
+    return ms.length && ms.every(c=>!c.activo);
+  }).map(n=>{
+    const cs=Object.values(n.meses);
+    return { id:n.id, nombre:n.nombre, grupo:(cs.find(c=>c.grupo)||{}).grupo||"", sinIngreso:!n.ing };
+  });
+
+  /* --- Serie mensual, cortada en el mes del sello --- */
+  const hasta = d.mesCorte===null ? 12 : d.mesCorte;
+  d.serie=[];
+  for(let m=1;m<=hasta;m++){
+    const activos = Object.values(porNino).filter(n=>n.meses[m]&&n.meses[m].activo);
+    const altas   = Object.values(porNino).filter(n=>n.ing &&
+                      n.ing.getFullYear()===anioDatos && n.ing.getMonth()+1===m);
+    const bajas   = Object.values(porNino).filter(n=>n.sal &&
+                      n.sal.getFullYear()===anioDatos && n.sal.getMonth()+1===m);
+    const finDeMes = new Date(anioDatos, m, 0);
+    d.serie.push({
+      mes:m, etq:MES_CORTO[m-1],
+      cerro:activos.length,
+      altas:altas.length, bajas:bajas.length,
+      edadAltas: rangoEdades(altas.map(n=>anios(n.nac,finDeMes))),
+      edadBajas: rangoEdades(bajas.map(n=>anios(n.nac,finDeMes)))
+    });
+  }
+  d.hayMeses = d.serie.length>0;
+
+  /* La linea del total y las barras de altas y bajas salen de dos columnas
+     distintas —«Activo ese mes» por un lado, las fechas por el otro— asi que
+     pueden no cuadrar. Se comprueba y se dice, en vez de dejar que alguien
+     sume con el dedo y no entienda.
+
+     Enero no entra en la comprobacion: lo que cierra enero por encima de sus
+     altas son los niños que ya estaban antes del año, y eso no es un
+     descuadre sino el saldo de apertura. */
+  if(d.serie.length){
+    d.vienenDeAntes = Math.max(0, d.serie[0].cerro - d.serie[0].altas + d.serie[0].bajas);
+    d.descuadres = d.serie.filter((m,i)=>
+      i>0 && m.cerro !== d.serie[i-1].cerro + m.altas - m.bajas).map(m=>m.etq);
+  }
+
+  /* --- Inscritos hoy: activos en el mes del corte --- */
+  const mesHoy = hasta;
+  d.mesHoy = mesHoy;
+  const matriculados = Object.values(porNino)
+    .filter(n=>n.meses[mesHoy] && n.meses[mesHoy].activo);
+  d.matriculados = matriculados;
+  d.ninos = matriculados.length;
+  const finDeMesHoy = new Date(anioDatos, mesHoy, 0);
+  matriculados.forEach(n=>{ n.edad = anios(n.nac,finDeMesHoy); });
+
+  /* --- SALIDAS DEL MES (R138) ---
+     Las mismas que la barra roja del mes del sello en la matrícula: «Fecha
+     salida» dentro de ese mes. El motivo es el de «Motivo de salida» si la
+     hoja lo trae; si no, se dice que no está registrado, nunca se inventa. */
+  d.salidas = Object.values(porNino).filter(n=>n.sal &&
+      n.sal.getFullYear()===anioDatos && n.sal.getMonth()+1===mesHoy)
+    .map(n=>{
+      /* El salón, el del último mes en que tuvo uno. */
+      let grupo="";
+      for(let m=mesHoy;m>=1&&!grupo;m--) if(n.meses[m]&&n.meses[m].grupo) grupo=n.meses[m].grupo;
+      return {id:n.id, nombre:n.nombre, sal:n.sal, motivo:n.motivo, grupo};
+    })
+    .sort((a,b)=>a.sal-b.sal);
+
+  /* --- PENDIENTES DE PAGO (R138), SIN MONTOS ---
+     El servidor manda por mes solo «Pagó el mes» (Sí / No). Pendiente = un
+     mes en que el niño consta activo y no tiene pago. Solo se miran los
+     meses hasta el ÚLTIMO CON ALGÚN PAGO cargado: un mes en el que todavía
+     no se cargó ningún pago no es que nadie pagara, es que no se cargó. Y
+     solo los niños inscritos hoy: los que ya salieron no están en el
+     tablero operativo (su cuenta es de Finanzas). */
+  d.hayPagos = FILAS.some(f=>f.pagado!==null);
+  d.mesPagos = null;
+  if(d.hayPagos){
+    for(let m=hasta;m>=1;m--){
+      if(Object.values(porNino).some(n=>n.meses[m]&&n.meses[m].activo&&n.meses[m].pagado===true)){ d.mesPagos=m; break; }
+    }
+  }
+  d.pendientes = [];
+  if(d.mesPagos){
+    matriculados.forEach(n=>{
+      const meses=[];
+      for(let m=1;m<=d.mesPagos;m++){
+        const c=n.meses[m];
+        if(c && c.activo && c.pagado===false) meses.push(m);
+      }
+      if(meses.length) d.pendientes.push({id:n.id, nombre:n.nombre, meses, desde:meses[0]});
+    });
+    d.pendientes.sort((a,b)=>a.desde-b.desde || b.meses.length-a.meses.length);
+  }
+
+  /* --- Salones ---
+     El grupo de cada niño es el de SU FILA DEL MES DEL SELLO. El tablero es
+     una foto de ese mes: tomar el primero que aparezca, el ultimo o el mas
+     frecuente pondria a un niño en un salon en el que hoy no esta. Si en el
+     mes del sello no tiene grupo, cuenta como sin grupo aunque lo tenga en
+     otros meses. */
+  matriculados.forEach(n=>{
+    const c=n.meses[mesHoy];
+    n.grupo = c && c.grupo ? c.grupo : "";
+  });
+  d.sinGrupo = matriculados.filter(n=>!n.grupo).length;
+
+  /* Los niños se reparten por nombre normalizado, para que «Green Room» y
+     «green room» sean el mismo salon. */
+  const mapa={};
+  matriculados.forEach(n=>{ if(!n.grupo) return;
+    const k=normalizar(n.grupo);
+    (mapa[k]=mapa[k]||{nombre:n.grupo, ninos:[]}).ninos.push(n); });
+
+  /* El universo de salones lo declara «Config Kínder», en el orden de la
+     hoja, con la capacidad de cada uno (hoy, diez). Ni el número de salones
+     ni el máximo por salón se escriben aquí. */
+  const decl = (CFG && CFG.salones) ? CFG.salones : [];
+  d.salonesDeclarados = decl.length;
+  const usados=new Set();
+
+  const arma=(nombre,capacidad,activo,ns)=>({
+    nombre, capacidad, abierto:activo,
+    color:varColor(nombre), conocido:colorConocido(nombre),
+    ninos:ns.map(n=>({id:n.id, nombre:n.nombre, edad:n.edad})),
+    edades:rangoEdades(ns.map(n=>n.edad)),
+    libres: capacidad!=null ? Math.max(0, capacidad-ns.length) : null
+  });
+
+  d.salones = decl.map(s=>{
+    const k=normalizar(s.nombre);
+    usados.add(k);
+    const ns=(mapa[k]||{}).ninos||[];
+    /* ACTIVO = Sí con cero niños es un salon ABIERTO y vacio, que es una
+       cosa distinta de un salon cerrado. ACTIVO = No con niños dentro es una
+       contradiccion de la hoja y se avisa, no se tapa. */
+    return Object.assign(arma(s.nombre,s.capacidad,s.activo===true,ns),
+                         {activoDeclarado:s.activo, enConfig:true});
+  });
+
+  /* Un grupo que aparece en los datos pero no esta en la tabla de salones:
+     existe, tiene niños, y hay que verlo aunque Config no lo liste. */
+  d.salonesFueraDeConfig=[];
+  Object.keys(mapa).forEach(k=>{
+    if(usados.has(k)) return;
+    const g=mapa[k];
+    d.salonesFueraDeConfig.push(g.nombre);
+    d.salones.push(Object.assign(arma(g.nombre,null,true,g.ninos),
+                                 {activoDeclarado:null, enConfig:false}));
+  });
+
+  /* ORDEN DE LOS SALONES, el mismo para todas las secciones: primero los
+     abiertos de mayor a menor ocupación, después los cerrados, y dentro de
+     cada grupo el orden de la hoja para deshacer empates. */
+  d.salones.forEach((s,i)=>{ s.orden=i; });
+  d.salones.sort((a,b)=>{
+    if(a.abierto!==b.abierto) return a.abierto?-1:1;
+    if(a.abierto){
+      const oa = a.capacidad ? a.ninos.length/a.capacidad : -1;
+      const ob = b.capacidad ? b.ninos.length/b.capacidad : -1;
+      if(oa!==ob) return ob-oa;
+    }
+    return a.orden-b.orden;
+  });
+
+  /* Contradicciones entre la hoja y los datos, para decirlas en pantalla. */
+  d.cerradosConNinos = d.salones.filter(s=>!s.abierto && s.ninos.length)
+                                .map(s=>s.nombre);
+  d.sinCapacidad     = d.salones.filter(s=>s.abierto && s.capacidad==null)
+                                .map(s=>s.nombre);
+
+  const abiertos = d.salones.filter(s=>s.abierto);
+  d.abiertos = abiertos.length;
+  /* Los cupos se suman salon por salon: cada uno trae su capacidad en su
+     fila. Los de capacidad desconocida no suman —no se inventa un 10— y se
+     avisa aparte. */
+  d.cuposAbiertos = abiertos.reduce((a,s)=>a+(s.capacidad||0),0);
+  d.cuposTotales  = d.salones.reduce((a,s)=>a+(s.capacidad||0),0);
+  d.libres        = abiertos.reduce((a,s)=>a+(s.libres||0),0);
+  const caps=[...new Set(d.salones.map(s=>s.capacidad).filter(c=>c!=null))];
+  d.capacidadUnica = caps.length===1 ? caps[0] : null;
+
+  /* --- Meta --- */
+  if(d.meta!=null){
+    d.falta = Math.max(0, d.meta-d.ninos);
+    if(d.fechaMeta && d.selloFecha){
+      d.mesesAMeta = Math.max(1, mesesEnteros(d.selloFecha,d.fechaMeta));
+      d.ritmo = d.falta/d.mesesAMeta;
+    }
+  }
+
+  d.ok=true;
+  return d;
+}
+
+/* ==========================================================================
+   PINTADO
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const set=(id,v,pie)=>{ const e=$(id); if(!e) return; e.innerHTML=v;
+  if(pie!=null && $(id+"-pie")) $(id+"-pie").innerHTML=pie; };
+
+/* ---- Globo. Lo usa cualquier elemento con data-nom + data-info ---- */
+function montarGlobo(){
+  const globo=$("globo");
+  const mostrar=el=>{
+    globo.innerHTML='<b>'+el.dataset.nom+'</b><span>'+el.dataset.info+'</span>';
+    globo.classList.add("ver");
+    const c=el.getBoundingClientRect(), g=globo.getBoundingClientRect();
+    let x=Math.max(8,Math.min(c.left+c.width/2-g.width/2,innerWidth-g.width-8));
+    let y=c.top-g.height-9; if(y<8) y=c.bottom+9;
+    globo.style.left=x+"px"; globo.style.top=y+"px";
+  };
+  const ocultar=()=>globo.classList.remove("ver");
+  document.querySelectorAll("[data-nom]").forEach(el=>{
+    if(el.dataset.globo) return;
+    el.dataset.globo="1";
+    el.addEventListener("mouseenter",()=>mostrar(el));
+    el.addEventListener("focus",()=>mostrar(el));
+    el.addEventListener("mouseleave",ocultar);
+    el.addEventListener("blur",ocultar);
+  });
+  addEventListener("scroll",ocultar,{passive:true});
+}
+
+/* ---- Cabecera y sello ---- */
+function pintarCabecera(d){
+  const sub=$("cab-mes");
+  sub.textContent = d.selloFecha ? mesAno(d.selloFecha) : "Sin fecha de generación";
+
+  const el=$("fecha");
+  if(!SELLO){
+    el.textContent="Sin fecha de generación";
+    el.classList.add("viejo");
+    el.title="«Datos para análisis» no trae la columna generado_en. Falta el título "+
+             "en la fila 5, o el Apps Script es anterior al sello.";
+    return;
+  }
+  const dias = d.selloFecha ? Math.floor((new Date()-d.selloFecha)/86400000) : null;
+  /* La antigüedad, visible. Si el sello no trae hora legible, se dice la
+     fecha como antes: sin hora no hay antigüedad que calcular, y una
+     inventada es peor que ninguna. */
+  const edad = edadDelSello(SELLO);
+  el.textContent = edad
+    ? "Datos de "+edad.hace+" · "+edad.momento
+    : "Datos al "+fmtFechaLarga(d.selloFecha);
+  /* El rojo sigue con la regla de siempre, sin tocar: cuenta días naturales
+     desde la medianoche del sello. Cambiarla es decidir un umbral, y eso no
+     se decide aquí. */
+  const viejo = dias!==null && dias>2;
+  el.classList.toggle("viejo", viejo);
+  el.title = viejo
+    ? "Hace "+dias+" días que no se regeneran. La regeneración diaria puede estar caída."
+    : "Generado el "+SELLO;
+}
+
+/* ¿ESTO INCLUYE LO QUE ACABO DE CAMBIAR?
+   Esa es la pregunta de quien mira el tablero, y «Datos al 17 de septiembre»
+   no la contesta: dice que corrió el disparador, no cuándo. El disparador
+   corre de madrugada, así que desde las dos de la mañana ese texto parece
+   fresco y deja fuera todo lo que el cliente cargó durante el día. La hora
+   existía, pero solo en el globo, y en una reunión con pantalla compartida
+   nadie pasa el ratón.
+
+   Por eso la antigüedad va delante y el momento detrás:
+       «Datos de hace 8 horas · hoy, 1:08»
+   «hace 8 horas» es lo que se lee de un vistazo; «hoy, 1:08» es para quien
+   quiere precisión.
+
+   DE DÓNDE SALE. El sello es el de siempre —generado_en— y nada más. Lo que
+   se usa del reloj del navegador es solo el AHORA contra el que se mide la
+   antigüedad: sin él no hay «hace» posible. El sello nunca se sustituye por
+   la fecha de hoy.
+
+   LA ZONA. generado_en lo escribe el Apps Script con la zona del archivo,
+   America/Bogota: UTC-5 y sin horario de verano. Se lee así explícitamente
+   para que la antigüedad salga bien aunque el navegador esté en otra zona.
+   La hora que se MUESTRA es la escrita, tal cual —«1:08»—, para que coincida
+   con la celda del Sheet.
+
+   Y SE ACTUALIZA SOLA. Un «hace 5 minutos» que se queda en pantalla dos
+   horas miente. Cada minuto se vuelve a escribir este texto; los datos no se
+   vuelven a leer. */
+const ZONA_SELLO_MIN = -300;   /* America/Bogota, UTC-5, sin horario de verano */
+function edadDelSello(s){
+  /* El Sheet lo publica como «2026-09-17 1:08»: la hora puede venir sin cero. */
+  const m=/^([0-9]{4})-([0-9]{2})-([0-9]{2})[ T]([0-9]{1,2}):([0-9]{2})/.exec(s||"");
+  if(!m) return null;
+  const y=+m[1], mo=+m[2], dd=+m[3], h=+m[4], mi=m[5];
+  const instante = Date.UTC(y,mo-1,dd,h,+mi) - ZONA_SELLO_MIN*60000;
+  const ahora = Date.now();
+
+  /* Cuánto hace. Hasta dos días se cuenta en horas: «hace 30 horas» dice más
+     que «hace 1 día», que cubre desde 24 hasta 47. Un reloj que vaya por
+     detrás del sello no produce una antigüedad negativa. */
+  const min = Math.floor((ahora-instante)/60000);
+  let hace;
+  if(min < 1)       hace = "hace un momento";
+  else if(min < 60) hace = "hace "+min+(min===1?" minuto":" minutos");
+  else {
+    const hs = Math.floor(min/60);
+    hace = hs < 48 ? "hace "+hs+(hs===1?" hora":" horas")
+                   : "hace "+Math.floor(hs/24)+" días";
+  }
+
+  /* El momento, en el calendario de Bogotá: «hoy», «ayer» o la fecha. */
+  const b = new Date(ahora + ZONA_SELLO_MIN*60000);
+  const diaHoy = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
+  const dif = Math.round((diaHoy - Date.UTC(y,mo-1,dd))/86400000);
+  const hora = h+":"+mi;
+  const momento = dif===0 ? "hoy, "+hora
+                : dif===1 ? "ayer, "+hora
+                : dd+" de "+MES_LARGO[mo-1]+", "+hora;
+  return { hace, momento };
+}
+
+/* ---- Barra de avisos de fuente ---- */
+function pintarAviso(d){
+  const el=$("aviso");
+  const partes=FALLOS.slice();
+  if(d.fechasMalas) partes.push(d.fechasMalas===1
+    ? "1 niño tiene una fecha que no se pudo leer"
+    : d.fechasMalas+" niños tienen alguna fecha que no se pudo leer");
+  if(!partes.length){ el.hidden=true; return; }
+  el.hidden=false;
+  el.textContent = partes.join(" · ").toUpperCase();
+}
+
+
+/* ---- Los salones: ocupación por grupo ---- */
+function pintarSalones(d){
+  const cont=$("salones");
+  if(!d.ok || !d.salones.length){
+    $("hero-tit").textContent="Los salones";
+    $("hero-sub").textContent="Cada cuadro es un cupo.";
+    cont.innerHTML = sinDato("los salones",
+      d.motivo || "«Config Kínder» no trae la tabla de salones y ningún niño "+
+      "tiene grupo asignado, así que no hay salones que dibujar.");
+    $("salones-aviso").innerHTML="";
+    $("salones-leyenda").innerHTML="";
+    return;
+  }
+  /* El titulo y el subtitulo salen del dato: un titulo que diga ocho sobre
+     una fila de seis salones contradice lo que tiene debajo. */
+  $("hero-tit").textContent = "Los "+enPalabras(d.salones.length)+" salones";
+  $("hero-sub").textContent = d.capacidadUnica!=null
+    ? "Cada cuadro es un cupo. Máximo "+enPalabras(d.capacidadUnica)+
+      " niños por salón, "+enPalabras(d.cuposTotales)+" en total."
+    : "Cada cuadro es un cupo. "+d.cuposTotales+" en total.";
+
+  cont.innerHTML = d.salones.map(s=>{
+    const n=s.ninos.length;
+    if(!s.abierto){
+      /* Un salon cerrado con niños dentro es una contradiccion de la hoja.
+         Se muestran los niños igual —existen— y se avisa abajo. */
+      const cupos = s.capacidad!=null
+        ? '<div class="cupos">'+'<div class="cupo"></div>'.repeat(s.capacidad)+'</div>'
+        : '';
+      return '<div class="salon cerrado">'+
+        '<div class="s-cab"><div class="s-nom" style="color:var(--tinta3)">'+
+          '<span class="s-punto" style="background:var(--vacio)"></span>'+esc(s.nombre)+'</div>'+
+        '<div class="s-cifra"><i>cerrado</i></div></div>'+
+        cupos+
+        '<div class="s-pie">'+(n
+          ? '<b>'+n+'</b> '+(n===1?"niño":"niños")+' con este salón, y está marcado cerrado'
+          : (s.capacidad!=null? s.capacidad+" cupos sin abrir" : "sin capacidad en Config Kínder"))+
+        '</div></div>';
+    }
+    /* Sin capacidad declarada no se inventa una rejilla: se dibujan los
+       cupos ocupados y se dice que falta el dato. */
+    const tope = s.capacidad!=null ? Math.max(s.capacidad,n) : n;
+    const pinta = pintaSalon(s.color);
+    let cuadros="";
+    for(let i=1;i<=tope;i++){
+      if(i<=n){
+        const k=s.ninos[i-1];
+        /* El globo dice SOLO nombre y edad (28-oct). Sin nombre cargado cae
+           al ID, nunca a un hueco. */
+        const quien = k.nombre || k.id;
+        const info = k.edad!=null ? k.edad+(k.edad===1?" año":" años") : "edad sin fecha de nacimiento";
+        cuadros+='<button class="cupo ocupado'+pinta.clase+'" '+
+          'style="'+pinta.estilo+'" '+
+          'data-nom="'+esc(quien)+'" data-info="'+esc(info)+'" '+
+          'aria-label="'+esc(quien+", "+info)+'"></button>';
+      } else {
+        cuadros+='<div class="cupo libre" aria-label="cupo libre"></div>';
+      }
+    }
+    const libres = s.libres==null ? "sin capacidad en Config Kínder"
+      : s.libres===0 ? "<b>lleno</b>"
+      : "<b>"+s.libres+"</b> "+(s.libres===1?"cupo libre":"cupos libres");
+    const pie = libres+" · "+(s.edades || (n? "edades sin dato" : "abierto y vacío"));
+    return '<div class="salon">'+
+      '<div class="s-cab"><div class="s-nom">'+
+        '<span class="s-punto'+pinta.clase+'" style="'+pinta.estilo+'"></span>'+esc(s.nombre)+
+        (s.conocido?"":' <i title="Nombre fuera de la paleta de VEA Kids">sin color</i>')+
+        '</div>'+
+      '<div class="s-cifra num">'+n+'<i>/'+(s.capacidad!=null?s.capacidad:"?")+'</i></div></div>'+
+      '<div class="cupos">'+cuadros+'</div>'+
+      '<div class="s-pie">'+pie+'</div></div>';
+  }).join("");
+
+  /* LEYENDA DEL MAPA, con la muestra al lado del texto. */
+  $("salones-leyenda").innerHTML =
+    '<span class="lg"><span class="lg-m lg-cupo" style="background:var(--celeste)"></span>'+
+      'Niño inscrito · el cuadro lleva el color de su salón (apúntalo para ver nombre y edad)</span>'+
+    '<span class="lg"><span class="lg-m lg-cupo lg-libre"></span>Cupo libre</span>'+
+    '<span class="lg"><span class="lg-m lg-cupo lg-cerrado"></span>Cupo de un salón sin abrir</span>';
+
+  const avisos=[];
+  if(d.sinGrupo){
+    const quienes=d.matriculados.filter(n=>!n.grupo);
+    const k=quienes.length;
+    avisos.push({t:'Sin salón asignado', d:
+      (k===1?'Hay <b>1 niño</b> que no aparece':'Hay <b>'+k+' niños</b> que no aparecen')+
+      ' en ningún salón del mapa de arriba, porque no '+(k===1?'tiene':'tienen')+
+      ' salón asignado en '+MES_LARGO[d.mesHoy-1]+': '+
+      quienes.map(quien).join(' · ')+'. '+
+      (k===1?'Cuenta':'Cuentan')+' igual en los inscritos y en la ocupación.'});
+  }
+  const raros=d.salones.filter(s=>!s.conocido).map(s=>s.nombre);
+  if(raros.length) avisos.push({t:'Salones sin color', d:
+    'Sin color en la paleta de VEA Kids: <b>'+
+    raros.map(esc).join("</b>, <b>")+'</b>. Se pintan en gris hasta que se les asigne uno.'});
+  if(d.salonesFueraDeConfig && d.salonesFueraDeConfig.length)
+    avisos.push({t:'Salones sin ficha', d:
+      'Con niños pero sin fila en «Config Kínder»: <b>'+
+      d.salonesFueraDeConfig.map(esc).join("</b>, <b>")+'</b>. Se muestran igual, sin capacidad.'});
+  if(d.cerradosConNinos && d.cerradosConNinos.length)
+    avisos.push({t:'Cerrados con niños', d:
+      'Marcados <b>ACTIVO = No</b> en «Config Kínder» pero con niños dentro: <b>'+
+      d.cerradosConNinos.map(esc).join("</b>, <b>")+'</b>. O la bandera está mal, o los niños '+
+      'siguen asignados a un salón que ya cerró.'});
+  if(d.sinCapacidad && d.sinCapacidad.length)
+    avisos.push({t:'Sin capacidad declarada', d:
+      'Sin capacidad en «Config Kínder»: <b>'+
+      d.sinCapacidad.map(esc).join("</b>, <b>")+'</b>. No entran en el conteo de cupos.'});
+  const llenos=d.salones.filter(s=>s.abierto && s.capacidad!=null && s.ninos.length>s.capacidad);
+  if(llenos.length)
+    avisos.push({t:'Más niños que cupos', d:
+      'Con más niños que su capacidad en «Config Kínder»: '+
+      llenos.map(s=>'<b>'+esc(s.nombre)+'</b> ('+s.ninos.length+' de '+s.capacidad+')').join(', ')+'.'});
+
+  /* LOS QUE NO ESTAN EN NINGUNA CIFRA. Se nombran uno por uno con lo que
+     consta de cada uno. El tablero no dice por que estan asi. */
+  if(d.nuncaActivos && d.nuncaActivos.length){
+    const k=d.nuncaActivos.length;
+    const lineas=d.nuncaActivos.map(x=>{
+      let l = quien(x)+' — ';
+      l += x.grupo
+        ? 'está asignado a <b>'+esc(x.grupo)+'</b> y aun así no aparece en ese salón'
+        : 'no aparece en ningún salón, y tampoco tiene uno asignado';
+      if(x.sinIngreso) l += '. No tiene fecha de ingreso registrada';
+      return l+'.';
+    }).join('<br>');
+    avisos.push({t:'Fuera de todas las cifras', d:
+      (k===1
+        ? 'Hay <b>1 niño</b> que no está contado en ninguna cifra de esta pantalla'
+        : 'Hay <b>'+k+' niños</b> que no están contados en ninguna cifra de esta pantalla')+
+      ' —ni en los inscritos, ni en la ocupación, ni en el camino a la meta— porque en la '+
+      'hoja no consta que '+(k===1?'haya estado activo':'hayan estado activos')+
+      ' ningún mes del año.<br>'+lineas});
+  }
+
+  $("salones-aviso").innerHTML = avisos.length ? notaObs(avisos) : "";
+}
+
+/* ---- Las cuatro lecturas ---- */
+function pintarLecturas(d){
+  if(!d.ok){
+    ["k-ninos","k-ocu","k-libres","k-pend"].forEach(id=>{
+      $(id).textContent="—"; $(id+"-pie").textContent="";
+    });
+    return;
+  }
+  set("k-ninos", d.ninos, "En "+d.abiertos+(d.abiertos===1?" salón abierto":" salones abiertos")+
+    " · "+MES_LARGO[d.mesHoy-1]);
+
+  /* LA OCUPACIÓN SE MIDE CONTRA EL EDIFICIO, NO CONTRA LOS SALONES ABIERTOS
+     (22-sep): abrir un salón no la mueve, solo la mueve la matrícula. La base
+     sale de «Capacidad máxima» de «Config Kínder», nunca escrita aquí. */
+  const topeEdificio = typeof d.capacidadMaxima==="number" && d.capacidadMaxima>0
+    ? d.capacidadMaxima : null;
+  set("k-ocu", topeEdificio ? pct(d.ninos/topeEdificio) : "—",
+    topeEdificio
+      ? d.ninos+" de "+topeEdificio+" cupos del edificio"
+      : "Falta «Capacidad máxima» en «Config Kínder»");
+
+  set("k-libres", d.abiertos ? d.libres : "—",
+    d.abiertos ? "En los salones abiertos"+(d.sinCapacidad.length?"; sin contar los que no tienen capacidad":"")
+               : "Ningún salón está abierto");
+
+  if(!d.hayPagos) set("k-pend","—","Sin datos de pago en «Datos para análisis»");
+  else if(!d.mesPagos) set("k-pend","—","Ningún mes tiene pagos registrados");
+  else set("k-pend", d.pendientes.length,
+    (d.pendientes.length===1?"niño inscrito":"niños inscritos")+" con algún mes sin pago, hasta "+
+    MES_LARGO[d.mesPagos-1]);
+}
+
+/* ---- Camino a la meta ---- */
+function pintarMeta(d){
+  const riel=$("riel"), etq=$("riel-etq"), tit=$("meta-tit"), ritmo=$("meta-ritmo");
+  if(!d.ok || d.meta==null){
+    tit.textContent="Camino a la meta";
+    riel.innerHTML=""; etq.innerHTML="";
+    ritmo.innerHTML="";
+    $("meta-aviso").innerHTML = sinDato("la meta",
+      "Falta <b>«Meta de niños»</b> en «Config Kínder». Sin la meta no hay camino que dibujar.");
+    return;
+  }
+  $("meta-aviso").innerHTML="";
+  tit.innerHTML='Camino a los '+d.meta+' niños<span id="meta-falta">faltan '+d.falta+
+    ', hoy hay '+d.ninos+'</span>';
+  riel.innerHTML =
+    d.salones.filter(s=>s.abierto).map(s=>{
+      const p = pintaSalon(s.color);
+      return '<div class="riel-seg'+p.clase+'" style="width:'+
+        (s.ninos.length/d.meta*100)+'%;'+p.estilo+'"></div>';
+    }).join("")+
+    '<div class="riel-seg" style="width:'+
+      (Math.max(0,Math.min(d.cuposAbiertos,d.meta)-d.ninos)/d.meta*100)+
+      '%;background:var(--azul-tenue)"></div>';
+
+  ritmo.innerHTML = d.ritmo!=null
+    ? "Hacen falta <b>"+d.ritmo.toFixed(1)+" niños por mes</b> hasta "+
+      mesAno(d.fechaMeta).toLowerCase()
+    : '<span class="ritmo-falta">Falta <b>fecha_meta</b> en Config Kínder: '+
+      'sin fecha no se puede decir a qué ritmo</span>';
+
+  const libres=Math.max(0,d.cuposAbiertos-d.ninos);
+  const cabe = d.meta<=d.cuposAbiertos;
+  etq.innerHTML =
+    '<span><b>'+d.ninos+'</b> inscritos</span>'+
+    '<span>'+libres+(libres===1?" cupo libre":" cupos libres")+' en los salones abiertos</span>'+
+    '<span>'+(cabe?"la meta cabe sin abrir otro salón"
+                  :"la meta no cabe sin abrir otro salón")+'</span>';
+}
+
+/* ---- Cómo se movió la matrícula ---- */
+function pintarMatricula(d){
+  const tarjeta=$("mat-tarjeta");
+  if(!d.ok || !d.hayMeses){
+    tarjeta.innerHTML = sinDato("el movimiento de la matrícula",
+      d.motivo || "No hay meses que mostrar por debajo de la fecha del sello.");
+    return;
+  }
+  const cols=$("mat-cols"), ejex=$("mat-ejex"), svg=$("mat-svg");
+  const S=d.serie;
+  const rej="repeat("+S.length+",minmax(0,1fr))";   /* minmax(0,…): con doce meses en un celular la columna no se ensancha por su cifra */
+  cols.style.gridTemplateColumns=rej; ejex.style.gridTemplateColumns=rej;
+
+  const maxAlta=Math.max(...S.map(m=>m.altas),1);
+  const maxBaja=Math.max(...S.map(m=>m.bajas),1);
+  /* Dos tercios del alto para las altas, un tercio para las bajas: las bajas
+     son pocas y con escala compartida no se verian. */
+  const zonaAlta=.68;
+  $("mat-cero").style.top=(zonaAlta*100)+"%";
+
+  cols.innerHTML=S.map(m=>{
+    const hA=(m.altas/maxAlta)*zonaAlta*100*.62;   /* deja aire arriba para la linea */
+    const hB=(m.bajas/maxBaja)*(1-zonaAlta)*100;
+    const miniA=hA<9?" mini":"", miniB=hB<9?" mini":"";
+    return '<div class="mat-col">'+
+      '<div style="height:'+(zonaAlta*100-hA)+'%"></div>'+
+      (m.altas?'<div class="mat-alta'+miniA+'" style="height:'+hA+'%" data-v="+'+m.altas+'" '+
+            'data-nom="'+m.altas+(m.altas===1?" niño entró":" niños entraron")+' en '+m.etq+'" '+
+            'data-info="'+esc(m.edadAltas||"sin fecha de nacimiento")+'" tabindex="0">+'+m.altas+'</div>':"")+
+      (m.bajas?'<div class="mat-baja'+miniB+'" style="height:'+hB+'%" data-v="−'+m.bajas+'" '+
+            'data-nom="'+m.bajas+(m.bajas===1?" niño se fue":" niños se fueron")+' en '+m.etq+'" '+
+            'data-info="'+esc(m.edadBajas||"sin fecha de nacimiento")+'" tabindex="0">−'+m.bajas+'</div>':"")+
+    '</div>';
+  }).join("");
+
+  ejex.innerHTML=S.map((m,i)=>
+    '<div class="mat-mes'+(i===S.length-1?" ahora":"")+'">'+m.etq+'</div>').join("");
+
+  /* La linea del total, con su cifra sobre cada punto. El viewBox va en
+     pixeles reales: con uno cuadrado y preserveAspectRatio="none" los
+     puntos salen ovalados y la linea se desborda de la tarjeta. */
+  const tot=S.map(m=>m.cerro);
+  const lo=Math.min(...tot), hi=Math.max(...tot);
+  function dibujar(){
+    const c=cols.getBoundingClientRect(); const W=c.width,H=c.height;
+    if(!W) return;
+    svg.setAttribute("viewBox","0 0 "+W+" "+H);
+    const px=i=>(i+.5)/S.length*W;
+    const py=v=>(1-(v-lo)/((hi-lo)||1))*(H*zonaAlta*.40)+30;
+    svg.innerHTML=
+      '<polyline points="'+tot.map((v,i)=>px(i)+","+py(v)).join(" ")+'" fill="none" '+
+        'stroke="var(--tinta)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+      tot.map((v,i)=>
+        '<circle cx="'+px(i)+'" cy="'+py(v)+'" r="4" fill="var(--papel)" '+
+          'stroke="var(--tinta)" stroke-width="2"/>'+
+        '<text x="'+px(i)+'" y="'+(py(v)-11)+'" text-anchor="middle" '+
+          'font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" '+
+          'fill="var(--tinta)">'+v+'</text>').join("");
+  }
+  dibujar();
+  if(!pintarMatricula._resize){ pintarMatricula._resize=true; addEventListener("resize",()=>{
+    if(document.getElementById("mat-cols")) dibujar(); }); }
+
+  /* Quien entra y quien sale no son la misma gente. Los rangos de edad
+     estan en el grafico para poder verlo sin abrir el Sheet. */
+  const altas=S.reduce((a,m)=>a+m.altas,0), bajas=S.reduce((a,m)=>a+m.bajas,0);
+  let cierre="En lo que va del año entraron <b>"+altas+(altas===1?" niño":" niños")+
+    "</b> y se fueron <b>"+bajas+"</b>. Apunta una columna para ver la edad de cada grupo.";
+  cierre+="<br>Las altas y las bajas se agrupan por mes, no por día: las fechas del Sheet "+
+    "no son confiables a nivel de día.";
+  if(d.mesCorte!==null && d.mesCorte<12)
+    cierre+=" La serie termina en "+MES_LARGO[d.mesCorte-1]+", que es el mes del sello: "+
+      "los meses siguientes serían proyección, no historia.";
+  if(d.vienenDeAntes)
+    cierre+="<br>"+MES_CORTO[0]+" cierra con "+d.serie[0].cerro+" y solo "+d.serie[0].altas+
+      (d.serie[0].altas===1?" entró":" entraron")+" ese mes: "+
+      (d.vienenDeAntes===1?"1 niño ya estaba":d.vienenDeAntes+" niños ya estaban")+
+      " inscrito"+(d.vienenDeAntes===1?"":"s")+" antes de que empezara el año.";
+  $("mat-cierre").innerHTML=cierre;
+
+  /* Si la linea y las barras no cuadran, se dice cual es el mes y por que
+     puede pasar. Callarlo deja a alguien sumando con el dedo sin entender. */
+  $("mat-aviso").innerHTML = (d.descuadres && d.descuadres.length)
+    ? nota("En "+(d.descuadres.length===1?"":"los meses de ")+
+        "<b>"+d.descuadres.join("</b>, <b>")+"</b> la línea no cuadra con las barras: "+
+        "el total con el que cerró el mes no coincide con las entradas y salidas de ese mes. "+
+        "Las dos cosas se leen de sitios distintos de la hoja, y lo habitual es que a algún "+
+        "niño le falte la fecha de ingreso o la de salida.")
+    : "";
+
+  montarGlobo();
+}
+
+
+/* ---- Salidas del mes ---- */
+function pintarSalidas(d){
+  const el=$("salidas");
+  if(!d.ok){ el.innerHTML = sinDato("las salidas del mes", d.motivo); return; }
+  const mes=MES_LARGO[d.mesHoy-1];
+  $("sal-tit").textContent = "Salidas de "+mes;
+  if(!d.salidas.length){
+    el.innerHTML='<p class="vacio-ok">Nadie dejó Preschool en '+mes+'.</p>';
+    return;
+  }
+  el.innerHTML='<ul class="lista">'+d.salidas.map(x=>{
+    const p = x.grupo ? pintaSalon(varColor(x.grupo)) : null;
+    return '<li><span class="l-quien">'+
+      (p?'<span class="s-punto'+p.clase+'" style="'+p.estilo+'"></span>':'')+quien(x)+'</span>'+
+      '<span class="l-det">Salió el '+fmtFechaLarga(x.sal)+(x.grupo?' · '+esc(x.grupo):'')+' · '+
+        (x.motivo ? 'Motivo: <b>'+esc(x.motivo)+'</b>' : '<span class="marca-pend">Motivo no registrado</span>')+
+      '</span></li>';
+  }).join("")+'</ul>';
+}
+
+/* ---- Pendientes de pago, sin montos ---- */
+function pintarPendientes(d){
+  const el=$("pendientes");
+  if(!d.ok){ el.innerHTML = sinDato("los pendientes de pago", d.motivo); return; }
+  if(!d.hayPagos){
+    el.innerHTML = sinDato("los pendientes de pago",
+      "«Datos para análisis» no trae si cada mes tiene pago. En el portal lo arma el servidor "+
+      "con la columna de pagos de la hoja.");
+    return;
+  }
+  if(!d.mesPagos){
+    el.innerHTML='<p class="vacio-ok">Ningún mes del año tiene pagos registrados, así que no hay '+
+      'pendientes que mostrar.</p>';
+    return;
+  }
+  const hasta=MES_LARGO[d.mesPagos-1];
+  const enCurso = d.mesPagos===d.mesHoy
+    ? ' '+capitalizar(hasta)+' todavía no cierra: puede que algún pago de este mes esté por registrar.' : '';
+  if(!d.pendientes.length){
+    el.innerHTML='<p class="vacio-ok">Todos los niños inscritos tienen pago registrado en cada mes '+
+      'activo hasta '+hasta+'.'+enCurso+'</p>';
+    return;
+  }
+  el.innerHTML='<ul class="lista">'+d.pendientes.map(x=>
+    '<li><span class="l-quien">'+quien(x)+'</span>'+
+    '<span class="l-det">Desde <b>'+MES_LARGO[x.desde-1]+'</b> · '+
+      (x.meses.length===1 ? '1 mes sin pago'
+        : x.meses.length+' meses sin pago: '+x.meses.map(m=>MES_LARGO[m-1]).join(', '))+
+    '</span></li>').join("")+'</ul>'+
+    '<div class="cierre">Cuenta los meses en que el niño consta activo y no tiene pago registrado, '+
+    'hasta '+hasta+', el último mes con pagos cargados.'+enCurso+'</div>';
+}
+
+/* ---- Plan de cada niño (R139) ----
+   El plan NO está registrado hoy: ni VEAKids lo guarda ni la hoja lo trae.
+   Se muestra «Plan por registrar» para todos y no se deduce de nada —antes
+   se deducía del monto pagado, y eso ya no se hace—. Cuando la base
+   unificada (Fase 1) tenga el campo, esta lista lo leerá de ahí. */
+function pintarPlan(d){
+  const el=$("planes");
+  if(!d.ok){ el.innerHTML = sinDato("el plan de cada niño", d.motivo); return; }
+  if(!d.matriculados.length){ el.innerHTML='<p class="vacio-ok">No hay niños inscritos en '+MES_LARGO[d.mesHoy-1]+'.</p>'; return; }
+  const fila = n=>'<li><span class="l-quien">'+quien(n)+'</span>'+
+    '<span class="l-det">'+(n.edad!=null?n.edad+(n.edad===1?' año':' años')+' · ':'')+
+    '<span class="marca-pend">Plan por registrar</span></span></li>';
+  const grupos = d.salones.filter(s=>s.ninos.length).map(s=>{
+    const p=pintaSalon(s.color);
+    return '<div class="l-grupo"><span class="s-punto'+p.clase+'" style="display:inline-block;margin-right:6px;'+p.estilo+'"></span>'+
+      esc(s.nombre)+'</div><ul class="lista">'+
+      s.ninos.map(fila).join("")+'</ul>';
+  });
+  const sin = d.matriculados.filter(n=>!n.grupo);
+  if(sin.length) grupos.push('<div class="l-grupo">Sin salón asignado</div><ul class="lista">'+sin.map(fila).join("")+'</ul>');
+  el.innerHTML = grupos.join("")+
+    '<div class="cierre">Hoy el plan de cada niño <b>no está registrado</b>: VEAKids no lo guarda. '+
+    'Por eso no se muestra ninguno ni se deduce de otro dato. Los planes son tres: <b>4,5 h</b>, '+
+    '<b>8 h</b> y <b>Tarde</b>; se verán aquí cuando el plan se registre en la base unificada.</div>';
+}
+
+/* La cabecera se vuelve a escribir cada minuto, con los MISMOS datos: solo
+   cambia el «hace». Un tablero abierto toda una reunión no puede seguir
+   diciendo «hace 5 minutos» al cabo de dos horas. No se vuelve a leer nada. */
+let _cabeceraViva = null;
+function pintarTodo(){
+  const d=calcular();
+  pintarAviso(d);
+  pintarCabecera(d);
+  if(_cabeceraViva) clearInterval(_cabeceraViva);
+  _cabeceraViva = setInterval(()=>pintarCabecera(d), 60000);
+  pintarSalones(d);
+  pintarLecturas(d);
+  pintarMeta(d);
+  pintarMatricula(d);
+  pintarSalidas(d);
+  pintarPendientes(d);
+  pintarPlan(d);
+  montarGlobo();
+}
+
+cargar().then(pintarTodo);
+</script>
+
+</body>
+</html>

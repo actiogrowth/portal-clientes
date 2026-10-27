@@ -254,6 +254,35 @@ y `apellido` (texto, opcionales, hasta 40 letras). Solo los edita un
 Administrador (Configuración › Usuarios). Se usan para el saludo, la
 cabecera y Revisar; sin nombre se muestra el usuario.
 
+## Preschool (Sheet de VEA Kids) — 28-oct
+
+El tablero de Preschool lee dos pestañas del Sheet de VEA Kids, que se arman
+con lo que registra VEAKids (el aplicativo escribe; el Sheet es su espejo; el
+portal solo lee). Siempre por **título de columna**, buscando la fila de
+títulos (arriba hay filas de título y notas). Lo que llega al navegador lo
+decide `kinder/csv.php` (ACCIONES_API › Preschool): nada de dinero (R138).
+
+| Pestaña | Columnas que llegan al tablero | Nota |
+|---|---|---|
+| Datos para análisis (formato largo: una fila por niño y mes) | ID niño, Unidad, Mes #, Mes, Año, Activo ese mes (1/0), Fecha ingreso, Fecha salida, Fecha de nacimiento, Grupo, generado_en (el sello), Nombre del niño, **Motivo de salida** (opcional: si la hoja no la trae, «Motivo no registrado»), **Pagó el mes** (la arma el servidor: Sí / No) | «Pago del mes ($)», «Plan», «Responsable» y cualquier otra columna **no salen** del servidor. |
+| Config Kínder | Parámetros: Capacidad máxima, Meta de niños, Fecha meta. Tabla de salones: GRUPO, CAPACIDAD (hoy 10 por salón), ACTIVO (Sí / No) | Tarifas y costos **no salen** del servidor: son de Finanzas. |
+
+**Plan de cada niño — falta el dato (R139).** Los planes son tres: `4,5 h`,
+`8 h` y `Tarde`. Hoy **no se registra en ninguna parte**: VEAKids no lo
+guarda y el Sheet no lo trae (el tablero lo deducía del monto pagado; ya no).
+Por eso el tablero dice «Plan por registrar».
+- **En la base unificada (Fase 1)** el campo tiene que existir: `plan` en la
+  inscripción de Preschool de cada niño (catálogo `cat_plan_preschool` con
+  esos tres nombres y `activo`; lo define Vida en Arte, no el código), con su
+  fecha de inicio, para que un cambio de plan no reescriba la historia.
+- **VEAKids tendría que guardarlo** al inscribir al niño y al cambiarle el
+  plan. Hasta entonces no hay de dónde leerlo.
+
+**Motivo de salida.** El tablero lo lee si «Datos para análisis» trae la
+columna «Motivo de salida»; si VEAKids lo registra en otra pestaña y no llega
+ahí, sale «Motivo no registrado». En la base unificada: `motivo_baja` en la
+inscripción de Preschool (como en After School).
+
 ## Equivalente propuesto en Postgres / Supabase
 
 Principios: IDs actuales se conservan como columna `codigo` única (los

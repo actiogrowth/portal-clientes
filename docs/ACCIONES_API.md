@@ -424,6 +424,33 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
 }
 ```
 
+## Preschool (`/kinder/`, `kinder/config.php` y `kinder/csv.php`) — 28-oct
+
+Tablero operativo, **sin finanzas** (D-083, R138). Área `kinder`; los dos
+puentes exigen sesión y área como todos (`requerir_sesion()`) y sueltan la
+sesión antes de esperar a Google. La página no pasa por `datos.js`.
+
+- `config.php` (GET, JavaScript) → `window.CSV_ANALISIS_LOCAL = "csv.php?tabla=analisis"`
+  y `window.CSV_CONFIG_LOCAL = "csv.php?tabla=config"` (vacío si falta la
+  dirección en `portal_config.php` › `csv`). Nunca la dirección del Sheet.
+- `csv.php?tabla=analisis` (GET) → CSV de «Datos para análisis» **rehecho**:
+  primera fila = títulos, solo los que existan de esta lista y en este orden:
+  `ID niño, Unidad, Mes #, Mes, Año, Activo ese mes, Fecha ingreso, Fecha
+  salida, Fecha de nacimiento, Grupo, generado_en, Nombre del niño, Motivo de
+  salida`, más `Pagó el mes` (`Sí` si «Pago del mes ($)» es un número mayor
+  que cero, con punto o con coma; `No` si no) cuando la hoja trae la columna
+  de pagos. Solo las filas cuya Unidad dice Kínder. **No salen**: «Pago del
+  mes ($)», «Plan», «Responsable» ni ninguna columna que no esté en la lista,
+  aunque la hoja la agregue mañana.
+- `csv.php?tabla=config` (GET) → CSV de «Config Kínder» rehecho:
+  `PARÁMETRO,VALOR` solo con Capacidad máxima, Meta de niños y Fecha meta (y
+  las otras redacciones que acepta el tablero); fila vacía; `GRUPO,CAPACIDAD,ACTIVO`
+  con los salones. **No salen** tarifas, costos ni otros parámetros.
+- `csv.php?tabla=kinder` u otra → 400 «tabla no reconocida» (la pestaña
+  «Kínder» trae responsable y pagos: ya no se pide).
+- Errores: 500 sin `portal_config.php` o sin la dirección; 502 si el Sheet no
+  responde o no se encuentra la fila de títulos; texto plano.
+
 ## Resumen del negocio (`/resumen/` y `resumen/api.php`) — 26-oct
 
 Reemplaza al Resumen de Dirección. Solo Dirección y Administrador (carpeta
@@ -440,7 +467,8 @@ pantalla hace todas las cuentas con `comun/cifras.js`
   hoy: "2026-10-26",
   metas: [{ cifra, unidad, periodo: "AAAA-MM" | "AAAA", valor: número, estado }],   // pestaña Metas (Procesos.gs); se descartan las filas incompletas
   preschool: { anio, corte (mes del sello), sello: "AAAA-MM-DD", capacidad,
-               meses: { "AAAA-MM": { activos, altas, bajas } } } | null,          // solo conteos
+               meses: { "AAAA-MM": { activos, altas, bajas } },                   // solo conteos
+               nota: "Datos en revisión" | "" } | null,                           // 28-oct, R140: portal_config.php › preschool_nota
   finanzas: null,                                                                  // sin fuente todavía (ver Contrato de finanzas)
   faltan: ["…"]                                                                     // fuentes que no respondieron o sin configurar
 }
@@ -459,6 +487,10 @@ pantalla hace todas las cuentas con `comun/cifras.js`
   mes; los meses después del sello (`generado_en`) no cuentan; capacidad =
   «Capacidad máxima». **La columna de pagos no se lee**; ni nombres, ni IDs,
   ni salones salen del servidor.
+- **Nota de Preschool** (28-oct, R140): `nota` = `portal_config.php` ›
+  `preschool_nota`; sin esa clave, «Datos en revisión»; `''` la quita. La
+  pantalla la muestra junto a cada cifra de Preschool: en el desglose de
+  altas y bajas, en la fila de la tabla (debajo del nombre) y en sus alertas.
 
 ### Lo que muestra (cada cifra con su regla)
 
@@ -468,7 +500,7 @@ pantalla hace todas las cuentas con `comun/cifras.js`
 | Niños y ocupación | Niños activos del negocio | **Próximamente**: After School y Preschool tienen IDs distintos y no hay regla para reconocer al mismo niño en las dos; sumar contaría dos veces (R128). |
 | | Altas y Bajas (del negocio) | (27-oct) La suma de las altas (o bajas) de cada unidad, con el desglose debajo: Preschool + After School. Sin dato de una de las dos, «Próximamente» con lo que falta (R137). Un niño que entra a las dos unidades cuenta en cada una: no hay ID común (D-078). |
 | | Pruebas que se inscriben (del negocio) | (27-oct) La de After School (R136): es la única unidad con pruebas registradas en el portal. |
-| Por unidad | Preschool: ocupación, activos, altas, bajas | Las del tablero de Preschool (arriba); ocupación = activos ÷ «Capacidad máxima». En un año: activos del último mes con datos; altas y bajas sumadas. |
+| Por unidad | Preschool: ocupación, activos, altas, bajas | Las del tablero de Preschool (arriba); ocupación = activos ÷ «Capacidad máxima». En un año: activos del último mes con datos; altas y bajas sumadas. Con la nota «Datos en revisión» mientras `preschool_nota` no la quite (R140). |
 | | After School: activos, ocupación | Solo el período en curso (`leer` trae hoy): activos = niños en estado «Activo», cada uno una vez aunque esté en dos clases (la cifra de la pestaña Ocupación); ocupación = R125 (esta semana). |
 | | After School: altas, bajas, pruebas que se inscriben | (27-oct) R134, R135 y R136, con la historia que ya trae `leer` (inscripciones activas y cerradas, `bajas`, pruebas). Cualquier mes o año desde «Cifras del Resumen desde» (Config de After School); un período que empieza antes dice «desde el …» y no se usa para comparar. |
 | | Veranito, Baby & Me, Cumpleaños | «Próximamente» (sin datos en el portal). |

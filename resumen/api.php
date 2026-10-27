@@ -14,7 +14,9 @@
  *                «Activo ese mes»; alta = «Fecha ingreso» en el mes; baja =
  *                «Fecha salida» en el mes; ocupación = activos ÷ «Capacidad
  *                máxima». Se calcula AQUÍ y solo salen conteos: ni nombres,
- *                ni IDs, ni montos (la columna de pagos no se lee).
+ *                ni IDs, ni montos (la columna de pagos no se lee). Lleva
+ *                «nota» (28-oct): «Datos en revisión» hasta que la base de
+ *                Preschool se depure; se quita en portal_config.php.
  *   · finanzas   null: todavía no hay fuente (docs/ACCIONES_API.md › Contrato
  *                de finanzas). La pantalla dice «Próximamente».
  *   After School lo lee la pantalla con Datos.afterSchool('leer') como antes.
@@ -27,6 +29,10 @@ if (!defined('EQ_SOLO_FUNCIONES')) define('EQ_SOLO_FUNCIONES', true);
 require_once dirname(__DIR__) . '/equipo/api.php';
 
 const RS_CACHE_SEG = 300;   // copia corta de cada CSV de Preschool
+/* 28-oct: la nota junto a las cifras de Preschool mientras su base se depura
+   (Fase 1). Se cambia o se quita en portal_config.php › preschool_nota
+   ('' = sin nota), no aquí; sin esa clave, sale esta (R140). */
+const RS_NOTA_PRESCHOOL = 'Datos en revisión';
 
 if (!defined('RS_SOLO_FUNCIONES')) {
 requerir_sesion();
@@ -73,6 +79,7 @@ else {
     else {
         $preschool = rs_preschool(rs_filas($a), rs_filas($c));
         if ($preschool === null) $faltan[] = 'Preschool: «Datos para análisis» no trae la fila de títulos con «ID niño»';
+        else $preschool['nota'] = rs_nota_preschool($cfg);
     }
 }
 
@@ -111,6 +118,11 @@ function rs_traer(string $url, string $archivo, int $ttl): ?string {
     $tmp = $archivo . '.' . bin2hex(random_bytes(4));
     if (@file_put_contents($tmp, $txt, LOCK_EX) !== false) { @chmod($tmp, 0600); @rename($tmp, $archivo); }
     return (string) $txt;
+}
+
+/** La nota de Preschool: la de portal_config.php › preschool_nota si está ('' la quita); si no, RS_NOTA_PRESCHOOL. */
+function rs_nota_preschool(array $cfg): string {
+    return array_key_exists('preschool_nota', $cfg) && is_scalar($cfg['preschool_nota']) ? trim((string) $cfg['preschool_nota']) : RS_NOTA_PRESCHOOL;
 }
 
 /** CSV → filas (respeta comillas y saltos de línea dentro de una celda). */

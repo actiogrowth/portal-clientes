@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=150563a939">
+<link rel="stylesheet" href="/comun/vea.css?v=154fbf55d7">
 </head>
 <body>
 <header id="cab"></header>
@@ -71,7 +71,7 @@
 </main>
 
 <script src="/comun/datos.js?v=78ef6c43a8"></script>
-<script src="/comun/cifras.js?v=10490e660e"></script>
+<script src="/comun/cifras.js?v=5f9322ccbb"></script>
 <script src="/comun/marca.js?v=37b691d840"></script>
 <script>
 'use strict';
@@ -131,10 +131,13 @@ function pintarFinanzas(N) {
   $('#finNota').textContent = d ? '' : 'Se llena cuando Finanzas tenga facturación, costos y gastos. Hoy no hay fuente: ningún número de esta sección es inventado.';
 }
 
+// 28-oct (R140): la nota de una unidad («Datos en revisión»), junto a su cifra. La manda el servidor; vacía, nada.
+const revision = a => a ? ' <span class="rs-curso rs-revision">' + esc(a) + '</span>' : '';
+
 function tarjetaNino(t, c, fmt) {
   const meta = c.meta, enPct = !!(meta && meta.porcentaje), avance = c.valor !== null && meta && meta.valor ? Math.max(0, Math.min(100, (enPct ? c.valor * 100 : c.valor) / meta.valor * 100)) : null;
   // 27-oct: de dónde sale el total (Preschool + After School) y, en las pruebas, cuántas y si sigue en curso.
-  const desglose = c.desglose ? '<span class="rs-kpi-nota">' + c.desglose.map(x => esc(x.unidad) + ' ' + (x.valor === null ? '—' : esc(fmt(x.valor))) + (x.desde ? ' (desde el ' + esc(fechaCorta(x.desde)) + ')' : '')).join(' · ') + (c.nota ? ' · ' + esc(c.nota) : '') + '</span>' : '';
+  const desglose = c.desglose ? '<span class="rs-kpi-nota">' + c.desglose.map(x => esc(x.unidad) + ' ' + (x.valor === null ? '—' : esc(fmt(x.valor))) + (x.desde ? ' (desde el ' + esc(fechaCorta(x.desde)) + ')' : '') + revision(x.aviso)).join(' · ') + (c.nota ? ' · ' + esc(c.nota) : '') + '</span>' : '';
   return '<div class="rs-nino vidrio-tarjeta"><span class="rs-kpi-tit">' + esc(t) + (c.enCurso ? ' <span class="rs-curso">en curso</span>' : '') + '</span><span class="titulo rs-kpi-num' + (c.valor === null ? ' pronto' : '') + '">' + (c.valor === null ? PRONTO : esc(fmt(c.valor))) + '</span>' +
     (c.valor === null ? '<span class="rs-kpi-nota">' + esc(c.motivo) + '. Por unidad, en la tabla.</span>' : desglose + comparaciones(c, fmt, R && R._cmp)) +
     (meta ? '<span class="rs-barra"><i style="width:' + (avance === null ? 0 : avance) + '%"></i></span><span class="rs-kpi-nota">' + esc(conMeta(meta)) + (avance !== null ? ' · avance ' + pct(avance) : '') + '</span>' : '') + '</div>';
@@ -147,7 +150,7 @@ function pintarUnidades(N) {
   $('#unidades').innerHTML = N.unidades.map(u => {
     const o = u.ocupacion, oc = o.valor !== null ? Math.max(0, Math.min(100, o.valor * 100)) : 0;
     const meta = u.activos.meta;
-    return '<tr' + (u.datos ? '' : ' class="sin-datos"') + '><th scope="row"><span class="rs-punto" style="background:' + COLOR[u.nombre] + '" aria-hidden="true"></span>' + esc(u.nombre) + '</th>' +
+    return '<tr' + (u.datos ? '' : ' class="sin-datos"') + '><th scope="row"><span class="rs-punto" style="background:' + COLOR[u.nombre] + '" aria-hidden="true"></span>' + esc(u.nombre) + revision(u.aviso) + '</th>' +
       '<td data-etq="Ocupación"><span class="rs-ocup"><span class="rs-barra"><i style="width:' + oc + '%;background:' + COLOR[u.nombre] + '"></i>' + (o.meta ? '<b style="left:' + Math.min(100, o.meta.valor) + '%" title="Meta"></b>' : '') + '</span><span>' + (o.valor === null ? '—' : pct(o.valor * 100)) + '</span></span>' +
         (u.ocupacionNota ? '<span class="ayuda">' + esc(u.ocupacionNota) + '</span>' : '') + '</td>' +
       '<td data-etq="Niños activos">' + celda(Object.assign({}, u.activos, { meta: null }), num) + '</td><td data-etq="Altas">' + celda(u.altas, num) + '</td><td data-etq="Bajas">' + celda(u.bajas, num) + '</td>' +
@@ -172,7 +175,7 @@ function pintarMirar(N) {
     : ['Margen neto bajo la meta', pct(a.valor) + ' frente a ' + (a.meta.tentativa ? 'meta tentativa' : 'meta') + ' de ' + pct(a.meta.valor)];
   const color = { ocupacion: '#8A4B0F', bajas: '#B3261E', margen: '#111111' };
   $('#mirar').innerHTML = N.alertas.length ? N.alertas.map(a => { const [t, d] = texto(a);
-    return '<div class="rs-item"><span class="rs-punto" style="background:' + color[a.tipo] + '" aria-hidden="true"></span><span class="rs-item-txt"><b>' + esc(t) + '</b><span class="ayuda">' + esc(d) + '</span></span></div>'; }).join('')
+    return '<div class="rs-item"><span class="rs-punto" style="background:' + color[a.tipo] + '" aria-hidden="true"></span><span class="rs-item-txt"><b>' + esc(t) + '</b><span class="ayuda">' + esc(d) + (a.aviso ? ' · ' + esc(a.aviso) : '') + '</span></span></div>'; }).join('')
     : '<p class="ayuda">Nada se sale de lo normal' + (R.metas.length ? '' : ': todavía no hay metas en la pestaña «Metas»') + '.</p>';
 }
 
