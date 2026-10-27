@@ -5,7 +5,7 @@
  *
  * Cada rotura se aplica sobre una copia de portal-raiz/, after-school/,
  * configuracion/, pasar-lista/, comun/, proyecto-actio/, procesos/,
- * biblioteca/, equipo/, resumen/ y pendientes/ en una carpeta temporal; el repo no se toca.
+ * biblioteca/, equipo/, resumen/, pendientes/ y kinder/ en una carpeta temporal; el repo no se toca.
  */
 const fs = require('fs');
 const os = require('os');
@@ -13,7 +13,7 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes', 'kinder'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
