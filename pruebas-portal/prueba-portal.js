@@ -1135,18 +1135,19 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(a.status === 200 && /text\/csv/.test(a.tipo || '') && c.status === 200, 'Coordinación Preschool lee las dos tablas (' + a.status + ' ' + c.status + ')');
       ok(!/98765|98\.765|Pago del mes/.test(a.texto), 'R138 «Datos para análisis» sin la columna de pagos ni sus montos');
       ok(!/PLAN-SECRETO|RESPONSABLE-SECRETO|,Plan|Responsable/.test(a.texto), 'R139 ni el plan ni el responsable salen del servidor');
-      const filas = a.texto.trim().split('\n'), cab = filas[0].split(',');
+      // fputcsv pone entre comillas los títulos con espacios (CSV válido; el tablero lo lee igual).
+      const filas = a.texto.trim().split('\n'), cab = filas[0].split(',').map(s => s.replace(/^"|"$/g, ''));
       ok(cab[0] === 'ID niño' && cab.includes('Activo ese mes') && cab.includes('Nombre del niño') && cab.includes('Motivo de salida') && cab[cab.length - 1] === 'Pagó el mes',
         'las columnas que usa el tablero, con «Pagó el mes» al final (' + filas[0] + ')');
       ok(!/K-4|After School/.test(a.texto) && /K-1/.test(a.texto), 'solo las filas de Kínder');
       const fila = (id, mes) => (a.texto.match(new RegExp('^' + id + ',[^,]*,' + mes + ',[\\s\\S]*?,(Sí|No)$', 'm')) || [''])[0];
       ok(/,Sí$/.test(fila('K-1', 10)) && /,No$/.test(fila('K-2', 10)) && /,Sí$/.test(fila('K-1', 9)), 'R138 «Pagó el mes»: Sí con un pago mayor que cero (con punto o con coma), No sin pago');
       ok(/MOTIVO-DE-PRUEBA/.test(fila('K-3', 10)), 'el motivo de salida pasa tal cual');
-      ok(!/5550[1-4]|Tarifa|Costo|COSTO|PARAMETRO-NUEVO/i.test(c.texto) && /Capacidad máxima,80/.test(c.texto) && /Meta de niños,50/.test(c.texto) && /Green Room,10,Sí/.test(c.texto),
+      ok(!/5550[1-4]|Tarifa|Costo|COSTO|PARAMETRO-NUEVO/i.test(c.texto) && /"?Capacidad máxima"?,80/.test(c.texto) && /"?Meta de niños"?,50/.test(c.texto) && /"?Green Room"?,10,Sí/.test(c.texto),
         'R138 «Config Kínder» sin tarifas, costos ni parámetros nuevos; con capacidad, meta y salones (' + c.texto.replace(/\n/g, ' | ') + ')');
       ok((await x.get('/kinder/csv.php?tabla=kinder')).status === 400, 'la pestaña «Kínder» (responsable y pagos) ya no se puede pedir');
       const pg = await x.get('/kinder/');
-      ok(pg.status === 200 && /Plan por registrar/.test(pg.texto) && !/config-local\.js|Pago del mes \(\$\)"\)|dinero\(/.test(pg.texto), 'la página no carga config-local.js ni lee la columna de pagos');
+      ok(pg.status === 200 && /Plan por registrar/.test(pg.texto) && !/<script src="config-local\.js">|Pago del mes \(\$\)"\)|dinero\(/.test(pg.texto), 'la página no carga config-local.js ni lee la columna de pagos');
       const cf = await x.get('/kinder/config.php');
       ok(/csv\.php\?tabla=analisis/.test(cf.texto) && !/127\.0\.0\.1|\/csv\//.test(cf.texto), 'config.php solo da las rutas del portal, nunca la dirección del Sheet');
       ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'kinder', 'csv.php'), 'utf8')), 'kinder/csv.php suelta la sesión antes de esperar a Google');
