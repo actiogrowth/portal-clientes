@@ -127,11 +127,12 @@ Solo `usuarios.gestionar` (Administrador, Dirección). Escrituras con cabecera `
 
 | Acción | Método | Parámetros | Respuesta | Reglas |
 |---|---|---|---|---|
-| `listar` | GET `?accion=listar` | — | `{usuarios[{usuario, roles, activo, cambiarClave, creado, ultimoIngreso}], roles[], yo, puedeAdmin, claveMinima, csrf}` | Nunca devuelve huellas ni contraseñas. |
+| `listar` | GET `?accion=listar` | — | `{usuarios[{usuario, nombre, apellido, roles, activo, cambiarClave, creado, ultimoIngreso}], roles[], yo, puedeAdmin, claveMinima, csrf}` | Nunca devuelve huellas ni contraseñas. |
 | `crear` | POST | `usuario`, `roles[]` | `{temporal, usuarios}` | Usuario 3–40 `[a-z0-9-]`; al menos un rol; Dirección no asigna Administrador. |
 | `roles` | POST | `usuario`, `roles[]` | `{usuarios}` | No a uno mismo; Dirección no toca cuentas Admin; el último Admin activo no pierde el rol. |
 | `desactivar` / `reactivar` | POST | `usuario` | `{usuarios}` | No desactivarse a uno mismo; Dirección no toca Admin; último Admin activo. |
 | `reiniciar` | POST | `usuario` | `{temporal, usuarios}` | Corta sus sesiones; cambio obligatorio al entrar. |
+| `nombre` (27-oct) | POST | `usuario`, `nombre`, `apellido` | `{usuarios}` | **Solo Administrador** (`usuarios.admin`), en cualquier cuenta. Hasta 40 letras con espacios, guion, apóstrofo o punto; vacío = se borra. El registro anota el cambio sin el nombre. No cambia el usuario para entrar (R131). |
 
 
 ## Acciones de Pasar lista (`pasar-lista/api.php`)
@@ -421,7 +422,109 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
 }
 ```
 
-## Resumen de Dirección (`/resumen/`) — 26-oct
+## Resumen del negocio (`/resumen/` y `resumen/api.php`) — 27-oct
+
+Reemplaza al Resumen de Dirección. Solo Dirección y Administrador (carpeta
+`resumen` → área `resumen`, que no tiene nadie más; el puente también). La
+pantalla hace todas las cuentas con `comun/cifras.js`
+(`Cifras.resumenNegocio`), con lo que le manda el puente y con After School
+`leer` (como antes). Lo que no tiene fuente o no tiene regla sale
+«Próximamente», **nunca un número inventado**.
+
+### `resumen/api.php` · `leer` (POST `{accion: 'leer'}`) → `resultado`
+
+```
+{
+  hoy: "2026-10-27",
+  metas: [{ cifra, unidad, periodo: "AAAA-MM" | "AAAA", valor: número, estado }],   // pestaña Metas (Procesos.gs); se descartan las filas incompletas
+  preschool: { anio, corte (mes del sello), sello: "AAAA-MM-DD", capacidad,
+               meses: { "AAAA-MM": { activos, altas, bajas } } } | null,          // solo conteos
+  finanzas: null,                                                                  // sin fuente todavía (ver Contrato de finanzas)
+  faltan: ["…"]                                                                     // fuentes que no respondieron o sin configurar
+}
+```
+
+- **Metas**: de la pestaña «Metas» del Sheet «Procesos — Vida en Arte», por
+  el mismo Apps Script y la misma copia corta que Equipo (`pr_exec`,
+  `pr_clave`). Las metas no salen por `equipo/api.php`.
+- **Preschool**: de las mismas dos tablas que lee el tablero de Preschool
+  (`csv.analisis` = «Datos para análisis» y `csv.config` = «Config Kínder»,
+  en `portal_config.php`), con copia corta de 300 s
+  (`resumen_cache_seg`). Solo las filas cuya Unidad dice Kínder. Reglas del
+  tablero (ninguna nueva): activo en un mes = «Activo ese mes» (lo escribe
+  `estabaActivo()` del Apps Script de la Base de Datos); alta = «Fecha
+  ingreso» en ese mes del año de los datos; baja = «Fecha salida» en ese
+  mes; los meses después del sello (`generado_en`) no cuentan; capacidad =
+  «Capacidad máxima». **La columna de pagos no se lee**; ni nombres, ni IDs,
+  ni salones salen del servidor.
+
+### Lo que muestra (cada cifra con su regla)
+
+| Bloque | Cifra | Regla |
+|---|---|---|
+| Rentabilidad y facturación | Facturación, Costos de las unidades, Margen de las unidades, Gastos comunes, Utilidad neta (con margen neto %), Cobrado y por cobrar; gráfico de 12 meses | Del contrato de finanzas (abajo). Margen de las unidades = facturación − costos; utilidad neta = margen de las unidades − gastos comunes; margen neto = utilidad ÷ facturación. **Hoy sin fuente: «Próximamente».** |
+| Niños y ocupación | Niños activos del negocio | **Próximamente**: After School y Preschool tienen IDs distintos y no hay regla para reconocer al mismo niño en las dos; sumar contaría dos veces (R128). |
+| | Altas, Bajas, Pruebas que se inscriben (del negocio) | **Próximamente**: After School no tiene regla de alta, de baja ni de cuántas pruebas se inscriben (R128). |
+| Por unidad | Preschool: ocupación, activos, altas, bajas | Las del tablero de Preschool (arriba); ocupación = activos ÷ «Capacidad máxima». En un año: activos del último mes con datos; altas y bajas sumadas. |
+| | After School: activos, ocupación | Solo el período en curso (`leer` trae hoy): activos = niños en estado «Activo», cada uno una vez aunque esté en dos clases (la cifra de la pestaña Ocupación); ocupación = R125 (esta semana). Altas y bajas: «—» (sin regla). |
+| | Veranito, Baby & Me, Cumpleaños | «Próximamente» (sin datos en el portal). |
+| | Facturación y margen de la unidad | Del contrato de finanzas; hoy «Próximamente». |
+| | Meta | La meta «Niños activos» de esa unidad y período. |
+| Para mirar | Hasta tres alertas | R129. |
+
+**Comparaciones**: contra el período anterior y el mismo período del año
+anterior, solo cuando hay dato de ese período (si no, no se muestra).
+**Metas** (R127): «tentativa» hasta que su Estado diga Confirmada.
+«Ver pendientes de hoy» lleva a la tarjeta de la portada (`/#pendientes`).
+
+### Contrato de finanzas (para conectarlo después sin rehacer)
+
+`resumen/api.php` devolverá `finanzas` con esta forma. Mientras sea `null`,
+la sección dice «Próximamente».
+
+```
+finanzas: {
+  meses: {
+    "AAAA-MM": {
+      unidades: { "Preschool": { facturacion, costos }, "After School": {…}, "Veranito": {…}, "Baby & Me": {…}, "Cumpleaños": {…} },
+      gastosComunes,        // administración, alquiler y lo compartido (no es de ninguna unidad)
+      cobrado, porCobrar,   // de lo facturado en el mes
+      familiasPorCobrar     // cuántas familias deben algo de ese mes
+    }
+  }
+}
+```
+
+| Campo | Qué es | De dónde (previsto) | Cada cuánto |
+|---|---|---|---|
+| `facturacion` | lo facturado en el mes por la unidad | el sistema de facturación de Vida en Arte (por definir) | al cierre de cada día, y el mes cerrado al día 5 del mes siguiente |
+| `costos` | profesores, materiales y lo propio de la unidad | Finanzas (Profit First) y nómina | mensual, al cierre del mes |
+| `gastosComunes` | administración, alquiler y lo compartido | Finanzas (Profit First) | mensual, al cierre del mes |
+| `cobrado`, `porCobrar`, `familiasPorCobrar` | estado de cobro de lo facturado | el sistema de facturación | diario |
+
+Montos en la moneda de Vida en Arte, números (no texto). El puente los
+leerá del Sheet o del sistema que se elija, con su clave en
+`portal_config.php`, y la pantalla no cambia.
+
+## Pendientes de hoy (`pendientes/api.php`, la portada) — 27-oct
+
+Lo abre cualquier rol (carpeta `pendientes` → área `equipo`). Cada uno
+recibe **solo lo que le toca actuar**, decidido en el servidor con sus
+permisos (R130). Solo salen conteos.
+
+`leer` (POST `{accion: 'leer'}`) → `{ hoy, items: [{ clave, n, url }] }` (`n` = `null` si su fuente no respondió)
+
+| `clave` | Qué cuenta | Quién la recibe | Fuente |
+|---|---|---|---|
+| `sinLista` | clases de hoy sin lista (R112, las de la fecha de hoy) | `as.seguimiento` y `as.lista.marcar`: Coordinación After School, Dirección, Administrador | After School `seguimiento` |
+| `pruebas` | pruebas sin resultado: ya pasó su día y siguen «Agendada» | el permiso de `resultadoPrueba` (`as.completo`): Coordinación After School, Recepción, Dirección, Administrador | After School `leer` |
+| `revisar` | listas sin revisar: cada puesto y período con marcas y sin revisión | quien verifica o es jefe de un puesto abierto (Equipo); con `equipo.todo`, de todos los abiertos | Equipo |
+| `contratos` | contratos por validar: puestos en Borrador | `equipo.todo`: Dirección y Administrador | Equipo |
+
+Lo que el rol no atiende no se calcula y su fuente ni se consulta. After
+School se guarda 60 s en `portal_cache/` (compartido: solo se cuentan cosas).
+
+### Antes (26-oct): Resumen de Dirección
 
 Solo Dirección y Administrador (área `resumen`, que no tiene nadie más). No
 tiene puente propio: arma sus cifras en el navegador con lecturas que ya

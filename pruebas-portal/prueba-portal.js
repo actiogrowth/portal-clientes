@@ -79,6 +79,7 @@ return [
   'procesos_general' => ['Gerencia'],
   'pr_exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
   'pr_clave' => 'clave-pr-de-prueba',
+  'csv' => ['analisis' => 'http://127.0.0.1:${puertoGoogle}/csv/analisis', 'config' => 'http://127.0.0.1:${puertoGoogle}/csv/config'],
   'roles_iniciales' => [
 ${roles}
   ],
@@ -175,7 +176,7 @@ const NINOS = () => [
     telefono2: '', correo: 'dos@ejemplo.test', responsable2: '', telefonoResp2: '' }
 ];
 const ESTADO = () => ({ usuario: 'x', hoy: '2026-10-19', mes: '2026-10', config: {}, clases: [], ninos: NINOS(), inscripciones: [],
-  inscripcionesCerradas: [], pruebas: [{ id: 'PR-0001', idNino: 'AS-0002', estado: 'Agendada', pago: '', monto: null }],
+  inscripcionesCerradas: [], pruebas: [{ id: 'PR-0001', idNino: 'AS-0002', estado: 'Agendada', fecha: '2026-10-18', pago: '', monto: null }],
   pagosMes: [{ id: 'PG-0001', idNino: 'AS-0001', monto: 50 }] });
 
 /* Proyecto Actio (22-oct): datos INVENTADOS. El script falso manda de más a
@@ -242,8 +243,26 @@ const PR_DATOS = () => {
       { fecha: '2026-10-02T09:00', usuario: 'otra-persona', puesto: 'PRO', version: 1 }],   // de otro: al Profesor no le cuenta
     marcas: ids.concat(['RES']).map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
       .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' }]),
-    revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' }] };
+    revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' }],
+    // 27-oct: Metas (solo las lee resumen/api.php). La segunda no tiene valor: se descarta.
+    metas: [{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: null, estado: '' }] };
 };
+/* 27-oct: las dos tablas de Preschool que lee el Resumen, INVENTADAS, con la forma real: filas de título
+   arriba, columna A vacía, montos y nombres (que NUNCA tienen que salir de resumen/api.php). */
+const CSV_ANALISIS = () => {
+  const filas = [',,,,,,,,,,,,', ',DATOS PARA ANÁLISIS · formato largo,,,,,,,,,,,', ',,,,,,,,,,,,',
+    ',ID niño,Unidad,Mes #,Mes,Año,Pago del mes ($),Activo ese mes,Fecha ingreso,Fecha salida,Grupo,generado_en,Nombre del niño'];
+  const fila = (id, uni, m, act, ing, sal, sello) => ',' + [id, uni, m, 'mes', 2026, m % 2 ? '98765' : '"98.765,00"', act, ing, sal, 'Green Room', sello || '', '"NOMBRE-NINO, CON\nSALTO"'].join(',');
+  for (let m = 1; m <= 12; m++) {
+    filas.push(fila('K-1', 'Kínder', m, m <= 10 ? 1 : 0, '15/01/2026', '', m === 1 ? '2026-10-20 9:05' : ''));
+    filas.push(fila('K-2', 'Kinder', m, m >= 9 && m <= 10 ? 1 : 0, '2026-09-03', ''));
+    filas.push(fila('K-3', 'Kínder', m, m <= 10 ? 1 : 0, '10/10/2025', '15/10/2026'));   // ingresó en octubre de OTRO año: no es alta de este octubre
+    filas.push(fila('K-4', 'After School', m, 1, '01/10/2026', ''));
+    filas.push(fila('K-5', 'Kínder', m, m === 11 ? 1 : 0, '', ''));
+  }
+  return filas.join('\n');
+};
+const CSV_CONFIG = () => 'PARÁMETRO,VALOR\nCapacidad máxima,80\nMeta de niños,50\n\nGRUPO,CAPACIDAD,ACTIVO\nGreen Room,10,Sí\n';
 const PR = { siguiente: null };   // la próxima respuesta a una escritura (por ejemplo, «version_vieja»)
 const PA = { llamadas: 0, falla: false };
 /* 23-oct: Google lento a propósito (ms por pedido), para ver si los pedidos del mismo usuario hacen fila. */
@@ -255,6 +274,11 @@ function googleFalso() {
     let cuerpo = '';
     req.on('data', d => { cuerpo += d; });
     req.on('end', () => {
+      // 27-oct: los CSV publicados de Preschool (GET).
+      if (req.method === 'GET' && /^\/csv\/(analisis|config)/.test(req.url)) {
+        llamadas.push({ accion: 'csv:' + req.url.slice(5), key: '', datos: {}, t: Date.now() });
+        res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' }); res.end(req.url.startsWith('/csv/analisis') ? CSV_ANALISIS() : CSV_CONFIG()); return;
+      }
       let j = {}; try { j = JSON.parse(cuerpo); } catch (e) { }
       llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {}, t: Date.now() });
       let r;
@@ -273,6 +297,8 @@ function googleFalso() {
                     telefono: '555-0101', correo: 'uno@ejemplo.test', responsable: 'Responsable Uno', nacimiento: '2018-01-01' }],
           fueraDeLista: [{ idAsistencia: 'ASI-0001', nombre: 'Escrito', estado: 'Presente', nota: '', telefono: '555-0999' }] }] } };
       else if (j.accion === 'guardarLista') r = { ok: true, estado: ESTADO(), resultado: { fecha: '2026-10-19', codigo: 'LUN-1630-PARKOUR', nuevas: 1, corregidas: 0, quitadas: 2, visitasMarcadas: 0, secreto: 'x' } };
+      else if (j.accion === 'seguimiento') r = { ok: true, resultado: { hoy: '2026-10-19', faltasSeguidas: [], faltasPorReponer: [],
+        clasesSinLista: [{ fecha: '2026-10-19', codigo: 'LUN-1630-PARKOUR' }, { fecha: '2026-10-19', codigo: 'LUN-1800-TELAS' }, { fecha: '2026-10-18', codigo: 'DOM-1000-PARKIDS' }] } };
       else if (j.accion === 'listarPagos') r = { ok: true, resultado: { mes: '2026-10', pagos: [{ id: 'PG-0001', idNino: 'AS-0001', monto: 50 }] } };
       else r = { ok: true, resultado: { id: 'AS-0003', estado: 'Prospecto', telefono: '555-0301' }, estado: ESTADO() };
       setTimeout(() => {
@@ -358,6 +384,7 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'procesos'), path.join(web, 'procesos'));
   copiar(path.join(fuente, 'equipo'), path.join(web, 'equipo'));
   copiar(path.join(fuente, 'resumen'), path.join(web, 'resumen'));
+  copiar(path.join(fuente, 'pendientes'), path.join(web, 'pendientes'));
   copiar(path.join(fuente, 'biblioteca'), path.join(web, 'biblioteca'));
   areasDeMentira(web);
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
@@ -1079,15 +1106,15 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       }
       for (const u of ['prueba-direccion', 'admin-uno']) {
         const r = await n[u].get('/resumen/');
-        ok(r.status === 200 && /<title>Resumen de Dirección/.test(r.texto), u + ': abre el Resumen de Dirección');
+        ok(r.status === 200 && /<title>Resumen del negocio/.test(r.texto), u + ': abre el Resumen del negocio');
       }
       const portada = (await n['prueba-direccion'].get('/')).texto;
       ok(/return \(ve\(RESUMEN\.area\) \?/.test(portada) && /area: 'resumen'/.test(portada) && /id="miLista"/.test(portada), 'portada: la tarjeta del Resumen solo con el área «resumen», y Mi lista cuando hay puestos');
       const res = (await n['prueba-direccion'].get('/resumen/')).texto;
-      ok(/Próximamente/.test(res) && !/\$\s?\d|\d+\s?(USD|COP)/.test(res), 'Finanzas: «Próximamente», sin números');
-      ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(res) && /titulo: 'Ocupación After School', valor: ocup \?/.test(res) && /const ocup = E \? Cifras\.ocupacionAS\(E\) : null;/.test(res),
-        'Resumen: «Ocupación After School» con la regla de comun/cifras.js (la de la pestaña Ocupación)');
-      ok(!/titulo: 'Inscripciones del mes'/i.test(res), 'Resumen: «Inscripciones del mes» sigue fuera');
+      ok(/const PRONTO = 'Próximamente';/.test(res) && !/\$\s?\d|\d+\s?(USD|COP)/.test(res) && /kpi\('Facturación', d \? dinero\(F\.facturacion\) : null/.test(res), 'finanzas: «Próximamente» sin fuente, ningún número escrito en la página');
+      ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(res) && /Cifras\.resumenNegocio\(\{ periodo, E: AS, pre: R\.preschool, metas: R\.metas, finanzas: R\.finanzas \}\)/.test(res) && /Datos\.resumen\.leer\(\)/.test(res),
+        'Resumen del negocio: todas las cuentas en comun/cifras.js, con lo que manda resumen/api.php');
+      ok(!/Inscripciones del mes/i.test(res), 'Resumen: «Inscripciones del mes» sigue fuera');
       const clase = async ruta => { const t = (await n['admin-uno'].get(ruta)).texto; return /<html lang="es" class="vidrio">/.test(t) ? 'vidrio' : 'sin'; };
       for (const ruta of ['/', '/procesos/', '/equipo/', '/resumen/']) ok(await clase(ruta) === 'vidrio', ruta + ' con estilo vidrio');
       for (const ruta of ['/after-school/', '/pasar-lista/', '/configuracion/']) ok(await clase(ruta) === 'sin', ruta + ' sigue igual, sin vidrio');
@@ -1096,6 +1123,100 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       const css = fs.readFileSync(path.join(web, 'comun', 'vea.css'), 'utf8');
       ok(/@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
     }
+
+    seccion('Resumen del negocio (27-oct): solo Dirección y Administrador; Preschool sin montos ni nombres; metas del Sheet');
+    {
+      const rs = u => n[u].post('/resumen/api.php', { json: { accion: 'leer' } });
+      for (const u of ['prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
+        const antes = google.llamadas.length, r = await rs(u);
+        ok(r.status === 403 && google.llamadas.length === antes && !/Kínder|activos|metas/.test(r.texto), u + ': el puente del Resumen responde sin permiso y no consulta nada (' + r.status + ')');
+      }
+      const antes = google.llamadas.length, r = await rs('prueba-direccion'), R = r.j && r.j.resultado;
+      ok(r.status === 200 && R, 'Dirección lee el Resumen del negocio (' + r.status + ' ' + r.texto.slice(0, 160) + ')');
+      if (R) {
+        const P = R.preschool, m = k => JSON.stringify(P.meses[k]);
+        ok(P && P.anio === 2026 && P.corte === 10 && P.sello === '2026-10-20' && P.capacidad === 80, 'Preschool: año de los datos, mes de corte (el del sello) y «Capacidad máxima» de Config Kínder');
+        ok(m('2026-10') === '{"activos":3,"altas":0,"bajas":1}' && m('2026-09') === '{"activos":3,"altas":1,"bajas":0}' && m('2026-01') === '{"activos":2,"altas":1,"bajas":0}',
+          'reglas del tablero de Preschool: activo = «Activo ese mes»; alta = ingreso en el mes (de ese año); baja = salida en el mes; sin las filas de otras unidades (' + m('2026-10') + ' ' + m('2026-09') + ' ' + m('2026-01') + ')');
+        ok(!('2026-11' in P.meses) && Object.keys(P.meses).length === 10, 'los meses después del sello no cuentan (son proyección)');
+        ok(!/98765|98\.765|NOMBRE-NINO|K-[1-5]|Pago|Green Room/.test(r.texto), 'del Preschool solo salen conteos: ni montos, ni nombres, ni IDs, ni salones');
+        ok(JSON.stringify(R.metas) === '[{"cifra":"Ocupación","unidad":"Preschool","periodo":"2026-10","valor":70,"estado":"Tentativa"}]', 'las metas del Sheet, sin las filas incompletas');
+        ok(R.finanzas === null && !/FALTA-DE-PRUEBA|Jefatura|TEXTO-/.test(r.texto), 'finanzas sin fuente (null) y nada de Equipo en la respuesta');
+        ok(google.llamadas.slice(antes).filter(l => /^csv:/.test(l.accion)).length === 2, 'lee las dos tablas de Preschool del portal_config (csv.analisis y csv.config)');
+      }
+      const ad = await rs('admin-uno');
+      ok(ad.status === 200 && ad.j.resultado.preschool && ad.j.resultado.preschool.capacidad === 80, 'Administrador también (y con la copia corta, sin volver a pedir)');
+      ok((await new Nav(base).post('/resumen/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');
+      ok((await n['prueba-direccion'].post('/resumen/api.php', { json: { accion: 'otra' } })).status === 403, 'una acción que no existe se rechaza');
+      const eqR = (await n['prueba-direccion'].post('/equipo/api.php', { json: { accion: 'leer' } })).texto;
+      ok(!/"metas"|Ocupación/.test(eqR), 'las metas no salen por Equipo');
+      ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'resumen', 'api.php'), 'utf8')), 'resumen/api.php suelta la sesión antes de esperar a Google');
+    }
+
+    seccion('Pendientes de hoy (27-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');
+    {
+      const pe = u => n[u].post('/pendientes/api.php', { json: { accion: 'leer' } });
+      const ESPERA = {
+        'prueba-profesor-1': '', 'prueba-comercial': '', 'prueba-contabilidad': '', 'prueba-coord-pre': '',
+        'prueba-recepcion': 'pruebas=1',
+        'prueba-coord-as': 'sinLista=2 pruebas=1 revisar=2',
+        'prueba-direccion': 'sinLista=2 pruebas=1 revisar=4 contratos=1',
+        'admin-uno': 'sinLista=2 pruebas=1 revisar=4 contratos=1'
+      };
+      for (const [u, esp] of Object.entries(ESPERA)) {
+        const antes = google.llamadas.length, r = await pe(u), R = r.j && r.j.resultado;
+        const dio = R ? R.items.map(x => x.clave + '=' + x.n).join(' ') : '(sin respuesta ' + r.status + ')';
+        ok(r.status === 200 && dio === esp, u + ': ' + (esp || 'nada') + ' (dio ' + dio + ')');
+        const as = google.llamadas.slice(antes).filter(l => l.key === 'clave-de-prueba').map(l => l.accion);
+        if (!/sinLista/.test(esp)) ok(!as.includes('seguimiento'), u + ': no consulta el seguimiento de After School');
+        if (!/pruebas/.test(esp)) ok(!as.includes('leer'), u + ': no consulta las pruebas de After School');
+        ok(R && !/AS-000|Inventado|Jefatura|RESERVADO|Recepción de prueba|LUN-1630/.test(r.texto), u + ': solo conteos, ningún nombre de niño ni de puesto');
+      }
+      ok((await new Nav(base).post('/pendientes/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');
+      const portada = (await n['prueba-coord-as'].get('/')).texto;
+      ok(/id="pendientes"/.test(portada) && /Datos\.pendientes\.leer\(\)/.test(portada) && /const items = r\.items\.filter\(x => PENDIENTES\[x\.clave\]\);/.test(portada) && /if \(!items\.length\) return;/.test(portada),
+        'portada: la tarjeta «Pendientes de hoy» muestra solo lo que manda el servidor (sin nada, no aparece)');
+    }
+
+    seccion('Nombre y apellido (27-oct): solo el Administrador; saludo, cabecera y Revisar con nombre y cargo');
+    {
+      const admin = n['admin-uno'], dir = n['prueba-direccion'];
+      const nd = await dir.config('nombre', { usuario: 'prueba-recepcion', nombre: 'Otra', apellido: 'Persona' });
+      ok(nd.status === 403 && !leerCuentas().usuarios['prueba-recepcion'].nombre, 'Dirección no edita nombres (403) y nada cambia');
+      const malo = await admin.config('nombre', { usuario: 'prueba-direccion', nombre: '<b>x</b>', apellido: '' });
+      ok(malo.status === 400 && !leerCuentas().usuarios['prueba-direccion'].nombre, 'un nombre con signos raros se rechaza');
+      const bien = await admin.config('nombre', { usuario: 'prueba-direccion', nombre: '  Señora  Ficticia ', apellido: 'De Prueba' });
+      ok(bien.status === 200 && bien.j.usuarios.find(u => u.usuario === 'prueba-direccion').nombre === 'Señora Ficticia', 'el Administrador guarda nombre y apellido (sin espacios de más)');
+      const c = leerCuentas();
+      ok(c.usuarios['prueba-direccion'].apellido === 'De Prueba' && c.eventos[c.eventos.length - 1].accion === 'nombre' && !JSON.stringify(c.eventos).includes('Ficticia'),
+        'quedan en las cuentas del servidor; el registro anota el cambio sin el nombre');
+      const yo = (await dir.get('/acceso.php?formato=json')).j;
+      ok(yo.usuario === 'prueba-direccion' && yo.nombre === 'Señora Ficticia' && yo.apellido === 'De Prueba', 'la sesión trae el nombre; el usuario para entrar no cambia');
+      const sin = (await n['prueba-recepcion'].get('/acceso.php?formato=json')).j;
+      ok(sin.nombre === '' && sin.apellido === '', 'sin nombre cargado: vacío (la pantalla muestra el usuario)');
+      const eqC = (await n['prueba-contabilidad'].post('/equipo/api.php', { json: { accion: 'leer' } })).j.resultado;
+      ok(JSON.stringify(eqC.personas) === '{"prueba-direccion":{"nombre":"Señora Ficticia De Prueba","cargo":"Dirección"}}', 'Revisar: nombre y cargo de quien revisó, solo de las fichas que ve (' + JSON.stringify(eqC.personas) + ')');
+      const eqP = (await n['prueba-profesor-1'].post('/equipo/api.php', { json: { accion: 'leer' } })).j.resultado;
+      ok(JSON.stringify(eqP.personas) === '{}', 'a quien no ve esas fichas no le llega ningún nombre');
+      const borra = await admin.config('nombre', { usuario: 'prueba-direccion', nombre: '', apellido: '' });
+      ok(borra.status === 200 && (await dir.get('/acceso.php?formato=json')).j.nombre === '', 'vacío lo borra: vuelve a verse el usuario');
+      const marca = fs.readFileSync(path.join(web, 'comun', 'marca.js'), 'utf8'), port = (await dir.get('/')).texto;
+      ok(/const nombreDe = s => s \? \(\(\(s\.nombre \|\| ''\) \+ ' ' \+ \(s\.apellido \|\| ''\)\)\.trim\(\) \|\| s\.usuario \|\| ''\) : '';/.test(marca) && /const usuario = nombreDe\(sesion\);/.test(marca),
+        'cabecera: nombre y apellido; sin nombre, el usuario');
+      ok(/\+ \(s \? ', ' \+ \(\(s\.nombre \|\| ''\)\.trim\(\) \|\| s\.usuario\) : ''\);/.test(marca) && /\$\('#hola'\)\.textContent = Marca\.saludo\(s\);/.test(port), 'saludo «Buenos días, <nombre>»; sin nombre, el usuario');
+      const conf = (await admin.get('/configuracion/')).texto;
+      ok(/id="dnNombre"/.test(conf) && /\(D\.puedeAdmin \? b\('data-nombre', 'Nombre', 'sec', true\) : ''\)/.test(conf), 'Configuración › Usuarios: «Nombre» solo para el Administrador');
+    }
+
+    seccion('Procesos con dos tarjetas, organigrama y Ocupación (27-oct)');
+    {
+      const pr = (await n['prueba-recepcion'].get('/procesos/')).texto;
+      ok(/class="pr-entrada vidrio-tarjeta" href="#documentos"/.test(pr) && /class="pr-entrada vidrio-tarjeta" href="#equipo"/.test(pr) && !/pr-vistas|Por unidad/.test(pr), 'Procesos: dos tarjetas, Documentos y Equipo; sin las pestañas de antes');
+      ok(/cabecera\(\[RUTA_PROCESOS, RUTA_DOCS, \{ texto: nom \}\]\)/.test(pr) && /cabecera\(\[RUTA_PROCESOS, \{ texto: 'Equipo' \}\]\)/.test(pr), 'ruta Inicio / Procesos / Documentos y Inicio / Procesos / Equipo');
+      const as = (await n['prueba-coord-as'].get('/after-school/')).texto;
+      ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(as) && /id="ocTotal"/.test(as) && /const o = Cifras\.ocupacionAS\(E\);/.test(as), 'Ocupación: el total de la semana con la regla del Resumen');
+    }
+
 
     seccion('sesión suelta: los pedidos del mismo usuario no hacen fila mientras se espera a Google');
     {

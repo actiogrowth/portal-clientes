@@ -15,6 +15,8 @@
      /after-school/api.php         acciones de After School (docs/ACCIONES_API.md)
      /pasar-lista/api.php          leerLista y guardarLista (soloHoy lo pone el servidor)
      /configuracion/api.php        usuarios (X-CSRF en las escrituras)
+     /resumen/api.php              27-oct: metas, Preschool y finanzas del Resumen del negocio
+     /pendientes/api.php           27-oct: Pendientes de hoy (cada rol recibe lo suyo)
 
    Errores: se lanza Datos.Error con .codigo:
      'sesion'        no hay sesión (la página manda al login)
@@ -77,7 +79,7 @@
     aLogin,
 
     /* ── Sesión ─────────────────────────────────────────────────────────── */
-    /** {usuario, roles:[{id, nombre}], areas: '*' | [...], inicio, inicioAS, permisosAS:[...]} */
+    /** {usuario, nombre, apellido, roles:[{id, nombre}], areas: '*' | [...], inicio, inicioAS, permisosAS:[...]} */
     sesion() { return pedir('/acceso.php?formato=json'); },
     salir() { irA('/logout.php'); },
 
@@ -137,6 +139,18 @@
       }
     },
 
+    /* ── Resumen del negocio (27-oct; Dirección y Administrador) ──────────── */
+    resumen: {
+      /** {resultado: {hoy, metas[], preschool, finanzas, faltan[]}} */
+      leer() { return pedir('/resumen/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); }
+    },
+
+    /* ── Pendientes de hoy (27-oct; la portada) ──────────────────────────── */
+    pendientes: {
+      /** {resultado: {hoy, items: [{clave, n, url}]}} — solo lo que este rol atiende */
+      leer() { return pedir('/pendientes/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); }
+    },
+
     /* ── Configuración › Usuarios ───────────────────────────────────────── */
     usuarios: {
       /** {usuarios[], roles[], yo, puedeAdmin, claveMinima} */
@@ -145,7 +159,7 @@
         csrfUsuarios = j.csrf || '';
         return j;
       },
-      /** accion: crear | roles | desactivar | reactivar | reiniciar → {usuarios, temporal?} */
+      /** accion: crear | roles | desactivar | reactivar | reiniciar | nombre (27-oct: {usuario, nombre, apellido}) → {usuarios, temporal?} */
       async cambiar(accion, datos) {
         if (!csrfUsuarios) await this.listar();
         return pedir('/configuracion/api.php', { metodo: 'POST', cuerpo: Object.assign({ accion }, datos || {}), cabeceras: { 'X-CSRF': csrfUsuarios } });

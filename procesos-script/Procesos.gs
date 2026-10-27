@@ -21,12 +21,18 @@
  *    fila de títulos que se encuentre en las primeras filas de cada pestaña.
  *  · La clave vive en las Propiedades del script (PR_CLAVE_API), nunca aquí.
  *
+ *  · 27-oct (v2): «leer» trae también la pestaña Metas (las metas del
+ *    Resumen del negocio; solo las usa resumen/api.php) y actualizarEstructura()
+ *    la crea. El portal nunca escribe en Metas.
+ *
  *  Instalación: Extensiones › Apps Script en el MISMO Sheet, pegar este
  *  archivo, poner la propiedad PR_CLAVE_API e Implementar como aplicación
- *  web (pasos en docs/ARQUITECTURA.md › Equipo).
+ *  web (pasos en docs/ARQUITECTURA.md › Equipo). Al cambiar de versión:
+ *  Implementar › Gestionar implementaciones › editar › Versión nueva (la
+ *  dirección /exec no cambia), y correr actualizarEstructura una vez.
  * ═════════════════════════════════════════════════════════════════════════════ */
 
-var VERSION_SCRIPT = 'v1';
+var VERSION_SCRIPT = 'v2';   // 27-oct: Metas y actualizarEstructura
 var PROP_CLAVE = 'PR_CLAVE_API';
 var FILAS_PARA_BUSCAR_TITULOS = 10;
 
@@ -60,8 +66,17 @@ var TABLAS = {
     ['Período', 'periodo', 'periodo'], ['Resultado', 'resultado'], ['Nota', 'nota']] },
   revisiones: { hoja: 'Revisiones', obligatorias: ['Fecha y hora', 'Revisor', 'Puesto ID', 'Período', 'Resultado'], columnas: [
     ['Fecha y hora', 'fecha', 'fechaHora'], ['Revisor', 'revisor'], ['Puesto ID', 'puesto'], ['Período', 'periodo', 'periodo'],
-    ['Sorpresa', 'sorpresa'], ['Resultado', 'resultado'], ['Nota', 'nota']] }
+    ['Sorpresa', 'sorpresa'], ['Resultado', 'resultado'], ['Nota', 'nota']] },
+  // 27-oct: metas del Resumen del negocio. Las escribe Vida en Arte; el portal solo las lee
+  // (resumen/api.php). La pestaña la crea actualizarEstructura().
+  metas: { hoja: 'Metas', obligatorias: ['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], columnas: [
+    ['Cifra', 'cifra'], ['Unidad', 'unidad'], ['Período', 'periodo', 'periodoMeta'], ['Valor', 'valor', 'numero'], ['Estado', 'estado']] }
 };
+
+/* 27-oct: vocabulario de Metas (las listas desplegables que pone actualizarEstructura). */
+var CIFRAS_META = ['Ocupación', 'Niños activos', 'Altas', 'Bajas', 'Pruebas que se inscriben', 'Facturación', 'Margen de la unidad', 'Margen neto'];
+var UNIDADES_META = ['Negocio', 'Preschool', 'After School', 'Veranito', 'Baby & Me', 'Cumpleaños'];
+var ESTADOS_META = ['Tentativa', 'Confirmada'];
 
 function respuesta_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
@@ -171,6 +186,12 @@ function convertir_(x, tipo) {
     if (m) return m[3] + '-' + dos_(+m[2]) + '-' + dos_(+m[1]);
     return s;
   }
+  if (tipo === 'periodoMeta') {
+    // Una meta es de un mes («2026-10») o de un año («2026»). Si Sheets convirtió el mes en fecha, vale el mes.
+    if (Object.prototype.toString.call(x) === '[object Date]') return isoDe_(x).slice(0, 7);
+    var t = texto_(x);
+    return /^\d{4}\.0+$/.test(t) ? t.slice(0, 4) : t;
+  }
   if (tipo === 'periodo') {
     // Un período escrito sin formato de texto que Sheets convirtió en fecha: se lee como día.
     if (Object.prototype.toString.call(x) === '[object Date]') return isoDe_(x);
@@ -268,4 +289,67 @@ function revisar_(d, usuario) {
   agregar_(ss, TABLAS.revisiones, [{ 'Fecha y hora': new Date(), 'Revisor': usuario, 'Puesto ID': p.id, 'Período': texto_(d.periodo),
     'Sorpresa': s, 'Resultado': r, 'Nota': texto_(d.nota).slice(0, 500) }]);
   return { puesto: p.id, periodo: texto_(d.periodo) };
+}
+
+/* ─── Estructura (27-oct; se corre a mano desde el editor) ─────────────── */
+
+/**
+ * Crea la pestaña «Metas» (Cifra, Unidad, Período, Valor, Estado) con sus
+ * listas desplegables, y agrega AL FINAL de la fila de títulos los que falten
+ * en Metas y en Puestos («Visible solo para»). No mueve, no renombra y no
+ * borra nada: se puede correr las veces que haga falta.
+ * Cómo: en el editor de Apps Script, arriba, elegir «actualizarEstructura» y
+ * tocar «Ejecutar». Lo que hizo queda en el «Registro de ejecución».
+ */
+function actualizarEstructura() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), hechos = [];
+  var titulos = TABLAS.metas.columnas.map(function (c) { return c[0]; });
+  var h = hoja_(ss, TABLAS.metas.hoja);
+  if (!h) {
+    h = ss.insertSheet(TABLAS.metas.hoja);
+    h.getRange(1, 1, 1, titulos.length).setValues([titulos]);
+    h.setFrozenRows(1);
+    hechos.push('Creé la pestaña «Metas» con sus títulos.');
+  } else {
+    hechos = hechos.concat(agregarTitulos_(h, titulos, titulos));
+  }
+  var t = leerTabla_(ss, TABLAS.metas, []);
+  if (t.col) {
+    var desde = t.filaTitulos + 1, filas = 1000;
+    // Período como texto: si no, Sheets convierte «2026-10» en una fecha.
+    t.hoja.getRange(desde, t.col[normalizar_('Período')], filas, 1).setNumberFormat('@');
+    lista_(t.hoja, desde, t.col[normalizar_('Cifra')], filas, CIFRAS_META);
+    lista_(t.hoja, desde, t.col[normalizar_('Unidad')], filas, UNIDADES_META);
+    lista_(t.hoja, desde, t.col[normalizar_('Estado')], filas, ESTADOS_META);
+    hechos.push('Metas: Período queda como texto y Cifra, Unidad y Estado con su lista.');
+  }
+  var p = hoja_(ss, TABLAS.puestos.hoja);
+  if (p) hechos = hechos.concat(agregarTitulos_(p, TABLAS.puestos.obligatorias, ['Visible solo para']));
+  Logger.log(hechos.join('\n'));
+  return hechos;
+}
+
+/** Agrega al final de la fila de títulos los que falten. La fila es la primera (de las 10 primeras) con algún título de `buscar`. */
+function agregarTitulos_(h, buscar, agregar) {
+  var vals = h.getDataRange().getValues(), nombre = h.getName(), fila = -1, ancho = 0;
+  for (var r = 0; r < Math.min(FILAS_PARA_BUSCAR_TITULOS, vals.length) && fila < 0; r++) {
+    var hay = vals[r].map(normalizar_);
+    if (buscar.some(function (t) { return hay.indexOf(normalizar_(t)) >= 0; })) fila = r;
+  }
+  if (fila < 0) {
+    if (vals.length && vals.some(function (f) { return f.some(function (v) { return texto_(v) !== ''; }); }))
+      return ['' + nombre + ': no encontré la fila de títulos; no toqué nada.'];
+    fila = 0;
+  }
+  var tiene = (vals[fila] || []).map(normalizar_);
+  (vals[fila] || []).forEach(function (v, c) { if (texto_(v) !== '') ancho = c + 1; });
+  var faltan = agregar.filter(function (t) { return tiene.indexOf(normalizar_(t)) < 0; });
+  if (!faltan.length) return [nombre + ': ya tenía todos sus títulos.'];
+  h.getRange(fila + 1, ancho + 1, 1, faltan.length).setValues([faltan]);
+  return [nombre + ': agregué al final ' + faltan.map(function (t) { return '«' + t + '»'; }).join(', ') + '.'];
+}
+
+function lista_(h, fila, col, filas, valores) {
+  var regla = SpreadsheetApp.newDataValidation().requireValueInList(valores, true).setAllowInvalid(false).build();
+  h.getRange(fila, col, filas, 1).setDataValidation(regla);
 }

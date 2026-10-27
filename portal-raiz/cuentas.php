@@ -16,6 +16,10 @@
  *   ver_clave     sube con cada cambio o reinicio de contraseña; una sesión
  *                 abierta con otra versión se corta
  *   clases        reservado para Profesor (clases que podrá ver en Pasar lista)
+ *   nombre, apellido  27-oct, opcionales: de la persona que usa la cuenta, para
+ *                 el saludo y la cabecera. Solo los edita un Administrador
+ *                 (configuracion/api.php › nombre). Viven SOLO aquí, nunca en el
+ *                 repo. El usuario para entrar no cambia.
  *   creado, creado_por, ultimo_ingreso
  *
  * MIGRACIÓN (una sola vez). Si portal_usuarios.json no existe, se arma con
@@ -168,6 +172,22 @@ function roles_limpios($roles): array {
     $r = array_values(array_unique($r));
     if (!$r) throw new ErrorCuentas('Elige al menos un rol.');
     return $r;
+}
+
+/** «Nombre Apellido» de la cuenta ('' si no tiene nombre cargado). */
+function nombre_completo(array $c): string {
+    return trim(trim((string) ($c['nombre'] ?? '')) . ' ' . trim((string) ($c['apellido'] ?? '')));
+}
+
+/** Un nombre o apellido: hasta 40 letras, con espacios, guion, apóstrofo o punto; vacío = borrarlo. Lanza si no vale. */
+function nombre_limpio($v, string $que): string {
+    if ($v === null) return '';
+    if (!is_string($v)) throw new ErrorCuentas('El ' . $que . ' tiene que ser un texto.');
+    $v = trim(preg_replace('/\s+/u', ' ', $v));
+    if ($v === '') return '';
+    if (mb_strlen($v) > 40 || !preg_match("/^\p{L}[\p{L}\p{M} .'’-]*$/u", $v))
+        throw new ErrorCuentas('El ' . $que . ' solo puede llevar letras, espacios, guion o apóstrofo (hasta 40).');
+    return $v;
 }
 
 function es_admin(array $c): bool { return in_array('administrador', $c['roles'] ?? [], true); }

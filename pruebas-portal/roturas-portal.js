@@ -5,7 +5,7 @@
  *
  * Cada rotura se aplica sobre una copia de portal-raiz/, after-school/,
  * configuracion/, pasar-lista/, comun/, proyecto-actio/, procesos/,
- * biblioteca/, equipo/ y resumen/ en una carpeta temporal; el repo no se toca.
+ * biblioteca/, equipo/, resumen/ y pendientes/ en una carpeta temporal; el repo no se toca.
  */
 const fs = require('fs');
 const os = require('os');
@@ -13,7 +13,7 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
@@ -167,8 +167,32 @@ const ROTURAS = [
   ["Dirección no ve el puesto reservado de prueba", "equipo/api.php", "($todo || eq_para_mi($p, $usuario, $nombresRol))", "eq_para_mi($p, $usuario, $nombresRol)"],
   ["ni su usuario ve el puesto reservado de prueba", "equipo/api.php", "    if ($para === '') return true;\n", "    if ($para !== '') return false;\n"],
   ["«Visible solo para» admite un solo nombre", "equipo/api.php", "foreach (explode(',', $para) as $quien)", "foreach ([$para] as $quien)"],
-  ["el Resumen no muestra la ocupación", "resumen/index.html", "const ocup = E ? Cifras.ocupacionAS(E) : null;", "const ocup = null;"],
+  ["el Resumen hace sus cuentas fuera de comun/cifras.js", "resumen/index.html", "const N = Cifras.resumenNegocio({ periodo, E: AS, pre: R.preschool, metas: R.metas, finanzas: R.finanzas });", "const N = { finanzas: {}, ninos: {}, unidades: [], alertas: [] };"],
   ["el Resumen no carga comun/cifras.js", "resumen/index.html", "<script src=\"/comun/cifras.js?v=", "<script data-x=\"/comun/cifras.js?v="],
+  // 27-oct: Resumen del negocio, Pendientes de hoy, nombres, Procesos y Ocupación
+  ["Pendientes: Recepción recibe las clases sin lista (no pasa lista)", "pendientes/api.php", "roles_permiten($roles, 'as.seguimiento') && roles_permiten($roles, 'as.lista.marcar')", "roles_permiten($roles, 'as.seguimiento')"],
+  ["Pendientes: los contratos por validar le llegan a todos", "pendientes/api.php", "'contratos' => roles_permiten($roles, 'equipo.todo'),", "'contratos' => true,"],
+  ["Pendientes: las pruebas sin resultado a quien no puede ponerlo", "pendientes/api.php", "'pruebas'   => roles_permiten($roles, permiso_de_accion_as('resultadoPrueba')),", "'pruebas'   => roles_permiten($roles, 'as.ver'),"],
+  ["Pendientes: consulta After School aunque el rol no lo atienda", "pendientes/api.php", "if ($puede['sinLista'] || $puede['pruebas']) {", "if (true) { if (!empty($cfg['as_exec'])) pe_as($cfg, 'seguimiento', $cache . '/pendientes-x-' . bin2hex(random_bytes(3)) . '.json', $usuario);"],
+  ["Pendientes: cuenta clases sin lista de otros días", "pendientes/api.php", "(string) ($c['fecha'] ?? '') === $hoy", "true"],
+  ["Pendientes: listas sin revisar de puestos que no revisa", "pendientes/api.php", ": (array) ($R['revisar'] ?? []);", ": array_map(fn($p) => (string) $p['id'], (array) ($R['puestos'] ?? []));"],
+  ["Pendientes: manda lo que leyó de After School", "pendientes/api.php", "'n' => $E === null ? null : pe_pruebas($E)];", "'n' => $E === null ? null : pe_pruebas($E), 'e' => $E];"],
+  ["Resumen: su puente lo abre cualquiera", "portal-raiz/permisos.php", "    'resumen'       => 'resumen',", "    'resumen'       => 'equipo',"],
+  ["Resumen: manda las filas de Preschool (montos y nombres)", "resumen/api.php", "'meses' => (object) $meses];", "'meses' => (object) $meses, 'filas' => array_slice($A, 3, 6)];"],
+  ["Resumen: cuenta las filas de otras unidades", "resumen/api.php", "        if ($cUni >= 0 && !preg_match('/k[íi]nder/iu', $r[$cUni] ?? '')) continue;\n", ""],
+  ["Resumen: las altas de otros años cuentan", "resumen/api.php", "if ($n['ing'] && $n['ing'][0] === $anio && $n['ing'][1] === $m) $alt++;", "if ($n['ing'] && $n['ing'][1] === $m) $alt++;"],
+  ["Resumen: cuenta los meses después del sello", "resumen/api.php", "$hasta = $corte === null ? 12 : $corte;", "$hasta = 12;"],
+  ["Resumen: la capacidad no sale de Config Kínder", "resumen/api.php", "$capacidad = $v !== null && $v > 0 ? $v : null;", "$capacidad = 100;"],
+  ["Resumen: pasa las metas incompletas", "resumen/api.php", " || $x['valor'] === null) continue;", ") continue;"],
+  ["Configuración: Dirección edita nombres", "configuracion/api.php", "if (!roles_permiten($d['usuarios'][$yo]['roles'] ?? [], 'usuarios.admin'))", "if (false)"],
+  ["un nombre acepta cualquier cosa", "portal-raiz/cuentas.php", "if (mb_strlen($v) > 40 || !preg_match(\"/^\\p{L}[\\p{L}\\p{M} .'’-]*$/u\", $v))", "if (mb_strlen($v) > 40)"],
+  ["el registro guarda el nombre", "configuracion/api.php", "anotar_evento($d, $yo, 'nombre', $usuario);", "anotar_evento($d, $yo, 'nombre', $usuario, $nombre);"],
+  ["la sesión no trae el nombre", "portal-raiz/acceso.php", "'nombre' => trim((string) ($c['nombre'] ?? '')),", "'nombre' => '',"],
+  ["Revisar manda el nombre de todas las cuentas", "equipo/api.php", "foreach (array_keys($quienes) as $u) {", "foreach (array_keys((array) (cuentas()['usuarios'] ?? [])) as $u) {"],
+  ["la cabecera no muestra el nombre", "comun/marca.js", "const usuario = nombreDe(sesion);", "const usuario = sesion ? sesion.usuario : '';"],
+  ["Procesos vuelve a las pestañas", "procesos/index.html", "<a class=\"pr-entrada vidrio-tarjeta\" href=\"#documentos\">", "<a class=\"pr-vistas\" href=\"#documentos\">"],
+  ["Ocupación sin el total de la semana", "after-school/index.html", "const o = Cifras.ocupacionAS(E);", "const o = null;"],
+  ["la portada muestra Pendientes que el servidor no mandó", "portal-raiz/index.html", "const items = r.items.filter(x => PENDIENTES[x.clave]);", "const items = Object.keys(PENDIENTES).map(clave => ({ clave, n: 0 }));"],
   // htaccess.txt
   ['cuentas.php se puede pedir desde el navegador', 'portal-raiz/htaccess.txt', "auth\\.php|permisos\\.php|cuentas\\.php|", "auth\\.php|permisos\\.php|"],
   ['generar-clave.php sigue abierto sin sesión', 'portal-raiz/htaccess.txt', "login\\.php|logout\\.php|cambiar-clave", "login\\.php|logout\\.php|generar-clave\\.php|cambiar-clave"]

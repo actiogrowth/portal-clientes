@@ -103,7 +103,8 @@ const CARPETAS_AREA = [
     'proyecto-actio' => 'proyecto-actio',   // 22-oct: solo Administrador y Dirección (nadie más la tiene)
     'procesos'      => 'procesos',          // 23-oct: todos los roles
     'equipo'        => 'equipo',            // 26-oct: Mi lista, Revisar y el puente de Equipo; todos los roles
-    'resumen'       => 'resumen',           // 26-oct: Resumen de Dirección; solo Administrador y Dirección (nadie más la tiene)
+    'resumen'       => 'resumen',           // 26-oct: Resumen (27-oct: del negocio); solo Administrador y Dirección (nadie más la tiene)
+    'pendientes'    => 'equipo',            // 27-oct: el puente de «Pendientes de hoy» de la portada; todos los roles (cada uno recibe lo suyo)
 ];
 
 /* 23-oct: carpetas que abre CUALQUIER usuario con sesión, sin área: la

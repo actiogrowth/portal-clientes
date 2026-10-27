@@ -18,9 +18,18 @@
    *   accesos: [{texto, url}] (23-oct) enlaces de texto en una fila propia,
    *           visibles en todo tamaño (el Profesor en Pasar lista: Inicio, Procesos)
    */
+  /* 27-oct: el nombre de la persona (Configuración › Usuarios). Sin nombre
+     cargado, el usuario, como antes. */
+  const nombreDe = s => s ? (((s.nombre || '') + ' ' + (s.apellido || '')).trim() || s.usuario || '') : '';
+  /** «Buenos días, Ana» (sin nombre: «Buenos días, recepcion-as»). */
+  function saludo(s, ahora) {
+    const h = (ahora || new Date()).getHours();
+    return (h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches') + (s ? ', ' + ((s.nombre || '').trim() || s.usuario) : '');
+  }
+
   function cabecera(el, { sesion, ruta, prefijo, logo, accesos } = {}) {
     const lg = logo || { src: '/comun/logo-vea.png?v=03a73eb9c2', alt: 'Vida en Arte' };
-    const usuario = sesion ? sesion.usuario : '';
+    const usuario = nombreDe(sesion);
     const rol = sesion && sesion.roles && sesion.roles.length ? sesion.roles.map(r => r.nombre).join(' · ') : '';
     const miga = (ruta || []).map((p, i, l) => i < l.length - 1 && p.url
       ? '<a href="' + esc(p.url) + '">' + esc(p.texto) + '</a><span aria-hidden="true">/</span>'
@@ -92,5 +101,5 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  window.Marca = { esc, cabecera, toast, fechaLarga, MARCAS, marcaDe, rutaUnidad, unidadDoc, normal };
+  window.Marca = { esc, cabecera, saludo, nombreDe, toast, fechaLarga, MARCAS, marcaDe, rutaUnidad, unidadDoc, normal };
 })();

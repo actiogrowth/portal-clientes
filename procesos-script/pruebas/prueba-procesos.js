@@ -56,7 +56,10 @@ const HOJAS = () => ({
   'Asignaciones': [['Usuario del portal', 'Puesto ID', 'Desde', 'Hasta'], ['Usuario del rol Coordinación After School', 'COO', new Date(2026, 9, 1), '']],
   'Aceptaciones': [['Fecha y hora', 'Usuario', 'Puesto ID', 'Versión']],
   'Marcas': [['Fecha y hora', 'Usuario', 'Puesto ID', 'Orden del punto', 'Período', 'Resultado', 'Nota']],
-  'Revisiones': [['Fecha y hora', 'Revisor', 'Puesto ID', 'Período', 'Sorpresa', 'Resultado', 'Nota']]
+  'Revisiones': [['Fecha y hora', 'Revisor', 'Puesto ID', 'Período', 'Sorpresa', 'Resultado', 'Nota']],
+  // 27-oct: un mes que Sheets ya convirtió en fecha y un año que quedó como número.
+  'Metas': [['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], ['Ocupación', 'Preschool', new Date(2026, 9, 1), 70, 'Tentativa'],
+    ['Bajas', 'After School', 2026, '3', 'Confirmada'], ['Altas', 'Negocio', '2026-10', 12, '']]
 });
 
 /* Una hoja en memoria. Una celda sin formato de texto convierte «2026-10» y «2026-10-28» en fecha, como Sheets. */
@@ -72,11 +75,13 @@ function hojaFalsa(nombre, vals) {
   };
   const h = {
     vals, formatos, escrituras: 0,
-    getName: () => nombre,
+    getName: () => nombre, validaciones: {}, congeladas: 0,
+    setFrozenRows: n => { h.congeladas = n; },
     getDataRange: () => ({ getValues: () => vals.map(f => f.slice()) }),
     getLastRow: () => vals.length,
     getRange: (r, c, nr, nc) => ({
       setNumberFormat: fmt => { for (let i = 0; i < (nr || 1); i++) for (let j = 0; j < (nc || 1); j++) formatos[(r + i) + ',' + (c + j)] = fmt; return this; },
+      setDataValidation: regla => { h.validaciones[c] = { desde: r, filas: nr, valores: regla.valores, invalidos: regla.invalidos }; },
       setValues: m => {
         h.escrituras++;
         m.forEach((fila, i) => { while (vals.length < r + i) vals.push([]); const dest = vals[r + i - 1]; fila.forEach((v, j) => { dest[c + j - 1] = conv(v, formatos[(r + i) + ',' + (c + j)]); }); });
@@ -89,12 +94,18 @@ function hojaFalsa(nombre, vals) {
 function cargar(props, hojas) {
   hojas = hojas || HOJAS();
   const objs = Object.entries(hojas).map(([n, v]) => hojaFalsa(n, v));
-  const libro = { getSheets: () => objs, getSpreadsheetTimeZone: () => 'America/Panama' };
+  const libro = { getSheets: () => objs, getSpreadsheetTimeZone: () => 'America/Panama',
+    insertSheet: n => { const h = hojaFalsa(n, []); objs.push(h); return h; } };
+  const registro = [];
   class DateFija extends Date { constructor(...a) { if (a.length) super(...a); else super(AHORA.getTime()); } static now() { return AHORA.getTime(); } }
   const two = n => ('0' + n).slice(-2);
   const lock = { tomado: 0, ocupado: false };
   const ctx = {
-    SpreadsheetApp: { getActiveSpreadsheet: () => libro },
+    SpreadsheetApp: { getActiveSpreadsheet: () => libro, newDataValidation: () => {
+      const r = { valores: null, invalidos: true };
+      const b = { requireValueInList: v => { r.valores = v.slice(); return b; }, setAllowInvalid: x => { r.invalidos = x; return b; }, build: () => r };
+      return b; } },
+    Logger: { log: t => registro.push(t) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (props || {})[k] || null }) },
     ContentService: { createTextOutput: t => ({ texto: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
     LockService: { getScriptLock: () => ({ tryLock: () => { if (lock.ocupado) return false; lock.tomado++; return true; }, releaseLock: () => { lock.tomado--; } }) },
@@ -106,7 +117,7 @@ function cargar(props, hojas) {
   vm.runInContext(fs.readFileSync(GS, 'utf8'), ctx, { filename: 'Procesos.gs' });
   const llamar = (accion, datos, extra) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ key: CLAVE, usuario: 'usuario-de-prueba', accion, datos: datos || {} }, extra || {})) } }).texto);
   const hoja = n => objs.find(h => h.getName() === n);
-  return { llamar, hoja, lock, ctx };
+  return { llamar, hoja, lock, ctx, registro, objs };
 }
 const P = { PR_CLAVE_API: CLAVE };
 
@@ -136,7 +147,10 @@ seccion('leer: por título, con todas las pestañas');
   const rs = cargar(P, sinCol).llamar('leer').resultado;
   ok(rs.puestos.length === 4 && rs.puestos.every(p => p.soloPara === '') && rs.faltan.length === 1, 'sin la columna «Visible solo para» (opcional): todos vacíos y no se avisa nada');
   ok(R.contratos.length === 5 && R.listas.length === 8 && R.procesos.length === 1 && R.asignaciones[0].desde === '2026-10-01', 'Contratos, Listas, Procesos y Asignaciones');
-  ok(R.hoy === '2026-10-28' && R.version === 'v1', 'hoy (en la zona del archivo) y la versión del script');
+  ok(R.hoy === '2026-10-28' && R.version === 'v2', 'hoy (en la zona del archivo) y la versión del script');
+  ok(JSON.stringify(R.metas) === JSON.stringify([{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' },
+    { cifra: 'Bajas', unidad: 'After School', periodo: '2026', valor: 3, estado: 'Confirmada' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: 12, estado: '' }]),
+    'Metas: un mes que Sheets volvió fecha se lee como mes; un año escrito como número, como año (' + JSON.stringify(R.metas) + ')');
   const sinMarcas = HOJAS(); delete sinMarcas['Marcas'];
   ok(cargar(P, sinMarcas).llamar('leer').resultado.faltan.some(f => /Marcas/.test(f)), 'una pestaña que falta se informa en «faltan»');
 }
@@ -193,15 +207,41 @@ seccion('revisar');
 seccion('solo se escribe en Aceptaciones, Marcas y Revisiones');
 {
   const g = cargar(P);
-  const foto = () => ['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones'].map(n => JSON.stringify(g.hoja(n).vals)).join('|');
+  const foto = () => ['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones', 'Metas'].map(n => JSON.stringify(g.hoja(n).vals)).join('|');
   const antes = foto();
   g.llamar('aceptar', { puesto: 'COO', version: 2 });
   g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'Cumplido' }] });
   g.llamar('revisar', { puesto: 'COO', periodo: '2026-10-28', sorpresa: 'No', resultado: 'Cumplido' });
   ok(foto() === antes, 'las pestañas que edita Actio no cambian');
-  ok(['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones'].every(n => g.hoja(n).escrituras === 0), 'ni una escritura en ellas');
+  ok(['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones', 'Metas'].every(n => g.hoja(n).escrituras === 0), 'ni una escritura en ellas');
   g.lock.ocupado = true;
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'Cumplido' }] }).codigo === 'ocupado', 'con el Sheet ocupado (candado): no escribe y lo dice');
+}
+
+seccion('actualizarEstructura: crea Metas y agrega al final lo que falte, sin mover nada');
+{
+  const sin = HOJAS(); delete sin['Metas']; sin['Puestos'] = sin['Puestos'].map(f => f.slice(0, 12));   // sin Metas ni «Visible solo para»
+  const g = cargar(P, sin), antesPuestos = JSON.stringify(g.hoja('Puestos').vals);
+  ok(cargar(P, sin).llamar('leer').resultado.faltan.some(f => /Metas/.test(f)), '(control) sin la pestaña Metas, «leer» lo avisa');
+  const hechos = g.ctx.actualizarEstructura();
+  const M = g.hoja('Metas');
+  ok(M && JSON.stringify(M.vals[0]) === JSON.stringify(['Cifra', 'Unidad', 'Período', 'Valor', 'Estado']) && M.congeladas === 1, 'crea «Metas» con sus cinco títulos en la fila 1');
+  ok(M.formatos['2,3'] === '@' && M.formatos['1001,3'] === '@' && !M.formatos['1,3'], 'Período como texto en las filas de datos (no en el título)');
+  ok(M.validaciones[1].valores.join() === 'Ocupación,Niños activos,Altas,Bajas,Pruebas que se inscriben,Facturación,Margen de la unidad,Margen neto' &&
+    M.validaciones[2].valores.includes('Preschool') && M.validaciones[5].valores.join() === 'Tentativa,Confirmada' && M.validaciones[5].invalidos === false && M.validaciones[5].desde === 2,
+    'listas: Cifra, Unidad y Estado (Tentativa o Confirmada; no se acepta otra cosa)');
+  const P2 = g.hoja('Puestos').vals;
+  ok(P2[1][12] === 'Visible solo para' && JSON.stringify(P2.map(f => f.slice(0, 12))) === antesPuestos, 'Puestos: «Visible solo para» al final de su fila de títulos (la 2); nada más cambia');
+  ok(hechos.some(t => /Creé la pestaña/.test(t)) && g.registro.length === 1, 'dice lo que hizo en el registro');
+  g.ctx.actualizarEstructura();
+  ok(g.hoja('Metas').vals[0].length === 5 && g.hoja('Puestos').vals[1].filter(t => t === 'Visible solo para').length === 1 && g.objs.filter(h => h.getName() === 'Metas').length === 1,
+    'correrla otra vez no repite nada');
+  const r = g.llamar('leer').resultado;
+  ok(!r.faltan.some(f => /Metas/.test(f)) && Array.isArray(r.metas) && r.metas.length === 0, 'después, «leer» encuentra Metas (vacía)');
+  const parcial = HOJAS(); parcial['Metas'] = [['Cifra', 'Unidad', 'Período', 'Valor'], ['Altas', 'Negocio', '2026', 5]];
+  const g2 = cargar(P, parcial);
+  g2.ctx.actualizarEstructura();
+  ok(JSON.stringify(g2.hoja('Metas').vals) === JSON.stringify([['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], ['Altas', 'Negocio', '2026', 5]]), 'a una Metas sin «Estado» le agrega ese título al final; las filas no se tocan');
 }
 
 console.log(fallos ? '✗ ' + fallos + ' de ' + total + ' comprobaciones fallaron' : '✓ ' + total + ' comprobaciones pasan');

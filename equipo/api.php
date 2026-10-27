@@ -21,6 +21,13 @@
  *      quien figura en «Verifica» o es su jefe. Siempre en puestos abiertos.
  *      El script vuelve a mirar el estado, la versión y el período.
  *   5. Suelta la sesión antes de esperar a Google (D-068).
+ *   6. 27-oct: «personas» trae nombre y apellido (de las cuentas del portal)
+ *      y el cargo de quienes aparecen en las marcas y revisiones que esta
+ *      persona ya ve; nadie más.
+ *
+ * EQ_SOLO_FUNCIONES (27-oct): con esa constante definida el archivo solo
+ * declara sus funciones (eq_sheet, eq_vista…); lo usan resumen/api.php y
+ * pendientes/api.php.
  *
  * Copia en el servidor: la respuesta del script se guarda pr_cache_seg
  * segundos (60 si no se configura) en portal_cache/equipo.json, FUERA de la
@@ -31,18 +38,20 @@
  *     'pr_clave'     => 'la misma que PR_CLAVE_API en el Apps Script',
  *     'pr_cache_seg' => 60,   // opcional
  */
-define('AS_SOLO_FUNCIONES', true);
+if (!defined('AS_SOLO_FUNCIONES')) define('AS_SOLO_FUNCIONES', true);
 require_once dirname(__DIR__) . '/after-school/api.php';
 require_once dirname(__DIR__) . '/auth.php';
+
+const EQ_ABIERTO = 'Abierto al equipo';
+const EQ_CACHE_SEG = 60;
+const EQ_DIAS_MARCAS = 120;   // marcas y revisiones que se mandan: las de los últimos N días
+
+if (!defined('EQ_SOLO_FUNCIONES')) {
 requerir_sesion();
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store');
 header('X-Content-Type-Options: nosniff');
-
-const EQ_ABIERTO = 'Abierto al equipo';
-const EQ_CACHE_SEG = 60;
-const EQ_DIAS_MARCAS = 120;   // marcas y revisiones que se mandan: las de los últimos N días
 
 $rutaConfig = dirname(__DIR__, 2) . '/portal_config.php';
 if (!is_file($rutaConfig)) fallo('falta portal_config.php en el servidor');
@@ -66,7 +75,7 @@ $S = eq_sheet($cfg, $archivo, $ttl, $usuario);
 $V = eq_vista($S, $usuario, $roles, $nombresRol, $todo);
 
 if ($accion === 'leer') {
-    echo json_encode(['ok' => true, 'resultado' => $V['respuesta']], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['ok' => true, 'resultado' => $V['respuesta'] + ['personas' => eq_personas($V['respuesta'])]], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -92,10 +101,12 @@ echo is_array($j)
     ? json_encode(['ok' => (bool) ($j['ok'] ?? false), 'resultado' => $j['resultado'] ?? null, 'error' => (string) ($j['error'] ?? ''), 'codigo' => (string) ($j['codigo'] ?? '')], JSON_UNESCAPED_UNICODE)
     : json_encode(['ok' => false, 'error' => 'El Sheet no respondió bien.', 'codigo' => 'incierto'], JSON_UNESCAPED_UNICODE);
 exit;
+}
 
 /* ─── El Sheet (con su copia corta) ────────────────────────────────────── */
 
-function eq_sheet(array $cfg, string $archivo, int $ttl, string $usuario): array {
+/** El Sheet entero. $suave (27-oct): si Google no responde y no hay copia, devuelve null en vez de cortar la respuesta. */
+function eq_sheet(array $cfg, string $archivo, int $ttl, string $usuario, bool $suave = false): ?array {
     $c = is_file($archivo) ? json_decode((string) @file_get_contents($archivo), true) : null;
     if (is_array($c) && isset($c['t'], $c['r']) && time() - $c['t'] < $ttl) return $c['r'];
     $envio = envio_para($cfg['pr_clave'], $usuario, ['accion' => 'leer', 'datos' => []]);
@@ -106,6 +117,7 @@ function eq_sheet(array $cfg, string $archivo, int $ttl, string $usuario): array
     $j = $res['http'] === 200 ? json_decode($res['cuerpo'], true) : null;
     if (!is_array($j) || ($j['ok'] ?? false) !== true || !is_array($j['resultado'] ?? null)) {
         if (is_array($c) && isset($c['r']) && time() - $c['t'] < 86400) return $c['r'];   // Google no respondió: la copia del día
+        if ($suave) return null;
         fallo(is_array($j) ? (string) ($j['error'] ?? 'El Sheet respondió con un error.') : 'El Sheet no respondió.', $res['http'] === 200 ? 502 : $res['http'], 'incierto');
     }
     $dir = dirname($archivo);
@@ -113,6 +125,27 @@ function eq_sheet(array $cfg, string $archivo, int $ttl, string $usuario): array
     $tmp = $archivo . '.' . bin2hex(random_bytes(4));
     if (@file_put_contents($tmp, json_encode(['t' => time(), 'r' => $j['resultado']], JSON_UNESCAPED_UNICODE), LOCK_EX) !== false) { @chmod($tmp, 0600); @rename($tmp, $archivo); }
     return $j['resultado'];
+}
+
+/**
+ * 27-oct: nombre y cargo de quienes aparecen en las marcas y revisiones de
+ * la respuesta (solo de esas fichas). Sin nombre cargado, nombre ''.
+ * {usuario: {nombre: 'Nombre Apellido', cargo: 'Rol · Rol'}}
+ */
+function eq_personas(array $respuesta): object {
+    $quienes = [];
+    foreach ((array) ($respuesta['fichas'] ?? []) as $f) {
+        foreach ((array) ($f['marcas'] ?? []) as $m) $quienes[(string) ($m['usuario'] ?? '')] = true;
+        foreach ((array) ($f['revisiones'] ?? []) as $r) $quienes[(string) ($r['revisor'] ?? '')] = true;
+    }
+    $out = [];
+    foreach (array_keys($quienes) as $u) {
+        $c = $u !== '' ? cuenta((string) $u) : null;
+        if (!$c) continue;
+        $out[$u] = ['nombre' => nombre_completo($c),
+                    'cargo' => implode(' · ', array_map(fn($r) => ROLES[$r]['nombre'], array_values(array_filter($c['roles'] ?? [], 'rol_valido'))))];
+    }
+    return (object) $out;
 }
 
 function eq_norm(string $s): string {

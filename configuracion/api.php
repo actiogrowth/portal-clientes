@@ -10,7 +10,11 @@
  *   · El último Administrador activo no se desactiva ni pierde el rol.
  *
  *   GET  api.php?accion=listar      → cuentas, roles y el token CSRF
- *   POST api.php  (cabecera X-CSRF) → {accion: crear|roles|desactivar|reactivar|reiniciar, usuario, roles?}
+ *   POST api.php  (cabecera X-CSRF) → {accion: crear|roles|desactivar|reactivar|reiniciar|nombre, usuario, roles?, nombre?, apellido?}
+ *
+ * 27-oct: «nombre» guarda el nombre y el apellido de la persona que usa la
+ * cuenta (vacíos = se borran). SOLO un Administrador (usuarios.admin), en
+ * cualquier cuenta, también la suya. No cambia el usuario para entrar.
  *
  * Contraseñas: al crear o reiniciar se genera una temporal que va SOLO en la
  * respuesta de esa petición (la página la muestra una vez). No se guarda en
@@ -38,7 +42,8 @@ $yo = usuario_actual();
 function vista_cuentas(array $d): array {
     $r = [];
     foreach ($d['usuarios'] as $u => $c) {
-        $r[] = ['usuario' => $u, 'roles' => array_values($c['roles'] ?? []), 'activo' => !empty($c['activo']),
+        $r[] = ['usuario' => $u, 'nombre' => (string) ($c['nombre'] ?? ''), 'apellido' => (string) ($c['apellido'] ?? ''),
+                'roles' => array_values($c['roles'] ?? []), 'activo' => !empty($c['activo']),
                 'cambiarClave' => !empty($c['cambiar_clave']), 'creado' => $c['creado'] ?? null,
                 'ultimoIngreso' => $c['ultimo_ingreso'] ?? null];
     }
@@ -95,6 +100,16 @@ try {
                 exigir_puede_tocar($d, $yo, $accion, $usuario);
                 $d['usuarios'][$usuario]['activo'] = $accion === 'reactivar';
                 anotar_evento($d, $yo, $accion, $usuario);
+                return [];
+            case 'nombre':
+                if (!$existe) throw new ErrorCuentas('No existe el usuario «' . $usuario . '».', 404);
+                if (!roles_permiten($d['usuarios'][$yo]['roles'] ?? [], 'usuarios.admin'))
+                    throw new ErrorCuentas('Solo un Administrador edita el nombre y el apellido.', 403);
+                $nombre = nombre_limpio($e['nombre'] ?? '', 'nombre');
+                $apellido = nombre_limpio($e['apellido'] ?? '', 'apellido');
+                $d['usuarios'][$usuario]['nombre'] = $nombre;
+                $d['usuarios'][$usuario]['apellido'] = $apellido;
+                anotar_evento($d, $yo, 'nombre', $usuario);   // sin el nombre: el registro no guarda datos personales
                 return [];
             case 'reiniciar':
                 if (!$existe) throw new ErrorCuentas('No existe el usuario «' . $usuario . '».', 404);

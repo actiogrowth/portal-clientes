@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=da1b20fe51">
+<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
 </head>
 <body>
 <!-- Configuración (21-oct, rediseño con la marca). Página fija; los datos
@@ -36,6 +36,11 @@
       <form id="formNuevo" autocomplete="off">
         <div class="campo" style="max-width:420px"><label for="nuUsuario">Usuario</label>
           <input type="text" id="nuUsuario" autocapitalize="none" spellcheck="false" maxlength="40" placeholder="recepcion-afterschool"></div>
+        <!-- 27-oct: nombre y apellido de la persona (solo los ve y los edita el Administrador). -->
+        <div class="cf-nombre oculto" id="nuNombreCaja">
+          <div class="campo"><label for="nuNombre">Nombre <span class="ayuda">(opcional)</span></label><input type="text" id="nuNombre" maxlength="40" autocomplete="off"></div>
+          <div class="campo"><label for="nuApellido">Apellido <span class="ayuda">(opcional)</span></label><input type="text" id="nuApellido" maxlength="40" autocomplete="off"></div>
+        </div>
         <span class="etiqueta">Roles <span style="font-weight:400">(se pueden marcar varios; los permisos se suman)</span></span>
         <div class="roles-grid" id="nuRoles"></div>
         <div id="nuError"></div>
@@ -46,7 +51,7 @@
       <h2>Usuarios</h2>
       <p class="ayuda" id="ayudaLista" style="margin-bottom:8px"></p>
       <div style="overflow-x:auto">
-        <table class="datos"><thead><tr><th>Usuario</th><th>Roles</th><th>Estado</th><th>Último ingreso</th><th></th></tr></thead><tbody id="lista"></tbody></table>
+        <table class="datos"><thead><tr><th>Usuario</th><th>Nombre</th><th>Roles</th><th>Estado</th><th>Último ingreso</th><th></th></tr></thead><tbody id="lista"></tbody></table>
       </div>
     </div>
   </section>
@@ -61,6 +66,18 @@
   <div class="dlg-pie"><button class="btn sec" type="button" id="dcCopiar">Copiar</button><button class="btn negro" type="button" id="dcCerrar">Ya la copié</button></div>
 </dialog>
 
+<dialog id="dlgNombre">
+  <form id="formNombre">
+    <div class="dlg-cab"><div><h2>Nombre de <span id="dnUsuario"></span></h2><p class="ayuda">Sale en el saludo y arriba a la derecha. El usuario para entrar no cambia. Vacío = se muestra el usuario.</p></div><button class="cerrar" type="button" id="dnCancelar" aria-label="Cerrar">×</button></div>
+    <div class="dlg-cuerpo cf-nombre">
+      <div class="campo"><label for="dnNombre">Nombre</label><input type="text" id="dnNombre" maxlength="40" autocomplete="off"></div>
+      <div class="campo"><label for="dnApellido">Apellido</label><input type="text" id="dnApellido" maxlength="40" autocomplete="off"></div>
+      <div id="dnError"></div>
+    </div>
+    <div class="dlg-pie"><button class="btn negro" type="submit">Guardar nombre</button></div>
+  </form>
+</dialog>
+
 <dialog id="dlgRoles">
   <form id="formRoles">
     <div class="dlg-cab"><h2>Roles de <span id="drUsuario"></span></h2><button class="cerrar" type="button" id="drCancelar" aria-label="Cerrar">×</button></div>
@@ -69,8 +86,8 @@
   </form>
 </dialog>
 
-<script src="/comun/datos.js?v=c918c02f12"></script>
-<script src="/comun/marca.js?v=0b53cee6ca"></script>
+<script src="/comun/datos.js?v=9bb2cb871c"></script>
+<script src="/comun/marca.js?v=f035d07161"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -94,23 +111,28 @@ const marcados = cont => [...cont.querySelectorAll('input:checked')].map(i => i.
 
 function pintar() {
   casillas($('#nuRoles'), []);
+  $('#nuNombreCaja').classList.toggle('oculto', !D.puedeAdmin);
   $('#ayudaLista').textContent = D.puedeAdmin ? '' : 'Las cuentas con rol Administrador solo las modifica un Administrador.';
   $('#lista').innerHTML = D.usuarios.map(u => {
     const tocable = D.puedeAdmin || !esAdmin(u), yo = u.usuario === D.yo;
     const b = (attr, txt, clase, permitido) => '<button class="btn chico ' + clase + '" type="button" ' + attr + '="' + esc(u.usuario) + '"' + (permitido ? '' : ' disabled') + '>' + txt + '</button>';
+    const nom = ((u.nombre || '') + ' ' + (u.apellido || '')).trim();
     return '<tr class="' + (u.activo ? '' : 'cancelada') + '"><td><b>' + esc(u.usuario) + '</b>' + (yo ? ' <span class="ayuda">(tú)</span>' : '') + '</td>' +
+      '<td>' + (nom ? esc(nom) : '<span class="ayuda">—</span>') + '</td>' +
       '<td>' + u.roles.map(r => '<span class="chip" style="margin:0 4px 4px 0">' + esc(nombreRol(r)) + '</span>').join('') + '</td>' +
       '<td><span class="chip ' + (u.activo ? 'Activo' : 'Retirado') + '">' + (u.activo ? 'Activo' : 'Desactivado') + '</span> ' +
       (u.cambiarClave ? '<span class="chip Eventual">Contraseña temporal</span>' : '') + '</td>' +
       '<td class="ayuda">' + fechaHora(u.ultimoIngreso) + '</td>' +
       '<td><div class="acciones" style="margin:0">' +
       b('data-roles', 'Roles', 'sec', tocable && !yo) +
+      (D.puedeAdmin ? b('data-nombre', 'Nombre', 'sec', true) : '') +
       b('data-reiniciar', 'Reiniciar contraseña', 'sec', tocable) +
       (u.activo ? b('data-desactivar', 'Desactivar', 'peligro', tocable && !yo) : b('data-reactivar', 'Reactivar', 'sec', tocable)) +
       '</div></td></tr>';
   }).join('');
   const L = $('#lista');
   L.querySelectorAll('[data-roles]').forEach(x => x.onclick = () => abrirRoles(x.dataset.roles));
+  L.querySelectorAll('[data-nombre]').forEach(x => x.onclick = () => abrirNombre(x.dataset.nombre));
   L.querySelectorAll('[data-reiniciar]').forEach(x => x.onclick = () => reiniciar(x.dataset.reiniciar));
   L.querySelectorAll('[data-desactivar]').forEach(x => x.onclick = () => estado(x.dataset.desactivar, 'desactivar'));
   L.querySelectorAll('[data-reactivar]').forEach(x => x.onclick = () => estado(x.dataset.reactivar, 'reactivar'));
@@ -148,7 +170,14 @@ $('#formNuevo').onsubmit = async ev => {
   if (!roles.length) { $('#nuError').innerHTML = '<div class="aviso mal">Elige al menos un rol.</div>'; return; }
   try {
     const r = await Datos.usuarios.cambiar('crear', { usuario, roles });
-    D.usuarios = r.usuarios; pintar(); $('#nuUsuario').value = ''; aviso('');
+    D.usuarios = r.usuarios;
+    const nombre = $('#nuNombre').value.trim(), apellido = $('#nuApellido').value.trim();
+    // El nombre va aparte (solo Administrador): si falla, la cuenta ya quedó creada y se avisa.
+    if (D.puedeAdmin && (nombre || apellido)) {
+      try { D.usuarios = (await Datos.usuarios.cambiar('nombre', { usuario, nombre, apellido })).usuarios; }
+      catch (e) { aviso('La cuenta quedó creada, pero el nombre no se guardó: ' + esc(e.message)); }
+    }
+    pintar(); $('#nuUsuario').value = ''; $('#nuNombre').value = ''; $('#nuApellido').value = '';
     mostrarClave(usuario, r.temporal, 'Usuario creado');
   } catch (e) { $('#nuError').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; }
 };
@@ -170,6 +199,24 @@ $('#formRoles').onsubmit = async ev => {
     const r = await Datos.usuarios.cambiar('roles', { usuario: rolesDe, roles });
     D.usuarios = r.usuarios; pintar(); $('#dlgRoles').close(); aviso('Roles de <b>' + esc(rolesDe) + '</b> guardados.', 'bien');
   } catch (e) { $('#drError').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; }
+};
+
+let nombreDe = '';
+function abrirNombre(usuario) {
+  const u = D.usuarios.find(x => x.usuario === usuario);
+  nombreDe = usuario;
+  $('#dnUsuario').textContent = usuario;
+  $('#dnNombre').value = u.nombre || ''; $('#dnApellido').value = u.apellido || '';
+  $('#dnError').innerHTML = '';
+  $('#dlgNombre').showModal();
+}
+$('#dnCancelar').onclick = () => $('#dlgNombre').close();
+$('#formNombre').onsubmit = async ev => {
+  ev.preventDefault();
+  try {
+    const r = await Datos.usuarios.cambiar('nombre', { usuario: nombreDe, nombre: $('#dnNombre').value.trim(), apellido: $('#dnApellido').value.trim() });
+    D.usuarios = r.usuarios; pintar(); $('#dlgNombre').close(); aviso('Nombre de <b>' + esc(nombreDe) + '</b> guardado.', 'bien');
+  } catch (e) { $('#dnError').innerHTML = '<div class="aviso mal">' + esc(e.message) + '</div>'; }
 };
 
 /* Desactivar y reactivar se pueden deshacer: sin confirmación. */

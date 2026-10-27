@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Resumen de Dirección · Vida en Arte 360</title>
-<!-- Resumen de Dirección (26-oct). Solo Dirección y Administrador (área
-  «resumen», que no tiene nadie más). Sin puente propio: arma las cifras con
-  lecturas que ya existen (After School «leer» y «seguimiento», Equipo
-  «leer») y con reglas que ya están en docs/ACCIONES_API.md › Resumen. Una
-  cifra que necesitaría una definición nueva NO está (inscripciones del mes).
-  26-oct: Ocupación After School, con la regla de la pestaña Ocupación
-  (comun/cifras.js). Finanzas: «Próximamente», sin números. -->
+<title>Resumen del negocio · Vida en Arte 360</title>
+<!-- Resumen del negocio (27-oct; reemplaza al Resumen de Dirección del 26-oct).
+  Solo Dirección y Administrador (área «resumen», que no tiene nadie más).
+  Lee por la capa de datos: Datos.resumen.leer() (metas, Preschool sin
+  montos, finanzas) y Datos.afterSchool('leer'). Todas las cuentas están en
+  comun/cifras.js (Cifras.resumenNegocio), con reglas que ya existen; lo que
+  no tiene regla o no tiene fuente sale «Próximamente», nunca un número
+  inventado. Contrato en docs/ACCIONES_API.md › Resumen del negocio. -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
 <meta name="theme-color" content="#FFFFFF">
@@ -20,109 +20,190 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=da1b20fe51">
+<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
 </head>
 <body>
 <header id="cab"></header>
 <main class="pagina rs">
-  <section class="encabezado">
+  <section class="encabezado rs-encabezado">
     <div>
-      <p class="ayuda" id="hoy"></p>
-      <h1 class="titulo" id="saludo">Hola</h1>
-      <p class="portada-pregunta" id="cuantas">Leyendo lo de hoy…</p>
+      <p class="ayuda" id="saludo">Hola</p>
+      <h1 class="titulo">Así va Vida en Arte</h1>
+    </div>
+    <div class="rs-periodo">
+      <div class="rs-modo" role="group" aria-label="Ver por mes o por año">
+        <button type="button" data-modo="mes" aria-pressed="true">Mes</button>
+        <button type="button" data-modo="anio" aria-pressed="false">Año</button>
+      </div>
+      <label class="rs-elegir"><span class="sr">Período a mostrar</span><select id="periodo"></select></label>
     </div>
   </section>
   <div id="avisos"></div>
-  <section class="rs-cifras" id="cifras" aria-label="Cifras"></section>
-  <div class="rs-fila">
-    <section class="rs-atencion vidrio-tarjeta" aria-labelledby="tAtencion">
-      <h2 class="titulo" id="tAtencion">Lo que necesita tu atención</h2>
-      <div id="atencion"><p class="ayuda">Leyendo…</p></div>
-    </section>
-    <section class="rs-finanzas vidrio-tarjeta" aria-labelledby="tFinanzas">
-      <h2 class="titulo" id="tFinanzas">Finanzas</h2>
-      <p class="ayuda">Entradas y salidas, cobros y pagos por aprobar.</p>
-      <span class="chip">Próximamente</span>
-    </section>
-  </div>
+
+  <section class="rs-seccion vidrio-tarjeta" aria-labelledby="tFin">
+    <div class="rs-seccion-cab"><h2 class="titulo" id="tFin">Rentabilidad y facturación</h2><p class="ayuda" id="finSub"></p></div>
+    <div class="rs-kpis" id="finKpis"></div>
+    <div class="rs-grafico-cab"><b>Últimos 12 meses</b><span class="rs-leyenda"><span><i style="background:#1974A8"></i>Facturación</span><span><i style="background:#E0951A"></i>Costos + gastos</span><span><i class="linea" style="background:#1E7A3C"></i>Utilidad neta</span></span></div>
+    <div class="rs-grafico" id="finGrafico"></div>
+    <p class="ayuda" id="finNota"></p>
+  </section>
+
+  <section aria-labelledby="tNinos" class="rs-bloque">
+    <h2 class="titulo rs-sobre-foto" id="tNinos">Niños y ocupación</h2>
+    <div class="rs-ninos" id="ninos"></div>
+  </section>
+
+  <section class="rs-seccion vidrio-tarjeta" aria-labelledby="tUnidades">
+    <div class="rs-seccion-cab"><h2 class="titulo" id="tUnidades">Por unidad de negocio</h2></div>
+    <div class="rs-tabla-caja"><table class="rs-tabla"><thead><tr><th>Unidad</th><th>Ocupación</th><th>Niños activos</th><th>Altas</th><th>Bajas</th><th>Facturación</th><th>Margen de la unidad</th><th>Meta</th></tr></thead><tbody id="unidades"></tbody></table></div>
+    <p class="ayuda" id="unidadesNota"></p>
+  </section>
+
+  <section class="rs-seccion vidrio-tarjeta" aria-labelledby="tMirar">
+    <div class="rs-seccion-cab"><h2 class="titulo" id="tMirar">Para mirar</h2></div>
+    <p class="ayuda">Solo lo que se sale de lo normal frente a las metas. Máximo tres.</p>
+    <div id="mirar" class="rs-mirar"></div>
+    <a class="btn grande rs-pendientes" href="/#pendientes">Ver pendientes de hoy</a>
+  </section>
+  <p class="ayuda rs-pie" id="pie"></p>
 </main>
 
-<script src="/comun/datos.js?v=c918c02f12"></script>
-<script src="/comun/cifras.js?v=653e1652ff"></script>
-<script src="/comun/marca.js?v=0b53cee6ca"></script>
+<script src="/comun/datos.js?v=9bb2cb871c"></script>
+<script src="/comun/cifras.js?v=eb2c90b91e"></script>
+<script src="/comun/marca.js?v=f035d07161"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = Marca.esc;
-const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
-function sumarDia(iso, n) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
-const DIAS_TENDENCIA = 7;
+const COLOR = { 'Preschool': '#7E53A2', 'After School': '#FFA615', 'Veranito': '#FCCC14', 'Baby & Me': '#68A8C9', 'Cumpleaños': '#D53B2C' };
+const MESES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const PRONTO = 'Próximamente';
+let R = null, AS = null, sesion = null, modo = 'mes', periodo = '', hoy = '';
 
-/* Mini tendencia: una línea de los últimos días (sin ejes; el número grande es el de hoy). */
-function linea(valores, color) {
-  if (!valores.length) return '';
-  const max = Math.max(1, ...valores), paso = 200 / Math.max(1, valores.length - 1);
-  const d = valores.map((v, i) => (i ? 'L' : 'M') + Math.round(i * paso) + ' ' + Math.round(30 - v / max * 26)).join(' ');
-  return '<svg class="rs-linea" viewBox="0 0 200 34" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const pct = v => Math.round(v) + ' %';
+const num = v => Math.round(v).toLocaleString('es');
+const dinero = v => '$' + Math.round(v).toLocaleString('es');
+const conMeta = m => m ? (m.tentativa ? 'Meta tentativa: ' : 'Meta: ') + (m.porcentaje ? pct(m.valor) : num(m.valor)) : '';
+
+/* Comparaciones: solo las que tienen dato. */
+function comparaciones(c, fmt, cmp) {
+  const l = [];
+  if (c.anterior != null) l.push((modo === 'mes' ? 'Mes anterior: ' : 'Año anterior: ') + fmt(c.anterior));
+  if (c.anioAnterior != null && cmp.anioAnterior) l.push(Cifras.nombrePeriodo(cmp.anioAnterior) + ': ' + fmt(c.anioAnterior));
+  return l.map(t => '<span class="rs-cmp">' + esc(t) + '</span>').join('');
 }
-function cifra(c) {
-  return '<a class="rs-cifra vidrio-tarjeta" href="' + esc(c.url) + '"><span class="rs-cifra-tit">' + esc(c.titulo) + '</span>' +
-    '<span class="titulo rs-cifra-num">' + (c.valor === null ? '—' : esc(c.valor)) + '</span>' + (c.serie ? linea(c.serie, c.color) : '') +
-    '<span class="ayuda">' + esc(c.nota) + '</span></a>';
+
+function kpi(t, valor, nota, oscuro) {
+  return '<div class="rs-kpi' + (oscuro ? ' oscuro' : '') + '"><span class="rs-kpi-tit">' + esc(t) + '</span><span class="titulo rs-kpi-num' + (valor === null ? ' pronto' : '') + '">' + (valor === null ? PRONTO : esc(valor)) + '</span>' +
+    (nota ? '<span class="rs-kpi-nota">' + esc(nota) + '</span>' : '') + '</div>';
 }
+
+function pintarFinanzas(N) {
+  const F = N.finanzas, d = F.disponible, cmp = N.comparables;
+  $('#finSub').textContent = N.nombre + (d && F.anterior.disponible ? ' · frente a ' + Cifras.nombrePeriodo(cmp.anterior).toLowerCase() : '') + (d && F.anioAnterior.disponible ? ' y a ' + Cifras.nombrePeriodo(cmp.anioAnterior).toLowerCase() : '');
+  const ant = F.anterior.disponible ? F.anterior : null;
+  $('#finKpis').innerHTML = [
+    kpi('Facturación', d ? dinero(F.facturacion) : null, d ? 'Lo facturado en el ' + (modo === 'mes' ? 'mes' : 'año') + (ant ? ' · antes: ' + dinero(ant.facturacion) : '') + (F.metaFacturacion ? ' · ' + conMeta(F.metaFacturacion) : '') : 'Lo facturado en el ' + (modo === 'mes' ? 'mes' : 'año'), true),
+    kpi('Costos de las unidades', d ? dinero(F.costos) : null, 'Profesores, materiales y lo propio de cada unidad'),
+    kpi('Margen de las unidades', d ? dinero(F.margen) : null, 'Facturación − costos' + (d && F.facturacion ? ' · ' + pct(F.margen / F.facturacion * 100) : '')),
+    kpi('Gastos comunes', d ? dinero(F.gastosComunes) : null, 'Administración, alquiler y lo compartido'),
+    kpi('Utilidad neta', d ? dinero(F.utilidad) : null, 'Margen de las unidades − gastos comunes' + (d && F.margenNeto !== null ? ' · margen neto ' + pct(F.margenNeto * 100) : '') + (F.metaMargenNeto ? ' · ' + conMeta(Object.assign({ porcentaje: true }, F.metaMargenNeto)) : ''), true),
+    kpi('Cobrado y por cobrar', d ? dinero(F.cobrado) : null, d ? 'Cobrado ' + (F.cobradoPct !== null ? pct(F.cobradoPct * 100) : '—') + ' · por cobrar ' + dinero(F.porCobrar) + (F.familiasPorCobrar ? ' (' + F.familiasPorCobrar + ' familias)' : '') : 'Lo cobrado y lo que falta cobrar')
+  ].join('');
+  // Gráfico de 12 meses: barras de facturación y de costos + gastos, línea de utilidad neta. Sin datos, solo el marco.
+  const fin = modo === 'mes' ? periodo : (periodo === hoy.slice(0, 4) ? hoy.slice(0, 7) : periodo + '-12');
+  const S = Cifras.serieFinanzas(R.finanzas, fin), con = S.filter(x => !x.sin);
+  const W = 720, H = 200, base = 170, top = 16, ancho = W / 12;
+  const max = con.length ? Math.max(1, ...con.map(x => Math.max(x.facturacion, x.costosYGastos))) : 1;
+  const y = v => base - (v / max) * (base - top);
+  const barras = con.map(x => { const i = S.indexOf(x), x0 = i * ancho + ancho * 0.18, b = ancho * 0.3;
+    return '<rect x="' + x0.toFixed(1) + '" y="' + y(x.facturacion).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.facturacion)).toFixed(1) + '" rx="3" fill="#1974A8"/>' +
+      '<rect x="' + (x0 + b + 2).toFixed(1) + '" y="' + y(x.costosYGastos).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.costosYGastos)).toFixed(1) + '" rx="3" fill="#E0951A"/>'; }).join('');
+  const linea = con.length > 1 ? '<path d="' + con.map((x, k) => (k ? 'L' : 'M') + (S.indexOf(x) * ancho + ancho / 2).toFixed(1) + ' ' + y(Math.max(0, x.utilidad)).toFixed(1)).join(' ') + '" fill="none" stroke="#1E7A3C" stroke-width="2.5"/>' : '';
+  const ejes = S.map((x, i) => '<text x="' + (i * ancho + ancho / 2).toFixed(1) + '" y="194" text-anchor="middle">' + MESES_C[+x.mes.slice(5, 7) - 1] + '</text>').join('');
+  $('#finGrafico').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + (con.length ? 'Facturación, costos y gastos y utilidad neta de los últimos 12 meses' : 'Gráfico de los últimos 12 meses: próximamente') + '">' +
+    '<line x1="0" y1="' + base + '" x2="' + W + '" y2="' + base + '" stroke="#D8D8D8"/>' + barras + linea + ejes + '</svg>' +
+    (con.length ? '' : '<span class="rs-grafico-pronto">' + PRONTO + '</span>');
+  $('#finNota').textContent = d ? '' : 'Se llena cuando Finanzas tenga facturación, costos y gastos. Hoy no hay fuente: ningún número de esta sección es inventado.';
+}
+
+function tarjetaNino(t, c, fmt) {
+  const meta = c.meta, avance = c.valor !== null && meta && meta.valor ? Math.max(0, Math.min(100, c.valor / meta.valor * 100)) : null;
+  return '<div class="rs-nino vidrio-tarjeta"><span class="rs-kpi-tit">' + esc(t) + '</span><span class="titulo rs-kpi-num' + (c.valor === null ? ' pronto' : '') + '">' + (c.valor === null ? PRONTO : esc(fmt(c.valor))) + '</span>' +
+    (c.valor === null ? '<span class="rs-kpi-nota">' + esc(c.motivo) + '. Por unidad, en la tabla.</span>' : comparaciones(c, fmt, R && R._cmp)) +
+    (meta ? '<span class="rs-barra"><i style="width:' + (avance === null ? 0 : avance) + '%"></i></span><span class="rs-kpi-nota">' + esc(conMeta(meta)) + (avance !== null ? ' · avance ' + pct(avance) : '') + '</span>' : '') + '</div>';
+}
+
+function pintarUnidades(N) {
+  const celda = (c, fmt) => c.valor === null ? '<span class="rs-pronto">' + (c.motivo === 'Sin datos' ? PRONTO : '—') + '</span>' : esc(fmt(c.valor));
+  $('#unidades').innerHTML = N.unidades.map(u => {
+    const o = u.ocupacion, oc = o.valor !== null ? Math.max(0, Math.min(100, o.valor * 100)) : 0;
+    const meta = u.activos.meta;
+    return '<tr' + (u.datos ? '' : ' class="sin-datos"') + '><th scope="row"><span class="rs-punto" style="background:' + COLOR[u.nombre] + '" aria-hidden="true"></span>' + esc(u.nombre) + '</th>' +
+      '<td data-etq="Ocupación"><span class="rs-ocup"><span class="rs-barra"><i style="width:' + oc + '%;background:' + COLOR[u.nombre] + '"></i>' + (o.meta ? '<b style="left:' + Math.min(100, o.meta.valor) + '%" title="Meta"></b>' : '') + '</span><span>' + (o.valor === null ? '—' : pct(o.valor * 100)) + '</span></span>' +
+        (u.ocupacionNota ? '<span class="ayuda">' + esc(u.ocupacionNota) + '</span>' : '') + '</td>' +
+      '<td data-etq="Niños activos">' + celda(u.activos, num) + '</td><td data-etq="Altas">' + celda(u.altas, num) + '</td><td data-etq="Bajas">' + celda(u.bajas, num) + '</td>' +
+      '<td data-etq="Facturación">' + (u.facturacion === null ? '<span class="rs-pronto">' + PRONTO + '</span>' : dinero(u.facturacion)) + '</td>' +
+      '<td data-etq="Margen de la unidad">' + (u.margen === null ? '<span class="rs-pronto">' + PRONTO + '</span>' : dinero(u.margen)) + '</td>' +
+      '<td data-etq="Meta"><span>' + (meta ? esc(num(meta.valor)) + (meta.tentativa ? ' <span class="ayuda">tentativa</span>' : '') : '—') + '</span></td></tr>';
+  }).join('');
+  const pre = N.unidades.find(u => u.nombre === 'Preschool');
+  $('#unidadesNota').textContent = 'Preschool sale de los datos de su tablero (sin montos)' + (R.preschool && R.preschool.sello ? ', al ' + Marca.fechaLarga(R.preschool.sello).toLowerCase() : '') +
+    (pre && pre.hasta ? '; en el año, hasta ' + Cifras.nombrePeriodo(pre.hasta).toLowerCase() : '') +
+    '. After School: solo el período en curso (ocupación de esta semana); sus altas y bajas esperan su regla. La meta es la de «Niños activos» de la pestaña Metas.';
+}
+
+function pintarMirar(N) {
+  const texto = a => a.tipo === 'ocupacion' ? [a.unidad + ' con ocupación bajo la meta', pct(a.valor) + ' frente a ' + (a.meta.tentativa ? 'meta tentativa' : 'meta') + ' de ' + pct(a.meta.valor)]
+    : a.tipo === 'bajas' ? ['Bajas por encima de lo normal', num(a.valor) + ' bajas en ' + a.unidad + ' frente a un tope ' + (a.meta.tentativa ? 'tentativo ' : '') + 'de ' + num(a.meta.valor)]
+    : ['Margen neto bajo la meta', pct(a.valor) + ' frente a ' + (a.meta.tentativa ? 'meta tentativa' : 'meta') + ' de ' + pct(a.meta.valor)];
+  const color = { ocupacion: '#8A4B0F', bajas: '#B3261E', margen: '#111111' };
+  $('#mirar').innerHTML = N.alertas.length ? N.alertas.map(a => { const [t, d] = texto(a);
+    return '<div class="rs-item"><span class="rs-punto" style="background:' + color[a.tipo] + '" aria-hidden="true"></span><span class="rs-item-txt"><b>' + esc(t) + '</b><span class="ayuda">' + esc(d) + '</span></span></div>'; }).join('')
+    : '<p class="ayuda">Nada se sale de lo normal' + (R.metas.length ? '' : ': todavía no hay metas en la pestaña «Metas»') + '.</p>';
+}
+
+function pintar() {
+  if (!R) return;
+  const N = Cifras.resumenNegocio({ periodo, E: AS, pre: R.preschool, metas: R.metas, finanzas: R.finanzas });
+  R._cmp = N.comparables;
+  pintarFinanzas(N);
+  const n = N.ninos;
+  $('#ninos').innerHTML = tarjetaNino('Niños activos', n.activos, num) + tarjetaNino('Altas del ' + (modo === 'mes' ? 'mes' : 'año'), n.altas, num) +
+    tarjetaNino('Bajas del ' + (modo === 'mes' ? 'mes' : 'año'), n.bajas, num) + tarjetaNino('Pruebas que se inscriben', Object.assign({}, n.pruebas, { meta: n.pruebas.meta && Object.assign({ porcentaje: true }, n.pruebas.meta) }), v => pct(v * 100));
+  pintarUnidades(N);
+  pintarMirar(N);
+  $('#pie').textContent = 'Las metas salen de la pestaña «Metas» del Sheet «Procesos — Vida en Arte» y dicen «tentativa» hasta que estén Confirmadas. «Próximamente»: falta la fuente o la regla; el portal no inventa esa cifra.';
+}
+
+/* Los períodos que se pueden elegir: los 12 meses hasta el actual, o este año y el anterior. */
+function opciones() {
+  const ps = modo === 'mes' ? Array.from({ length: 12 }, (_, i) => Cifras.mesMas(hoy.slice(0, 7), -i)) : [hoy.slice(0, 4), String(+hoy.slice(0, 4) - 1)];
+  if (!ps.includes(periodo)) periodo = ps[0];
+  $('#periodo').innerHTML = ps.map(p => '<option value="' + p + '"' + (p === periodo ? ' selected' : '') + '>' + esc(modo === 'mes' ? Cifras.nombrePeriodo(p) : p) + '</option>').join('');
+}
+document.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => {
+  modo = b.dataset.modo;
+  document.querySelectorAll('[data-modo]').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  periodo = modo === 'mes' ? hoy.slice(0, 7) : hoy.slice(0, 4);
+  opciones(); pintar();
+});
+$('#periodo').onchange = () => { periodo = $('#periodo').value; pintar(); };
 
 (async function iniciar() {
-  let s;
-  try { s = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
-  Marca.cabecera($('#cab'), { sesion: s, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Resumen de Dirección' }] });
-  const h = new Date().getHours();
-  $('#saludo').textContent = (h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches') + ', ' + (s ? s.usuario : '');
-  $('#hoy').textContent = Marca.fechaLarga();
-
-  // Las tres lecturas a la vez (la sesión ya no las pone en fila).
-  const [as, seg, eq] = await Promise.allSettled([Datos.afterSchool('leer', {}), Datos.afterSchool('seguimiento', {}), Datos.equipo.leer()]);
-  const falla = [as, seg, eq].map((x, i) => x.status === 'rejected' ? ['After School', 'Seguimiento', 'Equipo'][i] + ': ' + x.reason.message : '').filter(Boolean);
-  if ([as, seg, eq].some(x => x.status === 'rejected' && x.reason.codigo === 'sesion')) { Datos.aLogin(); return; }
-  if (falla.length) $('#avisos').innerHTML = '<div class="aviso ojo">No se pudo leer todo: ' + esc(falla.join(' · ')) + '. Esas cifras salen con «—».</div>';
-  const E = as.status === 'fulfilled' ? as.value.resultado : null, SEG = seg.status === 'fulfilled' ? seg.value.resultado : null, EQ = eq.status === 'fulfilled' ? eq.value.resultado : null;
-  const hoy = (E && E.hoy) || (SEG && SEG.hoy) || (EQ && EQ.hoy) || '';
-  const dias = hoy ? Array.from({ length: DIAS_TENDENCIA }, (_, i) => sumarDia(hoy, i - DIAS_TENDENCIA + 1)) : [];
-
-  // Contratos por validar: puestos en Borrador.
-  const borradores = EQ ? EQ.puestos.filter(p => Marca.normal(p.estado) === 'borrador') : null;
-  // Clases de hoy sin lista (Seguimiento, R112); tendencia: cada uno de los últimos 7 días.
-  const sinLista = SEG ? SEG.clasesSinLista : null;
-  const sinListaHoy = sinLista ? sinLista.filter(c => c.fecha === hoy).length : null;
-  // Pruebas pendientes de resultado: ya pasaron y siguen «Agendada» (After School › Pruebas).
-  const pend = E ? (E.pruebas || []).filter(p => p.estado === 'Agendada' && p.fecha < E.hoy) : null;
-  // Listas sin revisar (Equipo): un puesto y un período con marcas y sin revisión de ese período.
-  // Ocupación After School: la de la pestaña Ocupación en la semana de hoy (comun/cifras.js).
-  const ocup = E ? Cifras.ocupacionAS(E) : null;
-  const sinRevisar = EQ ? Object.entries(EQ.fichas).flatMap(([id, f]) => [...new Set(f.marcas.map(m => m.periodo))]
-    .filter(per => !f.revisiones.some(r => r.periodo === per)).map(per => ({ id, per }))) : null;
-
-  $('#cifras').innerHTML = [
-    { titulo: 'Contratos por validar', valor: borradores ? borradores.length : null, nota: 'Puestos en Borrador', url: '/procesos/#equipo', color: '#111111' },
-    { titulo: 'Clases de hoy sin lista', valor: sinListaHoy, serie: sinLista ? dias.map(d => sinLista.filter(c => c.fecha === d).length) : null, nota: 'Últimos 7 días', url: '/after-school/#seguimiento', color: '#B3261E' },
-    { titulo: 'Pruebas sin resultado', valor: pend ? pend.length : null, serie: pend ? dias.map(d => pend.filter(p => p.fecha === d).length) : null, nota: 'Por día de la visita, últimos 7 días', url: '/after-school/#pruebas', color: '#8A4B0F' },
-    { titulo: 'Ocupación After School', valor: ocup ? Math.round(ocup.valor * 100) + ' %' : null, serie: ocup && ocup.serie ? ocup.serie : null,
-      nota: ocup ? ocup.inscritos + ' inscritos en ' + ocup.cupos + ' cupos, esta semana' : 'Sin clases activas con cupo', url: '/after-school/#ocupacion', color: '#1E7A3C' },
-    { titulo: 'Listas sin revisar', valor: sinRevisar ? sinRevisar.length : null, nota: 'Períodos con marcas y sin revisión', url: '/equipo/#revisar', color: '#1974A8' }
-  ].map(cifra).join('');
-
-  const nombre = id => ((EQ && EQ.puestos.find(p => p.id === id)) || {}).puesto || id;
-  const items = [
-    borradores && borradores.length ? { t: plural(borradores.length, 'contrato de posición por validar', 'contratos de posición por validar'), d: 'Procesos › Equipo', url: '/procesos/#equipo', c: '#111111' } : null,
-    sinListaHoy ? { t: plural(sinListaHoy, 'clase de hoy sin lista', 'clases de hoy sin lista'), d: 'After School › Seguimiento', url: '/after-school/#seguimiento', c: '#B3261E' } : null,
-    pend && pend.length ? { t: plural(pend.length, 'prueba sin resultado', 'pruebas sin resultado'), d: 'After School › Pruebas', url: '/after-school/#pruebas', c: '#8A4B0F' } : null,
-    sinRevisar && sinRevisar.length ? { t: plural(sinRevisar.length, 'lista de verificación sin revisar', 'listas de verificación sin revisar'),
-      d: [...new Set(sinRevisar.map(x => nombre(x.id)))].join(' · '), url: '/equipo/#revisar', c: '#1974A8' } : null
-  ].filter(Boolean);
-  $('#cuantas').textContent = items.length ? 'Hoy hay ' + plural(items.length, 'cosa que necesita tu atención.', 'cosas que necesitan tu atención.') : 'Hoy no hay nada pendiente.';
-  $('#atencion').innerHTML = items.length ? items.map(x => '<a class="rs-item" href="' + esc(x.url) + '"><span class="rs-punto" style="background:' + x.c + '" aria-hidden="true"></span>' +
-    '<span class="rs-item-txt"><b>' + esc(x.t) + '</b><span class="ayuda">' + esc(x.d) + '</span></span>' +
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>').join('')
-    : '<p class="ayuda">Nada pendiente en lo que mide el portal.</p>';
+  try { sesion = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
+  Marca.cabecera($('#cab'), { sesion, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Resumen del negocio' }] });
+  $('#saludo').textContent = Marca.saludo(sesion);
+  const [r, as] = await Promise.allSettled([Datos.resumen.leer(), Datos.afterSchool('leer', {})]);
+  if ([r, as].some(x => x.status === 'rejected' && x.reason.codigo === 'sesion')) { Datos.aLogin(); return; }
+  const falla = [r, as].map((x, i) => x.status === 'rejected' ? ['Metas y Preschool', 'After School'][i] + ': ' + x.reason.message : '').filter(Boolean);
+  R = r.status === 'fulfilled' ? r.value.resultado : { hoy: '', metas: [], preschool: null, finanzas: null, faltan: [] };
+  AS = as.status === 'fulfilled' ? as.value.resultado : null;
+  const faltan = falla.concat(R.faltan || []);
+  if (faltan.length) $('#avisos').innerHTML = '<div class="aviso ojo">No se pudo leer todo: ' + esc(faltan.join(' · ')) + '. Esas cifras salen como «Próximamente» o «—».</div>';
+  hoy = (AS && AS.hoy) || R.hoy || new Date().toISOString().slice(0, 10);
+  periodo = hoy.slice(0, 7);
+  opciones(); pintar();
 })();
 </script>
 </body>

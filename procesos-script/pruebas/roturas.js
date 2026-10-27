@@ -28,6 +28,12 @@ const ROTURAS = [
   ['acepta cualquier resultado', "    if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(m.resultado)", "    if (!r) r = texto_(m.resultado); if (false) throw new ErrorUsuario_('Resultado inválido: «' + texto_(m.resultado)"],
   ['acepta un período inválido al revisar', "if (!periodoValido_(d.periodo)) throw", "if (false) throw"],
   ['escribe sin candado', "if (!lock.tryLock(20000)) return", "if (false) return"],
+  ['no lee la pestaña Metas', "  metas: { hoja: 'Metas'", "  metasNo: { hoja: 'Metas'"],
+  ['un mes de Metas convertido en fecha se lee como día', "if (Object.prototype.toString.call(x) === '[object Date]') return isoDe_(x).slice(0, 7);", "if (Object.prototype.toString.call(x) === '[object Date]') return isoDe_(x);"],
+  ['actualizarEstructura no deja Período como texto', "    t.hoja.getRange(desde, t.col[normalizar_('Período')], filas, 1).setNumberFormat('@');", ""],
+  ['actualizarEstructura repite los títulos', "  var faltan = agregar.filter(function (t) { return tiene.indexOf(normalizar_(t)) < 0; });", "  var faltan = agregar.slice();"],
+  ['actualizarEstructura escribe encima de la última columna', "  h.getRange(fila + 1, ancho + 1, 1, faltan.length).setValues([faltan]);", "  h.getRange(fila + 1, ancho, 1, faltan.length).setValues([faltan]);"],
+  ['Estado de Metas acepta cualquier cosa', ".setAllowInvalid(false).build();", ".setAllowInvalid(true).build();"],
   ['escribe encima de la última fila', "var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos) + 1;", "var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos);"]
 ];
 

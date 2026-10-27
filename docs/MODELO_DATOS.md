@@ -237,6 +237,7 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 | Aceptaciones | Fecha y hora, Usuario, Puesto ID, Versión | La escribe el portal. Vale solo la de la versión vigente del puesto. |
 | Marcas | Fecha y hora, Usuario, Puesto ID, Orden del punto, Período, Resultado, Nota | La escribe el portal. Resultado: Cumplido · No. Una corrección es otra fila del mismo período (vale la última; las anteriores quedan de rastro). |
 | Revisiones | Fecha y hora, Revisor, Puesto ID, Período, Sorpresa, Resultado, Nota | La escribe el portal. Sorpresa: Sí · No. |
+| Metas (27-oct) | Cifra, Unidad, Período, Valor, Estado | La crea `actualizarEstructura()` (Procesos.gs v2); la escribe Vida en Arte; el portal solo la lee (`resumen/api.php`). Cifra: Ocupación · Niños activos · Altas · Bajas · Pruebas que se inscriben · Facturación · Margen de la unidad · Margen neto. Unidad: Negocio · Preschool · After School · Veranito · Baby & Me · Cumpleaños. Período (texto): `2026-10` (mes) o `2026` (año). Valor: número (un porcentaje se escribe 70 o 70 %). Estado: Tentativa · Confirmada (vacío = tentativa). Para Bajas, la meta es el tope normal. |
 
 **Período** (texto, formato `@`): Diario, Cuando aplica y Por persona nueva →
 la fecha (`2026-10-26`); Semanal → la semana ISO (`2026-S44`); Mensual → el
@@ -244,6 +245,13 @@ mes (`2026-10`); Por temporada → el año (`2026`). Lo pone el script con la
 fecha de hoy del Sheet; solo se marca el período en curso.
 
 ---
+
+## Cuentas del portal: nombre y apellido (27-oct)
+
+`portal_usuarios.json` (servidor, fuera del repo) suma a cada cuenta `nombre`
+y `apellido` (texto, opcionales, hasta 40 letras). Solo los edita un
+Administrador (Configuración › Usuarios). Se usan para el saludo, la
+cabecera y Revisar; sin nombre se muestra el usuario.
 
 ## Equivalente propuesto en Postgres / Supabase
 

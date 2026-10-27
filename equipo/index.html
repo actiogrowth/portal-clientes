@@ -20,7 +20,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=da1b20fe51">
+<link rel="stylesheet" href="/comun/vea.css?v=2e22efda80">
 </head>
 <body>
 <header id="cab"></header>
@@ -50,8 +50,8 @@
   </section>
 </main>
 
-<script src="/comun/datos.js?v=c918c02f12"></script>
-<script src="/comun/marca.js?v=0b53cee6ca"></script>
+<script src="/comun/datos.js?v=9bb2cb871c"></script>
+<script src="/comun/marca.js?v=f035d07161"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -69,6 +69,8 @@ function periodoTexto(p) {
   return p;
 }
 const nombreDe = id => (D.puestos.find(p => p.id === id) || {}).puesto || id;
+/* 27-oct: quién marcó o revisó, con su nombre y cargo (el servidor manda solo los de estas fichas). Sin nombre: el usuario, como antes. */
+const quien = u => { const p = D.personas && D.personas[u]; return p && p.nombre ? p.nombre + ' · ' + p.cargo : u; };
 /* La última marca de un punto en un período (la de más tarde vale; las anteriores quedan). */
 function ultimaMarca(f, orden, periodo) {
   return f.marcas.filter(m => +m.orden === +orden && m.periodo === periodo).sort((a, b) => a.fecha.localeCompare(b.fecha)).pop() || null;
@@ -138,7 +140,7 @@ function pintarLista() {
       const boton = (v, cls) => '<button type="button" class="ml-res ' + cls + '" data-orden="' + k + '" data-res="' + v + '" aria-pressed="' + (elegido === v) + '">' + v + '</button>';
       return '<div class="ml-punto"><div class="ml-punto-txt"><span class="ml-que">' + esc(x.texto) + '</span>' +
         (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') +
-        (u ? '<span class="ayuda ml-ya">Marcado por ' + esc(u.usuario) + ' · ' + esc(u.fecha.replace('T', ' ')) + (k in marcas ? ' · se corrige al guardar' : '') + '</span>' : '') +
+        (u ? '<span class="ayuda ml-ya">Marcado por ' + esc(quien(u.usuario)) + ' · ' + esc(u.fecha.replace('T', ' ')) + (k in marcas ? ' · se corrige al guardar' : '') + '</span>' : '') +
         (abiertaNota[k] || nota ? '<label class="ml-nota"><span class="sr">Nota</span><input type="text" maxlength="500" data-nota="' + k + '" value="' + esc(nota) + '" placeholder="Nota (opcional)"></label>' : '') + '</div>' +
         '<div class="ml-botones" role="group" aria-label="' + esc(x.texto) + '">' + boton('Cumplido', 'si') + boton('No', 'no') +
         (abiertaNota[k] || nota ? '' : '<button type="button" class="ml-res nota" data-abrir-nota="' + k + '">Nota</button>') + '</div></div>';
@@ -188,9 +190,9 @@ function pintarRevisar() {
       const revs = f.revisiones.filter(r => r.periodo === per);
       return '<section class="ml-tarjeta vidrio-tarjeta ml-periodo"><h2 class="ml-grupo">' + esc(periodoTexto(per)) + (revs.length ? ' <span class="eq-chip abierto">Revisado</span>' : ' <span class="eq-chip borrador">Sin revisar</span>') + '</h2>' +
         ordenes.map(o => { const u = ultimaMarca(f, o, per); return '<div class="ml-punto"><div class="ml-punto-txt"><span class="ml-que">' + esc(texto(o)) + '</span>' +
-          '<span class="ayuda">' + esc(u.usuario) + ' · ' + esc(u.fecha.replace('T', ' ')) + (u.nota ? ' · «' + esc(u.nota) + '»' : '') + '</span></div>' +
+          '<span class="ayuda">' + esc(quien(u.usuario)) + ' · ' + esc(u.fecha.replace('T', ' ')) + (u.nota ? ' · «' + esc(u.nota) + '»' : '') + '</span></div>' +
           '<span class="ml-estado ' + (u.resultado === 'Cumplido' ? 'si' : 'no') + '">' + esc(u.resultado) + '</span></div>'; }).join('') +
-        revs.map(r => '<p class="ayuda ml-revision">Revisión de ' + esc(r.revisor) + ' · ' + esc(r.fecha.replace('T', ' ')) + ' · ' + esc(r.resultado) + (r.sorpresa === 'Sí' ? ' · sorpresa' : '') + (r.nota ? ' · «' + esc(r.nota) + '»' : '') + '</p>').join('') +
+        revs.map(r => '<p class="ayuda ml-revision">Revisión de ' + esc(quien(r.revisor)) + ' · ' + esc(r.fecha.replace('T', ' ')) + ' · ' + esc(r.resultado) + (r.sorpresa === 'Sí' ? ' · sorpresa' : '') + (r.nota ? ' · «' + esc(r.nota) + '»' : '') + '</p>').join('') +
         '<form class="ml-revisar" data-periodo="' + esc(per) + '"><fieldset><legend>Sorpresa</legend><label><input type="radio" name="s-' + esc(per) + '" value="Sí"> Sí</label><label><input type="radio" name="s-' + esc(per) + '" value="No" checked> No</label></fieldset>' +
         '<fieldset><legend>Resultado</legend><label><input type="radio" name="r-' + esc(per) + '" value="Cumplido" checked> Cumplido</label><label><input type="radio" name="r-' + esc(per) + '" value="No"> No</label></fieldset>' +
         '<label class="ml-nota-rev">Nota <input type="text" maxlength="500" name="nota"></label><button type="submit" class="btn negro">Registrar revisión</button></form></section>';

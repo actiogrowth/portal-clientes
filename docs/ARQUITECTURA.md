@@ -437,6 +437,43 @@ foto con el velo, 5,3:1 (AA pide 4,5:1).
    `'pr_cache_seg' => 60`. Sin `pr_exec` y `pr_clave`, el puente responde
    `sin_configuracion`.
 
+## 2f. Ajustes de Equipo y Resumen del negocio (27-oct)
+
+- **Procesos** entra por dos tarjetas: «Documentos» (`/procesos/#documentos`:
+  la biblioteca por unidad, con el buscador; los documentos se leen al
+  entrar) y «Equipo» (`/procesos/#equipo`). Ruta «Inicio / Procesos /
+  Documentos» y «Inicio / Procesos / Equipo» (en celular, sobre el título).
+- **Organigrama** (`comun/organigrama.js`): en computador y tablet un árbol
+  que se arrastra y se acerca (rueda, pellizco, − / + / «Ajustar»), con las
+  áreas en una fila y líneas del color del área; en celular, lista por áreas.
+  La ficha es un `<dialog>` centrado sobre el organigrama desenfocado (Esc,
+  la X o tocar afuera la cierran; el foco no sale). Las mismas reglas de
+  quién ve qué (R119).
+- **Resumen del negocio** (`/resumen/`): la pantalla lee `resumen/api.php`
+  (metas y Preschool) y After School `leer`; todas las cuentas en
+  `comun/cifras.js`. Finanzas con su contrato listo y «Próximamente» hasta
+  que haya fuente.
+
+```
+resumen/index.html ─ Datos.resumen.leer() ─▶ resumen/api.php ─┬─ eq_sheet (Procesos.gs: pestaña Metas)
+                   │                                          └─ csv.analisis + csv.config (tablas de Preschool; solo conteos)
+                   └─ Datos.afterSchool('leer') ─▶ after-school/api.php
+portada ─ Datos.pendientes.leer() ─▶ pendientes/api.php ─┬─ After School seguimiento / leer (solo si el rol lo atiende)
+                                                        └─ eq_sheet + eq_vista (Equipo)
+```
+
+- **Pendientes de hoy** (portada): `pendientes/api.php` (área `equipo`)
+  decide con los permisos de cada rol qué cuenta (R130).
+- **Nombre y apellido** en las cuentas del servidor; `acceso.php` los manda
+  con la sesión; `Marca.cabecera` y `Marca.saludo` los usan.
+- `equipo/api.php` y los dos puentes nuevos se cargan uno a otro con
+  `EQ_SOLO_FUNCIONES` (solo funciones), como `AS_SOLO_FUNCIONES`.
+
+**Metas** (una vez, tras pegar `Procesos.gs` v2): en el editor de Apps Script
+elegir `actualizarEstructura` y «Ejecutar». Crea la pestaña «Metas» con sus
+títulos y listas, y agrega «Visible solo para» a Puestos si faltara. No
+mueve ni borra nada.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
@@ -480,9 +517,10 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/roturas.js` | Rompe cada regla del `.gs` y exige que la prueba anterior falle. |
 | `after-school-script/pruebas/prueba-api-transporte.php` (+ `correr-prueba-transporte.js`) | El transporte de `api.php`: redirecciones, reintentos, tiempos. |
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
-| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), Equipo (quién ve, acepta, marca y revisa qué puesto, por rol, buscando en el texto de la respuesta), Resumen solo para Dirección y Administrador, estilo vidrio por página, biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
+| `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), Equipo (quién ve, acepta, marca y revisa qué puesto, por rol, buscando en el texto de la respuesta), Resumen del negocio solo para Dirección y Administrador (Preschool sin montos, metas), Pendientes de hoy por rol, nombre y apellido (solo Administrador), estilo vidrio por página, biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
-| `pruebas-portal/prueba-cifras.js` | La ocupación de After School del Resumen (`comun/cifras.js`) con datos inventados, y sus roturas. |
+| `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
+| `pruebas-portal/prueba-organigrama.js` | El organigrama (`comun/organigrama.js`): áreas en una fila, cada línea de su jefe y del color del área, conteo de la lista del celular, y que la ficha es un diálogo con Esc, tocar afuera y el foco atrapado; con sus roturas. |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 
 Los datos de prueba son siempre inventados.

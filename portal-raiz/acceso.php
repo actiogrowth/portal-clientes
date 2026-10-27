@@ -3,7 +3,7 @@
  * área lo vuelve a comprobar el servidor (requerir_sesion en auth.php).
  *
  *   acceso.php?formato=json  (21-oct, rediseño; lo usa comun/datos.js)
- *     {ok, usuario, roles:[{id, nombre}], areas: '*' | ['kinder', …],
+ *     {ok, usuario, nombre, apellido (27-oct; '' sin nombre cargado), roles:[{id, nombre}], areas: '*' | ['kinder', …],
  *      inicio: dónde empieza tras el login, inicioAS: pestaña de After School,
  *      permisosAS: lo de After School que puede hacer}
  *     Sin sesión → 401 {codigo:'sesion'}; contraseña temporal → 403 {codigo:'cambiar_clave'}.
@@ -24,6 +24,7 @@ if (($_GET['formato'] ?? '') === 'json') {
     $_SESSION['ultimo'] = time();
     $roles = $c['roles'] ?? [];
     echo json_encode(['ok' => true, 'usuario' => usuario_actual(),
+        'nombre' => trim((string) ($c['nombre'] ?? '')), 'apellido' => trim((string) ($c['apellido'] ?? '')),
         'roles' => array_map(fn($r) => ['id' => $r, 'nombre' => ROLES[$r]['nombre']], array_values(array_filter($roles, 'rol_valido'))),
         'areas' => areas_visibles($roles), 'inicio' => destino_inicio($roles), 'inicioAS' => inicio_as($roles),
         'permisosAS' => permisos_as($roles)], JSON_UNESCAPED_UNICODE);
