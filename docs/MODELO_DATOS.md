@@ -103,7 +103,7 @@ Una inscripción **ocupa cupo en el día D** si `alta ≤ D` y (`sin baja` o `ba
 
 ## Bajas
 
-Registro de **bajas totales** (además de cerrar las inscripciones y poner el niño Retirado). Ver hallazgo H4.
+Registro de **bajas totales** (además de cerrar las inscripciones y poner el niño Retirado). Ver hallazgo H4. Desde v10 (27-oct) `leer` manda de aquí solo ID niño y fecha, para las bajas del Resumen (R135).
 
 | Columna | Tipo | Notas |
 |---|---|---|
@@ -148,6 +148,7 @@ Listas y parámetros en una sola tabla. Ver hallazgo H8.
 
 Parámetros actuales: `Umbral amarillo` (Número: fracción de ocupación), `Concepto de mensualidad` (Nota: el concepto que cuenta como «pagó el mes»).
 21-oct: `Faltas seguidas` (Número, 2), `Días para reponer` (Número, 30), `Duración de clase (min)` (Número, 60) y `Asistencia desde` (Nota: fecha; *Actualizar estructura* pone el día en que se corre).
+27-oct (v10), para el Resumen del negocio: `Días para que una prueba cuente como inscrita` (Número, 30) y `Cifras del Resumen desde` (Nota: fecha; *Actualizar estructura* pone el día del primer registro de Inscripciones, es decir, la carga inicial). Si faltan, After School funciona igual y solo esas cifras del Resumen dicen qué falta (no van a «faltan»).
 Los valores iniciales están en `INS_CONFIG` y solo se escriben si la lista no existe; después manda la hoja.
 
 **Pasar lista del Profesor (23-oct, v8).** Dos parámetros más (Lista

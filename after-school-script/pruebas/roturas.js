@@ -15,6 +15,11 @@ const PRUEBA = path.join(__dirname, 'prueba-after-school.js');
 const original = fs.readFileSync(GS, 'utf8').replace(/\r\n/g, '\n');
 
 const ROTURAS = [
+  // 27-oct (v10): lo que lee el Resumen del negocio
+  ['leer no devuelve las bajas totales', "    bajas: leerTabla_('bajas').filas.map(", "    bajasNo: leerTabla_('bajas').filas.map("],
+  ['leer manda el motivo de la baja', "return { idNino: texto_(f['ID niño']), fecha: aISO_(f['Fecha baja']) }; }),", "return { idNino: texto_(f['ID niño']), fecha: aISO_(f['Fecha baja']), detalle: texto_(f['Detalle']) }; }),"],
+  ['«Cifras del Resumen desde» arranca hoy', "r[1] === PARAM_RESUMEN_DESDE ? fechaDeTexto_(primerRegistro_())", "r[1] === PARAM_RESUMEN_DESDE ? fechaDeTexto_(hoyISO_())"],
+  ['los días de la prueba no salen de Config', "cfg.diasInscribe = entero(f['Número']);", "cfg.diasInscribe = 30;"],
   ['no exige la clave', "if (!igualSeguro_(p.key, clave)) return", "if (false) return"],
   ['no exige el usuario', "if (!usuario) return { ok: false, error: 'La llamada no trae", "if (false) return { ok: false, error: 'La llamada no trae"],
   ['acepta claves cortas', "if (!clave || clave.length < 24)", "if (!clave)"],

@@ -9,9 +9,11 @@
   Solo Dirección y Administrador (área «resumen», que no tiene nadie más).
   Lee por la capa de datos: Datos.resumen.leer() (metas, Preschool sin
   montos, finanzas) y Datos.afterSchool('leer'). Todas las cuentas están en
-  comun/cifras.js (Cifras.resumenNegocio), con reglas que ya existen; lo que
-  no tiene regla o no tiene fuente sale «Próximamente», nunca un número
-  inventado. Contrato en docs/ACCIONES_API.md › Resumen del negocio. -->
+  comun/cifras.js (Cifras.resumenNegocio), con reglas escritas en
+  docs/REGLAS_NEGOCIO.md (27-oct: altas, bajas y pruebas que se inscriben de
+  After School, R134–R137); lo que no tiene regla o no tiene fuente sale
+  «Próximamente», nunca un número inventado. Contrato en
+  docs/ACCIONES_API.md › Resumen del negocio. -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
 <meta name="theme-color" content="#FFFFFF">
@@ -20,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=83f933a771">
+<link rel="stylesheet" href="/comun/vea.css?v=150563a939">
 </head>
 <body>
 <header id="cab"></header>
@@ -55,7 +57,7 @@
 
   <section class="rs-seccion vidrio-tarjeta" aria-labelledby="tUnidades">
     <div class="rs-seccion-cab"><h2 class="titulo" id="tUnidades">Por unidad de negocio</h2></div>
-    <div class="rs-tabla-caja"><table class="rs-tabla"><thead><tr><th>Unidad</th><th>Ocupación</th><th>Niños activos</th><th>Altas</th><th>Bajas</th><th>Facturación</th><th>Margen de la unidad</th><th>Meta</th></tr></thead><tbody id="unidades"></tbody></table></div>
+    <div class="rs-tabla-caja"><table class="rs-tabla"><thead><tr><th>Unidad</th><th>Ocupación</th><th>Niños activos</th><th>Altas</th><th>Bajas</th><th>Pruebas que se inscriben</th><th>Facturación</th><th>Margen de la unidad</th><th>Meta</th></tr></thead><tbody id="unidades"></tbody></table></div>
     <p class="ayuda" id="unidadesNota"></p>
   </section>
 
@@ -69,7 +71,7 @@
 </main>
 
 <script src="/comun/datos.js?v=78ef6c43a8"></script>
-<script src="/comun/cifras.js?v=2ca26baf01"></script>
+<script src="/comun/cifras.js?v=10490e660e"></script>
 <script src="/comun/marca.js?v=37b691d840"></script>
 <script>
 'use strict';
@@ -81,6 +83,8 @@ const PRONTO = 'Próximamente';
 let R = null, AS = null, sesion = null, modo = 'mes', periodo = '', hoy = '';
 
 const pct = v => Math.round(v) + ' %';
+const pctDe = v => pct(v * 100);
+const fechaCorta = iso => +iso.slice(8, 10) + ' ' + MESES_C[+iso.slice(5, 7) - 1];
 const num = v => Math.round(v).toLocaleString('es');
 const dinero = v => '$' + Math.round(v).toLocaleString('es');
 const conMeta = m => m ? (m.tentativa ? 'Meta tentativa: ' : 'Meta: ') + (m.porcentaje ? pct(m.valor) : num(m.valor)) : '';
@@ -128,29 +132,38 @@ function pintarFinanzas(N) {
 }
 
 function tarjetaNino(t, c, fmt) {
-  const meta = c.meta, avance = c.valor !== null && meta && meta.valor ? Math.max(0, Math.min(100, c.valor / meta.valor * 100)) : null;
-  return '<div class="rs-nino vidrio-tarjeta"><span class="rs-kpi-tit">' + esc(t) + '</span><span class="titulo rs-kpi-num' + (c.valor === null ? ' pronto' : '') + '">' + (c.valor === null ? PRONTO : esc(fmt(c.valor))) + '</span>' +
-    (c.valor === null ? '<span class="rs-kpi-nota">' + esc(c.motivo) + '. Por unidad, en la tabla.</span>' : comparaciones(c, fmt, R && R._cmp)) +
+  const meta = c.meta, enPct = !!(meta && meta.porcentaje), avance = c.valor !== null && meta && meta.valor ? Math.max(0, Math.min(100, (enPct ? c.valor * 100 : c.valor) / meta.valor * 100)) : null;
+  // 27-oct: de dónde sale el total (Preschool + After School) y, en las pruebas, cuántas y si sigue en curso.
+  const desglose = c.desglose ? '<span class="rs-kpi-nota">' + c.desglose.map(x => esc(x.unidad) + ' ' + (x.valor === null ? '—' : esc(fmt(x.valor))) + (x.desde ? ' (desde el ' + esc(fechaCorta(x.desde)) + ')' : '')).join(' · ') + (c.nota ? ' · ' + esc(c.nota) : '') + '</span>' : '';
+  return '<div class="rs-nino vidrio-tarjeta"><span class="rs-kpi-tit">' + esc(t) + (c.enCurso ? ' <span class="rs-curso">en curso</span>' : '') + '</span><span class="titulo rs-kpi-num' + (c.valor === null ? ' pronto' : '') + '">' + (c.valor === null ? PRONTO : esc(fmt(c.valor))) + '</span>' +
+    (c.valor === null ? '<span class="rs-kpi-nota">' + esc(c.motivo) + '. Por unidad, en la tabla.</span>' : desglose + comparaciones(c, fmt, R && R._cmp)) +
     (meta ? '<span class="rs-barra"><i style="width:' + (avance === null ? 0 : avance) + '%"></i></span><span class="rs-kpi-nota">' + esc(conMeta(meta)) + (avance !== null ? ' · avance ' + pct(avance) : '') + '</span>' : '') + '</div>';
 }
 
 function pintarUnidades(N) {
-  const celda = (c, fmt) => c.valor === null ? '<span class="rs-pronto">' + (c.motivo === 'Sin datos' ? PRONTO : '—') + '</span>' : esc(fmt(c.valor));
+  // 27-oct: la meta de la unidad (Altas, Bajas, Pruebas que se inscriben) va debajo de su cifra.
+  const celda = (c, fmt, nota) => c.valor === null ? '<span class="rs-pronto">' + (c.motivo === 'Sin datos' ? PRONTO : '—') + '</span>'
+    : '<span class="rs-celda"><span>' + esc(fmt(c.valor)) + '</span>' + (nota ? '<span class="ayuda">' + esc(nota) + '</span>' : '') + (c.meta ? '<span class="ayuda">' + esc(conMeta(fmt === pctDe ? Object.assign({ porcentaje: true }, c.meta) : c.meta)) + '</span>' : '') + '</span>';
   $('#unidades').innerHTML = N.unidades.map(u => {
     const o = u.ocupacion, oc = o.valor !== null ? Math.max(0, Math.min(100, o.valor * 100)) : 0;
     const meta = u.activos.meta;
     return '<tr' + (u.datos ? '' : ' class="sin-datos"') + '><th scope="row"><span class="rs-punto" style="background:' + COLOR[u.nombre] + '" aria-hidden="true"></span>' + esc(u.nombre) + '</th>' +
       '<td data-etq="Ocupación"><span class="rs-ocup"><span class="rs-barra"><i style="width:' + oc + '%;background:' + COLOR[u.nombre] + '"></i>' + (o.meta ? '<b style="left:' + Math.min(100, o.meta.valor) + '%" title="Meta"></b>' : '') + '</span><span>' + (o.valor === null ? '—' : pct(o.valor * 100)) + '</span></span>' +
         (u.ocupacionNota ? '<span class="ayuda">' + esc(u.ocupacionNota) + '</span>' : '') + '</td>' +
-      '<td data-etq="Niños activos">' + celda(u.activos, num) + '</td><td data-etq="Altas">' + celda(u.altas, num) + '</td><td data-etq="Bajas">' + celda(u.bajas, num) + '</td>' +
+      '<td data-etq="Niños activos">' + celda(Object.assign({}, u.activos, { meta: null }), num) + '</td><td data-etq="Altas">' + celda(u.altas, num) + '</td><td data-etq="Bajas">' + celda(u.bajas, num) + '</td>' +
+      '<td data-etq="Pruebas que se inscriben">' + celda(u.pruebas, pctDe, u.pruebasNota) + '</td>' +
       '<td data-etq="Facturación">' + (u.facturacion === null ? '<span class="rs-pronto">' + PRONTO + '</span>' : dinero(u.facturacion)) + '</td>' +
       '<td data-etq="Margen de la unidad">' + (u.margen === null ? '<span class="rs-pronto">' + PRONTO + '</span>' : dinero(u.margen)) + '</td>' +
       '<td data-etq="Meta"><span>' + (meta ? esc(num(meta.valor)) + (meta.tentativa ? ' <span class="ayuda">tentativa</span>' : '') : '—') + '</span></td></tr>';
   }).join('');
-  const pre = N.unidades.find(u => u.nombre === 'Preschool');
+  const pre = N.unidades.find(u => u.nombre === 'Preschool'), as = N.unidades.find(u => u.nombre === 'After School');
+  const faltaAS = [...new Set(['altas', 'bajas', 'pruebas'].map(k => as[k].valor === null ? as[k].motivo : '').filter(m => m && m !== 'Sin datos'))];
   $('#unidadesNota').textContent = 'Preschool sale de los datos de su tablero (sin montos)' + (R.preschool && R.preschool.sello ? ', al ' + Marca.fechaLarga(R.preschool.sello).toLowerCase() : '') +
     (pre && pre.hasta ? '; en el año, hasta ' + Cifras.nombrePeriodo(pre.hasta).toLowerCase() : '') +
-    '. After School: solo el período en curso (ocupación de esta semana); sus altas y bajas esperan su regla. La meta es la de «Niños activos» de la pestaña Metas.';
+    '. After School: activos y ocupación, solo el período en curso (ocupación de esta semana). Alta = primera inscripción en After School; baja = baja total; pruebas que se inscriben = pruebas realizadas con inscripción en los ' +
+    (AS && AS.config && AS.config.diasInscribe ? AS.config.diasInscribe + ' ' : '') + 'días siguientes («en curso» mientras alguna pueda inscribirse todavía)' +
+    (AS && AS.config && AS.config.resumenDesde ? '; las tres se cuentan desde el ' + Marca.fechaLarga(AS.config.resumenDesde).toLowerCase() + ' («Cifras del Resumen desde», en Config de After School)' : '') + '.' +
+    (faltaAS.length ? ' After School: ' + faltaAS.join('; ') + '.' : '') + ' La meta de la última columna es la de «Niños activos» de la pestaña Metas.';
 }
 
 function pintarMirar(N) {
@@ -170,7 +183,7 @@ function pintar() {
   pintarFinanzas(N);
   const n = N.ninos;
   $('#ninos').innerHTML = tarjetaNino('Niños activos', n.activos, num) + tarjetaNino('Altas del ' + (modo === 'mes' ? 'mes' : 'año'), n.altas, num) +
-    tarjetaNino('Bajas del ' + (modo === 'mes' ? 'mes' : 'año'), n.bajas, num) + tarjetaNino('Pruebas que se inscriben', Object.assign({}, n.pruebas, { meta: n.pruebas.meta && Object.assign({ porcentaje: true }, n.pruebas.meta) }), v => pct(v * 100));
+    tarjetaNino('Bajas del ' + (modo === 'mes' ? 'mes' : 'año'), n.bajas, num) + tarjetaNino('Pruebas que se inscriben', Object.assign({}, n.pruebas, { meta: n.pruebas.meta && Object.assign({ porcentaje: true }, n.pruebas.meta) }), pctDe);
   pintarUnidades(N);
   pintarMirar(N);
   $('#pie').textContent = 'Las metas salen de la pestaña «Metas» del Sheet «Procesos — Vida en Arte» y dicen «tentativa» hasta que estén Confirmadas. «Próximamente»: falta la fuente o la regla; el portal no inventa esa cifra.';

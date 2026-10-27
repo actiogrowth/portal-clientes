@@ -83,11 +83,13 @@ function negocio(C, ok, cerca) {
   const E = estado();
   E.ninos = [{ id: 'AS-1', estado: 'Activo' }, { id: 'AS-1', estado: 'Activo' }, { id: 'AS-2', estado: 'Activo' }, { id: 'AS-3', estado: 'Prospecto' }];
   const a = C.afterSchoolEn(E, '2026-10');
-  ok2(a && a.activos === 2 && cerca(a.ocupacion, 0.8) && a.altas === null && a.bajas === null, 'After School: activos únicos (el mismo niño una vez), ocupación de la semana, altas y bajas sin regla');
-  ok2(C.afterSchoolEn(E, '2026-09') === null, 'After School: otro mes no tiene datos (leer trae hoy)');
+  ok2(a && a.activos === 2 && cerca(a.ocupacion, 0.8) && a.altas === null && a.bajas === null && /Cifras del Resumen desde/.test(a.motivos.altas),
+    'After School: activos únicos (el mismo niño una vez), ocupación de la semana; sin «Cifras del Resumen desde» en Config, altas y bajas dicen qué falta');
+  ok2(C.afterSchoolEn(E, '2026-09') === null, 'After School sin esa fecha: otro mes no tiene datos');
   const N = C.resumenNegocio({ periodo: '2026-10', E, pre: PRE(), metas: METAS(), finanzas: null });
   ok2(N.ninos.activos.valor === null && /mismo niño/.test(N.ninos.activos.motivo), 'niños activos del negocio: NO se suman las unidades (contaría dos veces); falta la regla');
-  ok2(N.ninos.altas.valor === null && N.ninos.bajas.valor === null && N.ninos.pruebas.valor === null, 'altas, bajas y pruebas del negocio: «Próximamente»');
+  ok2(N.ninos.altas.valor === null && /After School/.test(N.ninos.altas.motivo) && N.ninos.bajas.valor === null && N.ninos.pruebas.valor === null,
+    'sin datos de After School: altas, bajas y pruebas del negocio «Próximamente», con lo que falta');
   ok2(N.finanzas.disponible === false && N.unidades.every(u => u.facturacion === null && u.margen === null), 'sin fuente de finanzas: nada disponible, ningún número');
   const pre = N.unidades.find(u => u.nombre === 'Preschool'), as = N.unidades.find(u => u.nombre === 'After School'), ver = N.unidades.find(u => u.nombre === 'Veranito');
   ok2(pre.activos.valor === 28 && pre.activos.anterior === 26 && pre.activos.anioAnterior === null, 'comparación con el mes anterior; sin el mismo mes del año anterior, no se muestra');
@@ -116,6 +118,73 @@ function negocio(C, ok, cerca) {
   const S = C.serieFinanzas(F, '2026-10');
   ok2(S.length === 12 && S[11].mes === '2026-10' && S[11].facturacion === 300 && S[10].utilidad === 40 && S[0].sin === true, 'gráfico: 12 meses que terminan en el elegido; los meses sin datos, vacíos');
   ok2(C.comparables('2026-01').anterior === '2025-12' && C.comparables('2026-01').anioAnterior === '2025-01' && C.comparables('2026').anioAnterior === null, 'mes anterior y mismo mes del año anterior');
+  f0 += reglasAS(C, ok);
+  return f0;
+}
+
+/* 27-oct: altas, bajas y pruebas que se inscriben de After School (R134–R137).
+   Hoy 28-oct-2026; la hoja está completa desde el 15-sep («Cifras del Resumen desde»). */
+function conHistoria(cfg) {
+  const E = estado();
+  E.config = Object.assign({ resumenDesde: '2026-09-15', diasInscribe: 30 }, cfg || {});
+  E.ninos = [{ id: 'AS-1', estado: 'Activo' }];
+  E.inscripciones = [
+    { idNino: 'AS-1', alta: '2026-10-05' }, { idNino: 'AS-1', alta: '2026-10-20' },   // primera vez en octubre; la segunda clase no es otra alta
+    { idNino: 'AS-2', alta: '2026-10-03' },                                            // cambio de clase: su primera alta es de agosto
+    { idNino: 'AS-3', alta: '2026-10-15' },                                            // regreso tras dejar en septiembre
+    { idNino: 'AS-4', alta: '2026-10-27' }, { idNino: 'AS-5', alta: '2026-09-01' },     // AS-5: antes del 15-sep, no cuenta
+    { idNino: 'AS-14', alta: '2026-09-01' }, { idNino: 'AS-15', alta: '2026-10-21' }, { idNino: 'AS-16', alta: '2026-10-16' }];
+  E.inscripcionesCerradas = [{ idNino: 'AS-2', alta: '2026-08-01', baja: '2026-10-03' }, { idNino: 'AS-3', alta: '2026-09-20', baja: '2026-09-30' }];
+  E.bajas = [{ idNino: 'AS-6', fecha: '2026-10-02' }, { idNino: 'AS-6', fecha: '2026-10-20' }, { idNino: 'AS-7', fecha: '2026-10-25' }, { idNino: 'AS-8', fecha: '2026-09-10' }];
+  const p = (idNino, fecha, estado, tipo) => ({ idNino, fecha, estado, tipo: tipo === undefined ? 'Prueba' : tipo });
+  E.pruebas = [
+    p('AS-4', '2026-10-10', 'Asistió'),            // se inscribe a los 17 días: sí
+    p('AS-9', '2026-10-05', 'Asistió'),            // todavía no: su plazo sigue abierto (en curso)
+    p('AS-10', '2026-10-06', 'Cancelada'), p('AS-11', '2026-10-07', 'Asistió', 'Reposición'), p('AS-12', '2026-10-08', 'Asistió', 'Eventual'),
+    p('AS-13', '2026-10-09', 'No asistió'), p('AS-18', '2026-10-11', 'Agendada'),
+    p('AS-1', '2026-10-01', 'Asistió', ''),        // Tipo vacío = Prueba; se inscribe a los 4 días: sí
+    p('AS-14', '2026-10-02', 'Asistió'),           // ya estaba inscrito de antes: no es «se inscribe»
+    p('AS-15', '2026-09-20', 'Asistió'),           // se inscribe a los 31 días: no
+    p('AS-16', '2026-09-16', 'Asistió'),           // a los 30 días justos: sí
+    p('AS-17', '2026-09-10', 'Asistió')];          // antes del 15-sep: no cuenta
+  return E;
+}
+function reglasAS(C, ok) {
+  let f0 = 0; const ok2 = (c, m) => { if (!c) f0++; ok(c, m); };
+  const cerca = (a, b) => Math.abs(a - b) < 1e-9;
+  const o = C.afterSchoolEn(conHistoria(), '2026-10');
+  ok2(o && o.altas === 4, 'R134 altas de octubre = 4: primera inscripción en el mes (AS-1, AS-4, AS-15, AS-16); ni la segunda clase, ni el cambio de clase, ni el regreso (' + (o && o.altas) + ')');
+  ok2(o && o.bajas === 2, 'R135 bajas de octubre = 2: bajas totales de niños distintos (AS-6 una vez, AS-7); dejar una clase no cuenta (' + (o && o.bajas) + ')');
+  ok2(o && cerca(o.pruebas, 0.5) && o.enCurso === true && o.pruebasNota === '2 de 4 pruebas · en curso',
+    'R136 octubre: 4 pruebas realizadas (sin canceladas, sin resultado, reposiciones ni eventuales; el Tipo vacío es Prueba), 2 con inscripción en 30 días; en curso (' + (o && o.pruebasNota) + ')');
+  const s = C.afterSchoolEn(conHistoria(), '2026-09');
+  ok2(s && s.altas === 1 && s.bajas === 0 && s.parcial === true && s.desde === '2026-09-15', 'septiembre cuenta solo desde el 15 (AS-3 sí; AS-5, la baja de AS-8 y la prueba de AS-17 no) y queda marcado como parcial');
+  ok2(s && cerca(s.pruebas, 0.5) && s.enCurso === false && s.pruebasNota === '1 de 2 pruebas', 'R136 el plazo incluye el día 30 (AS-16 sí) y no el 31 (AS-15 no); cerrado, sin «en curso»');
+  ok2(s && s.activos === null && s.ocupacion === null && /en curso/.test(s.motivos.activos), 'activos y ocupación de After School: solo el período en curso');
+  const s31 = C.afterSchoolEn(conHistoria({ diasInscribe: 31 }), '2026-09');
+  ok2(s31 && cerca(s31.pruebas, 1), 'los días del plazo salen de Config: con 31, AS-15 también cuenta');
+  ok2(C.afterSchoolEn(conHistoria(), '2026-08') === null, 'antes de «Cifras del Resumen desde»: sin datos (no se inventa)');
+  const sinDias = C.afterSchoolEn(conHistoria({ diasInscribe: null }), '2026-10');
+  ok2(sinDias.pruebas === null && /Días para que una prueba cuente como inscrita/.test(sinDias.motivos.pruebas) && sinDias.altas === 4, 'sin el plazo en Config: la cifra de pruebas dice qué falta; las altas siguen');
+  const viejo = conHistoria(); delete viejo.bajas;
+  const v = C.afterSchoolEn(viejo, '2026-10');
+  ok2(v.bajas === null && /Apps Script/.test(v.motivos.bajas), 'con el Apps Script anterior (sin bajas): las bajas dicen que falta publicarlo');
+  const a = C.afterSchoolEn(conHistoria(), '2026');
+  ok2(a && a.altas === 5 && a.bajas === 2 && a.parcial === true, 'el año: desde el 15-sep, altas 1 + 4 y bajas 0 + 2');
+  const metas = METAS().concat([{ cifra: 'Pruebas que se inscriben', unidad: 'After School', periodo: '2026', valor: 0.6, estado: 'Tentativa' }]);
+  const N = C.resumenNegocio({ periodo: '2026-10', E: conHistoria(), pre: PRE(), metas, finanzas: null });
+  const as = N.unidades.find(u => u.nombre === 'After School');
+  ok2(as.altas.valor === 4 && as.altas.anterior === null && as.bajas.anterior === null, 'no compara con septiembre: la hoja no lo tiene completo');
+  ok2(as.pruebas.meta && cerca(as.pruebas.meta.valor, 60) && as.pruebasNota === '2 de 4 pruebas · en curso' && as.enCurso === true, 'la tabla por unidad trae las pruebas de After School con su meta');
+  ok2(N.ninos.altas.valor === 8 && N.ninos.altas.desglose.map(x => x.unidad + ' ' + x.valor).join(', ') === 'Preschool 4, After School 4' && N.ninos.bajas.valor === 5,
+    'R137 altas y bajas del negocio: la suma de Preschool y After School, con el desglose');
+  ok2(N.ninos.altas.anterior === null, 'el negocio no compara si una unidad no tiene el período anterior completo');
+  ok2(cerca(N.ninos.pruebas.valor, 0.5) && N.ninos.pruebas.enCurso === true && N.ninos.pruebas.meta && cerca(N.ninos.pruebas.meta.valor, 60), 'pruebas del negocio = las de After School; sin meta del Negocio, la de After School');
+  const Ns = C.resumenNegocio({ periodo: '2026-09', E: conHistoria(), pre: PRE(), metas: [], finanzas: null });
+  ok2(Ns.ninos.altas.valor === 4 && Ns.ninos.altas.desglose[1].desde === '2026-09-15' && !Ns.ninos.altas.desglose[0].desde,
+    'un mes que After School tiene solo en parte: el desglose lo dice («desde el 15»)');
+  const sinPre = C.resumenNegocio({ periodo: '2026-10', E: conHistoria(), pre: null, metas: [], finanzas: null });
+  ok2(sinPre.ninos.altas.valor === null && /Preschool/.test(sinPre.ninos.altas.motivo), 'sin los datos de una unidad, el negocio no suma (dice cuál falta)');
   return f0;
 }
 
@@ -135,7 +204,6 @@ const ROTURAS = [
   // 26-oct: Resumen del negocio
   ['los niños activos del negocio se suman', "activos: { valor: null, motivo: 'Falta la regla para reconocer al mismo niño en dos unidades'", "activos: { valor: unidades.reduce((t, u) => t + (u.activos.valor || 0), 0), motivo: 'Falta la regla para reconocer al mismo niño en dos unidades'"],
   ['After School cuenta dos veces al mismo niño', "new Set((E.ninos || []).filter(n => n.estado === 'Activo').map(n => n.id)).size", "(E.ninos || []).filter(n => n.estado === 'Activo').length"],
-  ['After School inventa altas', "return { activos, altas: null, bajas: null,", "return { activos, altas: activos, bajas: null,"],
   ['una meta confirmada sigue diciendo tentativa', "tentativa: normal(m.estado) !== 'confirmada'", "tentativa: true"],
   ['la meta del año se reparte en meses de conteo', "if (!m && esMes(periodo) && CIFRAS_PORCENTAJE.includes(cifra))", "if (!m && esMes(periodo))"],
   ['una meta de 0,45 no se lee como 45 %', "Math.abs(m.valor) <= 1 ? m.valor * 100 : m.valor", "m.valor"],
@@ -145,7 +213,24 @@ const ROTURAS = [
   ['la utilidad no resta los gastos comunes', "utilidad = margen - gastos", "utilidad = margen"],
   ['la ocupación de Preschool contra otra base', "pre.capacidad ? a / pre.capacidad : null", "pre.capacidad ? a / 100 : null"],
   ['las altas del año no se suman', "altas: ms.reduce((a, k) => a + pre.meses[k].altas, 0)", "altas: ult.altas"],
-  ['After School da datos de otros meses', "if (!E || !E.hoy || !(E.hoy.slice(0, esMes(p) ? 7 : 4) === p)) return null;", "if (!E || !E.hoy) return null;"]
+  ['After School da activos de otros meses', "    if (actual) {\n      r.activos", "    if (true) {\n      r.activos"],
+  // 27-oct: altas, bajas y pruebas que se inscriben de After School
+  ['el cambio de clase cuenta como alta', "Object.values(altasPorNino(E)).map(l => l.reduce((m, a) => a < m ? a : m)).filter(", "[].concat(...Object.values(altasPorNino(E))).filter("],
+  ['el regreso tras una baja cuenta como alta', "(E.inscripciones || []).concat(E.inscripcionesCerradas || []).forEach(i => { if (i.alta)", "(E.inscripciones || []).forEach(i => { if (i.alta)"],
+  ['la misma baja total cuenta dos veces', "return new Set(E.bajas.filter(b => b.fecha >= c.ini && b.fecha <= c.fin).map(b => b.idNino)).size;", "return E.bajas.filter(b => b.fecha >= c.ini && b.fecha <= c.fin).length;"],
+  ['dejar una clase cuenta como baja', "return new Set(E.bajas.filter(", "return new Set(E.bajas.concat((E.inscripcionesCerradas || []).map(i => ({ idNino: i.idNino, fecha: i.baja }))).filter("],
+  ['cuenta las pruebas canceladas o sin resultado', "&& x.estado === 'Asistió' &&", "&& x.estado !== 'Agendada' &&"],
+  ['cuenta reposiciones y eventuales', "(x.tipo || 'Prueba') === 'Prueba' &&", "true &&"],
+  ['una prueba sin Tipo no cuenta', "(x.tipo || 'Prueba') === 'Prueba' &&", "x.tipo === 'Prueba' &&"],
+  ['cuenta inscripciones de antes de la prueba', ".some(a => a >= x.fecha && a <= limite)", ".some(a => a <= limite)"],
+  ['el plazo deja fuera su último día', ".some(a => a >= x.fecha && a <= limite)", ".some(a => a >= x.fecha && a < limite)"],
+  ['el plazo está escrito en el código', "const n = E.config.diasInscribe;", "const n = 30;"],
+  ['no marca «en curso»', "else if (limite >= E.hoy) enCurso = true;", "else if (false) enCurso = true;"],
+  ['cuenta desde antes de «Cifras del Resumen desde»', "const ini = a < desde ? desde : a,", "const ini = a,"],
+  ['compara con un período incompleto', "const ok = x => x && !x.parcial && x[campo] != null;", "const ok = x => x && x[campo] != null;"],
+  ['el negocio suma sin una unidad', "faltan.length ? null : desglose.reduce((t, x) => t + x.valor, 0)", "desglose.reduce((t, x) => t + (x.valor || 0), 0)"],
+  ['el desglose no dice desde cuándo cuenta After School', "valor: u[campo].valor, desde: u.desde }));", "valor: u[campo].valor }));"],
+  ['las pruebas del negocio no son las de After School', "pruebas: Object.assign({}, asU.pruebas,", "pruebas: Object.assign({}, asU.pruebas, { valor: null },"]
 ];
 console.log('\n· roturas');
 let detectadas = 0;

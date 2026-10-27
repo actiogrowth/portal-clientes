@@ -96,7 +96,7 @@ seccion('instalar');
   ok(n.celda(5, 1) === '' && n.celda(5, 2) === 'ID' && n.celda(5, 15) === 'Notas', 'títulos de Niños en la fila 5 desde la B, A vacía');
   ok(n.celda(5, 16) === 'Colegio' && n.celda(5, 22) === 'Teléfono responsable 2', 'las columnas nuevas de Niños van después de Notas');
   const nIni = g.INS_CONFIG.length;
-  ok(nIni === 49 && L.getSheetByName('Config').getLastRow() === 5 + nIni, 'Config con sus 49 valores iniciales');
+  ok(nIni === 51 && L.getSheetByName('Config').getLastRow() === 5 + nIni, 'Config con sus 51 valores iniciales');
   ok(/FALTA/.test(inf), 'comprobar avisa que falta la clave');
   const otra = g.instalar();
   ok(L.getSheetByName('Config').getLastRow() === 5 + nIni, 'instalar dos veces no duplica Config');
@@ -135,12 +135,12 @@ seccion('actualizar estructura sobre una base de la versión 3 (con datos)');
   ok(N.celda(5, 16) === 'Colegio' && N.celda(5, 22) === 'Teléfono responsable 2', 'agrega las 7 columnas de Niños a la derecha de Notas');
   ok(JSON.stringify(N.fila(6).slice(0, 15)) === JSON.stringify(JSON.parse(antesNinos).slice(0, 15)), 'no toca los datos del niño existente');
   ok(N.formatos['6,22'] === '@', 'la columna nueva de teléfono queda como texto');
-  ok(C.getLastRow() === 5 + 21 + 28, 'Config: agrega las 22 filas de las 3 listas nuevas, los 4 parámetros de asistencia y los 2 de Pasar lista (v8)');
+  ok(C.getLastRow() === 5 + 21 + 30, 'Config: agrega las 22 filas de las 3 listas nuevas, los 4 parámetros de asistencia, los 2 de Pasar lista (v8) y los 2 del Resumen (v10)');
   ok(JSON.stringify([6, 7, 8, 26].map(f => C.fila(f))) === antesConfig, 'Config: no toca las filas que ya estaban (ni la editada)');
   ok(/Columnas agregadas al final de Niños/.test(inf) && /Creada: Pruebas/.test(inf), 'el informe dice qué agregó');
   ok(!/⚠ A la pestaña/.test(inf) && !/⚠ Config/.test(inf), 'comprobar queda sin avisos de estructura');
   const otra = g0.actualizarEstructura();
-  ok(C.getLastRow() === 5 + 49 && N.getLastColumn() === 22 && /Config: completa/.test(otra), 'correrla otra vez no cambia nada');
+  ok(C.getLastRow() === 5 + 51 && N.getLastColumn() === 22 && /Config: completa/.test(otra), 'correrla otra vez no cambia nada');
 
   // Comprobar avisa de lo nuevo que falte.
   N.poner(5, 18, '');
@@ -1055,7 +1055,7 @@ seccion('Pasar lista v8: el Profesor, de 7 días atrás a 7 adelante (ver), y ma
   const valorConfig = nombre => { for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 3) === nombre) return C.celda(f, 4); };
   ok(valorConfig('Días atrás para pasar lista (Profesor)') === 7 && valorConfig('Días adelante para ver la lista (Profesor)') === 7,
     'Config: 7 días atrás y 7 adelante al instalar (no están en el código)');
-  ok(/AfterSchool\.gs v9/.test(g.comprobar()), 'comprobar() dice la versión del script (v9)');
+  ok(/AfterSchool\.gs v10/.test(g.comprobar()), 'comprobar() dice la versión del script (v10)');
   // Leer
   let r = g.llamar('leerLista', Object.assign({}, P));
   ok(r.ok && r.resultado.fecha === HOY && r.resultado.desde === HACE(7) && r.resultado.hasta === sumar(HOY, 7) && r.resultado.soloLectura === false,
@@ -1301,8 +1301,37 @@ seccion('MedirLectura.gs: mide cada pestaña y la lista entera, sin escribir nad
   ok(foto() === antes, 'no escribe nada en el Sheet');
   ok(['Niños', 'Clases', 'Inscripciones', 'Pruebas', 'Asistencia', 'Clases sin dictar', 'Config'].every(n => informe.indexOf(n) >= 0) &&
     /Suma de las 7 pestañas que lee la lista: \d+ ms/.test(informe) && /Lista completa del \d{4}-\d\d-\d\d: \d+ ms \(\d+ clases, \d+ niños\)/.test(informe) &&
-    /AfterSchool\.gs v9/.test(informe), 'el informe trae cada pestaña, la suma y la lista completa de hoy y de ayer');
+    /AfterSchool\.gs v10/.test(informe), 'el informe trae cada pestaña, la suma y la lista completa de hoy y de ayer');
   ok(g._registro.some(s => s.indexOf('Lista completa') >= 0), 'y queda en el registro de ejecución');
+}
+
+seccion('v10: lo que lee el Resumen del negocio (bajas totales y dos parámetros)');
+{
+  const g = entornoCargado();
+  const L = g._libro, I = L.getSheetByName('Inscripciones'), C = L.getSheetByName('Config');
+  const filaParam = nombre => { for (let f = 6; f <= C.getLastRow(); f++) if (C.celda(f, 2) === 'Parámetro' && C.celda(f, 3) === nombre) return f; return 0; };
+  // Una base de antes de v10: sin los dos parámetros; la carga inicial se registró el 2026-10-09.
+  ['Días para que una prueba cuente como inscrita', 'Cifras del Resumen desde'].forEach(n => { const f = filaParam(n); if (f) C.borrarFila ? C.borrarFila(f) : [2, 3, 4, 5].forEach(c => C.poner(f, c, '')); });
+  ok(!filaParam('Cifras del Resumen desde'), '(control) sin los parámetros nuevos');
+  for (let f = 6; f <= I.getLastRow(); f++) if (I.celda(f, 2)) I.poner(f, 10, new Date(2026, 9, f === 6 ? 9 : 12, 10, 30));
+  const inf = g.actualizarEstructura();
+  ok(/Config: agregadas/.test(inf) && filaParam('Días para que una prueba cuente como inscrita') && C.celda(filaParam('Días para que una prueba cuente como inscrita'), 4) === 30,
+    'Actualizar estructura agrega «Días para que una prueba cuente como inscrita» con 30 (en Config, no en el código)');
+  const d0 = g.llamar('leer').resultado;
+  ok(d0.config.resumenDesde === '2026-10-09', '«Cifras del Resumen desde» = el día del primer registro de Inscripciones (la carga inicial) (' + d0.config.resumenDesde + ')');
+  ok(d0.config.diasInscribe === 30 && d0.config.faltan.length === 0, 'leer devuelve los dos parámetros y no los cuenta como faltantes');
+  ok(Array.isArray(d0.bajas) && d0.bajas.length === 0, 'leer devuelve las bajas totales (ninguna todavía)');
+  g.llamar('bajaTotal', { idNino: 'AS-0001', fecha: HOY, motivo: 'Precio', detalle: 'detalle que no sale' });
+  const ins = g.llamar('leer').resultado.inscripciones.find(i => i.idNino === 'AS-0002');
+  g.llamar('bajaClase', { idInscripcion: ins.id, fecha: HOY, motivo: 'Horario' });
+  const d1 = g.llamar('leer').resultado;
+  ok(d1.bajas.length === 1 && d1.bajas[0].idNino === 'AS-0001' && d1.bajas[0].fecha === HOY, 'la baja total sale en bajas; dejar una clase no');
+  ok(JSON.stringify(Object.keys(d1.bajas[0]).sort()) === '["fecha","idNino"]' && JSON.stringify(d1).indexOf('detalle que no sale') < 0, 'de Bajas solo salen ID niño y fecha (ni motivo ni detalle)');
+  // Vida en Arte cambia la fecha: manda la hoja.
+  C.poner(filaParam('Cifras del Resumen desde'), 5, new Date(2026, 9, 1));
+  C.poner(filaParam('Días para que una prueba cuente como inscrita'), 4, 45);
+  ok(g.llamar('leer').resultado.config.diasInscribe === 45, 'el plazo de la prueba lo decide la hoja (45)');
+  ok(g.llamar('leer').resultado.config.resumenDesde === '2026-10-01' && /Config: completa/.test(g.actualizarEstructura()), 'la fecha la decide la hoja: Actualizar estructura no la vuelve a escribir');
 }
 
 seccion('filas más allá de la 1000');

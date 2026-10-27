@@ -468,6 +468,11 @@ portada ─ Datos.pendientes.leer() ─▶ pendientes/api.php ─┬─ After Sc
   con la sesión; `Marca.cabecera` y `Marca.saludo` los usan.
 - `equipo/api.php` y los dos puentes nuevos se cargan uno a otro con
   `EQ_SOLO_FUNCIONES` (solo funciones), como `AS_SOLO_FUNCIONES`.
+- **Reglas de After School del Resumen (27-oct)**: altas, bajas y pruebas que
+  se inscriben (R134–R137) salen de After School `leer`, sin puente nuevo:
+  `AfterSchool.gs` v10 agrega `bajas` (solo ID niño y fecha) y dos
+  parámetros de Config; las cuentas, en `comun/cifras.js`. Cuando se
+  unifiquen las bases, solo cambia de dónde sale `leer`.
 
 **Metas** (una vez, tras pegar `Procesos.gs` v2): en el editor de Apps Script
 elegir `actualizarEstructura` y «Ejecutar». Crea la pestaña «Metas» con sus
@@ -519,7 +524,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
 | `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), Equipo (quién ve, acepta, marca y revisa qué puesto, por rol, buscando en el texto de la respuesta), Resumen del negocio solo para Dirección y Administrador (Preschool sin montos, metas), Pendientes de hoy por rol, nombre y apellido (solo Administrador), estilo vidrio por página, biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
-| `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
+| `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, altas, bajas y pruebas que se inscriben de After School con su plazo y su período cubierto, altas y bajas del negocio con desglose, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
 | `pruebas-portal/prueba-organigrama.js` | El organigrama (`comun/organigrama.js`): áreas en una fila, cada línea de su jefe y del color del área, conteo de la lista del celular, y que la ficha es un diálogo con Esc, tocar afuera y el foco atrapado; con sus roturas. |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 

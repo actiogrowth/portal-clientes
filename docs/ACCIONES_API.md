@@ -106,13 +106,15 @@ Roles: **Ad** Administrador, **Di** Dirección, **CA** Coordinación After Schoo
 ```
 archivo, usuario, hoy (yyyy-MM-dd), mes (yyyy-MM),
 config: { motivos[], planes[{nombre, precio}], conceptos[], formas[], umbral, conceptoMensual,
-          motivosNoInscripcion[], comoConocio[], intereses[], faltan[], avisos[] },
+          motivosNoInscripcion[], comoConocio[], intereses[], faltan[], avisos[],
+          diasInscribe (27-oct: entero o null), resumenDesde (27-oct: yyyy-MM-dd o '') },
 clases[]: { codigo, servicio, modalidad, dia, hora, cupo, edades, activa, reservados },
 ninos[]: { id, socio, nombre, apellidos, nacimiento, sexo, responsable, telefono, telefono2, correo,
            cabeza, estado, ingreso, notas, colegio, comoConocio, referido, hermanos, interes,
            responsable2, telefonoResp2 },
 inscripciones[] (activas): { id, idNino, codigo, alta, nota },
 inscripcionesCerradas[]: { idNino, codigo, alta, baja },
+bajas[] (27-oct, v10: la pestaña Bajas, solo bajas totales): { idNino, fecha },
 pruebas[] (visitas de un día): { id, fecha, codigo, idNino, estado, seInscribio, motivo, nota, registradoPor, pago, monto,
            tipo ('Prueba'|'Reposición'|'Eventual'), repone (ID de la falta), porLista (el estado lo puso la lista) },
 pagosMes[] (mes actual): { id, idNino, mes, concepto, plan, monto, fecha, forma, registradoPor, notas },
@@ -464,12 +466,14 @@ pantalla hace todas las cuentas con `comun/cifras.js`
 |---|---|---|
 | Rentabilidad y facturación | Facturación, Costos de las unidades, Margen de las unidades, Gastos comunes, Utilidad neta (con margen neto %), Cobrado y por cobrar; gráfico de 12 meses | Del contrato de finanzas (abajo). Margen de las unidades = facturación − costos; utilidad neta = margen de las unidades − gastos comunes; margen neto = utilidad ÷ facturación. **Hoy sin fuente: «Próximamente».** |
 | Niños y ocupación | Niños activos del negocio | **Próximamente**: After School y Preschool tienen IDs distintos y no hay regla para reconocer al mismo niño en las dos; sumar contaría dos veces (R128). |
-| | Altas, Bajas, Pruebas que se inscriben (del negocio) | **Próximamente**: After School no tiene regla de alta, de baja ni de cuántas pruebas se inscriben (R128). |
+| | Altas y Bajas (del negocio) | (27-oct) La suma de las altas (o bajas) de cada unidad, con el desglose debajo: Preschool + After School. Sin dato de una de las dos, «Próximamente» con lo que falta (R137). Un niño que entra a las dos unidades cuenta en cada una: no hay ID común (D-078). |
+| | Pruebas que se inscriben (del negocio) | (27-oct) La de After School (R136): es la única unidad con pruebas registradas en el portal. |
 | Por unidad | Preschool: ocupación, activos, altas, bajas | Las del tablero de Preschool (arriba); ocupación = activos ÷ «Capacidad máxima». En un año: activos del último mes con datos; altas y bajas sumadas. |
-| | After School: activos, ocupación | Solo el período en curso (`leer` trae hoy): activos = niños en estado «Activo», cada uno una vez aunque esté en dos clases (la cifra de la pestaña Ocupación); ocupación = R125 (esta semana). Altas y bajas: «—» (sin regla). |
+| | After School: activos, ocupación | Solo el período en curso (`leer` trae hoy): activos = niños en estado «Activo», cada uno una vez aunque esté en dos clases (la cifra de la pestaña Ocupación); ocupación = R125 (esta semana). |
+| | After School: altas, bajas, pruebas que se inscriben | (27-oct) R134, R135 y R136, con la historia que ya trae `leer` (inscripciones activas y cerradas, `bajas`, pruebas). Cualquier mes o año desde «Cifras del Resumen desde» (Config de After School); un período que empieza antes dice «desde el …» y no se usa para comparar. |
 | | Veranito, Baby & Me, Cumpleaños | «Próximamente» (sin datos en el portal). |
 | | Facturación y margen de la unidad | Del contrato de finanzas; hoy «Próximamente». |
-| | Meta | La meta «Niños activos» de esa unidad y período. |
+| | Meta | La meta «Niños activos» de esa unidad y período. Las metas «Altas», «Bajas» y «Pruebas que se inscriben» de la unidad se ven en su celda. |
 | Para mirar | Hasta tres alertas | R129. |
 
 **Comparaciones**: contra el período anterior y el mismo período del año

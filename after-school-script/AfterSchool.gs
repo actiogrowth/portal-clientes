@@ -39,8 +39,13 @@
  *
  * VERSIÓN v9 (23-oct-2026): quitar una marca ya guardada (la fila se borra de
  * Asistencia y queda «Quitar asistencia» en Historial con lo que decía).
+ *
+ * VERSIÓN v10 (27-oct-2026): para las cifras de After School del Resumen del
+ * negocio, leer devuelve también la pestaña Bajas (solo ID niño y fecha) y
+ * dos parámetros de Config: «Días para que una prueba cuente como inscrita»
+ * y «Cifras del Resumen desde». Las cuentas las hace comun/cifras.js.
  */
-var VERSION_SCRIPT = 'v9';
+var VERSION_SCRIPT = 'v10';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -181,6 +186,9 @@ var PARAM_ASIS_DESDE = 'Asistencia desde';               // Nota: fecha desde la
 // 23-oct (v8): ventana del Profesor en Pasar lista
 var PARAM_LISTA_ATRAS = 'Días atrás para pasar lista (Profesor)';      // Número: días hacia atrás que marca y corrige
 var PARAM_LISTA_ADELANTE = 'Días adelante para ver la lista (Profesor)'; // Número: días hacia adelante que ve, sin marcar
+// 27-oct (v10): cifras de After School del Resumen del negocio
+var PARAM_DIAS_INSCRIBE = 'Días para que una prueba cuente como inscrita'; // Número: ventana tras la prueba
+var PARAM_RESUMEN_DESDE = 'Cifras del Resumen desde';  // Nota: fecha desde la que la hoja tiene altas y bajas completas
 
 /* Valores iniciales de Config. ÚNICO sitio del código con valores de negocio.
    actualizarEstructura() escribe las filas de una lista SOLO si esa lista no
@@ -240,7 +248,11 @@ var INS_CONFIG = [
   [LISTA.param, PARAM_ASIS_DESDE, '', ''],
   // 23-oct (v8): el Profesor marca y corrige hasta 7 días atrás y ve 7 días adelante (sin marcar).
   [LISTA.param, PARAM_LISTA_ATRAS, 7, 'Pasar lista: días hacia atrás que el Profesor puede marcar y corregir (0 = solo hoy)'],
-  [LISTA.param, PARAM_LISTA_ADELANTE, 7, 'Pasar lista: días hacia adelante que el Profesor ve para preparar, sin marcar']
+  [LISTA.param, PARAM_LISTA_ADELANTE, 7, 'Pasar lista: días hacia adelante que el Profesor ve para preparar, sin marcar'],
+  // 27-oct (v10): Resumen del negocio. «Cifras del Resumen desde» se escribe con
+  // el primer registro de Inscripciones (la carga inicial; ver actualizarEstructura).
+  [LISTA.param, PARAM_DIAS_INSCRIBE, 30, 'Resumen: una prueba cuenta como inscrita si el niño se inscribe dentro de estos días'],
+  [LISTA.param, PARAM_RESUMEN_DESDE, '', 'Resumen: las altas, bajas y pruebas de After School se cuentan desde esta fecha']
 ];
 
 /* Propiedades del script. */
@@ -556,7 +568,7 @@ function leerConfig_() {
   var cfg = { motivos: [], planes: [], conceptos: [], formas: [], umbral: null, conceptoMensual: '',
               motivosNoInscripcion: [], comoConocio: [], intereses: [], faltan: [], avisos: [],
               faltasSeguidas: null, diasReponer: null, duracionClase: null, asistenciaDesde: '',
-              listaAtras: null, listaAdelante: null };
+              listaAtras: null, listaAdelante: null, diasInscribe: null, resumenDesde: '' };
   var entero = function (v) { var n = numeroDe_(v); return n >= 1 && Math.floor(n) === n ? n : null; };
   var enteroCero = function (v) { var n = numeroDe_(v); return n >= 0 && Math.floor(n) === n ? n : null; };
   t.filas.forEach(function (f) {
@@ -588,6 +600,9 @@ function leerConfig_() {
       else if (norm_(valor) === norm_(PARAM_ASIS_DESDE)) cfg.asistenciaDesde = aISO_(f['Nota']);
       else if (norm_(valor) === norm_(PARAM_LISTA_ATRAS)) cfg.listaAtras = enteroCero(f['Número']);
       else if (norm_(valor) === norm_(PARAM_LISTA_ADELANTE)) cfg.listaAdelante = enteroCero(f['Número']);
+      // 27-oct (v10): solo los usa el Resumen; sin ellos, esas cifras dicen qué falta (no van a «faltan»).
+      else if (norm_(valor) === norm_(PARAM_DIAS_INSCRIBE)) cfg.diasInscribe = entero(f['Número']);
+      else if (norm_(valor) === norm_(PARAM_RESUMEN_DESDE)) cfg.resumenDesde = aISO_(f['Nota']);
     }
   });
   cfg.planes.forEach(function (p) { if (isNaN(p.precio)) p.precio = null; });
@@ -682,7 +697,9 @@ function actualizarEstructura() {
   if (nuevas.length) {
     agregarFilas_(t, 'config', nuevas.map(function (r) {
       // «Asistencia desde» arranca el día en que se instala: las clases de antes no se avisan como «sin lista».
-      var nota = r[1] === PARAM_ASIS_DESDE ? fechaDeTexto_(hoyISO_()) : r[3];
+      // «Cifras del Resumen desde»: el primer registro de Inscripciones (desde ahí la hoja tiene
+      // todas las altas y las bajas; antes, solo lo que trajo la carga de Poliwin).
+      var nota = r[1] === PARAM_ASIS_DESDE ? fechaDeTexto_(hoyISO_()) : r[1] === PARAM_RESUMEN_DESDE ? fechaDeTexto_(primerRegistro_()) : r[3];
       return { 'Lista': r[0], 'Valor': r[1], 'Número': r[2], 'Nota': nota };
     }));
     var porLista = {};
@@ -1386,12 +1403,24 @@ function accLeer_(datos, usuario) {
     archivo: libro_().getName(), usuario: usuario, hoy: hoyISO_(), mes: mes,
     config: leerConfig_(), clases: clases, ninos: ninos, inscripciones: ins, inscripcionesCerradas: cerradas,
     pruebas: leerTabla_('pruebas').filas.map(pruebaPublica_), pagosMes: pagos,
+    // 27-oct (v10): las bajas totales, para el Resumen. Solo ID y fecha (ni motivo ni detalle).
+    bajas: leerTabla_('bajas').filas.map(function (f) { return { idNino: texto_(f['ID niño']), fecha: aISO_(f['Fecha baja']) }; }),
     // 21-oct: la ocupación la calcula el servidor; la página solo la pinta.
     ocupacion: ocupacionVentana_(leerTabla_('clases'), leerTabla_('inscripciones'), leerTabla_('pruebas')),
     estados: [ESTADO.activo, ESTADO.revisar, ESTADO.prospecto, ESTADO.eventual, ESTADO.retirado], motivoCambio: MOTIVO_CAMBIO_CLASE,
     estadosPrueba: [ESTADO_PRUEBA.agendada, ESTADO_PRUEBA.asistio, ESTADO_PRUEBA.noAsistio, ESTADO_PRUEBA.cancelada],
     pruebaOcupa: PRUEBA_OCUPA, dias: DIAS_ORDEN, tiposVisita: TIPOS_VISITA, estadosAsistencia: ESTADOS_ASIS
   };
+}
+
+/** El día del primer registro de Inscripciones (la carga inicial), o hoy si no hay. */
+function primerRegistro_() {
+  var min = '';
+  leerTabla_('inscripciones').filas.forEach(function (f) {
+    var d = aISO_(f['Fecha registro']);
+    if (d && (!min || d < min)) min = d;
+  });
+  return min || hoyISO_();
 }
 
 /** Ocupación de otras fechas (la página navega semanas fuera de la ventana de leer). */

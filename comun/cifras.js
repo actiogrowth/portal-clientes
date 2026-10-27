@@ -1,7 +1,8 @@
 /* comun/cifras.js — las cifras del Resumen del negocio (26-oct; 26-oct: el
- * Resumen del negocio entero). Sin reglas nuevas: cada cifra usa una regla
- * que ya existe (docs/REGLAS_NEGOCIO.md, citada al lado) y lo que no tiene
- * regla devuelve null con su motivo, para que la pantalla diga
+ * Resumen del negocio entero; 27-oct: altas, bajas y pruebas que se inscriben
+ * de After School, R134–R137). Cada cifra usa una regla escrita en
+ * docs/REGLAS_NEGOCIO.md (citada al lado) y lo que no tiene regla o dato
+ * devuelve null con su motivo, para que la pantalla diga
  * «Próximamente». Sin datos ni llamadas: recibe lo que ya leyó la página.
  * Contrato en docs/ACCIONES_API.md › Resumen del negocio. Lo usan
  * resumen/index.html y la pestaña Ocupación de After School.
@@ -104,17 +105,97 @@
     return { activos: ult.activos, altas: ms.reduce((a, k) => a + pre.meses[k].altas, 0), bajas: ms.reduce((a, k) => a + pre.meses[k].bajas, 0), ocupacion: ocup(ult.activos), hasta: ms[ms.length - 1] };
   }
 
+  /* ── After School: altas, bajas y pruebas que se inscriben (27-oct) ──── */
+
+  const finDeMes = p => isoDe(new Date(+p.slice(0, 4), +p.slice(5, 7), 0));
+  const fechaCorta = iso => +iso.slice(8, 10) + ' de ' + MESES[+iso.slice(5, 7) - 1];
+
   /**
-   * After School en un período: solo el período en curso (leer() trae hoy, no
-   * la historia). Activos = niños en estado «Activo», cada uno una vez aunque
-   * esté en dos clases (la cifra de la pestaña Ocupación); ocupación = R125
-   * (esta semana). Altas, bajas y pruebas que se inscriben: sin regla todavía.
+   * El tramo del período que la hoja de After School tiene completo: desde
+   * «Cifras del Resumen desde» (Config; antes solo está lo que trajo la carga
+   * de Poliwin) hasta hoy. parcial = el período empieza antes de esa fecha.
+   * → { ini, fin, parcial } o null (nada del período está cubierto).
+   */
+  function cobertura(E, p) {
+    const desde = E.config && E.config.resumenDesde;
+    if (!desde) return null;
+    const a = esMes(p) ? p + '-01' : p + '-01-01', b = esMes(p) ? finDeMes(p) : p + '-12-31';
+    const ini = a < desde ? desde : a, fin = b > E.hoy ? E.hoy : b;
+    return ini <= fin ? { ini, fin, parcial: ini > a } : null;
+  }
+
+  /** Las altas de cada niño en After School, con las inscripciones activas y las cerradas: { idNino: [alta…] }. */
+  function altasPorNino(E) {
+    const r = {};
+    (E.inscripciones || []).concat(E.inscripcionesCerradas || []).forEach(i => { if (i.alta) (r[i.idNino] = r[i.idNino] || []).push(i.alta); });
+    return r;
+  }
+
+  /** R134: altas = niños cuya PRIMERA inscripción cae en el tramo (un cambio de clase, una segunda clase o un regreso no son alta). */
+  function altasAS(E, c) {
+    return Object.values(altasPorNino(E)).map(l => l.reduce((m, a) => a < m ? a : m)).filter(a => a >= c.ini && a <= c.fin).length;
+  }
+
+  /** R135: bajas = niños con una baja total (pestaña Bajas) en el tramo, cada uno una vez. Dejar una clase no es baja. */
+  function bajasAS(E, c) {
+    return new Set(E.bajas.filter(b => b.fecha >= c.ini && b.fecha <= c.fin).map(b => b.idNino)).size;
+  }
+
+  /**
+   * R136: de las pruebas realizadas en el tramo (Tipo «Prueba» y Estado
+   * «Asistió»: ni canceladas, ni sin resultado, ni reposiciones ni
+   * eventuales), las que tienen una inscripción del niño con alta entre el
+   * día de la prueba y N días después (N = «Días para que una prueba cuente
+   * como inscrita», Config). enCurso = alguna sin inscripción todavía puede
+   * inscribirse (su plazo no terminó).
+   */
+  function pruebasAS(E, c, n) {
+    const altas = altasPorNino(E);
+    const hechas = (E.pruebas || []).filter(x => (x.tipo || 'Prueba') === 'Prueba' && x.estado === 'Asistió' && x.fecha >= c.ini && x.fecha <= c.fin);
+    let si = 0, enCurso = false;
+    for (const x of hechas) {
+      const limite = sumarDias(x.fecha, n);
+      if ((altas[x.idNino] || []).some(a => a >= x.fecha && a <= limite)) si++;
+      else if (limite >= E.hoy) enCurso = true;
+    }
+    return hechas.length ? { valor: si / hechas.length, inscritas: si, realizadas: hechas.length, enCurso } : null;
+  }
+
+  /**
+   * After School en un período. Activos y ocupación, solo el período en curso:
+   * activos = niños en estado «Activo», cada uno una vez aunque esté en dos
+   * clases (la cifra de la pestaña Ocupación); ocupación = R125 (esta semana).
+   * Altas, bajas y pruebas que se inscriben (R134–R136): cualquier período
+   * que la hoja tenga cubierto (cobertura). Lo que no se puede dar lleva su
+   * motivo en «motivos». null si no hay nada del período.
    */
   function afterSchoolEn(E, p) {
-    if (!E || !E.hoy || !(E.hoy.slice(0, esMes(p) ? 7 : 4) === p)) return null;
-    const activos = new Set((E.ninos || []).filter(n => n.estado === 'Activo').map(n => n.id)).size;
-    const o = ocupacionAS(E);
-    return { activos, altas: null, bajas: null, ocupacion: o ? o.valor : null, ocupacionNota: o ? o.inscritos + ' de ' + o.cupos + ' cupos, esta semana' : '' };
+    if (!E || !E.hoy) return null;
+    const actual = E.hoy.slice(0, esMes(p) ? 7 : 4) === p, c = cobertura(E, p);
+    if (!actual && !c) return null;
+    const r = { activos: null, ocupacion: null, ocupacionNota: '', altas: null, bajas: null, pruebas: null, pruebasNota: '', enCurso: false,
+      parcial: !!(c && c.parcial), desde: c && c.parcial ? c.ini : '', motivos: {} };
+    if (actual) {
+      r.activos = new Set((E.ninos || []).filter(n => n.estado === 'Activo').map(n => n.id)).size;
+      const o = ocupacionAS(E);
+      if (o) { r.ocupacion = o.valor; r.ocupacionNota = o.inscritos + ' de ' + o.cupos + ' cupos, esta semana'; }
+    } else r.motivos.activos = r.motivos.ocupacion = 'Solo el período en curso';
+    const desde = E.config && E.config.resumenDesde;
+    if (!c) {
+      r.motivos.altas = r.motivos.bajas = r.motivos.pruebas = desde ? 'Sin datos: After School cuenta desde el ' + fechaCorta(desde) : 'Falta en Config de After School: «Cifras del Resumen desde»';
+      return r;
+    }
+    r.altas = altasAS(E, c);
+    if (Array.isArray(E.bajas)) r.bajas = bajasAS(E, c);
+    else r.motivos.bajas = 'Falta publicar la versión nueva del Apps Script de After School';
+    const n = E.config.diasInscribe;
+    if (!(n >= 1)) r.motivos.pruebas = 'Falta en Config de After School: «Días para que una prueba cuente como inscrita»';
+    else {
+      const pr = pruebasAS(E, c, n);
+      if (pr) { r.pruebas = pr.valor; r.enCurso = pr.enCurso; r.pruebasNota = pr.inscritas + ' de ' + pr.realizadas + ' pruebas' + (pr.enCurso ? ' · en curso' : ''); }
+      else r.motivos.pruebas = 'Sin pruebas realizadas en el período';
+    }
+    return r;
   }
 
   /**
@@ -152,7 +233,6 @@
   }
 
   const UNIDADES = ['Preschool', 'After School', 'Veranito', 'Baby & Me', 'Cumpleaños'];
-  const SIN_REGLA = 'Falta la regla que la define';
 
   /**
    * Todo el Resumen del negocio de un período.
@@ -162,35 +242,52 @@
   function resumenNegocio(d) {
     const p = d.periodo, cmp = comparables(p), metas = d.metas || [];
     const unidadEn = (u, q) => u === 'Preschool' ? preschoolEn(d.pre, q) : u === 'After School' ? afterSchoolEn(d.E, q) : null;
+    /* Un período que la hoja no tiene completo (parcial) no se usa para comparar. */
     const comparar = (u, campo) => {
+      const ok = x => x && !x.parcial && x[campo] != null;
       const a = unidadEn(u, cmp.anterior), b = cmp.anioAnterior ? unidadEn(u, cmp.anioAnterior) : null;
-      return { anterior: a && a[campo] != null ? a[campo] : null, anioAnterior: b && b[campo] != null ? b[campo] : null };
+      return { anterior: ok(a) ? a[campo] : null, anioAnterior: ok(b) ? b[campo] : null };
     };
     const unidades = UNIDADES.map(u => {
       const x = unidadEn(u, p);
       const cifra = (campo, nombreMeta) => {
         const v = x && x[campo] != null ? x[campo] : null;
-        const r = { valor: v, motivo: v !== null ? '' : (x && (campo === 'altas' || campo === 'bajas') ? SIN_REGLA : 'Sin datos') };
+        const r = { valor: v, motivo: v !== null ? '' : (x && x.motivos && x.motivos[campo]) || 'Sin datos' };
         if (v !== null) Object.assign(r, comparar(u, campo));
         if (nombreMeta) r.meta = metaDe(metas, nombreMeta, u, p);
         return r;
       };
       return { nombre: u, datos: !!x, ocupacion: cifra('ocupacion', 'Ocupación'), ocupacionNota: x && x.ocupacionNota || '',
-        activos: cifra('activos', 'Niños activos'), altas: cifra('altas', 'Altas'), bajas: cifra('bajas', 'Bajas'), hasta: x && x.hasta || '' };
+        activos: cifra('activos', 'Niños activos'), altas: cifra('altas', 'Altas'), bajas: cifra('bajas', 'Bajas'), hasta: x && x.hasta || '',
+        pruebas: cifra('pruebas', 'Pruebas que se inscriben'), pruebasNota: x && x.pruebasNota || '', enCurso: !!(x && x.enCurso), desde: x && x.desde || '' };
     });
     const fin = finanzasEn(d.finanzas, p);
     const finanzas = Object.assign({ periodo: p, anterior: finanzasEn(d.finanzas, cmp.anterior), anioAnterior: cmp.anioAnterior ? finanzasEn(d.finanzas, cmp.anioAnterior) : { disponible: false },
       metaMargenNeto: metaDe(metas, 'Margen neto', 'Negocio', p), metaFacturacion: metaDe(metas, 'Facturación', 'Negocio', p) }, fin);
     finanzas.unidades = fin.disponible ? fin.unidades : {};
     unidades.forEach(u => { const f = finanzas.unidades[u.nombre]; u.facturacion = f ? f.facturacion : null; u.margen = f ? f.margen : null; });
-    /* Niños del negocio: el total necesita reconocer al mismo niño en dos
-       unidades (After School y Preschool tienen IDs distintos), y esa regla no
-       existe. Sumar contaría dos veces: no se suma (docs/REGLAS_NEGOCIO.md R128). */
+    /* Niños activos del negocio: el total necesita reconocer al mismo niño en
+       dos unidades (After School y Preschool tienen IDs distintos), y esa regla
+       no existe. Sumar contaría dos veces: no se suma (R128).
+       Altas y bajas del negocio (R137): la suma de las de cada unidad, con su
+       desglose; son movimientos de cada unidad, no niños distintos. Sin el
+       dato de una unidad, no hay total. Pruebas que se inscriben: las de After
+       School, la única unidad con pruebas en el portal. */
+    const conDatos = ['Preschool', 'After School'].map(n => unidades.find(u => u.nombre === n));
+    const sumaDe = (campo, nombreMeta) => {
+      const desglose = conDatos.map(u => ({ unidad: u.nombre, valor: u[campo].valor, desde: u.desde }));
+      const faltan = desglose.filter(x => x.valor === null).map(x => x.unidad);
+      const total = k => conDatos.every(u => u[campo][k] != null) ? conDatos.reduce((t, u) => t + u[campo][k], 0) : null;
+      return { valor: faltan.length ? null : desglose.reduce((t, x) => t + x.valor, 0), motivo: faltan.length ? 'Faltan los datos de ' + faltan.join(' y ') : '',
+        desglose, anterior: faltan.length ? null : total('anterior'), anioAnterior: faltan.length ? null : total('anioAnterior'), meta: metaDe(metas, nombreMeta, 'Negocio', p) };
+    };
+    const asU = conDatos[1];
     const ninos = {
       activos: { valor: null, motivo: 'Falta la regla para reconocer al mismo niño en dos unidades', meta: metaDe(metas, 'Niños activos', 'Negocio', p) },
-      altas: { valor: null, motivo: 'Falta la regla de alta en After School', meta: metaDe(metas, 'Altas', 'Negocio', p) },
-      bajas: { valor: null, motivo: 'Falta la regla de baja en After School', meta: metaDe(metas, 'Bajas', 'Negocio', p) },
-      pruebas: { valor: null, motivo: 'Falta la regla de cuántas pruebas se inscriben', meta: metaDe(metas, 'Pruebas que se inscriben', 'Negocio', p) }
+      altas: sumaDe('altas', 'Altas'),
+      bajas: sumaDe('bajas', 'Bajas'),
+      pruebas: Object.assign({}, asU.pruebas, { desglose: [{ unidad: 'After School', valor: asU.pruebas.valor, desde: asU.desde }], nota: asU.pruebasNota, enCurso: asU.enCurso,
+        meta: metaDe(metas, 'Pruebas que se inscriben', 'Negocio', p) || asU.pruebas.meta })
     };
     return { periodo: p, nombre: nombrePeriodo(p), comparables: cmp, finanzas, ninos, unidades, alertas: alertas(unidades, finanzas) };
   }
@@ -219,7 +316,7 @@
     return out.sort((a, b) => b.distancia - a.distancia).slice(0, 3);
   }
 
-  const Cifras = { ocupacionAS, metaDe, preschoolEn, afterSchoolEn, finanzasEn, serieFinanzas, resumenNegocio, alertas, comparables, nombrePeriodo, mesMas, UNIDADES };
+  const Cifras = { ocupacionAS, metaDe, preschoolEn, afterSchoolEn, cobertura, finanzasEn, serieFinanzas, resumenNegocio, alertas, comparables, nombrePeriodo, mesMas, UNIDADES };
   if (typeof module !== 'undefined' && module.exports) module.exports = Cifras;
   else raiz.Cifras = Cifras;
 })(this);

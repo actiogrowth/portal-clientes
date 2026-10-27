@@ -826,15 +826,21 @@ body.eq-ficha-abierta { overflow: hidden; }
 .rs-barra b { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--negro); }
 .rs-tabla-caja { overflow-x: auto; }
 .rs-tabla { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
-.rs-tabla th, .rs-tabla td { text-align: left; padding: 12px 10px; border-bottom: 1px solid #ECECEC; vertical-align: middle; }
+.rs-tabla th, .rs-tabla td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #ECECEC; vertical-align: middle; }
 .rs-tabla thead th { font-size: 12px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: #4A4A4A; }
 .rs-tabla tbody th { font-weight: 600; white-space: nowrap; }
 .rs-tabla tbody th .rs-punto { display: inline-block; margin-right: 8px; vertical-align: -1px; }
 .rs-tabla tr:last-child th, .rs-tabla tr:last-child td { border-bottom: 0; }
-.rs-ocup { display: flex; align-items: center; gap: 10px; min-width: 190px; }
+.rs-ocup { display: flex; align-items: center; gap: 10px; min-width: 140px; }
 .rs-ocup .rs-barra { flex: 1; margin: 0; }
 .rs-ocup > span:last-child { font-weight: 600; min-width: 44px; text-align: right; }
 .rs-pronto { color: var(--texto-2); }
+.rs-tabla .rs-pronto { font-size: 13px; }
+/* 27-oct: pruebas que se inscriben (cuántas y «en curso») y la meta de la unidad bajo su cifra. */
+.rs-celda { display: block; }
+.rs-celda > span { display: block; }
+.rs-celda > .ayuda { font-size: 12px; margin-top: 2px; }
+.rs-curso { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #6B3A00; vertical-align: 1px; }
 .rs-mirar { display: flex; flex-direction: column; gap: 10px; }
 .rs-pendientes { align-self: stretch; justify-content: center; min-height: 48px; }
 .rs-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--blanco); border: 1px solid #ECECEC; min-height: 56px; box-sizing: border-box; color: var(--texto); text-decoration: none; }
@@ -857,6 +863,7 @@ a.rs-item:hover { border-color: var(--negro); color: var(--texto); }
   .rs-tabla td { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #F0F0F0; }
   .rs-tabla td::before { content: attr(data-etq); color: #4A4A4A; font-size: 13px; }
   .rs-tabla td:last-child { border-bottom: 0; }
+  .rs-celda { text-align: right; }
   .rs-tabla td[data-etq="Ocupación"] { flex-wrap: wrap; }
   .rs-ocup { min-width: 0; flex: 1 1 150px; }
 }
