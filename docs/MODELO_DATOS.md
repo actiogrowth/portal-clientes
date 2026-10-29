@@ -221,8 +221,9 @@ Se buscan solo las **últimas 500 filas** (un reintento llega en segundos).
 ## Sheet «Procesos — Vida en Arte» (26-oct)
 
 Otro archivo, de Actio, con su propio Apps Script (`procesos-script/Procesos.gs`).
-Lo edita Actio a mano; el portal solo **escribe** en Aceptaciones, Marcas y
-Revisiones (siempre al final). Las columnas se buscan **por título** (el
+Lo edita Actio a mano; el portal solo **escribe** en Aceptaciones, Marcas,
+Marcas de hojas (29-oct) y Revisiones (siempre al final; en Marcas de hojas,
+desmarcar el mismo día borra esa fila). Las columnas se buscan **por título** (el
 script toma como fila de títulos la primera de las 10 de arriba que tenga
 «Puesto ID» o «ID»); se saltan las filas vacías. Si falta una columna, el
 script la nombra en `faltan` (lo ven Dirección y Administrador).
@@ -237,7 +238,11 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 | Asignaciones | Usuario del portal, Puesto ID, Desde, Hasta | Un usuario o un rol («Usuario del rol Coordinación After School»). Desde y Hasta vacíos = sin límite. |
 | Aceptaciones | Fecha y hora, Usuario, Puesto ID, Versión | La escribe el portal. Vale solo la de la versión vigente del puesto. |
 | Marcas | Fecha y hora, Usuario, Puesto ID, Orden del punto, Período, Resultado, Nota | La escribe el portal. Resultado: Cumplido · No. Una corrección es otra fila del mismo período (vale la última; las anteriores quedan de rastro). |
-| Revisiones | Fecha y hora, Revisor, Puesto ID, Período, Sorpresa, Resultado, Nota | La escribe el portal. Sorpresa: Sí · No. |
+| Revisiones | Fecha y hora, Revisor, Puesto ID, Período, Sorpresa, Resultado, Nota | La escribe el portal. Sorpresa: Sí · No. 29-oct: la verificación de una hoja diaria es una fila más, con Período = el día y la Nota que empieza con `Hoja «<nombre>»`. |
+| Hojas (29-oct) | Puesto ID, Hoja, Orden, Momento, Paso | Hojas de pasos diarios de un puesto (cierre del local, limpieza del día). Una fila por paso; el portal los agrupa por Momento, en el orden de Orden. La verifica el puesto de «Verifica». |
+| Reglas del juego (29-oct) | Sección, Orden, Texto | Lo que une a todos. Se muestra en Procesos › Equipo y antes de aceptar cualquier contrato. |
+| Horarios del servicio (29-oct) | Momento, Unidad, Hora, Puestos que lo usan | La hora de cada momento del servicio. Los textos nombran el momento, no la hora. La Hora se lee **como se ve** en el Sheet (texto). «Puestos que lo usan»: IDs separados por coma. Cambiar una hora no sube ninguna versión. |
+| Marcas de hojas (29-oct) | Fecha y hora, Usuario, Puesto ID, Hoja, Orden, Iniciales | La escribe el portal (si no existe, la crea). Un paso marcado hoy, con la hora del servidor y las iniciales de quien lo marcó. Desmarcar el mismo día borra la fila. |
 | Metas (26-oct) | Cifra, Unidad, Período, Valor, Estado | La crea `actualizarEstructura()` (Procesos.gs v2); la escribe Vida en Arte; el portal solo la lee (`resumen/api.php`). Cifra: Ocupación · Niños activos · Altas · Bajas · Pruebas que se inscriben · Facturación · Margen de la unidad · Margen neto. Unidad: Negocio · Preschool · After School · Veranito · Baby & Me · Cumpleaños. Período (texto): `2026-10` (mes) o `2026` (año). Valor: número (un porcentaje se escribe 70 o 70 %). Estado: Tentativa · Confirmada (vacío = tentativa). Para Bajas, la meta es el tope normal. |
 
 **Período** (texto, formato `@`): Diario, Cuando aplica y Por persona nueva →

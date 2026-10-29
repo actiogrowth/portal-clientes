@@ -14,6 +14,10 @@
     /procesos/#u=<unidad>    los procesos de una unidad y sus documentos
     /procesos/#equipo        el organigrama y la ficha de cada puesto
                              (comun/organigrama.js → /equipo/api.php)
+    /procesos/#reglas        29-oct: las Reglas del juego (todos)
+    /procesos/#horarios      29-oct: los Horarios del servicio (Dirección y Administrador)
+    /procesos/#puesto=<ID>   29-oct: Equipo con la ficha de ese puesto abierta (Mi lista enlaza aquí)
+  Equipo, Reglas y Horarios van sobre la escena oscura (la pone organigrama.js).
   Los documentos se leen solo al entrar a Documentos. El buscador busca en
   todas las unidades. -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
@@ -24,7 +28,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=154fbf55d7">
+<link rel="stylesheet" href="/comun/vea.css?v=8df6ea0528">
 </head>
 <body>
 <header id="cab"></header>
@@ -61,11 +65,12 @@
   <div id="equipo" class="oculto"></div>
 </main>
 
-<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/datos.js?v=1b3dcca978"></script>
 <script src="/comun/marca.js?v=37b691d840"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
-<script src="/comun/organigrama.js?v=461829f3ae"></script>
+<script src="/comun/puestos.js?v=2b894f4e25"></script>
+<script src="/comun/organigrama.js?v=563dfd8a82"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -181,10 +186,12 @@ function pintarBusqueda(q) {
   }).join('');
 }
 
-/* Qué vista pide la dirección: la entrada, Documentos (también #u=… y la búsqueda) o Equipo. */
+/* Qué vista pide la dirección: la entrada, Documentos (también #u=… y la búsqueda) o Equipo (también #reglas, #horarios y #puesto=<ID>). */
+const VISTAS_EQUIPO = { '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' };
+const RUTA_EQUIPO = { texto: 'Equipo', url: '/procesos/#equipo' };
 function vistaActual() {
   const h = location.hash;
-  if (h === '#equipo') return 'equipo';
+  if (h in VISTAS_EQUIPO || /^#puesto=/.test(h)) return 'equipo';
   if (h === '#documentos' || /^#u=/.test(h)) return 'documentos';
   return 'entrada';
 }
@@ -197,10 +204,12 @@ function pintar() {
   $('#contenido').classList.toggle('oculto', v !== 'documentos');
   $('#buscarCaja').classList.toggle('oculto', v !== 'documentos');
   if (v !== 'documentos') $('#pantalla').classList.add('oculto');
+  if (v !== 'equipo') Organigrama.salir();
   if (v === 'entrada') { pintarEntrada(); return; }
   if (v === 'equipo') {
-    cabecera([RUTA_PROCESOS, { texto: 'Equipo' }]);
-    Organigrama.mostrar($('#equipo'), { alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
+    const sub = VISTAS_EQUIPO[location.hash] || 'org', abrir = (location.hash.match(/^#puesto=([^&]+)$/) || [])[1];
+    cabecera(sub === 'org' ? [RUTA_PROCESOS, { texto: 'Equipo' }] : [RUTA_PROCESOS, RUTA_EQUIPO, { texto: sub === 'reglas' ? 'Reglas del juego' : 'Horarios del servicio' }]);
+    Organigrama.mostrar($('#equipo'), { vista: sub, abrir: abrir ? decodeURIComponent(abrir) : '', alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
     return;
   }
   // Documentos: se leen la primera vez que se entra.

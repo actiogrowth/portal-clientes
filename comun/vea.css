@@ -17,7 +17,7 @@
      pestañas en píldora (la activa en negro).
    · Objetivos táctiles ≥ 44px (Pasar lista ≥ 52px).
    ========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 :root {
   /* Marca */
@@ -657,8 +657,6 @@ a.pr-unidad:hover { border-color: var(--negro); color: var(--texto); }
   background: rgba(255, 255, 255, .5); -webkit-user-select: none; user-select: none; }
 .eq-lienzo.arrastrando { cursor: grabbing; }
 .eq-mundo { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-.eq-lineas { position: absolute; left: 0; top: 0; overflow: visible; }
-.eq-lineas path { fill: none; stroke-width: 2; stroke-linejoin: round; }
 .eq-puesto { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 5px; padding: 8px 12px; border-radius: 12px;
   box-sizing: border-box; background: var(--blanco); border: 2px solid var(--eq-borde, var(--gris)); color: var(--texto); font: inherit; text-align: left; min-height: var(--toque); }
 .eq-lienzo .eq-puesto { position: absolute; overflow: hidden; }
@@ -723,14 +721,9 @@ body.eq-ficha-abierta { overflow: hidden; }
 .eq-pills { display: flex; flex-wrap: wrap; gap: 8px; }
 .eq-pill { font-size: 13px; padding: 4px 10px; border-radius: 999px; background: var(--pildora); }
 .eq-pill.oscuro { background: var(--negro); color: var(--blanco); }
-.eq-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid #E2E2E2; padding-bottom: 10px; }
-.eq-tabs button { font: inherit; font-size: 14px; font-weight: 500; min-height: var(--toque); padding: 0 16px; border-radius: 999px; border: 0; background: #EFEFEF; color: var(--texto); cursor: pointer; }
-.eq-tabs button[aria-selected="true"] { background: var(--negro); color: var(--blanco); font-weight: 600; }
 .eq-cuerpo { display: flex; flex-direction: column; gap: 10px; }
-.eq-bloque h3, .eq-frec, .eq-det summary { font-size: 13px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: #4A4A4A; }
+.eq-frec { font-size: 13px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: #4A4A4A; }
 .eq-resultado { font-size: 16px; line-height: 1.5; font-weight: 500; margin-top: 4px; }
-.eq-det { border-top: 1px solid #E2E2E2; padding-top: 6px; }
-.eq-det summary { cursor: pointer; min-height: var(--toque); display: flex; align-items: center; }
 .eq-ol { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
 .eq-verifica { font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 12px; background: var(--fondo-suave); }
 .eq-puntos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -745,6 +738,211 @@ body.eq-ficha-abierta { overflow: hidden; }
   .eq-dialogo { width: 100vw; height: 100dvh; max-height: none; margin: 0; }
   .eq-dialogo .eq-ficha { height: 100dvh; max-height: none; border-radius: 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px)); background: #FFFFFF; }
   .eq-ficha-cab h2 { font-size: 30px; }
+}
+
+/* ── Procesos › Equipo v2 (29-oct): la escena oscura y el organigrama 3D ────
+   <html class="eq-escena"> lo pone comun/organigrama.js mientras se ve Equipo
+   (también Reglas del juego y Horarios). Los colores de las áreas llegan
+   como --c desde comun/puestos.js. Se anima SOLO transform y opacity:
+   · .eq-entra: la entrada en cascada (una vez; --d es el retraso).
+   · .eq-lin::after: la luz que recorre las líneas; .eq-chispa; .eq-halo.
+   Con la pestaña oculta (.eq-pausa) todo se detiene; con «reducir
+   movimiento», todo quieto; con «reducir transparencia» o sin desenfoque,
+   fondo plano, sin foto, sin piso, sin chispas y sin animación. */
+.eq-escena body { background: #0E0F11; }
+.eq-escena body::before { background: linear-gradient(180deg, #17191C 0%, #0B0C0E 100%); }
+.eq-fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.eq-fondo[hidden] { display: none; }
+.eq-brillos { position: absolute; inset: 0; }
+.eq-brillos::before { content: ''; position: absolute; inset: 0; background: radial-gradient(1200px 520px at 50% -8%, rgba(255, 255, 255, .10), transparent 60%); }
+.eq-foto { position: absolute; inset: 0; background: url(/comun/fondo-local.jpg?v=dc4bc37810) center / cover no-repeat; opacity: .14; filter: blur(6px) saturate(.6); transform: scale(1.05); }
+.eq-piso { position: absolute; left: -20%; right: -20%; bottom: -120px; height: 520px; transform: perspective(700px) rotateX(62deg); transform-origin: 50% 100%;
+  background-image: linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 64px 64px;
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 90%); mask-image: linear-gradient(to top, #000 10%, transparent 90%); }
+.eq-chispa { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #FFFFFF; opacity: 0; animation: eq-sube 9s linear infinite; }
+@keyframes eq-sube { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .6; } 100% { transform: translateY(-700px); opacity: 0; } }
+/* La barra de arriba: vidrio oscuro con el logo en blanco. */
+.eq-escena .cab { background: rgba(14, 15, 17, .55); border-bottom-color: rgba(255, 255, 255, .12); color: #FFFFFF; }
+.eq-escena .cab-marca img { filter: brightness(0) invert(1); }
+.eq-escena .cab-ruta, .eq-escena .cab-ruta a, .eq-escena .cab-enlace { color: rgba(255, 255, 255, .78); }
+.eq-escena .cab-ruta b { color: #FFFFFF; }
+.eq-escena .cab-quien { border-color: rgba(255, 255, 255, .35); }
+.eq-escena .cab-usuario > .btn { background: transparent; color: #FFFFFF; border-color: #FFFFFF; }
+/* Arriba del organigrama: los accesos (Reglas del juego, Horarios) y la leyenda. */
+.eq-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+.eq-accesos { display: flex; flex-wrap: wrap; gap: 8px; }
+.eq-acceso { display: inline-flex; align-items: center; min-height: var(--toque); padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 600; text-decoration: none;
+  color: #FFFFFF; border: 1px solid rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .08); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.eq-acceso:hover { color: #FFFFFF; background: rgba(255, 255, 255, .16); }
+.eq-acceso:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
+.eq-escena .eq-leyenda { color: rgba(255, 255, 255, .85); }
+.eq-escena .eq-leyenda i.construccion { border: 1px dashed #FFFFFF; width: 14px; height: 14px; border-radius: 4px; }
+.eq-leyenda .eq-chip { margin-right: 2px; }
+/* El lienzo: transparente sobre la escena; se arrastra y se acerca como antes. */
+.eq-org3d { display: flex; flex-direction: column; gap: 12px; }
+.eq-org3d .eq-lienzo { background: transparent; height: clamp(460px, calc(100dvh - 250px), 900px); border-radius: 0; }
+.eq-org3d .eq-pie { justify-content: flex-end; }
+.eq-org3d .eq-zoom .btn-circulo { background: rgba(255, 255, 255, .9); }
+.eq-escenario { perspective: 1800px; perspective-origin: 50% 0%; }
+.eq-plano { transform-style: preserve-3d; transform: rotateX(7deg); animation: eq-plano 1.4s cubic-bezier(.2, .8, .2, 1) backwards; }
+@keyframes eq-plano { from { transform: rotateX(38deg) translateY(60px) scale(.94); opacity: 0; } to { transform: rotateX(7deg); opacity: 1; } }
+/* Las losas: tarjetas blancas con grosor (sombras escalonadas) que se levantan. */
+.eq-losa { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; box-sizing: border-box; padding: 9px 10px 9px 12px;
+  border: 0; border-radius: 14px; background: linear-gradient(180deg, #FFFFFF, #F2F2F2); color: #111111; font: inherit; text-align: left; transform: translateZ(0);
+  box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 18px 30px rgba(0, 0, 0, .45);
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s; }
+button.eq-losa { cursor: pointer; }
+.eq-losa:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
+@media (hover: hover) {
+  button.eq-losa:hover { transform: translateY(-6px) translateZ(40px);
+    box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 34px 50px rgba(0, 0, 0, .55); }
+}
+.eq-losa .eq-nombre { font-size: 13px; font-weight: 600; line-height: 1.2; }
+.eq-losa .eq-nota { font-size: 11px; color: #4A4A4A; white-space: normal; }
+.eq-losa .eq-fila { margin-top: 2px; }
+/* Dirección: la losa negra con su halo que respira. */
+.eq-dir-fila { display: flex; justify-content: center; }
+.eq-dir { position: relative; }
+.eq-halo { position: absolute; inset: -14px; border-radius: 24px; background: radial-gradient(closest-side, rgba(255, 255, 255, .35), transparent); pointer-events: none;
+  opacity: .35; animation: eq-respira 3.2s ease-in-out infinite; animation-delay: 2.6s; }
+@keyframes eq-respira { 0%, 100% { opacity: .35; transform: scale(.96); } 50% { opacity: .8; transform: scale(1.04); } }
+.eq-losa-dir { align-items: center; padding: 14px 40px; background: linear-gradient(180deg, #2A2A2A, #0E0E0E); color: #FFFFFF;
+  box-shadow: 0 1px 0 #333333, 0 2px 0 #2B2B2B, 0 3px 0 #222222, 0 4px 0 #1A1A1A, 0 5px 0 #111111, 0 22px 40px rgba(0, 0, 0, .6); }
+.eq-dir-id { font-size: 11px; letter-spacing: 2px; color: rgba(255, 255, 255, .7); }
+.eq-dir-nom { font-family: var(--titulos); font-size: 34px; line-height: 1; letter-spacing: 1px; }
+/* Las líneas: de Dirección a cada área y, en cada columna, a sus puestos. */
+.eq-bus-caja { position: relative; height: 56px; margin: 0 auto; }
+.eq-lin { position: absolute; display: block; background: rgba(255, 255, 255, .35); overflow: hidden; }
+.eq-lin-v { width: 2px; margin-left: -1px; transform-origin: top; }
+.eq-lin-h { height: 2px; transform-origin: center; }
+.eq-lin::after { content: ''; position: absolute; left: 0; top: 0; opacity: 0; }
+.eq-lin-v::after { width: 100%; height: 40%; background: linear-gradient(to bottom, transparent, var(--c, #FFFFFF), transparent); animation: eq-luz-v 2.2s linear infinite; animation-delay: 2.6s; }
+.eq-lin-h::after { height: 100%; width: 20%; background: linear-gradient(to right, transparent, #FFFFFF, transparent); animation: eq-luz-h 3s linear infinite; animation-delay: 2.6s; }
+@keyframes eq-luz-v { from { transform: translateY(-100%); opacity: 1; } to { transform: translateY(250%); opacity: 1; } }
+@keyframes eq-luz-h { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(500%); opacity: 1; } }
+.eq-crece-v { animation: eq-crece-v .5s ease-out backwards; animation-delay: var(--d, 0s); }
+.eq-crece-h { animation: eq-crece-h .6s ease-out backwards; animation-delay: var(--d, 0s); }
+@keyframes eq-crece-v { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes eq-crece-h { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* Las columnas: la cabeza del color del área y debajo sus puestos. */
+.eq-columnas { display: grid; align-items: start; }
+.eq-col { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
+.eq-losa-cab { padding: 0; overflow: hidden; gap: 0; }
+.eq-losa-cab.eq-tenue { opacity: .85; }
+.eq-cab-banda { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; }
+/* 24 px: texto grande, así el blanco sobre el verde de Comercial pasa (3:1). */
+.eq-cab-area { font-family: var(--titulos); font-size: 24px; letter-spacing: .6px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eq-cab-n { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: rgba(0, 0, 0, .28); color: #FFFFFF; }
+.eq-cab-cuerpo { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px; }
+.eq-cab-cuerpo .eq-nombre { font-size: 14px; }
+.eq-hijos { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 14px 0 0 18px; }
+.eq-lin-col { left: 9px; top: 0; bottom: 24px; }
+.eq-losa-puesto { border-left: 4px solid var(--c); }
+.eq-tic { position: absolute; left: calc(-4px - var(--tic, 10px)); top: 50%; width: var(--tic, 10px); height: 2px; background: var(--c); opacity: .7; }
+/* «Por cargar»: vidrio translúcido con borde punteado. */
+.eq-fantasma { background: rgba(255, 255, 255, .09); color: #FFFFFF; outline: 1px dashed rgba(255, 255, 255, .55); outline-offset: -1px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
+.eq-fantasma .eq-nota { color: rgba(255, 255, 255, .9); }
+.eq-fantasma .eq-chip.construccion { background: rgba(255, 255, 255, .14); color: #FFFFFF; }
+@media (hover: hover) { button.eq-fantasma:hover { box-shadow: 0 24px 40px rgba(0, 0, 0, .5); } }
+/* La entrada en cascada (una sola vez: después, .eq-quieto). */
+.eq-entra { animation: eq-aparece .7s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: var(--d, 0s); }
+@keyframes eq-aparece { from { opacity: 0; transform: translateY(-18px) translateZ(80px) rotateX(-20deg); } to { opacity: 1; transform: translateZ(0); } }
+.eq-quieto .eq-entra, .eq-quieto .eq-plano, .eq-quieto .eq-crece-v, .eq-quieto .eq-crece-h { animation: none; }
+.eq-pausa .eq-fondo *, .eq-pausa .eq-org3d *, .eq-pausa .eq-org3d *::after { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }
+  .eq-chispa { display: none; }
+  .eq-plano { transform: rotateX(7deg); }
+}
+/* Versión sólida: fondo plano, sin foto, sin piso, sin chispas, sin desenfoque y sin animación. */
+@media (prefers-reduced-transparency: reduce) {
+  .eq-escena body { background: #141618; }
+  .eq-fondo { display: none; }
+  .eq-escena .cab { background: #141618; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .eq-fantasma, .eq-acceso { background: #2A2D31; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .eq-org3d *, .eq-org3d *::after { animation: none !important; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .eq-escena body { background: #141618; }
+  .eq-fondo { display: none; }
+  .eq-escena .cab { background: #141618; }
+  .eq-fantasma, .eq-acceso { background: #2A2D31; }
+  .eq-org3d *, .eq-org3d *::after { animation: none !important; }
+}
+@media (max-width: 640px) { .eq-piso, .eq-chispa { display: none; } }
+
+/* Reglas del juego y Horarios del servicio: tarjetas de vidrio sobre la escena. */
+.eq-reglas { display: flex; flex-direction: column; gap: 16px; }
+.pagina-reglas { max-width: 820px; }
+.eq-regla-sec { border-radius: 24px; padding: 20px 24px; border: 1px solid var(--gris); background: var(--blanco); }
+.eq-regla-sec h2 { font-size: 30px; line-height: 1; margin-bottom: 8px; }
+.eq-regla-sec p { font-size: 15px; line-height: 1.55; margin-top: 6px; }
+.eq-ficha .eq-regla-sec { padding: 12px 0 0; border: 0; border-top: 1px solid #E2E2E2; border-radius: 0; background: transparent; }
+.eq-ficha .eq-regla-sec h2 { font-size: 24px; }
+.eq-horarios { border-radius: 24px; padding: 8px 16px; border: 1px solid var(--gris); background: var(--blanco); overflow-x: auto; }
+.eq-horarios table { width: 100%; }
+.eq-horarios-hora { white-space: nowrap; font-weight: 600; }
+.eq-escena .encabezado h1, .eq-escena .encabezado .ayuda, .eq-escena .pr-miga { color: #FFFFFF; text-shadow: 0 1px 8px rgba(0, 0, 0, .55); }
+
+/* La ficha (29-oct): el formato del contrato en papel. */
+.eq-contrato-tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.eq-contrato-tabla th, .eq-contrato-tabla td { border: 1px solid #D5DAD5; padding: 7px 10px; text-align: left; vertical-align: top; }
+.eq-contrato-tabla th { width: 34%; background: #EEF2EE; font-weight: 600; }
+.eq-sec { display: flex; flex-direction: column; gap: 6px; }
+.eq-sec > h3 { font-size: 17px; font-weight: 700; color: #0E4A2B; padding-bottom: 4px; border-bottom: 2px solid #0E4A2B; margin-top: 6px; }
+.eq-ol li { display: list-item; }
+.eq-ol li::marker { font-weight: 600; }
+.eq-ol .eq-hora, .eq-resultado .eq-hora { margin-left: 6px; vertical-align: 1px; }
+.eq-hora { align-self: flex-start; display: inline-block; margin: 2px 6px 0 0; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #E7F0F6; color: var(--azul-oscuro); white-space: nowrap; }
+.eq-frec .eq-hora { text-transform: none; letter-spacing: 0; margin-left: 8px; vertical-align: middle; }
+.eq-texto-acepto { font-style: italic; font-size: 14px; line-height: 1.5; }
+.eq-pills .btn.chico { min-height: 36px; }
+.eq-pill.ok { background: var(--verde-fondo); color: var(--verde-oscuro); font-weight: 600; }
+.eq-lei { display: flex; align-items: center; gap: 10px; min-height: var(--toque); font-size: 15px; font-weight: 600; }
+.eq-lei input { width: 22px; height: 22px; }
+.eq-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+.eq-botones .btn { min-height: var(--toque); }
+.eq-botones .btn[disabled] { opacity: .45; cursor: not-allowed; }
+/* La hoja diaria: cada paso es un botón que se marca con la hora y las iniciales. */
+.eq-hoja-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.eq-dia { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.eq-dia select { min-height: var(--toque); }
+.eq-pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.eq-paso { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: 14px; border: 1px solid #DADADA; background: var(--blanco);
+  color: var(--texto); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.eq-paso[disabled] { cursor: default; }
+.eq-paso:focus-visible { outline: 3px solid var(--negro); outline-offset: 2px; }
+.eq-paso[aria-pressed="true"] { background: var(--verde-fondo); border-color: #9CC9AC; }
+.eq-caja { width: 24px; height: 24px; flex-shrink: 0; border-radius: 7px; border: 2px solid #8A8A8A; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
+.eq-paso[aria-pressed="true"] .eq-caja { background: var(--verde-oscuro); border-color: var(--verde-oscuro); }
+.eq-paso[aria-pressed="true"] .eq-caja::after { content: ''; width: 6px; height: 11px; border: solid #FFFFFF; border-width: 0 2.5px 2.5px 0; transform: translateY(-1px) rotate(45deg); }
+.eq-paso-txt { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; line-height: 1.35; }
+.eq-sello { flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--verde-oscuro); white-space: nowrap; }
+.eq-verificar-hoja { border-top: 1px solid #E2E2E2; }
+
+/* La hoja de impresión del contrato (Descargar PDF): Inter, títulos en verde, firma, nombre y fecha. */
+#eq-impresion { display: none; }
+@media print {
+  @page { size: letter; margin: 16mm 18mm; }
+  html.eq-imprimiendo body { background: #FFFFFF !important; }
+  html.eq-imprimiendo body::before { display: none !important; }
+  html.eq-imprimiendo body > *:not(#eq-impresion) { display: none !important; }
+  html.eq-imprimiendo #eq-impresion { display: block; font-family: 'Inter', system-ui, sans-serif; color: #1A1A1A; font-size: 10.5pt; line-height: 1.4; }
+  #eq-impresion .eqp-marca { font-size: 9.5pt; font-weight: 600; color: #5A6B7B; margin: 0; }
+  #eq-impresion h1 { font-family: 'Inter', sans-serif; font-size: 22pt; font-weight: 700; color: #0E4A2B; margin: 0; line-height: 1.15; }
+  #eq-impresion h2 { font-family: 'Inter', sans-serif; font-size: 14pt; font-weight: 700; margin: 0 0 8pt; }
+  #eq-impresion .eq-contrato-tabla { font-size: 10pt; margin-bottom: 6pt; }
+  #eq-impresion .eq-sec { display: block; break-inside: auto; }
+  #eq-impresion .eq-sec > h3 { font-size: 13pt; color: #0E4A2B; border-bottom: 1.5pt solid #0E4A2B; margin: 12pt 0 6pt; padding-bottom: 2pt; break-after: avoid; }
+  #eq-impresion .eq-ol { display: block; padding-left: 22pt; }
+  #eq-impresion .eq-ol li { display: list-item; margin: 0 0 3pt; break-inside: avoid; }
+  #eq-impresion .eq-resultado { font-size: 10.5pt; font-weight: 400; }
+  #eq-impresion .eqp-firma { break-inside: avoid; }
+  #eq-impresion .eqp-linea { width: 50%; border-top: 1px solid #1A1A1A; margin-top: 28pt; }
+  #eq-impresion .eqp-firma-tit { font-weight: 700; margin: 3pt 0 0; }
+  #eq-impresion .eqp-datos { display: flex; gap: 0; }
+  #eq-impresion .eqp-datos span { width: 33%; }
 }
 
 /* ── Mi lista y Revisar (26-oct; pensada para tablet) ─────────────────────── */

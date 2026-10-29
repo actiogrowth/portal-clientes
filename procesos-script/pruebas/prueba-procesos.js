@@ -59,7 +59,15 @@ const HOJAS = () => ({
   'Revisiones': [['Fecha y hora', 'Revisor', 'Puesto ID', 'Período', 'Sorpresa', 'Resultado', 'Nota']],
   // 26-oct: un mes que Sheets ya convirtió en fecha y un año que quedó como número.
   'Metas': [['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], ['Ocupación', 'Preschool', new Date(2026, 9, 1), 70, 'Tentativa'],
-    ['Bajas', 'After School', 2026, '3', 'Confirmada'], ['Altas', 'Negocio', '2026-10', 12, '']]
+    ['Bajas', 'After School', 2026, '3', 'Confirmada'], ['Altas', 'Negocio', '2026-10', 12, '']],
+  // 29-oct: las tres pestañas nuevas. Una hora que Sheets ya convirtió en hora (fecha de 1899) y otra escrita como texto.
+  'Hojas': [['Puesto ID', 'Hoja', 'Orden', 'Momento', 'Paso'],
+    ['COO', 'Cierre de prueba', 1, 'Antes de la salida', 'Paso uno'], ['COO', 'Cierre de prueba', 2, 'Antes de la salida', 'Paso dos'],
+    ['COO', 'Cierre de prueba', 3, 'Al final', 'Paso tres'], ['ADM', 'Hoja de un borrador', 1, 'Mañana', 'Paso de borrador'],
+    ['FANTASMA', 'Hoja huérfana', 1, 'Mañana', 'Paso de un puesto que no existe']],
+  'Reglas del juego': [['Sección', 'Orden', 'Texto'], ['La idea', 2, 'Segunda'], ['La idea', 1, 'Primera'], ['Cómo se juega', 1, 'Una regla']],
+  'Horarios del servicio': [['Momento', 'Unidad', 'Hora', 'Puestos que lo usan'],
+    ['Cambio de prueba', 'Unidad A', new Date(1899, 11, 30, 10, 0), 'COO'], ['Reporte de prueba', 'Unidad A', '2:00 p. m.', 'COO, REC']]
 });
 
 /* Una hoja en memoria. Una celda sin formato de texto convierte «2026-10» y «2026-10-28» en fecha, como Sheets. */
@@ -77,8 +85,11 @@ function hojaFalsa(nombre, vals) {
     vals, formatos, escrituras: 0,
     getName: () => nombre, validaciones: {}, congeladas: 0,
     setFrozenRows: n => { h.congeladas = n; },
-    getDataRange: () => ({ getValues: () => vals.map(f => f.slice()) }),
+    getDataRange: () => ({ getValues: () => vals.map(f => f.slice()),
+      // Como se ve en el Sheet: una hora (fecha de 1899) como «10:00»; lo demás, como texto.
+      getDisplayValues: () => vals.map(f => f.map(v => v instanceof Date ? (v.getFullYear() === 1899 ? v.getHours() + ':' + ('0' + v.getMinutes()).slice(-2) : String(v)) : v == null ? '' : String(v))) }),
     getLastRow: () => vals.length,
+    deleteRow: n => { h.borradas = (h.borradas || 0) + 1; vals.splice(n - 1, 1); },
     getRange: (r, c, nr, nc) => ({
       setNumberFormat: fmt => { for (let i = 0; i < (nr || 1); i++) for (let j = 0; j < (nc || 1); j++) formatos[(r + i) + ',' + (c + j)] = fmt; return this; },
       setDataValidation: regla => { h.validaciones[c] = { desde: r, filas: nr, valores: regla.valores, invalidos: regla.invalidos }; },
@@ -134,7 +145,8 @@ seccion('clave y acciones');
 seccion('leer: por título, con todas las pestañas');
 {
   const g = cargar(P), r = g.llamar('leer');
-  ok(r.ok && r.resultado.faltan.length === 1 && /Cada luna/.test(r.resultado.faltan[0]), 'lee; solo avisa el «Cada cuánto» desconocido (' + JSON.stringify(r.resultado && r.resultado.faltan) + ')');
+  ok(r.ok && r.resultado.faltan.length === 2 && /Cada luna/.test(r.resultado.faltan[0]) && /Hojas: el puesto «FANTASMA» no está en Puestos/.test(r.resultado.faltan[1]),
+    'lee; solo avisa el «Cada cuánto» desconocido y el puesto de Hojas que no está en Puestos; la pestaña Marcas de hojas que todavía no existe no se avisa (' + JSON.stringify(r.resultado && r.resultado.faltan) + ')');
   const R = r.resultado, coo = R.puestos.find(p => p.id === 'COO');
   const perLeer = R.listas.filter(x => x.puesto === 'COO').map(x => x.orden + '=' + x.periodo).join(' ');
   ok(perLeer === '1=2026-10-28 2=2026-S44 3=2026-10 4=2026 5=2026-10-28 6=2026-10-28 7=', 'cada punto trae su período en curso (' + perLeer + ')');
@@ -145,12 +157,17 @@ seccion('leer: por título, con todas las pestañas');
   ok(R.puestos.find(p => p.id === 'REC').soloPara === 'usuario-de-prueba' && coo.soloPara === '', '«Visible solo para» llega tal cual (sin espacios de más); vacía, vacía');
   const sinCol = HOJAS(); sinCol['Puestos'] = sinCol['Puestos'].map(f => f.slice(0, 12));
   const rs = cargar(P, sinCol).llamar('leer').resultado;
-  ok(rs.puestos.length === 4 && rs.puestos.every(p => p.soloPara === '') && rs.faltan.length === 1, 'sin la columna «Visible solo para» (opcional): todos vacíos y no se avisa nada');
+  ok(rs.puestos.length === 4 && rs.puestos.every(p => p.soloPara === '') && rs.faltan.length === 2, 'sin la columna «Visible solo para» (opcional): todos vacíos y no se avisa nada');
   ok(R.contratos.length === 5 && R.listas.length === 8 && R.procesos.length === 1 && R.asignaciones[0].desde === '2026-10-01', 'Contratos, Listas, Procesos y Asignaciones');
-  ok(R.hoy === '2026-10-28' && R.version === 'v2', 'hoy (en la zona del archivo) y la versión del script');
+  ok(R.hoy === '2026-10-28' && R.version === 'v3', 'hoy (en la zona del archivo) y la versión del script');
   ok(JSON.stringify(R.metas) === JSON.stringify([{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' },
     { cifra: 'Bajas', unidad: 'After School', periodo: '2026', valor: 3, estado: 'Confirmada' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: 12, estado: '' }]),
     'Metas: un mes que Sheets volvió fecha se lee como mes; un año escrito como número, como año (' + JSON.stringify(R.metas) + ')');
+  ok(JSON.stringify(R.horarios) === JSON.stringify([{ momento: 'Cambio de prueba', unidad: 'Unidad A', hora: '10:00', puestos: 'COO' }, { momento: 'Reporte de prueba', unidad: 'Unidad A', hora: '2:00 p. m.', puestos: 'COO, REC' }]),
+    'Horarios: la hora como se ve en el Sheet, aunque Sheets la haya vuelto hora (' + JSON.stringify(R.horarios) + ')');
+  ok(R.reglas.length === 3 && R.reglas[0].seccion === 'La idea' && R.reglas[0].orden === 2 && R.hojas.length === 5 && R.hojas[0].momento === 'Antes de la salida' && R.hojas[0].paso === 'Paso uno',
+    'Reglas del juego y Hojas, con sus columnas');
+  ok(Array.isArray(R.marcasHojas) && R.marcasHojas.length === 0, 'sin la pestaña Marcas de hojas: lista vacía');
   const sinMarcas = HOJAS(); delete sinMarcas['Marcas'];
   ok(cargar(P, sinMarcas).llamar('leer').resultado.faltan.some(f => /Marcas/.test(f)), 'una pestaña que falta se informa en «faltan»');
 }
@@ -204,16 +221,70 @@ seccion('revisar');
   ok(g.llamar('revisar', { puesto: 'ADM', periodo: '2026-10', sorpresa: 'No', resultado: 'No' }).codigo === 'no_abierto', 'un puesto en Borrador: se niega');
 }
 
-seccion('solo se escribe en Aceptaciones, Marcas y Revisiones');
+seccion('marcarHoja: un paso hoy, con la hora del servidor y las iniciales');
 {
   const g = cargar(P);
-  const foto = () => ['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones', 'Metas'].map(n => JSON.stringify(g.hoja(n).vals)).join('|');
+  ok(!g.hoja('Marcas de hojas'), '(control) todavía no existe la pestaña Marcas de hojas');
+  let r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'cierre DE prueba', orden: 2, marcado: true, iniciales: 'j.p.' });
+  const MH = g.hoja('Marcas de hojas');
+  ok(r.ok && MH && JSON.stringify(MH.vals[0]) === JSON.stringify(['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales']) && MH.congeladas === 1,
+    'la primera marca crea la pestaña con sus títulos (' + (r.error || '') + ')');
+  ok(MH.vals.length === 2 && MH.vals[1][1] === 'usuario-de-prueba' && MH.vals[1][2] === 'COO' && MH.vals[1][3] === 'Cierre de prueba' && MH.vals[1][4] === 2 && MH.vals[1][5] === 'JP' &&
+    Object.prototype.toString.call(MH.vals[1][0]) === '[object Date]', 'fecha y hora, usuario, puesto, la hoja con su nombre del Sheet, el paso e iniciales limpias');
+  ok(r.ok && JSON.stringify(r.resultado.marcas) === JSON.stringify([{ orden: 2, fecha: '2026-10-28T10:30', usuario: 'usuario-de-prueba', iniciales: 'JP' }]) && r.resultado.hoy === '2026-10-28',
+    'responde las marcas de hoy de esa hoja (' + JSON.stringify(r.resultado) + ')');
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 2, marcado: true, iniciales: 'XX' });
+  ok(r.ok && MH.vals.length === 2, 'marcar otra vez un paso ya marcado hoy no lo repite');
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 3, marcado: true }, { usuario: 'otra-persona' });
+  ok(r.ok && MH.vals.length === 3 && MH.vals[2][5] === 'OT', 'sin iniciales: las dos primeras letras del usuario');
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 3, marcado: false });
+  ok(!r.ok && r.codigo === 'ajena' && MH.vals.length === 3, 'nadie desmarca el paso que marcó otra persona');
+  MH.vals.push([new Date(2026, 9, 27, 18, 0), 'usuario-de-prueba', 'COO', 'Cierre de prueba', 1, 'JP']);   // una marca de AYER
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: false });
+  ok(r.ok && MH.vals.length === 4, 'una marca de ayer no se desmarca (solo el mismo día)');
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: true });
+  ok(r.ok && MH.vals.length === 5 && r.resultado.marcas.map(m => m.orden).sort().join() === '1,2,3', 'la marca de ayer no cuenta como de hoy: el paso se marca de nuevo');
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 2, marcado: false });
+  ok(r.ok && MH.vals.length === 4 && MH.borradas === 1 && !MH.vals.some(f => f[4] === 2) && r.resultado.marcas.map(m => m.orden).sort().join() === '1,3', 'desmarcar el mismo día borra solo esa marca, la propia');
+  r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 2, marcado: false });
+  ok(r.ok && MH.vals.length === 4, 'desmarcar un paso sin marca no hace nada');
+  const antes = MH.vals.length;
+  ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 9, marcado: true }).codigo === 'paso', 'un paso que no es de la hoja: se niega');
+  ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Otra hoja', orden: 1, marcado: true }).codigo === 'hoja', 'una hoja que el puesto no tiene: se niega');
+  ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: '', orden: 1, marcado: true }).codigo === 'hoja', 'sin hoja: se niega');
+  ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: 'si' }).codigo === 'marcado', 'sin decir marcar o desmarcar: se niega');
+  ok(g.llamar('marcarHoja', { puesto: 'ADM', hoja: 'Hoja de un borrador', orden: 1, marcado: true }).codigo === 'no_abierto', 'un puesto en Borrador: se niega');
+  ok(MH.vals.length === antes, 'nada rechazado se escribió');
+  ok(g.llamar('leer').resultado.marcasHojas.length === 3, 'leer trae las marcas de hojas (también la de ayer)');
+}
+
+seccion('revisar una hoja: período = el día; la nota empieza con Hoja «…»');
+{
+  const g = cargar(P), R = g.hoja('Revisiones');
+  let r = g.llamar('revisar', { puesto: 'COO', hoja: 'cierre de prueba', sorpresa: 'No', resultado: 'Cumplido', nota: 'todo en orden' });
+  ok(r.ok && R.vals[1][3] === '2026-10-28' && R.vals[1][6] === 'Hoja «Cierre de prueba» · todo en orden', 'sin período: hoy; la nota con el nombre de la hoja (' + JSON.stringify(R.vals[1]) + ')');
+  r = g.llamar('revisar', { puesto: 'COO', hoja: 'Cierre de prueba', periodo: '2026-10-27', sorpresa: 'Sí', resultado: 'No' });
+  ok(r.ok && R.vals[2][3] === '2026-10-27' && R.vals[2][6] === 'Hoja «Cierre de prueba»', 'la hoja de ayer; sin nota, solo el nombre de la hoja');
+  ok(g.llamar('revisar', { puesto: 'COO', hoja: 'Cierre de prueba', periodo: '2026-10-29', sorpresa: 'No', resultado: 'No' }).codigo === 'periodo', 'un día que todavía no llegó: se niega');
+  ok(g.llamar('revisar', { puesto: 'COO', hoja: 'Cierre de prueba', periodo: '2026-S44', sorpresa: 'No', resultado: 'No' }).codigo === 'periodo', 'una hoja no se verifica por semana');
+  ok(g.llamar('revisar', { puesto: 'COO', hoja: 'No existe', sorpresa: 'No', resultado: 'No' }).codigo === 'hoja', 'una hoja que el puesto no tiene: se niega');
+  ok(R.vals.length === 3, 'nada rechazado se escribió');
+}
+
+seccion('solo se escribe en Aceptaciones, Marcas, Marcas de hojas y Revisiones');
+{
+  const g = cargar(P);
+  const EDITA_ACTIO = ['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones', 'Metas', 'Hojas', 'Reglas del juego', 'Horarios del servicio'];
+  const foto = () => EDITA_ACTIO.map(n => JSON.stringify(g.hoja(n).vals)).join('|');
   const antes = foto();
   g.llamar('aceptar', { puesto: 'COO', version: 2 });
   g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'Cumplido' }] });
   g.llamar('revisar', { puesto: 'COO', periodo: '2026-10-28', sorpresa: 'No', resultado: 'Cumplido' });
+  g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: true });
+  g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: false });
+  g.llamar('revisar', { puesto: 'COO', hoja: 'Cierre de prueba', sorpresa: 'No', resultado: 'Cumplido' });
   ok(foto() === antes, 'las pestañas que edita Actio no cambian');
-  ok(['Léeme', 'Puestos', 'Contratos', 'Listas', 'Procesos', 'Asignaciones', 'Metas'].every(n => g.hoja(n).escrituras === 0), 'ni una escritura en ellas');
+  ok(EDITA_ACTIO.every(n => g.hoja(n).escrituras === 0 && !g.hoja(n).borradas), 'ni una escritura ni un borrado en ellas');
   g.lock.ocupado = true;
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'Cumplido' }] }).codigo === 'ocupado', 'con el Sheet ocupado (candado): no escribe y lo dice');
 }
@@ -242,6 +313,17 @@ seccion('actualizarEstructura: crea Metas y agrega al final lo que falte, sin mo
   const g2 = cargar(P, parcial);
   g2.ctx.actualizarEstructura();
   ok(JSON.stringify(g2.hoja('Metas').vals) === JSON.stringify([['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], ['Altas', 'Negocio', '2026', 5]]), 'a una Metas sin «Estado» le agrega ese título al final; las filas no se tocan');
+}
+
+seccion('actualizarEstructura (v3): crea Marcas de hojas y la explica en el Léeme, una sola vez');
+{
+  const g = cargar(P);
+  g.ctx.actualizarEstructura();
+  const MH = g.hoja('Marcas de hojas'), L = g.hoja('Léeme');
+  ok(MH && JSON.stringify(MH.vals[0]) === JSON.stringify(['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales']), 'crea «Marcas de hojas» con sus seis títulos');
+  ok(L.vals.length === 3 && L.vals[2][0] === 'Marcas de hojas' && /La escribe el portal/.test(L.vals[2][1]) && L.vals[1][0] === 'Qué es', 'agrega al final del Léeme el renglón «Marcas de hojas»; lo demás no se toca');
+  g.ctx.actualizarEstructura();
+  ok(L.vals.length === 3 && g.objs.filter(h => h.getName() === 'Marcas de hojas').length === 1, 'correrla otra vez no repite nada');
 }
 
 console.log(fallos ? '✗ ' + fallos + ' de ' + total + ' comprobaciones fallaron' : '✓ ' + total + ' comprobaciones pasan');

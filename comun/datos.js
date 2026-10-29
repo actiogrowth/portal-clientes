@@ -129,13 +129,22 @@
 
     /* ── Equipo (26-oct): puestos, fichas, Mi lista, Revisar ─────────────── */
     equipo: {
-      /** {resultado: {hoy, yo, puestos[], fichas{}, mios[], revisar[]}} — ya recortado para quien pregunta */
+      /** {resultado: {hoy, yo, puestos[], fichas{}, mios[], revisar[], reglas[], momentos[], horarios[]?}} — ya recortado para quien pregunta */
       leer() { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); },
       aceptar(puesto, version) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'aceptar', datos: { puesto, version } } }); },
       /** marcas: [{orden, resultado: 'Cumplido' | 'No', nota}] — el período lo pone el servidor */
       marcar(puesto, marcas) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'marcar', datos: { puesto, marcas } } }); },
       revisar(puesto, periodo, sorpresa, resultado, nota) {
         return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'revisar', datos: { puesto, periodo, sorpresa, resultado, nota } } });
+      },
+      /** 29-oct: marcar (o desmarcar, el mismo día) un paso de una hoja diaria. La hora y las iniciales las pone el servidor.
+          {resultado: {puesto, hoja, hoy, marcas: [{orden, fecha, usuario, iniciales}]}} — las marcas de hoy de esa hoja */
+      marcarHoja(puesto, hoja, orden, marcado) {
+        return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'marcarHoja', datos: { puesto, hoja, orden, marcado: !!marcado } } });
+      },
+      /** 29-oct: verificar la hoja de un día (AAAA-MM-DD). Queda en Revisiones con la nota «Hoja «…»». */
+      revisarHoja(puesto, hoja, dia, sorpresa, resultado, nota) {
+        return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'revisar', datos: { puesto, hoja, periodo: dia, sorpresa, resultado, nota } } });
       }
     },
 

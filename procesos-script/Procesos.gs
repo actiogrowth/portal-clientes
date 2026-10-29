@@ -17,13 +17,27 @@
  *  · El período de una marca lo calcula ESTE script con la fecha de hoy y
  *    «Cada cuánto» del punto: el navegador no lo elige.
  *  · Solo escribe en Aceptaciones, Marcas y Revisiones (al final, nunca pisa
- *    una fila). Las columnas se leen por TÍTULO, nunca por letra, desde la
+ *    una fila; 29-oct: y en Marcas de hojas, ver v3). Las columnas se leen por TÍTULO, nunca por letra, desde la
  *    fila de títulos que se encuentre en las primeras filas de cada pestaña.
  *  · La clave vive en las Propiedades del script (PR_CLAVE_API), nunca aquí.
  *
  *  · 26-oct (v2): «leer» trae también la pestaña Metas (las metas del
  *    Resumen del negocio; solo las usa resumen/api.php) y actualizarEstructura()
  *    la crea. El portal nunca escribe en Metas.
+ *
+ *  · 29-oct (v3): «leer» trae también Hojas (pasos diarios de un puesto),
+ *    Reglas del juego, Horarios del servicio y Marcas de hojas.
+ *    · marcarHoja { puesto, hoja, orden, marcado, iniciales } → Marcas de hojas.
+ *      Marca un paso HOY con la hora del servidor; desmarcar borra la marca
+ *      de hoy de ese paso, y solo si la puso el mismo usuario. Las iniciales
+ *      las manda el puente (salen de la cuenta del portal), no el navegador.
+ *      Si la pestaña no existe, la crea con sus títulos.
+ *    · revisar con { hoja }: la verificación de una hoja. Período = un día
+ *      (hoy si no viene; nunca uno futuro) y la Nota empieza con Hoja «…».
+ *    · La Hora de «Horarios del servicio» se lee COMO SE VE en el Sheet
+ *      (Sheets convierte «10:00» en una hora y la devolvería como fecha).
+ *    Desde v3 escribe solo en Aceptaciones, Marcas, Marcas de hojas y
+ *    Revisiones (en Marcas de hojas también borra, al desmarcar).
  *
  *  Instalación: Extensiones › Apps Script en el MISMO Sheet, pegar este
  *  archivo, poner la propiedad PR_CLAVE_API e Implementar como aplicación
@@ -32,7 +46,7 @@
  *  dirección /exec no cambia), y correr actualizarEstructura una vez.
  * ═════════════════════════════════════════════════════════════════════════════ */
 
-var VERSION_SCRIPT = 'v2';   // 26-oct: Metas y actualizarEstructura
+var VERSION_SCRIPT = 'v3';   // 29-oct: Hojas, Reglas del juego, Horarios y Marcas de hojas
 var PROP_CLAVE = 'PR_CLAVE_API';
 var FILAS_PARA_BUSCAR_TITULOS = 10;
 
@@ -70,8 +84,22 @@ var TABLAS = {
   // 26-oct: metas del Resumen del negocio. Las escribe Vida en Arte; el portal solo las lee
   // (resumen/api.php). La pestaña la crea actualizarEstructura().
   metas: { hoja: 'Metas', obligatorias: ['Cifra', 'Unidad', 'Período', 'Valor', 'Estado'], columnas: [
-    ['Cifra', 'cifra'], ['Unidad', 'unidad'], ['Período', 'periodo', 'periodoMeta'], ['Valor', 'valor', 'numero'], ['Estado', 'estado']] }
+    ['Cifra', 'cifra'], ['Unidad', 'unidad'], ['Período', 'periodo', 'periodoMeta'], ['Valor', 'valor', 'numero'], ['Estado', 'estado']] },
+  // 29-oct (v3): las tres pestañas nuevas que edita Actio y la que escribe el portal.
+  hojas: { hoja: 'Hojas', obligatorias: ['Puesto ID', 'Hoja', 'Paso'], columnas: [
+    ['Puesto ID', 'puesto'], ['Hoja', 'hoja'], ['Orden', 'orden', 'numero'], ['Momento', 'momento'], ['Paso', 'paso']] },
+  reglas: { hoja: 'Reglas del juego', obligatorias: ['Sección', 'Texto'], columnas: [
+    ['Sección', 'seccion'], ['Orden', 'orden', 'numero'], ['Texto', 'texto']] },
+  horarios: { hoja: 'Horarios del servicio', obligatorias: ['Momento', 'Hora'], columnas: [
+    ['Momento', 'momento'], ['Unidad', 'unidad'], ['Hora', 'hora', 'visible'], ['Puestos que lo usan', 'puestos']] },
+  // Opcional: la crea marcarHoja (o actualizarEstructura) la primera vez; mientras no exista, no se avisa.
+  marcasHojas: { hoja: 'Marcas de hojas', opcional: true, obligatorias: ['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden'], columnas: [
+    ['Fecha y hora', 'fecha', 'fechaHora'], ['Usuario', 'usuario'], ['Puesto ID', 'puesto'], ['Hoja', 'hoja'], ['Orden', 'orden', 'numero'], ['Iniciales', 'iniciales']] }
 };
+var TITULOS_MARCAS_HOJAS = ['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales'];
+var LEEME_MARCAS_HOJAS = ['Marcas de hojas', 'La escribe el portal: cada paso marcado de una hoja diaria, con la fecha y hora y las iniciales de quien lo marcó. No editar a mano.'];
+/* Las pestañas cuyas filas nombran un puesto: «leer» avisa si el puesto no existe en Puestos. */
+var CON_PUESTO = ['contratos', 'listas', 'hojas', 'procesos', 'asignaciones'];
 
 /* 26-oct: vocabulario de Metas (las listas desplegables que pone actualizarEstructura). */
 var CIFRAS_META = ['Ocupación', 'Niños activos', 'Altas', 'Bajas', 'Pruebas que se inscriben', 'Facturación', 'Margen de la unidad', 'Margen neto'];
@@ -99,7 +127,8 @@ function igualSeguro_(a, b) {
 
 function ErrorUsuario_(mensaje, codigo) { this.message = mensaje; this.codigo = codigo || ''; }
 
-var ACCIONES = { leer: { escribe: false, fn: leer_ }, aceptar: { escribe: true, fn: aceptar_ }, marcar: { escribe: true, fn: marcar_ }, revisar: { escribe: true, fn: revisar_ } };
+var ACCIONES = { leer: { escribe: false, fn: leer_ }, aceptar: { escribe: true, fn: aceptar_ }, marcar: { escribe: true, fn: marcar_ }, revisar: { escribe: true, fn: revisar_ },
+                 marcarHoja: { escribe: true, fn: marcarHoja_ } };
 
 function atender_(p) {
   var clave = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE);
@@ -134,6 +163,14 @@ function leer_() {
     try { x.periodo = periodoDe_(x.frecuencia, out.hoy); }
     catch (e) { x.periodo = ''; faltan.push('Listas: «Cada cuánto» = «' + x.frecuencia + '» (' + x.puesto + ' · ' + x.orden + ') no es uno de los conocidos'); }
   });
+  // 29-oct: filas que nombran un puesto que no está en Puestos (no se cortan: se avisan).
+  var ids = {};
+  out.puestos.forEach(function (p) { ids[p.id] = true; });
+  CON_PUESTO.forEach(function (k) {
+    var malos = {};
+    out[k].forEach(function (x) { if (x.puesto && !ids[x.puesto]) malos[x.puesto] = true; });
+    Object.keys(malos).forEach(function (id) { faltan.push(TABLAS[k].hoja + ': el puesto «' + id + '» no está en Puestos'); });
+  });
   out.faltan = faltan;
   return out;
 }
@@ -150,8 +187,10 @@ function hoja_(ss, nombre) {
 /** Una pestaña por títulos: {filas, hoja, filaTitulos, col (título → número de columna)}. */
 function leerTabla_(ss, def, faltan) {
   var h = hoja_(ss, def.hoja);
-  if (!h) { faltan.push('falta la pestaña «' + def.hoja + '»'); return { filas: [], hoja: null }; }
+  if (!h) { if (!def.opcional) faltan.push('falta la pestaña «' + def.hoja + '»'); return { filas: [], hoja: null }; }
   var vals = h.getDataRange().getValues(), fila = -1, col = {};
+  // 29-oct: las columnas 'visible' se leen como se ven en el Sheet (la Hora).
+  var vis = def.columnas.some(function (c) { return c[2] === 'visible'; }) ? h.getDataRange().getDisplayValues() : null;
   for (var r = 0; r < Math.min(FILAS_PARA_BUSCAR_TITULOS, vals.length) && fila < 0; r++) {
     var mapa = {};
     vals[r].forEach(function (v, c) { if (texto_(v)) mapa[normalizar_(v)] = c; });
@@ -162,7 +201,7 @@ function leerTabla_(ss, def, faltan) {
   for (var i = fila + 1; i < vals.length; i++) {
     var o = {}, vacia = true;
     def.columnas.forEach(function (c) {
-      var x = normalizar_(c[0]) in col ? vals[i][col[normalizar_(c[0])]] : '';
+      var x = normalizar_(c[0]) in col ? (c[2] === 'visible' ? vis[i][col[normalizar_(c[0])]] : vals[i][col[normalizar_(c[0])]]) : '';
       o[c[1]] = convertir_(x, c[2]);
       if (o[c[1]] !== '' && o[c[1]] !== null) vacia = false;
     });
@@ -279,16 +318,84 @@ function marcar_(d, usuario) {
   return { puesto: p.id, marcas: filas.map(function (x) { return { orden: Number(x['Orden del punto']), periodo: x['Período'] }; }) };
 }
 
+/** Los pasos de una hoja de un puesto (la hoja por su nombre, sin mayúsculas ni tildes). */
+function pasosDe_(ss, puesto, hoja) {
+  var f = [];
+  return leerTabla_(ss, TABLAS.hojas, f).filas.filter(function (x) { return x.puesto === puesto && normalizar_(x.hoja) === normalizar_(hoja) && normalizar_(hoja) !== ''; });
+}
+
 function revisar_(d, usuario) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet(), p = puestoAbierto_(ss, d.puesto);
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), p = puestoAbierto_(ss, d.puesto), notaHoja = '';
+  // 29-oct: verificar una hoja diaria. El período es un día (hoy si no viene; nunca uno futuro).
+  if (texto_(d.hoja)) {
+    var pasos = pasosDe_(ss, p.id, d.hoja);
+    if (!pasos.length) throw new ErrorUsuario_('El puesto «' + p.puesto + '» no tiene la hoja «' + texto_(d.hoja) + '».', 'hoja');
+    if (!texto_(d.periodo)) d.periodo = hoyISO_();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto_(d.periodo)) || texto_(d.periodo) > hoyISO_()) throw new ErrorUsuario_('La hoja se verifica por día, y no uno que todavía no llegó: «' + texto_(d.periodo) + '».', 'periodo');
+    notaHoja = 'Hoja «' + pasos[0].hoja + '»';
+  }
   if (!periodoValido_(d.periodo)) throw new ErrorUsuario_('Período inválido: «' + texto_(d.periodo) + '».', 'periodo');
   var r = RESULTADOS.filter(function (x) { return normalizar_(x) === normalizar_(d.resultado); })[0];
   if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(d.resultado) + '» (Cumplido o No).', 'resultado');
   var s = SORPRESA.filter(function (x) { return normalizar_(x) === normalizar_(d.sorpresa); })[0];
   if (!s) throw new ErrorUsuario_('Sorpresa: Sí o No.', 'sorpresa');
+  var nota = texto_(d.nota).slice(0, 500);
+  if (notaHoja) nota = notaHoja + (nota ? ' · ' + nota : '');
   agregar_(ss, TABLAS.revisiones, [{ 'Fecha y hora': new Date(), 'Revisor': usuario, 'Puesto ID': p.id, 'Período': texto_(d.periodo),
-    'Sorpresa': s, 'Resultado': r, 'Nota': texto_(d.nota).slice(0, 500) }]);
+    'Sorpresa': s, 'Resultado': r, 'Nota': nota }]);
   return { puesto: p.id, periodo: texto_(d.periodo) };
+}
+
+/* ─── Hojas diarias (29-oct) ───────────────────────────────────────────── */
+
+/** La pestaña «Marcas de hojas»; si no existe, la crea con sus títulos. */
+function hojaMarcasHojas_(ss) {
+  var h = hoja_(ss, TABLAS.marcasHojas.hoja);
+  if (h) return h;
+  h = ss.insertSheet(TABLAS.marcasHojas.hoja);
+  h.getRange(1, 1, 1, TITULOS_MARCAS_HOJAS.length).setValues([TITULOS_MARCAS_HOJAS]);
+  h.setFrozenRows(1);
+  return h;
+}
+
+/** Las marcas de HOY de una hoja: [{orden, fecha, usuario, iniciales, fila}] (fila = número de fila en la pestaña). */
+function marcasDeHoy_(ss, puesto, hoja) {
+  var t = leerTabla_(ss, TABLAS.marcasHojas, []), hoy = hoyISO_(), out = [];
+  if (!t.hoja || !t.col) return out;
+  var vals = t.hoja.getDataRange().getValues(), c = function (titulo) { return t.col[normalizar_(titulo)] - 1; };
+  for (var i = t.filaTitulos; i < vals.length; i++) {
+    var f = vals[i];
+    if (texto_(f[c('Puesto ID')]) !== puesto || normalizar_(f[c('Hoja')]) !== normalizar_(hoja)) continue;
+    var fecha = convertir_(f[c('Fecha y hora')], 'fechaHora');
+    if (fecha.slice(0, 10) !== hoy) continue;
+    out.push({ orden: convertir_(f[c('Orden')], 'numero'), fecha: fecha, usuario: texto_(f[c('Usuario')]),
+               iniciales: t.col[normalizar_('Iniciales')] ? texto_(f[c('Iniciales')]) : '', fila: i + 1 });
+  }
+  return out;
+}
+
+/** Iniciales limpias: hasta 4 letras en mayúscula; sin nada, las dos primeras del usuario. */
+function iniciales_(s, usuario) {
+  var x = texto_(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-zÑñ]/g, '').toUpperCase().slice(0, 4);
+  return x || texto_(usuario).replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase() || '?';
+}
+
+function marcarHoja_(d, usuario) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), p = puestoAbierto_(ss, d.puesto);
+  var pasos = pasosDe_(ss, p.id, d.hoja);
+  if (!pasos.length) throw new ErrorUsuario_('El puesto «' + p.puesto + '» no tiene la hoja «' + texto_(d.hoja) + '».', 'hoja');
+  var orden = Number(d.orden), paso = pasos.filter(function (x) { return x.orden === orden; })[0];
+  if (!paso) throw new ErrorUsuario_('El paso ' + texto_(d.orden) + ' no es de la hoja «' + pasos[0].hoja + '».', 'paso');
+  if (d.marcado !== true && d.marcado !== false) throw new ErrorUsuario_('Falta decir si el paso se marca o se desmarca.', 'marcado');
+  var h = hojaMarcasHojas_(ss), ya = marcasDeHoy_(ss, p.id, paso.hoja).filter(function (m) { return m.orden === orden; });
+  if (d.marcado && !ya.length) {
+    agregar_(ss, TABLAS.marcasHojas, [{ 'Fecha y hora': new Date(), 'Usuario': usuario, 'Puesto ID': p.id, 'Hoja': paso.hoja, 'Orden': orden, 'Iniciales': iniciales_(d.iniciales, usuario) }]);
+  } else if (!d.marcado && ya.length) {
+    // Solo hoy y solo lo propio: una marca de otra persona no se borra desde aquí.
+    if (ya.some(function (m) { return normalizar_(m.usuario) !== normalizar_(usuario); })) throw new ErrorUsuario_('Ese paso lo marcó otra persona: solo ella puede desmarcarlo.', 'ajena');
+    ya.map(function (m) { return m.fila; }).sort(function (a, b) { return b - a; }).forEach(function (fila) { h.deleteRow(fila); });
+  }
+  return { puesto: p.id, hoja: paso.hoja, hoy: hoyISO_(), marcas: marcasDeHoy_(ss, p.id, paso.hoja).map(function (m) { return { orden: m.orden, fecha: m.fecha, usuario: m.usuario, iniciales: m.iniciales }; }) };
 }
 
 /* ─── Estructura (26-oct; se corre a mano desde el editor) ─────────────── */
@@ -296,8 +403,10 @@ function revisar_(d, usuario) {
 /**
  * Crea la pestaña «Metas» (Cifra, Unidad, Período, Valor, Estado) con sus
  * listas desplegables, y agrega AL FINAL de la fila de títulos los que falten
- * en Metas y en Puestos («Visible solo para»). No mueve, no renombra y no
- * borra nada: se puede correr las veces que haga falta.
+ * en Metas y en Puestos («Visible solo para»). 29-oct (v3): crea también
+ * «Marcas de hojas» y agrega al final del Léeme el renglón que la explica.
+ * No mueve, no renombra y no borra nada: se puede correr las veces que haga
+ * falta.
  * Cómo: en el editor de Apps Script, arriba, elegir «actualizarEstructura» y
  * tocar «Ejecutar». Lo que hizo queda en el «Registro de ejecución».
  */
@@ -325,6 +434,15 @@ function actualizarEstructura() {
   }
   var p = hoja_(ss, TABLAS.puestos.hoja);
   if (p) hechos = hechos.concat(agregarTitulos_(p, TABLAS.puestos.obligatorias, ['Visible solo para']));
+  // 29-oct (v3): «Marcas de hojas» y su renglón en el Léeme.
+  if (!hoja_(ss, TABLAS.marcasHojas.hoja)) { hojaMarcasHojas_(ss); hechos.push('Creé la pestaña «Marcas de hojas» con sus títulos.'); }
+  else hechos = hechos.concat(agregarTitulos_(hoja_(ss, TABLAS.marcasHojas.hoja), TABLAS.marcasHojas.obligatorias, TITULOS_MARCAS_HOJAS));
+  var l = hoja_(ss, 'Léeme');
+  if (l) {
+    var lv = l.getDataRange().getValues();
+    if (lv.some(function (f) { return normalizar_(f[0]) === normalizar_(LEEME_MARCAS_HOJAS[0]); })) hechos.push('Léeme: ya decía qué es «Marcas de hojas».');
+    else { l.getRange(l.getLastRow() + 1, 1, 1, 2).setValues([LEEME_MARCAS_HOJAS]); hechos.push('Léeme: agregué al final qué es «Marcas de hojas».'); }
+  } else hechos.push('No encontré la pestaña «Léeme»; no la toqué.');
   Logger.log(hechos.join('\n'));
   return hechos;
 }

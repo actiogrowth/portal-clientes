@@ -1,54 +1,63 @@
 /* ==========================================================================
    Vida en Arte · Procesos › Equipo: organigrama y ficha del puesto
-   (26-oct; 26-oct: árbol que se mueve y se acerca, lista en celular y ficha
-   centrada)
+   (26-oct; 29-oct: Equipo v2 — organigrama «Escenario 3D», ficha con el
+   formato del contrato en papel, PDF, hoja diaria, Reglas del juego y
+   Horarios del servicio)
 
-   Lo usa /procesos/#equipo. Habla solo con Datos.equipo (→ /equipo/api.php),
-   que ya manda recortado lo que ve esta persona: el organigrama con el nombre
-   y el área de cada puesto y SOLO las fichas que le tocan. Esta pantalla no
-   decide nada de permisos: si una ficha no llegó, no existe aquí.
+   Lo usa /procesos/ (#equipo, #reglas, #horarios, #puesto=<ID>). Habla solo
+   con Datos.equipo (→ /equipo/api.php), que ya manda recortado lo que ve
+   esta persona: el organigrama con el nombre y el área de cada puesto y SOLO
+   las fichas que le tocan. Esta pantalla no decide nada de permisos: si una
+   ficha no llegó, no existe aquí; si el servidor no mandó la tabla de
+   horarios, la sección no está.
 
-     Organigrama.mostrar(el, { alTitulo(titulo, sub) })
+     Organigrama.mostrar(el, { alTitulo(titulo, sub), vista, abrir })
+       vista: 'org' (por defecto) | 'reglas' | 'horarios'; abrir: un ID de puesto
+     Organigrama.salir()   la página dejó Equipo: se apaga la escena oscura
 
-   El organigrama sale de la pestaña Puestos («Reporta a»):
-   · Computador y tablet (más de 640 px): un árbol real. Arriba el puesto sin
-     «Reporta a» (Dirección); debajo, en UNA fila, los que le reportan (las
-     áreas), y bajo cada uno sus puestos, con sangría por nivel. Cada puesto
-     se une a su jefe con una línea del color del área. Se arrastra para
-     moverlo, la rueda o el pellizco acercan y alejan, y hay botones − / + /
-     «Ajustar».
-   · Celular: una lista por áreas que se despliega (Dirección arriba; cada
-     área con su color y su conteo; al tocarla, sus puestos con sangría).
-   · La ficha se abre CENTRADA en un <dialog> (lo de atrás queda desenfocado);
-     se cierra con la X, Esc o tocando afuera, y el foco no sale de ella
-     mientras está abierta. En celular ocupa toda la pantalla.
-   Colores por Área con texto blanco o negro que pasa AA. Estados: Por cargar
-   → «En construcción» (borde punteado), Borrador, Validado, Abierto al equipo.
+   El organigrama sale de la pestaña Puestos («Reporta a»; el orden de las
+   áreas es el del Sheet; los colores, de comun/puestos.js):
+   · Computador y tablet (más de 640 px): la escena oscura. Dirección arriba;
+     las áreas (los puestos que le reportan) en columnas, cada una con la
+     cabeza del color del área, su coordinación y el número de puestos; bajo
+     cada una sus puestos, con sangría los que reportan a otro que no es la
+     coordinación. Plano inclinado 7° con perspectiva, tarjetas con grosor
+     (sombras escalonadas) que se levantan al pasar el cursor; «Por cargar»
+     como vidrio translúcido con borde punteado. Se arrastra para moverlo, la
+     rueda o el pellizco acercan, y hay − / + / «Ajustar».
+     Movimiento: entrada en cascada (~2,5 s, una vez), y después una luz que
+     recorre las líneas, chispas que suben (máx. 20) y el halo de Dirección.
+     Solo se anima transform y opacity; se pausa con la pestaña oculta; con
+     «reducir movimiento» todo queda quieto; con «reducir transparencia» (o
+     sin desenfoque) el fondo es plano, sin foto ni animación.
+   · Celular: una lista por áreas que se despliega, sin 3D.
+   · La ficha se abre CENTRADA en un <dialog> (Esc, tocar afuera, foco
+     atrapado). Tiene el formato del contrato en papel: «Contrato de
+     posición», la tabla Puesto · Unidad · Reporta a, 1. Resultado,
+     2. Trabajo, 3. Estándares, 4. Aceptación; debajo, la lista de
+     verificación y la hoja diaria. Aceptar pasa antes por las Reglas del
+     juego. «Descargar PDF» arma una hoja de impresión (Inter, títulos en
+     verde, firma, nombre y fecha) y abre el diálogo de imprimir.
    ========================================================================== */
 (function () {
   'use strict';
   const esc = s => Marca.esc(s), norm = s => Marca.normal(s);
   const ABIERTO = 'Abierto al equipo';
-  /* Color de cada Área: fondo de la tarjeta de cabeza (con su texto, AA) y
-     color de sus líneas (3:1 o más sobre blanco: el naranja de la marca no
-     llega, así que sus líneas van en un naranja más oscuro). */
-  const AREAS = {
-    'direccion':      { fondo: '#111111', texto: '#FFFFFF', linea: '#111111' },
-    'comercial':      { fondo: '#1E7A3C', texto: '#FFFFFF', linea: '#1E7A3C' },
-    'administracion': { fondo: '#6B6B6B', texto: '#FFFFFF', linea: '#6B6B6B' },
-    'preschool':      { fondo: '#1974A8', texto: '#FFFFFF', linea: '#1974A8' },
-    'after school':   { fondo: '#FFA615', texto: '#111111', linea: '#B86E00' },
-    'veranito':       { fondo: '#FFA615', texto: '#111111', linea: '#B86E00' }
-  };
-  const colorArea = a => AREAS[norm(a)] || { fondo: '#555555', texto: '#FFFFFF', linea: '#555555' };
+  const colorArea = a => Puestos.colorArea(a);
   const FRECUENCIAS = ['Diario', 'Semanal', 'Mensual', 'Por temporada', 'Cuando aplica', 'Por persona nueva'];
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const TEXTO_ACEPTACION = 'Acepto ser responsable de producir el resultado de esta posición, del trabajo y de los estándares con que se evalúa. Este contrato puede cambiar según las necesidades de Vida en Arte.';
   const estadoVisible = e => norm(e) === 'por cargar' ? 'En construcción' : e;
-  /* Medidas del árbol (px, antes del zoom). */
-  const M = { ancho: 224, sep: 28, alto: 74, altoCab: 86, altoRaiz: 62, paso: 10, sangria: 18, bajada: 30, margen: 28 };
+  const enConstruccion = p => norm(estadoVisible(p.estado)) === 'en construccion';
+  /* Medidas de la escena (px, antes del zoom) y del movimiento. */
+  const M = { col: 210, sep: 16, margen: 24, bus: 56, sangria: 16 };
+  const ENTRADA = { dir: 0.15, lineas: 0.6, areas: 1.25, paso: 0.09, puestos: 1.7, puesto: 0.07, tope: 2.4, total: 2.6 };
+  const CHISPAS = 16;   // máximo 20
   const ZOOM_MIN = 0.3, ZOOM_MAX = 1.6, CELULAR = '(max-width: 640px)';
 
-  let D = null, el = null, op = {}, sel = '', pestana = 'contrato', cargando = false, aviso = '';
+  let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '';
   let dlg = null, origen = null, modo = '', abiertas = {}, vista = { x: 0, y: 0, s: 1 }, mundo = null, lienzo = null, ajustado = false;
+  let entro = false, diaHoja = {}, avisoHoja = {}, guardandoPaso = '';
 
   async function cargar() {
     cargando = true;
@@ -62,6 +71,7 @@
     }
     cargando = false;
     pintar();
+    if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]')); }
   }
 
   /* ── Estructura (sin pantalla: se prueba con node) ─────────────────────── */
@@ -81,37 +91,28 @@
     return { raiz, columnas: columnas.concat(otros) };
   }
 
-  /** Posición de cada tarjeta y trazo de cada línea. Las cabezas (las áreas) quedan todas en la MISMA fila. */
-  function disponer(a) {
-    const nodos = [], lineas = [];
-    const n = a.columnas.length, ancho = Math.max(M.ancho, n * M.ancho + Math.max(0, n - 1) * M.sep) + 2 * M.margen;
-    const yCab = M.margen + (a.raiz ? M.altoRaiz + 2 * M.bajada : 0);
-    let alto = yCab;
-    if (a.raiz) nodos.push({ id: a.raiz.id, tipo: 'raiz', x: ancho / 2 - M.ancho / 2, y: M.margen, w: M.ancho, h: M.altoRaiz, area: a.raiz.area });
-    const xs = a.columnas.map((c, i) => M.margen + i * (M.ancho + M.sep));
-    if (a.raiz && n) {
-      const yBus = M.margen + M.altoRaiz + M.bajada, centros = xs.map(x => x + M.ancho / 2);
-      lineas.push({ d: 'M' + ancho / 2 + ' ' + (M.margen + M.altoRaiz) + 'V' + yBus, color: colorArea(a.raiz.area).linea });
-      if (n > 1) lineas.push({ d: 'M' + centros[0] + ' ' + yBus + 'H' + centros[n - 1], color: colorArea(a.raiz.area).linea });
-      a.columnas.forEach((c, i) => { if (!c.suelta) lineas.push({ d: 'M' + centros[i] + ' ' + yBus + 'V' + yCab, color: colorArea(c.cab.area).linea }); });
+  /**
+   * La escena: ancho, centro de cada columna, los trazos que bajan de
+   * Dirección y el retraso de entrada de cada pieza (en segundos; la cascada
+   * termina antes de ENTRADA.total).
+   */
+  function escena(a) {
+    const n = a.columnas.length, ancho = n * M.col + Math.max(0, n - 1) * M.sep;
+    const centros = a.columnas.map((c, i) => i * (M.col + M.sep) + M.col / 2);
+    const lineas = [];
+    // La barra une solo las áreas (los sueltos, al final, no cuelgan de Dirección).
+    const areas = a.columnas.filter(c => !c.suelta).length;
+    if (a.raiz && areas) {
+      lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: M.bus / 2 - 2, color: '#FFFFFF', d: ENTRADA.lineas });
+      if (areas > 1) lineas.push({ tipo: 'h', x: centros[0], y: M.bus / 2 - 2, largo: centros[areas - 1] - centros[0], color: '#FFFFFF', d: ENTRADA.lineas + 0.25 });
+      a.columnas.forEach((c, i) => { if (!c.suelta) lineas.push({ tipo: 'v', x: centros[i], y: M.bus / 2 - 2, largo: M.bus / 2 + 2, color: colorArea(c.cab.area).fondo, d: ENTRADA.lineas + 0.5 + i * 0.05 }); });
     }
-    a.columnas.forEach((c, i) => {
-      const area = c.cab.area, color = colorArea(area).linea, pos = {};
-      const cab = { id: c.cab.id, tipo: 'cab', x: xs[i], y: yCab, w: M.ancho, h: M.altoCab, area };
-      nodos.push(cab); pos[cab.id] = cab;
-      let y = yCab + M.altoCab + M.paso;
-      c.puestos.forEach(x => {
-        const sang = M.sangria * (x.nivel + 1);
-        const nd = { id: x.p.id, tipo: 'puesto', x: xs[i] + sang, y, w: M.ancho - sang, h: M.alto, area, nivel: x.nivel, padre: x.padre };
-        nodos.push(nd); pos[nd.id] = nd;
-        const pa = pos[x.padre];
-        // Del borde izquierdo del jefe, baja hasta la mitad del puesto y entra por su izquierda.
-        if (pa) lineas.push({ d: 'M' + (pa.x + 10) + ' ' + (pa.y + pa.h) + 'V' + (y + M.alto / 2) + 'H' + nd.x, color });
-        y += M.alto + M.paso;
-      });
-      alto = Math.max(alto, y);
-    });
-    return { nodos, lineas, ancho, alto: alto + M.margen };
+    const columnas = a.columnas.map((c, i) => ({
+      cab: c.cab, suelta: !!c.suelta, color: colorArea(c.cab.area), cuantos: 1 + c.puestos.length, d: ENTRADA.areas + i * ENTRADA.paso,
+      puestos: c.puestos.map((x, j) => ({ p: x.p, nivel: x.nivel, padre: x.padre, sangria: x.nivel * M.sangria,
+        d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto) }))
+    }));
+    return { ancho, centros, lineas, columnas };
   }
 
   /** «3 puestos · 2 en borrador» (con todo); «4 puestos · en construcción» si nada está más avanzado. */
@@ -122,6 +123,22 @@
     return ps.length + (ps.length === 1 ? ' puesto' : ' puestos') + ' · ' + (partes.length ? partes.join(' · ') : 'en construcción');
   }
 
+  /* ── Textos ───────────────────────────────────────────────────────────── */
+
+  const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
+  /** «2026-10-29T14:05» → «29 de octubre de 2026, 2:05 p. m.» */
+  function hora12(hhmm) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(hhmm || '');
+    if (!m) return '';
+    const h = +m[1];
+    return (h % 12 || 12) + ':' + m[2] + (h < 12 ? ' a. m.' : ' p. m.');
+  }
+  function diaTexto(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? +m[3] + ' de ' + MESES[+m[2] - 1] + ' de ' + m[1] : iso; }
+  const fechaHora = s => diaTexto(s) + (hora12(String(s).slice(11, 16)) ? ', ' + hora12(String(s).slice(11, 16)) : '');
+  const horas = t => Puestos.etiquetasHora(t, D.momentos, esc);
+  const quien = u => { const p = D.personas && D.personas[u]; return p && p.nombre ? p.nombre : u; };
+  const nombreDe = id => (D.puestos.find(x => x.id === id) || {}).puesto || id;
+
   /* ── Pantalla ─────────────────────────────────────────────────────────── */
 
   function chip(estado, sobreColor) {
@@ -129,9 +146,9 @@
     return '<span class="eq-chip ' + cls + (sobreColor ? ' sobre' : '') + '">' + esc(estadoVisible(estado)) + '</span>';
   }
 
-  /* Un puesto: botón si su ficha llegó (se puede abrir); si no, solo el nombre. */
+  /* Un puesto de la lista del celular: botón si su ficha llegó (se puede abrir); si no, solo el nombre. */
   function tarjeta(p, tipo, area, estilo) {
-    const c = colorArea(area), constr = norm(estadoVisible(p.estado)) === 'en construccion', relleno = tipo !== 'puesto';
+    const c = colorArea(area), constr = enConstruccion(p), relleno = tipo !== 'puesto';
     const nota = p.cantidad ? '<span class="eq-nota">' + esc(p.cantidad) + '</span>' : '';
     const color = relleno ? 'background:' + c.fondo + ';color:' + c.texto : (constr ? '' : '--eq-borde:' + c.linea);
     const clases = 'eq-puesto ' + tipo + (constr && !relleno ? ' construccion' : '') + (p.id === sel ? ' activo' : '');
@@ -143,30 +160,108 @@
   }
 
   function leyenda() {
-    return '<div class="eq-leyenda">' + (D.yo.todo ? '<span><i class="borrador"></i>Borrador: cargado, pendiente de validar</span><span><i class="validado"></i>Validado</span>' : '') +
-      '<span><i class="construccion"></i>En construcción</span><span><i class="abierto"></i>Abierto al equipo</span></div>';
+    return '<div class="eq-leyenda">' + (D.yo.todo ? '<span><span class="eq-chip borrador">Borrador</span>cargado, falta validar</span><span><span class="eq-chip validado">Validado</span></span>' : '') +
+      '<span><i class="construccion"></i>En construcción</span><span><span class="eq-chip abierto">Abierto</span>al equipo</span></div>';
+  }
+
+  /* Los accesos de Equipo: Reglas del juego (todos) y Horarios del servicio (solo si el servidor mandó la tabla). */
+  function accesos() {
+    const ir = (href, t) => '<a class="eq-acceso" href="' + href + '">' + t + '</a>';
+    return '<nav class="eq-accesos" aria-label="Más de Equipo">' + ir('#reglas', 'Reglas del juego') + (D.horarios ? ir('#horarios', 'Horarios del servicio') : '') + '</nav>';
+  }
+
+  function subtitulo() {
+    const a = arbol(D.puestos), areas = a.columnas.filter(c => !c.suelta).length;
+    return plural(D.puestos.length, 'puesto', 'puestos') + ' · ' + plural(areas, 'área', 'áreas') + '. Toca un puesto para ver su contrato y su lista.';
   }
 
   function pintar() {
     if (!D) return;
+    escenaOscura(true);
+    const v = op.vista || 'org';
+    if (v === 'reglas') { titulo('Reglas del juego', 'Lo que une a todos en Vida en Arte. Se lee antes de aceptar cualquier contrato.'); el.innerHTML = reglasHtml(true); return; }
+    if (v === 'horarios') {
+      titulo('Horarios del servicio', 'La hora de cada momento del servicio a las familias. Cambiarla aquí no cambia ningún contrato.');
+      el.innerHTML = D.horarios ? horariosHtml() : '<div class="pantalla"><h2>Sin acceso</h2><p>Los horarios del servicio los ven Dirección y Administración.</p></div>';
+      return;
+    }
+    titulo('Equipo', subtitulo());
     modo = window.matchMedia && window.matchMedia(CELULAR).matches ? 'lista' : 'arbol';
     const a = arbol(D.puestos);
     el.innerHTML = (D.faltan && D.faltan.length ? '<div class="aviso ojo">En el Sheet faltan: ' + esc(D.faltan.join(' · ')) + '.</div>' : '') +
+      '<div class="eq-barra">' + accesos() + leyenda() + '</div>' +
       (modo === 'lista' ? listaHtml(a) : arbolHtml(a));
-    if (modo === 'arbol') prepararLienzo();
+    if (modo === 'arbol') {
+      prepararLienzo();
+      if (!entro) setTimeout(() => { entro = true; }, ENTRADA.total * 1000);
+    }
+  }
+  function titulo(t, s) { if (op.alTitulo) op.alTitulo(t, s); }
+
+  /* La escena oscura de la página (fondo, piso, chispas y la barra de arriba en vidrio oscuro). */
+  function escenaOscura(si) {
+    const html = document.documentElement;
+    html.classList.toggle('eq-escena', si);
+    let f = document.getElementById('eqFondo');
+    if (si && !f) {
+      f = document.createElement('div');
+      f.id = 'eqFondo'; f.className = 'eq-fondo'; f.setAttribute('aria-hidden', 'true');
+      // Chispas en lugares fijos (no al azar: la página se ve igual cada vez).
+      let s = 7, chispas = '';
+      const azar = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+      for (let i = 0; i < Math.min(CHISPAS, 20); i++)
+        chispas += '<span class="eq-chispa" style="left:' + (4 + azar() * 92).toFixed(1) + '%;top:' + (60 + azar() * 38).toFixed(1) + '%;animation-delay:' + (ENTRADA.total + azar() * 9).toFixed(1) + 's"></span>';
+      f.innerHTML = '<div class="eq-brillos"></div><div class="eq-foto"></div><div class="eq-piso"></div>' + chispas;
+      document.body.insertBefore(f, document.body.firstChild);
+    }
+    if (si && D) {
+      // Los brillos, de los colores de las áreas que hay (izquierda, centro y derecha).
+      const cols = arbol(D.puestos).columnas.filter(c => !c.suelta).map(c => colorArea(c.cab.area).fondo);
+      const b = f.querySelector('.eq-brillos'), en = (i, x, y) => cols.length ? 'radial-gradient(700px 420px at ' + x + ' ' + y + ', ' + cols[Math.min(cols.length - 1, i)] + '38, transparent 70%)' : '';
+      if (b) b.style.backgroundImage = [en(0, '8%', '70%'), en(Math.floor(cols.length / 2), '50%', '95%'), en(cols.length - 1, '92%', '65%')].filter(Boolean).join(',');
+    }
+    if (f) f.hidden = !si;
+  }
+  function salir() { escenaOscura(false); }
+  document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('eq-pausa', document.hidden));
+
+  /* Una tarjeta de la escena (la «losa»): botón si su ficha llegó. */
+  function losa(p, clases, estilo, interior) {
+    const st = estilo ? ' style="' + estilo + '"' : '';
+    return p.ficha
+      ? '<button type="button" class="eq-losa ' + clases + '"' + st + ' data-eq-puesto="' + esc(p.id) + '" aria-haspopup="dialog">' + interior + '</button>'
+      : '<div class="eq-losa ' + clases + '"' + st + '>' + interior + '</div>';
   }
 
   function arbolHtml(a) {
-    const L = disponer(a), porId = Object.fromEntries(D.puestos.map(p => [p.id, p]));
-    const svg = '<svg class="eq-lineas" width="' + L.ancho + '" height="' + L.alto + '" viewBox="0 0 ' + L.ancho + ' ' + L.alto + '" aria-hidden="true">' +
-      L.lineas.map(l => '<path d="' + l.d + '" stroke="' + l.color + '"/>').join('') + '</svg>';
-    const nodos = L.nodos.map(n => tarjeta(porId[n.id], n.tipo, n.area, 'left:' + n.x + 'px;top:' + n.y + 'px;width:' + n.w + 'px;height:' + n.h + 'px')).join('');
+    const E = escena(a);
+    const r = a.raiz;
+    const dir = r ? '<div class="eq-dir-fila"><div class="eq-dir eq-entra" style="--d:' + ENTRADA.dir + 's"><div class="eq-halo" aria-hidden="true"></div>' +
+      losa(r, 'eq-losa-dir', '', '<span class="eq-dir-id">' + esc(r.id) + '</span><span class="eq-dir-nom">' + esc(r.puesto) + '</span>') + '</div></div>' : '';
+    const bus = '<div class="eq-bus" aria-hidden="true">' + E.lineas.map(l => '<i class="eq-lin eq-lin-' + l.tipo + ' eq-crece-' + l.tipo + '" style="--c:' + l.color + ';--d:' + l.d.toFixed(2) + 's;left:' + l.x + 'px;top:' + l.y + 'px;' +
+      (l.tipo === 'v' ? 'height:' + l.largo + 'px' : 'width:' + l.largo + 'px') + '"></i>').join('') + '</div>';
+    const cols = E.columnas.map(c => {
+      const col = c.color, cab = c.cab, fantasma = enConstruccion(cab);
+      const cabeza = losa(cab, 'eq-losa-cab eq-entra' + (fantasma ? ' eq-tenue' : ''), '--d:' + c.d.toFixed(2) + 's',
+        '<span class="eq-cab-banda" style="background:' + col.fondo + ';color:' + col.texto + '"><span class="eq-cab-area">' + esc(cab.area || cab.puesto) + '</span>' +
+          '<span class="eq-cab-n" aria-label="' + plural(c.cuantos, 'puesto', 'puestos') + '">' + c.cuantos + '</span></span>' +
+        '<span class="eq-cab-cuerpo"><span class="eq-nombre">' + esc(cab.puesto) + '</span>' + chip(cab.estado) + '</span>');
+      const hijos = c.puestos.map(x => losa(x.p, 'eq-losa-puesto eq-entra' + (enConstruccion(x.p) ? ' eq-fantasma' : ''),
+        '--c:' + col.fondo + ';--d:' + x.d.toFixed(2) + 's;margin-left:' + x.sangria + 'px;--tic:' + (10 + x.sangria) + 'px',
+        '<i class="eq-tic" aria-hidden="true"></i><span class="eq-nombre">' + esc(x.p.puesto) + '</span>' +
+        (x.p.cantidad ? '<span class="eq-nota">' + esc(x.p.cantidad) + '</span>' : '') + '<span class="eq-fila">' + chip(x.p.estado) + '</span>')).join('');
+      return '<div class="eq-col" style="--c:' + col.fondo + '">' + cabeza +
+        (c.puestos.length ? '<div class="eq-hijos"><i class="eq-lin eq-lin-v eq-lin-col eq-crece-v" aria-hidden="true" style="--c:' + col.fondo + ';--d:' + (c.d + 0.35).toFixed(2) + 's"></i>' + hijos + '</div>' : '') + '</div>';
+    }).join('');
     const boton = (k, t, etq) => '<button type="button" class="btn-circulo" data-eq-zoom="' + k + '" aria-label="' + etq + '">' + t + '</button>';
-    return '<div class="eq-org vidrio-tarjeta">' +
+    return '<div class="eq-org3d' + (entro ? ' eq-quieto' : '') + '">' +
       '<div class="eq-lienzo" role="region" aria-label="Organigrama. Se arrastra para moverlo; la rueda o el pellizco acercan y alejan.">' +
-        '<div class="eq-mundo" style="width:' + L.ancho + 'px;height:' + L.alto + 'px">' + svg + nodos + '</div></div>' +
+        '<div class="eq-mundo" style="width:' + (E.ancho + 2 * M.margen) + 'px"><div class="eq-escenario"><div class="eq-plano" style="padding:' + M.margen + 'px">' +
+          dir + (r ? '<div class="eq-bus-caja" style="width:' + E.ancho + 'px">' + bus + '</div>' : '') +
+          '<div class="eq-columnas" style="grid-template-columns:repeat(' + E.columnas.length + ',' + M.col + 'px);column-gap:' + M.sep + 'px">' + cols + '</div>' +
+        '</div></div></div></div>' +
       '<div class="eq-pie"><div class="eq-zoom" role="group" aria-label="Acercar o alejar">' + boton('-', '−', 'Alejar') + boton('+', '+', 'Acercar') +
-        '<button type="button" class="btn sec chico" data-eq-zoom="ajustar">Ajustar</button></div>' + leyenda() + '</div></div>';
+        '<button type="button" class="btn sec chico" data-eq-zoom="ajustar">Ajustar</button></div></div></div>';
   }
 
   function listaHtml(a) {
@@ -176,12 +271,26 @@
       const id = 'eq-area-' + esc(c.cab.id);
       return '<li class="eq-area" style="--eq-color:' + col.linea + '">' +
         '<button type="button" class="eq-area-cab" data-eq-area="' + esc(c.cab.id) + '" aria-expanded="' + abierta + '" aria-controls="' + id + '">' +
-          '<i class="eq-punto" style="background:' + col.fondo + '" aria-hidden="true"></i><span class="eq-area-txt"><b>' + esc(c.cab.puesto) + '</b><small>' + esc(conteo(todos)) + '</small></span>' +
+          '<i class="eq-punto" style="background:' + col.fondo + '" aria-hidden="true"></i><span class="eq-area-txt"><b>' + esc(c.cab.area || c.cab.puesto) + '</b><small>' + esc(conteo(todos)) + '</small></span>' +
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="' + (abierta ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6') + '"/></svg></button>' +
         '<div class="eq-area-cuerpo' + (abierta ? '' : ' oculto') + '" id="' + id + '">' +
           [{ p: c.cab, nivel: -1 }].concat(c.puestos).map(x => tarjeta(x.p, 'puesto', c.cab.area, 'margin-left:' + (x.nivel + 1) * 14 + 'px')).join('') + '</div></li>';
     }).join('');
-    return '<div class="eq-org eq-org-lista vidrio-tarjeta">' + raiz + '<ul class="eq-areas">' + areas + '</ul>' + leyenda() + '</div>';
+    return '<div class="eq-org eq-org-lista vidrio-tarjeta">' + raiz + '<ul class="eq-areas">' + areas + '</ul></div>';
+  }
+
+  /* ── Reglas del juego y Horarios del servicio ─────────────────────────── */
+
+  function reglasHtml(pagina) {
+    if (!D.reglas || !D.reglas.length) return '<div class="vidrio-tarjeta eq-regla-sec"><p class="ayuda">Todavía no hay Reglas del juego cargadas.</p></div>';
+    return '<div class="eq-reglas' + (pagina ? ' pagina-reglas' : '') + '">' + D.reglas.map(g =>
+      '<section class="' + (pagina ? 'vidrio-tarjeta ' : '') + 'eq-regla-sec"><h2 class="titulo">' + esc(g.seccion) + '</h2>' + g.textos.map(t => '<p>' + esc(t) + '</p>').join('') + '</section>').join('') + '</div>';
+  }
+
+  function horariosHtml() {
+    return '<div class="vidrio-tarjeta eq-horarios"><table class="tabla"><thead><tr><th scope="col">Momento</th><th scope="col">Unidad</th><th scope="col">Hora</th><th scope="col">Puestos que lo usan</th></tr></thead><tbody>' +
+      D.horarios.map(h => '<tr><td><b>' + esc(h.momento) + '</b></td><td>' + esc(h.unidad) + '</td><td class="eq-horarios-hora">' + esc(h.hora) + '</td><td>' + esc(h.puestos.join(', ')) + '</td></tr>').join('') +
+      '</tbody></table></div>';
   }
 
   /* ── Mover y acercar ──────────────────────────────────────────────────── */
@@ -259,47 +368,135 @@
     });
   }
 
-  /* ── Ficha (centrada, en un <dialog>) ─────────────────────────────────── */
+  /* ── Ficha: el contrato con el formato del papel ──────────────────────── */
 
-  function fichaHtml(id) {
-    const p = D.puestos.find(x => x.id === id), f = D.fichas[id], jefe = D.puestos.find(x => x.id === p.reportaA);
-    const lista = (t, l) => l.length ? '<ol class="eq-ol">' + l.map(x => '<li>' + esc(x) + '</li>').join('') + '</ol>' : '<p class="ayuda">Sin ' + t + ' cargado todavía.</p>';
-    const c = f.contrato;
-    const contrato = '<div class="eq-bloque"><h3>Resultado que produce</h3>' + (c.resultado.length ? c.resultado.map(x => '<p class="eq-resultado">' + esc(x) + '</p>').join('') : '<p class="ayuda">Sin resultado cargado todavía.</p>') + '</div>' +
-      '<details open class="eq-det"><summary>Trabajo del que es responsable · ' + c.trabajo.length + '</summary>' + lista('trabajo', c.trabajo) + '</details>' +
-      '<details class="eq-det"><summary>Estándares con que se evalúa · ' + c.estandares.length + '</summary>' + lista('estándar', c.estandares) + '</details>';
-    const grupos = FRECUENCIAS.concat([...new Set(f.lista.map(x => x.frecuencia))].filter(x => !FRECUENCIAS.includes(x)))
-      .map(fr => ({ fr, puntos: f.lista.filter(x => x.frecuencia === fr) })).filter(g => g.puntos.length);
-    const listaV = (f.verifica ? '<p class="eq-verifica"><b>Verifica:</b> ' + esc(f.verifica) + (f.comoVerifica ? '<br><b>Cómo:</b> ' + esc(f.comoVerifica) : '') + '</p>' : '') +
-      (grupos.length ? grupos.map(g => '<h3 class="eq-frec">' + esc(g.fr) + '</h3><ul class="eq-puntos">' + g.puntos.map(x =>
-        '<li><span>' + esc(x.texto) + '</span>' + (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') + '</li>').join('') + '</ul>').join('')
-        : '<p class="ayuda">Sin lista de verificación cargada todavía.</p>');
-    const procesos = f.procesos.length ? '<ul class="eq-puntos">' + f.procesos.map((x, i) => '<li><span><b>' + esc(x.proceso) + '</b>' + (x.estado ? ' <span class="eq-chip construccion">' + esc(x.estado) + '</span>' : '') + '</span>' +
-        (x.descripcion ? '<span class="ayuda">' + esc(x.descripcion) + '</span>' : '') +
-        (x.enlace && window.Visor && Visor.vista(x.enlace).modo !== 'nada' ? '<button type="button" class="pa-boton" data-eq-proceso="' + i + '">Abrir</button>' : '') + '</li>').join('') + '</ul>'
-      : '<p class="ayuda">Todavía no hay procesos cargados para este puesto.</p>';
-    const cuerpo = pestana === 'lista' ? listaV : pestana === 'procesos' ? procesos : contrato;
-    const tab = (k, t) => '<button type="button" role="tab" aria-selected="' + (pestana === k) + '" data-eq-pestana="' + k + '">' + t + '</button>';
-    const chips = [jefe ? 'Reporta a ' + jefe.puesto : '', f.unidad].filter(Boolean).map(x => '<span class="eq-pill">' + esc(x) + '</span>').join('') +
-      '<span class="eq-pill oscuro">' + esc(estadoVisible(p.estado)) + (f.version !== null && f.version !== undefined ? ' · versión ' + esc(f.version) : '') + '</span>';
-    return '<div class="eq-ficha"><div class="eq-ficha-cab"><div><span class="eq-sobre">Contrato de posición</span><h2 class="titulo" id="eqFichaTit">' + esc(p.puesto) + '</h2></div>' +
-      '<button type="button" class="btn-circulo" data-eq-cerrar aria-label="Cerrar la ficha"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
-      '<div class="eq-pills">' + chips + '</div>' +
-      '<div class="eq-tabs" role="tablist" aria-label="Partes de la ficha">' + tab('contrato', 'Contrato') + tab('lista', 'Lista de verificación') + tab('procesos', 'Procesos') + '</div>' +
-      '<div class="eq-cuerpo">' + cuerpo + '</div>' + aceptarHtml(p, f) + '</div>';
+  function contratoHtml(p, f, conHoras) {
+    const jefe = D.puestos.find(x => x.id === p.reportaA), c = f.contrato, h = conHoras ? horas : () => '';
+    const ol = (l, t) => l.length ? '<ol class="eq-ol">' + l.map(x => '<li><span>' + esc(x) + '</span>' + h(x) + '</li>').join('') + '</ol>' : '<p class="ayuda">Sin ' + t + ' cargado todavía.</p>';
+    return '<table class="eq-contrato-tabla"><tbody><tr><th scope="row">Puesto</th><td>' + esc(p.puesto) + '</td></tr>' +
+        '<tr><th scope="row">Unidad</th><td>' + esc(f.unidad || '—') + '</td></tr>' +
+        '<tr><th scope="row">Reporta a</th><td>' + esc(jefe ? jefe.puesto : '—') + '</td></tr></tbody></table>' +
+      '<section class="eq-sec"><h3>1. Resultado que produce</h3>' + (c.resultado.length ? c.resultado.map(x => '<p class="eq-resultado">' + esc(x) + h(x) + '</p>').join('') : '<p class="ayuda">Sin resultado cargado todavía.</p>') + '</section>' +
+      '<section class="eq-sec"><h3>2. Trabajo del que es responsable</h3>' + ol(c.trabajo, 'trabajo') + '</section>' +
+      '<section class="eq-sec"><h3>3. Estándares con que se evalúan los resultados</h3>' + ol(c.estandares, 'estándar') + '</section>';
   }
 
-  /* Aceptar el contrato: solo quien ocupa el puesto y solo «Abierto al equipo» (el servidor lo vuelve a mirar). */
-  function aceptarHtml(p, f) {
+  /* 4. Aceptación: el texto siempre; el botón solo a quien ocupa el puesto y si está «Abierto al equipo» (el servidor lo vuelve a mirar). */
+  function aceptacionHtml(p, f) {
     const abierto = norm(p.estado) === norm(ABIERTO);
-    if (!f.ocupo || !abierto) {
-      return D.yo.todo && !abierto ? '<div class="eq-aceptar gris"><p>Cuando el puesto esté «Abierto al equipo», quien lo ocupa lee aquí el contrato y lo acepta. Queda registrado con su usuario, la fecha y la versión.</p></div>' : '';
+    let pie;
+    if (abierto && f.ocupo) {
+      if (f.aceptada) pie = '<div class="eq-aceptar ok"><p>Aceptado el ' + esc(fechaHora(f.aceptadaFecha)) + ' · versión ' + esc(f.version) + '</p></div>';
+      else pie = '<div class="eq-aceptar"><p>' + (f.aceptadaVersion !== null && f.aceptadaVersion !== undefined
+          ? '<b>Hay una versión nueva de este contrato</b> (aceptaste la ' + esc(f.aceptadaVersion) + '). Léela y vuelve a aceptarla.'
+          : 'Lee el contrato y acéptalo. Antes vas a leer las Reglas del juego. Queda registrado con tu usuario, la fecha y la versión.') + '</p>' +
+        (aviso ? '<div class="aviso mal">' + esc(aviso) + '</div>' : '') +
+        '<button type="button" class="btn negro" data-eq-aceptar>Aceptar</button></div>';
+    } else {
+      const e = norm(p.estado);
+      const nota = abierto ? 'Lo acepta, desde su ficha, quien ocupa este puesto.'
+        : e === 'borrador' ? 'Este contrato está en Borrador: cargado y pendiente de validar. Todavía no se puede aceptar.'
+        : e === 'validado' ? 'Este contrato está Validado. Se podrá aceptar cuando el puesto esté «Abierto al equipo».'
+        : 'Este puesto está en construcción. Todavía no se puede aceptar.';
+      pie = '<div class="eq-aceptar gris"><p>' + nota + '</p></div>';
     }
-    if (f.aceptada) return '<div class="eq-aceptar ok"><p>Aceptaste la versión ' + esc(f.version) + ' de este contrato.</p></div>';
-    const nueva = f.aceptadaVersion !== null && f.aceptadaVersion !== undefined;
-    return '<div class="eq-aceptar"><p>' + (nueva ? '<b>Hay una versión nueva de tu contrato</b> (aceptaste la ' + esc(f.aceptadaVersion) + '). Léela y acéptala.' : 'Lee tu contrato y acéptalo. Queda registrado con tu usuario, la fecha y la versión.') + '</p>' +
+    return '<section class="eq-sec"><h3>4. Aceptación</h3><p class="eq-texto-acepto">' + TEXTO_ACEPTACION + '</p>' + pie + '</section>';
+  }
+
+  /* El paso previo a aceptar: las Reglas del juego completas y la confirmación de que se leyeron. */
+  function pasoReglasHtml(p, f) {
+    return '<section class="eq-sec eq-paso-reglas"><h3>Antes de aceptar: las Reglas del juego</h3>' + reglasHtml(false) +
+      '<label class="eq-lei"><input type="checkbox" data-eq-lei' + (leyoReglas ? ' checked' : '') + '> Leí las Reglas del juego.</label>' +
       (aviso ? '<div class="aviso mal">' + esc(aviso) + '</div>' : '') +
-      '<button type="button" class="btn negro" data-eq-aceptar>Acepto el contrato · versión ' + esc(f.version) + '</button></div>';
+      '<div class="eq-botones"><button type="button" class="btn sec" data-eq-volver>Volver al contrato</button>' +
+      '<button type="button" class="btn negro" data-eq-confirmar' + (leyoReglas ? '' : ' disabled') + '>Acepto el contrato · versión ' + esc(f.version) + '</button></div></section>';
+  }
+
+  function listaHtmlFicha(f) {
+    const grupos = FRECUENCIAS.concat([...new Set(f.lista.map(x => x.frecuencia))].filter(x => !FRECUENCIAS.includes(x)))
+      .map(fr => ({ fr, puntos: f.lista.filter(x => x.frecuencia === fr) })).filter(g => g.puntos.length);
+    return '<section class="eq-sec eq-sec-lista"><h3>Lista de verificación</h3>' + verificaHtml(f) +
+      (grupos.length ? grupos.map(g => '<h4 class="eq-frec">' + esc(g.fr) + '</h4><ul class="eq-puntos">' + g.puntos.map(x =>
+        '<li><span>' + esc(x.texto) + '</span>' + horas(x.texto) + (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') + '</li>').join('') + '</ul>').join('')
+        : '<p class="ayuda">Sin lista de verificación cargada todavía.</p>') + '</section>';
+  }
+
+  function verificaHtml(f) {
+    if (!f.verifica) return '';
+    const v = f.verificador;
+    return '<p class="eq-verifica"><b>Verifica:</b> ' + esc(f.verifica) +
+      (v && v.escalado ? '<br><b>Esta vez verifica ' + esc(v.puesto) + ':</b> quien ocupa este puesto ocupa también el que lo verifica, y nadie se verifica a sí mismo.' : '') +
+      (f.comoVerifica ? '<br><b>Cómo:</b> ' + esc(f.comoVerifica) : '') + '</p>';
+  }
+
+  /* La hoja diaria: por momento, cada paso con su hora de marca y las iniciales. */
+  function hojaHtml(p, f, h, k) {
+    const abierto = norm(p.estado) === norm(ABIERTO), puedeMarcar = abierto && f.ocupo;
+    const dias = [...new Set([D.hoy].concat(h.marcas.map(m => m.fecha.slice(0, 10))).concat(h.revisiones.map(r => r.periodo)))].filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort().reverse();
+    const dia = dias.includes(diaHoja[k]) ? diaHoja[k] : D.hoy, hoy = dia === D.hoy;
+    const marcasDia = h.marcas.filter(m => m.fecha.slice(0, 10) === dia);
+    const marcaDe = o => marcasDia.filter(m => +m.orden === +o).sort((a, b) => a.fecha.localeCompare(b.fecha)).pop() || null;
+    const momentos = [...new Set(h.pasos.map(x => x.momento))];
+    const hechos = h.pasos.filter(x => marcaDe(x.orden)).length;
+    const yo = norm(D.yo.usuario);
+    // Si el momento ES uno de Horarios del servicio, junto al título va solo su hora.
+    const horaDe = mo => { const m = Puestos.momentosEn(mo, D.momentos); return m.length === 1 && norm(m[0].momento) === norm(mo) ? (m[0].hora ? '<span class="eq-hora">' + esc(m[0].hora) + '</span>' : '') : horas(mo); };
+    const cuerpo = momentos.map(mo => '<h4 class="eq-frec">' + esc(mo || 'Sin momento') + horaDe(mo) + '</h4><ul class="eq-pasos">' + h.pasos.filter(x => x.momento === mo).map(x => {
+      const m = marcaDe(x.orden), clave = k + ':' + x.orden, ajena = m && norm(m.usuario) !== yo;
+      const activo = puedeMarcar && hoy && !ajena && guardandoPaso !== clave;
+      const sello = m ? '<span class="eq-sello">' + esc(hora12(m.fecha.slice(11, 16))) + ' · ' + esc(m.iniciales || '') + '</span>' : '';
+      return '<li><button type="button" class="eq-paso" data-eq-paso="' + esc(clave) + '" aria-pressed="' + !!m + '"' + (activo ? '' : ' disabled') +
+        (ajena ? ' title="Lo marcó ' + esc(quien(m.usuario)) + '"' : '') + '><span class="eq-caja" aria-hidden="true"></span><span class="eq-paso-txt">' + esc(x.paso) + horas(x.paso) + '</span>' +
+        (guardandoPaso === clave ? '<span class="eq-sello">Guardando…</span>' : sello) + '</button></li>';
+    }).join('') + '</ul>').join('');
+    const revs = h.revisiones.filter(r => r.periodo === dia);
+    const nota = !abierto ? 'Se marca cuando el puesto esté «Abierto al equipo».' : puedeMarcar ? (hoy ? 'Toca un paso al hacerlo: queda con la hora y tus iniciales. Puedes desmarcarlo hoy mismo.' : 'Los días anteriores se ven, pero ya no se marcan.') : '';
+    const verif = f.verifico ? '<form class="ml-revisar eq-verificar-hoja" data-eq-hoja-rev="' + esc(k) + '"><fieldset><legend>Resultado</legend>' +
+        '<label><input type="radio" name="r" value="Cumplido" checked> Cumplido</label><label><input type="radio" name="r" value="No"> No</label></fieldset>' +
+        '<fieldset><legend>Sorpresa</legend><label><input type="radio" name="s" value="Sí"> Sí</label><label><input type="radio" name="s" value="No" checked> No</label></fieldset>' +
+        '<label class="ml-nota-rev">Nota <input type="text" maxlength="400" name="nota"></label><button type="submit" class="btn negro">Verificar la hoja del ' + esc(diaTexto(dia)) + '</button></form>' : '';
+    return '<section class="eq-sec eq-hoja" data-eq-hoja="' + esc(k) + '"><h3>Hoja diaria · ' + esc(h.hoja) + '</h3>' +
+      '<div class="eq-hoja-cab"><span class="eq-pill' + (hechos === h.pasos.length ? ' ok' : '') + '">' + hechos + ' de ' + plural(h.pasos.length, 'paso', 'pasos') + '</span>' +
+        (dias.length > 1 ? '<label class="eq-dia">Día <select data-eq-dia="' + esc(k) + '">' + dias.map(d => '<option value="' + d + '"' + (d === dia ? ' selected' : '') + '>' + (d === D.hoy ? 'Hoy' : esc(diaTexto(d))) + '</option>').join('') + '</select></label>' : '') + '</div>' +
+      (nota ? '<p class="ayuda">' + nota + '</p>' : '') + (avisoHoja[k] ? '<div class="aviso mal">' + esc(avisoHoja[k]) + '</div>' : '') + cuerpo +
+      (revs.length ? revs.map(r => '<p class="ayuda ml-revision">Verificada por ' + esc(quien(r.revisor)) + ' · ' + esc(fechaHora(r.fecha)) + ' · ' + esc(r.resultado) + (r.sorpresa === 'Sí' ? ' · sorpresa' : '') +
+        (r.nota.replace(/^Hoja «[^»]*»( · )?/, '') ? ' · «' + esc(r.nota.replace(/^Hoja «[^»]*»( · )?/, '')) + '»' : '') + '</p>').join('') : '<p class="ayuda">La hoja de este día no tiene verificación.</p>') +
+      verif + '</section>';
+  }
+
+  function fichaHtml(id) {
+    const p = D.puestos.find(x => x.id === id), f = D.fichas[id];
+    const procesos = f.procesos.length ? '<section class="eq-sec"><h3>Procesos</h3><ul class="eq-puntos">' + f.procesos.map((x, i) => '<li><span><b>' + esc(x.proceso) + '</b>' + (x.estado ? ' <span class="eq-chip construccion">' + esc(x.estado) + '</span>' : '') + '</span>' +
+        (x.descripcion ? '<span class="ayuda">' + esc(x.descripcion) + '</span>' : '') +
+        (x.enlace && window.Visor && Visor.vista(x.enlace).modo !== 'nada' ? '<button type="button" class="pa-boton" data-eq-proceso="' + i + '">Abrir</button>' : '') + '</li>').join('') + '</ul></section>' : '';
+    const estado = '<span class="eq-pill oscuro">' + esc(estadoVisible(p.estado)) + (f.version !== null && f.version !== undefined ? ' · versión ' + esc(f.version) : '') + '</span>';
+    const pdf = f.pdf ? '<button type="button" class="btn sec chico" data-eq-pdf>Descargar PDF</button>' : '';
+    const cuerpo = paso === 'reglas' ? pasoReglasHtml(p, f)
+      : contratoHtml(p, f, true) + aceptacionHtml(p, f) + listaHtmlFicha(f) + f.hojas.map((h, i) => hojaHtml(p, f, h, String(i))).join('') + procesos;
+    return '<div class="eq-ficha"><div class="eq-ficha-cab"><div><span class="eq-sobre">Contrato de posición</span><h2 class="titulo" id="eqFichaTit">' + esc(p.puesto) + '</h2></div>' +
+      '<button type="button" class="btn-circulo" data-eq-cerrar aria-label="Cerrar la ficha"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+      '<div class="eq-pills">' + estado + pdf + '</div><div class="eq-cuerpo">' + cuerpo + '</div></div>';
+  }
+
+  /* ── PDF: una hoja de impresión con el formato del modelo ─────────────── */
+
+  function imprimir(id) {
+    const p = D.puestos.find(x => x.id === id), f = D.fichas[id];
+    const viejo = document.getElementById('eq-impresion');
+    if (viejo) viejo.remove();
+    const hoja = document.createElement('div');
+    hoja.id = 'eq-impresion';
+    // Sin las horas de los momentos: la hora es del servicio y puede cambiar sin que cambie el contrato firmado.
+    hoja.innerHTML = '<p class="eqp-marca">Vida en Arte</p><h1>Contrato de posición</h1><h2>' + esc(p.puesto) + '</h2>' + contratoHtml(p, f, false) +
+      '<section class="eq-sec eqp-firma"><h3>4. Firma</h3><p class="eq-texto-acepto">' + TEXTO_ACEPTACION + '</p>' +
+      '<div class="eqp-linea"></div><p class="eqp-firma-tit">Firma</p><div class="eqp-datos"><span>Nombre:</span><span>Fecha:</span></div></section>';
+    document.body.appendChild(hoja);
+    const titulo = document.title;
+    document.title = 'Contrato de posición - ' + p.puesto;
+    document.documentElement.classList.add('eq-imprimiendo');
+    const fin = () => { document.documentElement.classList.remove('eq-imprimiendo'); document.title = titulo; hoja.remove(); window.removeEventListener('afterprint', fin); };
+    window.addEventListener('afterprint', fin);
+    setTimeout(() => { window.print(); }, 60);
   }
 
   /** Lo que se puede enfocar dentro de la ficha, en orden. */
@@ -312,6 +509,12 @@
     document.body.appendChild(dlg);
     dlg.addEventListener('click', ev => { if (ev.target === dlg) { cerrarFicha(); return; } clic(ev); });   // tocar afuera (el fondo) cierra
     dlg.addEventListener('cancel', ev => { ev.preventDefault(); cerrarFicha(); });                       // Esc
+    dlg.addEventListener('change', ev => {
+      const t = ev.target;
+      if (t.matches('[data-eq-lei]')) { leyoReglas = t.checked; const b = dlg.querySelector('[data-eq-confirmar]'); if (b) b.disabled = !leyoReglas; }
+      if (t.matches('[data-eq-dia]')) { diaHoja[t.dataset.eqDia] = t.value; repintarFicha('[data-eq-dia="' + t.dataset.eqDia + '"]'); }
+    });
+    dlg.addEventListener('submit', ev => { const fm = ev.target.closest('form[data-eq-hoja-rev]'); if (fm) { ev.preventDefault(); verificarHoja(fm); } });
     dlg.addEventListener('keydown', ev => {
       if (ev.key === 'Escape') { ev.preventDefault(); cerrarFicha(); return; }
       if (ev.key !== 'Tab') return;
@@ -326,7 +529,7 @@
 
   function abrirFicha(id, desde) {
     if (!D.fichas[id]) return;
-    sel = id; pestana = 'contrato'; aviso = ''; origen = desde || null;
+    sel = id; paso = 'contrato'; leyoReglas = false; aviso = ''; diaHoja = {}; avisoHoja = {}; origen = desde || null;
     if (!dlg) crearDialogo();
     dlg.innerHTML = fichaHtml(id);
     if (!dlg.open) { dlg.showModal ? dlg.showModal() : dlg.setAttribute('open', ''); }
@@ -336,8 +539,10 @@
   }
   function repintarFicha(foco) {
     if (!dlg || !sel) return;
+    const caja = dlg.querySelector('.eq-ficha'), arriba = caja ? caja.scrollTop : 0;
     dlg.innerHTML = fichaHtml(sel);
-    const f = foco && dlg.querySelector(foco); if (f) f.focus();
+    const nueva = dlg.querySelector('.eq-ficha'); if (nueva) nueva.scrollTop = arriba;
+    const f = foco && dlg.querySelector(foco); if (f) f.focus({ preventScroll: true });
   }
   function cerrarFicha() {
     if (!dlg) return;
@@ -351,31 +556,68 @@
   }
 
   function clic(ev) {
-    const b = ev.target.closest('[data-eq-puesto],[data-eq-cerrar],[data-eq-pestana],[data-eq-aceptar],[data-eq-proceso],[data-eq-reintentar],[data-eq-zoom],[data-eq-area]');
+    const b = ev.target.closest('[data-eq-puesto],[data-eq-cerrar],[data-eq-aceptar],[data-eq-confirmar],[data-eq-volver],[data-eq-pdf],[data-eq-paso],[data-eq-proceso],[data-eq-reintentar],[data-eq-zoom],[data-eq-area]');
     if (!b) return;
     if (b.dataset.eqReintentar !== undefined) { el.innerHTML = '<div class="pantalla"><h2>Cargando…</h2></div>'; cargar(); return; }
     if (b.dataset.eqZoom) { if (b.dataset.eqZoom === 'ajustar') ajustar(); else zoom(b.dataset.eqZoom === '+' ? 1.25 : 0.8); return; }
     if (b.dataset.eqArea) { abiertas[b.dataset.eqArea] = !abiertas[b.dataset.eqArea]; pintar(); const v = el.querySelector('[data-eq-area="' + b.dataset.eqArea + '"]'); if (v) v.focus(); return; }
     if (b.dataset.eqPuesto) { if (lienzo && lienzo.dataset.arrastre) return; abrirFicha(b.dataset.eqPuesto, b); return; }
     if (b.dataset.eqCerrar !== undefined) { cerrarFicha(); return; }
-    if (b.dataset.eqPestana) { pestana = b.dataset.eqPestana; repintarFicha('[data-eq-pestana="' + pestana + '"]'); return; }
+    if (b.dataset.eqAceptar !== undefined) { paso = 'reglas'; aviso = ''; repintarFicha('[data-eq-lei]'); const c = dlg.querySelector('.eq-ficha'); if (c) c.scrollTop = 0; return; }
+    if (b.dataset.eqVolver !== undefined) { paso = 'contrato'; aviso = ''; repintarFicha('[data-eq-aceptar]'); return; }
+    if (b.dataset.eqConfirmar !== undefined) { if (leyoReglas) aceptar(b); return; }
+    if (b.dataset.eqPdf !== undefined) { imprimir(sel); return; }
+    if (b.dataset.eqPaso) { marcarPaso(b.dataset.eqPaso, b.getAttribute('aria-pressed') !== 'true'); return; }
     if (b.dataset.eqProceso !== undefined) {
       const x = D.fichas[sel].procesos[+b.dataset.eqProceso];
       VisorPantalla.abrir(x.proceso, D.puestos.find(p => p.id === sel).puesto, [{ version: Visor.version(x.proceso, x.enlace), nombre: x.proceso, enlace: x.enlace }]);
-      return;
     }
-    if (b.dataset.eqAceptar !== undefined) aceptar(b);
   }
 
   async function aceptar(b) {
     const f = D.fichas[sel], id = sel;
     b.disabled = true; b.textContent = 'Guardando…'; aviso = '';
-    try { await Datos.equipo.aceptar(id, f.version); Marca.toast('Contrato aceptado'); await cargar(); if (D && D.fichas[id]) { sel = id; repintarFicha('[data-eq-cerrar]'); } }
-    catch (e) {
+    try {
+      await Datos.equipo.aceptar(id, f.version);
+      Marca.toast('Contrato aceptado');
+      await cargar();
+      if (D && D.fichas[id]) { sel = id; paso = 'contrato'; repintarFicha('[data-eq-cerrar]'); }
+    } catch (e) {
       if (e.codigo === 'sesion') { Datos.aLogin(); return; }
       aviso = e.codigo === 'version_vieja' ? 'El contrato cambió mientras lo leías. Ya está la versión nueva: léela y vuelve a aceptar.' : e.message;
-      if (e.codigo === 'version_vieja') { await cargar(); sel = id; }
-      repintarFicha('[data-eq-aceptar]');
+      if (e.codigo === 'version_vieja') { await cargar(); sel = id; paso = 'contrato'; }
+      repintarFicha(paso === 'reglas' ? '[data-eq-confirmar]' : '[data-eq-aceptar]');
+    }
+  }
+
+  /* Marcar o desmarcar un paso: se guarda al tocarlo; la respuesta trae las marcas de hoy de esa hoja. */
+  async function marcarPaso(clave, marcado) {
+    if (guardandoPaso) return;
+    const [k, orden] = clave.split(':'), f = D.fichas[sel], h = f.hojas[+k], id = sel;
+    guardandoPaso = clave; avisoHoja[k] = ''; repintarFicha('[data-eq-paso="' + clave + '"]');
+    try {
+      const r = (await Datos.equipo.marcarHoja(id, h.hoja, +orden, marcado)).resultado;
+      h.marcas = h.marcas.filter(m => m.fecha.slice(0, 10) !== r.hoy).concat(r.marcas);
+    } catch (e) {
+      if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+      avisoHoja[k] = e.codigo === 'incierto' || e.codigo === 'red' ? 'No llegó la respuesta. Cierra y vuelve a abrir la ficha: si se guardó, ya aparece marcado.' : e.message;
+    } finally {
+      guardandoPaso = '';
+      if (sel === id) repintarFicha('[data-eq-paso="' + clave + '"]');
+    }
+  }
+
+  async function verificarHoja(fm) {
+    const k = fm.dataset.eqHojaRev, id = sel, h = D.fichas[id].hojas[+k], dia = diaHoja[k] || D.hoy, b = fm.querySelector('button');
+    b.disabled = true; b.textContent = 'Guardando…';
+    try {
+      await Datos.equipo.revisarHoja(id, h.hoja, dia, fm.querySelector('[name="s"]:checked').value, fm.querySelector('[name="r"]:checked').value, fm.nota.value);
+      Marca.toast('Hoja verificada');
+      await cargar();
+      if (D && D.fichas[id]) { sel = id; diaHoja[k] = dia; repintarFicha('[data-eq-hoja="' + k + '"] h3'); }
+    } catch (e) {
+      if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+      avisoHoja[k] = e.message; repintarFicha('[data-eq-hoja-rev="' + k + '"] button');
     }
   }
 
@@ -391,11 +633,19 @@
       let espera = null;
       window.addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(() => { if (modo === 'arbol' && lienzo && document.contains(lienzo) && lienzo.clientWidth) ajustar(); }, 150); });
     }
+    if ((op.vista || 'org') !== ((opciones || {}).vista || 'org')) ajustado = false;   // al volver al organigrama, se ajusta de nuevo
     op = opciones || {};
-    if (op.alTitulo) op.alTitulo('Equipo', 'Quién hace qué, cómo se mide y cómo se verifica. Toca un puesto para ver su ficha.');
-    if (D) pintar();
-    else if (!cargando) { el.innerHTML = '<div class="pantalla"><h2>Cargando…</h2><p>Leyendo los puestos de Vida en Arte.</p></div>'; cargar(); }
+    escenaOscura(true);
+    if (D) {
+      pintar();
+      if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]')); }
+    } else {
+      titulo(op.vista === 'reglas' ? 'Reglas del juego' : op.vista === 'horarios' ? 'Horarios del servicio' : 'Equipo', '');
+      if (!cargando) { el.innerHTML = '<div class="pantalla"><h2>Cargando…</h2><p>Leyendo los puestos de Vida en Arte.</p></div>'; cargar(); }
+    }
   }
 
-  window.Organigrama = { mostrar, _arbol: arbol, _disponer: disponer, _conteo: conteo, _medidas: M };
+  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
+    // Para la prueba (pruebas-portal/prueba-organigrama.js): pintar la ficha con datos inventados, sin navegador.
+    _probar: { datos(d) { D = d; }, ficha(id, p) { paso = p || 'contrato'; return fichaHtml(id); } } };
 })();

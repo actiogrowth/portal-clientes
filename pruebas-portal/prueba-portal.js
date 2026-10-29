@@ -222,7 +222,10 @@ const PR_DATOS = () => {
     estado, version, fechaVersion: '2026-10-01', verifica: 'Dirección, cada semana', comoVerifica: 'COMO-' + id, soloPara: soloPara || '' });
   const ids = ['JEF', 'REC', 'PRO', 'OTR', 'BOR', 'VAL'];
   return { generado: '2026-10-26T12:00:00Z', hoy: '2026-10-26', faltan: ['FALTA-DE-PRUEBA'],
-    puestos: [P('DIR', 'Dirección de prueba', '', 'Por cargar', null), P('JEF', 'Jefatura de prueba', 'DIR', 'Abierto al equipo', 2),
+    // 29-oct: la raíz se llama «Dirección», como el rol: a ella sube la verificación cuando alguien se verificaría a sí mismo.
+    puestos: [P('DIR', 'Dirección', '', 'Por cargar', null), P('JEF', 'Jefatura de prueba', 'DIR', 'Abierto al equipo', 2),
+      // 29-oct: CUMP lo ocupa el mismo rol que JEF, y lo verifica JEF: la verificación sube a Dirección.
+      Object.assign(P('CUMP', 'Eventos de prueba', 'JEF', 'Abierto al equipo', 1), { verifica: 'Jefatura de prueba, después de cada evento' }),
       P('REC', 'Recepción de prueba', 'JEF', 'Abierto al equipo', 1), P('PRO', 'Profesor de prueba', 'JEF', 'abierto al equipo', 1),
       P('OTR', 'Otro puesto de prueba', 'DIR', 'Abierto al equipo', 1), P('BOR', 'Puesto en borrador', 'JEF', 'Borrador', 1),
       P('VAL', 'Puesto validado', 'JEF', 'Validado', 1), P('RES', 'Puesto RESERVADO de prueba', 'JEF', 'Abierto al equipo', 1, ' Contabilidad-NO , prueba-recepcion ')],
@@ -231,6 +234,7 @@ const PR_DATOS = () => {
     listas: ids.concat(['RES']).map(id => ({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' })),
     procesos: [{ puesto: 'OTR', proceso: 'SECRETO-PROCESO-OTR', descripcion: '', enlace: '', estado: '' }],
     asignaciones: [{ usuario: 'Usuario del rol Coordinación After School', puesto: 'JEF', desde: '', hasta: '' },
+      { usuario: 'Usuario del rol Coordinación After School', puesto: 'CUMP', desde: '', hasta: '' },
       { usuario: 'prueba-recepcion', puesto: 'REC', desde: '2026-01-01', hasta: '' },
       { usuario: 'prueba-recepcion', puesto: 'OTR', desde: '2026-01-01', hasta: '2026-09-30' },
       { usuario: 'prueba-profesor-1', puesto: 'PRO', desde: '', hasta: '' },
@@ -243,7 +247,17 @@ const PR_DATOS = () => {
       { fecha: '2026-10-02T09:00', usuario: 'otra-persona', puesto: 'PRO', version: 1 }],   // de otro: al Profesor no le cuenta
     marcas: ids.concat(['RES']).map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
       .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' }]),
-    revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' }],
+    revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' },
+      // 29-oct: la verificación de una hoja (va con su hoja, no con la lista).
+      { fecha: '2026-10-26T19:00', revisor: 'quien-PRO-verifica', puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido', nota: 'Hoja «Hoja de PRO» · VERIFICA-HOJA-PRO' }],
+    // 29-oct: hojas diarias, Reglas del juego y Horarios del servicio. OTR tiene una hoja SECRETA (nadie más la ve).
+    hojas: [{ puesto: 'PRO', hoja: 'Hoja de PRO', orden: 2, momento: 'Al final', paso: 'PASO-PRO-2' }, { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, momento: 'Al empezar', paso: 'PASO-PRO-1' },
+      { puesto: 'OTR', hoja: 'SECRETO-HOJA', orden: 1, momento: 'x', paso: 'SECRETO-PASO' }],
+    marcasHojas: [{ fecha: '2026-10-26T18:00', usuario: 'quien-PRO', puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, iniciales: 'QP' },
+      { fecha: '2026-01-02T18:00', usuario: 'quien-PRO', puesto: 'PRO', hoja: 'Hoja de PRO', orden: 2, iniciales: 'QP' },
+      { fecha: '2026-10-26T18:00', usuario: 'quien-OTR', puesto: 'OTR', hoja: 'SECRETO-HOJA', orden: 1, iniciales: 'SECRETO-INI' }],
+    reglas: [{ seccion: 'Sección dos', orden: 1, texto: 'REGLA-DOS' }, { seccion: 'Sección uno', orden: 2, texto: 'REGLA-UNO-B' }, { seccion: 'Sección dos', orden: 0, texto: '' }, { seccion: 'Sección uno', orden: 1, texto: 'REGLA-UNO-A' }],
+    horarios: [{ momento: 'Momento de prueba', unidad: 'UNIDAD-HORARIO', hora: '10:00', puestos: 'PRO, NO-EXISTE' }],
     // 26-oct: Metas (solo las lee resumen/api.php). La segunda no tiene valor: se descarta.
     metas: [{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: null, estado: '' }] };
 };
@@ -1021,15 +1035,15 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
     seccion('Equipo: cada uno recibe solo los puestos que ocupa o de los que es jefe, y solo si están abiertos');
     {
       const eq = (u, accion, datos) => n[u].post('/equipo/api.php', { json: datos ? { accion, datos } : { accion } });
-      const TODOS = 'BOR,DIR,JEF,OTR,PRO,REC,VAL', CON_RES = 'BOR,DIR,JEF,OTR,PRO,REC,RES,VAL';
+      const TODOS = 'BOR,CUMP,DIR,JEF,OTR,PRO,REC,VAL', CON_RES = 'BOR,CUMP,DIR,JEF,OTR,PRO,REC,RES,VAL';
       const RESERVADO = /RESERVADO|"RES"|PUNTO-RES|MARCA-RES|quien-RES/;
       const CASOS = {
         'prueba-profesor-1':   { fichas: 'PRO', mios: 'PRO', revisar: '', no: /SECRETO|TEXTO-(JEF|REC)|MARCA-(JEF|REC|OTR|BOR|VAL)|PUNTO-(JEF|REC|OTR|BOR|VAL)|CANTIDAD|UNIDAD-(?!PRO)|COMO-(?!PRO)|FALTA-DE-PRUEBA|quien-(?!PRO)|REVISION|prueba-(recepcion|contabilidad|coord-as)|MARCA-VIEJA|"Borrador"|"Validado"|"Por cargar"/ },
         'prueba-recepcion':    { fichas: 'REC,RES', mios: 'REC,RES', revisar: '', puestos: CON_RES, no: /SECRETO|TEXTO-(JEF|PRO)|MARCA-(JEF|PRO|OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-(contabilidad|coord-as)|"Borrador"|"Validado"/ },
         'prueba-contabilidad': { fichas: 'OTR', mios: 'OTR', revisar: '', no: /TEXTO-|MARCA-(JEF|REC|PRO|BOR|VAL)|SECRETO-(BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|prueba-(recepcion|coord-as)/ },
-        'prueba-coord-as':     { fichas: 'JEF,PRO,REC', mios: 'JEF', revisar: 'PRO,REC', no: /SECRETO|MARCA-(OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-contabilidad|"Borrador"|"Validado"/ },
+        'prueba-coord-as':     { fichas: 'CUMP,JEF,PRO,REC', mios: 'CUMP,JEF', revisar: 'PRO,REC', no: /SECRETO|MARCA-(OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-contabilidad|"Borrador"|"Validado"/ },
         'prueba-comercial':    { fichas: '', mios: '', revisar: '', no: /SECRETO|TEXTO-|MARCA-|PUNTO-|CANTIDAD|UNIDAD-|COMO-|FALTA-DE-PRUEBA|quien-|REVISION|"Borrador"|"Validado"/ },
-        'prueba-direccion':    { fichas: CON_RES, mios: '', revisar: 'JEF,OTR,PRO,REC,RES', puestos: CON_RES, no: /MARCA-VIEJA/ },
+        'prueba-direccion':    { fichas: CON_RES, mios: '', revisar: 'CUMP,JEF,OTR,PRO,REC,RES', puestos: CON_RES, no: /MARCA-VIEJA/ },
         'admin-uno':           { fichas: CON_RES, mios: '', revisar: '', puestos: CON_RES, no: /MARCA-VIEJA/ }
       };
       const lista = a => (a || []).slice().sort().join();
@@ -1067,6 +1081,29 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         'el contrato llega en sus tres partes: resultado, trabajo y estándares');
       ok(pro.fichas.PRO.aceptada === false && pro.fichas.PRO.aceptadaVersion === null, 'Profesor: todavía sin aceptar');
 
+      // 29-oct (Equipo v2): hojas diarias, Reglas del juego, horarios, quién verifica y el PDF.
+      const hp = pro.fichas.PRO.hojas;
+      ok(hp.length === 1 && hp[0].hoja === 'Hoja de PRO' && hp[0].pasos.map(x => x.paso).join() === 'PASO-PRO-1,PASO-PRO-2' && hp[0].pasos[0].momento === 'Al empezar',
+        'la hoja diaria del puesto llega en su ficha, con sus pasos en orden y su momento');
+      ok(hp[0].marcas.length === 1 && hp[0].marcas[0].iniciales === 'QP' && hp[0].revisiones.length === 1 && /VERIFICA-HOJA-PRO/.test(hp[0].revisiones[0].nota),
+        'con sus marcas recientes (no las de hace meses) y su verificación');
+      ok(!pro.fichas.PRO.revisiones.some(r => /^Hoja «/.test(r.nota)), 'la verificación de la hoja no se mezcla con las revisiones de la lista');
+      ok(JSON.stringify(pro.reglas) === JSON.stringify([{ seccion: 'Sección dos', textos: ['REGLA-DOS'] }, { seccion: 'Sección uno', textos: ['REGLA-UNO-A', 'REGLA-UNO-B'] }]),
+        'Reglas del juego para todos: por sección, en el orden del Sheet y por Orden; sin filas vacías (' + JSON.stringify(pro.reglas) + ')');
+      ok(JSON.stringify(pro.momentos) === '[{"momento":"Momento de prueba","hora":"10:00"}]' && pro.horarios === undefined,
+        'a todos, la hora de cada momento; la tabla de horarios, no');
+      ok(pro.fichas.PRO.pdf === true && pro.fichas.PRO.verificador && pro.fichas.PRO.verificador.id === 'DIR' && pro.fichas.PRO.verificador.escalado === false,
+        'el ocupante de un puesto abierto descarga el PDF; «Dirección, cada semana» se empareja con el puesto Dirección');
+      const dirE = (await eq('prueba-direccion', 'leer')).j.resultado;
+      ok(JSON.stringify(dirE.horarios) === JSON.stringify([{ momento: 'Momento de prueba', unidad: 'UNIDAD-HORARIO', hora: '10:00', puestos: ['Profesor de prueba', 'NO-EXISTE'] }]),
+        'Dirección: la tabla de Horarios del servicio con el NOMBRE de los puestos (' + JSON.stringify(dirE.horarios) + ')');
+      ok(dirE.fichas.BOR.pdf === true && dirE.fichas.DIR.pdf === true, 'Dirección descarga el PDF de cualquier puesto, en cualquier estado');
+      ok(coord.fichas.CUMP.verificador.id === 'DIR' && coord.fichas.CUMP.verificador.escalado === true && coord.fichas.CUMP.verifico === false && !coord.revisar.includes('CUMP'),
+        'nadie se verifica a sí mismo: quien ocupa CUMP ocupa también el puesto que lo verifica, y la verificación sube a Dirección');
+      ok(dirE.revisar.includes('CUMP') && dirE.fichas.CUMP.verifico === true, 'y Dirección la ve en Revisar');
+      ok(coord.fichas.JEF.pdf === true && coord.fichas.PRO.pdf === false, 'el jefe no descarga el PDF de su equipo; el suyo sí');
+      ok(!/SECRETO-HOJA|SECRETO-PASO|SECRETO-INI/.test((await eq('prueba-coord-as', 'leer')).texto), 'la hoja de un puesto ajeno no llega');
+
       // Escribir: quién puede, y lo prohibido no llega a Google.
       const escribe = async (u, accion, datos, status, codigo, que, alScript) => {   // alScript: lo rechaza el script, no el puente
         const antes = google.llamadas.length;
@@ -1095,6 +1132,17 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       await escribe('prueba-profesor-1', 'aceptar', { puesto: 'PRO', version: 1 }, 200, '', 'el Profesor acepta su contrato');
       await escribe('prueba-coord-as', 'revisar', { puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'No', nota: 'x' }, 200, '', 'el jefe revisa la lista de su equipo');
       await escribe('prueba-direccion', 'revisar', { puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'Dirección revisa lo que figura en «Verifica»');
+      // 29-oct: las hojas diarias.
+      const h1 = await escribe('prueba-profesor-1', 'marcarHoja', { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, marcado: true, iniciales: 'ZZ', usuario: 'otro' }, 200, '', 'el Profesor marca un paso de su hoja');
+      ok(h1.llego[0] && h1.llego[0].datos.iniciales === 'PR' && h1.llego[0].datos.hoja === 'Hoja de PRO' && h1.llego[0].datos.marcado === true && !('usuario' in h1.llego[0].datos),
+        'las iniciales las pone el servidor (de la cuenta; sin nombre, las del usuario), no el navegador (' + JSON.stringify(h1.llego[0] && h1.llego[0].datos) + ')');
+      await escribe('prueba-coord-as', 'marcarHoja', { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, marcado: true }, 403, 'sin_permiso', 'el jefe no marca la hoja de su equipo');
+      await escribe('prueba-profesor-1', 'marcarHoja', { puesto: 'BOR', hoja: 'x', orden: 1, marcado: true }, 403, 'no_abierto', 'ni la de un puesto suyo que no está abierto');
+      await escribe('prueba-direccion', 'marcarHoja', { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, marcado: true }, 403, 'sin_permiso', 'Dirección no marca hojas ajenas');
+      await escribe('prueba-coord-as', 'revisar', { puesto: 'CUMP', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'quien ocupa CUMP no lo verifica, aunque sea su jefe y su verificador');
+      await escribe('prueba-direccion', 'revisar', { puesto: 'CUMP', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'lo verifica Dirección');
+      const vh = await escribe('prueba-coord-as', 'revisar', { puesto: 'PRO', hoja: 'Hoja de PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'el jefe verifica la hoja de su equipo');
+      ok(vh.llego[0] && vh.llego[0].datos.hoja === 'Hoja de PRO', 'la verificación de la hoja llega al script con su hoja');
       PR.siguiente = { ok: false, codigo: 'version_vieja', error: 'Hay una versión nueva de tu contrato.' };
       await escribe('prueba-coord-as', 'aceptar', { puesto: 'JEF', version: 1 }, 400, 'version_vieja', 'aceptar una versión vieja: el aviso del script llega a la pantalla', true);
       const anon = await new Nav(base).post('/equipo/api.php', { json: { accion: 'leer' } });

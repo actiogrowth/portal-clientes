@@ -349,8 +349,8 @@ por `gate.php`; sin listado, sin ejecutar scripts (regla propia en el
 cada puesto (contrato de posición, lista de verificación, procesos), la
 aceptación del contrato, «Mi lista» y la revisión. **Fuente única**: el Sheet
 «Procesos — Vida en Arte» (lo edita Actio; reglas en su pestaña Léeme). El
-portal lo lee siempre de ahí y SOLO escribe en Aceptaciones, Marcas y
-Revisiones. Columnas por título, nunca por letra.
+portal lo lee siempre de ahí y SOLO escribe en Aceptaciones, Marcas, Marcas
+de hojas (29-oct) y Revisiones. Columnas por título, nunca por letra.
 
 Puente propio, área `equipo` (todos los roles). Habla con un Apps Script
 aparte, `procesos-script/Procesos.gs` (clave `PR_CLAVE_API`), con el sobre de
@@ -369,7 +369,13 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
 | `leer` | L | todos (lo que ve cada uno, abajo) | — | ver abajo | `sin_configuracion` |
 | `aceptar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `version` | `{puesto, version}` | `sin_permiso` · `no_abierto` · `version_vieja` |
 | `marcar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `marcas[{orden, resultado: "Cumplido"\|"No", nota?}]` | `{puesto, marcas[{orden, periodo}]}` | `sin_permiso` · `no_abierto` · punto que no es del puesto · resultado inválido |
-| `revisar` | E | quien figura en «Verifica» del puesto y su jefe, solo «Abierto al equipo» | `puesto`, `periodo`, `sorpresa: "Sí"\|"No"`, `resultado: "Cumplido"\|"No"`, `nota?` | `{puesto, periodo}` | `sin_permiso` · `no_abierto` · período inválido |
+| `revisar` | E | quien verifica el puesto (abajo) y su jefe, **nunca quien también lo ocupa** (29-oct); solo «Abierto al equipo» | `puesto`, `periodo`, `sorpresa: "Sí"\|"No"`, `resultado: "Cumplido"\|"No"`, `nota?`; 29-oct: con `hoja`, verifica la hoja diaria de ese día (`periodo` = `AAAA-MM-DD`, hoy si no viene, nunca futuro; la Nota queda «Hoja «<nombre>» · <nota>») | `{puesto, periodo}` | `sin_permiso` · `no_abierto` · período inválido · `hoja` |
+| `marcarHoja` (29-oct) | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `hoja`, `orden`, `marcado: true\|false`. Las **iniciales** las pone el puente (nombre y apellido de la cuenta; sin nombre, las dos primeras letras del usuario); lo que mande el navegador se descarta | `{puesto, hoja, hoy, marcas[{orden, fecha, usuario, iniciales}]}` (las de HOY de esa hoja) | `sin_permiso` · `no_abierto` · `hoja` · `paso` · `marcado` · `ajena` (desmarcar la marca de otra persona) |
+
+`marcarHoja` marca un paso **hoy**, con la hora del servidor; marcarlo otra
+vez no lo repite. Desmarcar **borra** la marca de hoy de ese paso, y solo si
+la puso el mismo usuario; las de días anteriores no se tocan. Si la pestaña
+«Marcas de hojas» no existe, el script la crea con sus títulos.
 
 ### Quién ve qué (lo arma el puente)
 
@@ -391,8 +397,22 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
   Dirección y Administrador: no sale en el organigrama, ni en Mi lista, ni en
   Revisar, y escribir en él responde «No existe el puesto». Sirve para un
   puesto de prueba (`PRUEBA`). Vacía o sin la columna: como siempre.
-- **Quién verifica**: la parte de «Verifica» antes de la coma
-  («Dirección, cada semana» → el rol Dirección), más el jefe.
+- **Quién verifica** (29-oct): «Verifica» es texto libre («Dirección, cada
+  semana»). El puente lo empareja con el **nombre de un puesto** de Puestos:
+  el que es el comienzo del texto, seguido de nada, coma, punto y coma o
+  espacio; sin mayúsculas ni tildes; si encajan varios, el nombre más largo.
+  Verifica quien **ocupa** ese puesto o tiene el **rol del mismo nombre**
+  (el rol Dirección verifica lo que verifica el puesto Dirección). Más el
+  jefe. Si el texto no encaja con ningún puesto, como antes: la parte antes
+  de la coma contra los roles.
+- **Nadie se verifica a sí mismo** (29-oct): si alguien que ocupa el puesto
+  ocupa también el que lo verifica, la verificación sube al puesto raíz
+  (el que no tiene «Reporta a»: Dirección), y la ficha lo dice
+  (`verificador.escalado`). Además, quien ocupa un puesto nunca lo revisa,
+  aunque sea su jefe.
+- **Asignaciones** (29-oct): quién ocupa qué sale de UNA función,
+  `eq_asignaciones()`; hoy lee la pestaña. Al pasar a la gestión de usuarios
+  del portal se cambia solo esa función.
 - **Aceptación vigente**: la última de esa persona para ese puesto con la
   **Versión actual** del puesto. Si la Versión sube, la anterior deja de valer
   y la pantalla pide aceptar la nueva.
@@ -418,11 +438,28 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
                       ocupo: bool, jefe: bool, verifico: bool,
                       aceptada: bool, aceptadaVersion: n|null,
                       marcas: [{ fecha, usuario, orden, periodo, resultado, nota }],
-                      revisiones: [{ fecha, revisor, periodo, sorpresa, resultado, nota }] } },
+                      revisiones: [{ fecha, revisor, periodo, sorpresa, resultado, nota }],   // 29-oct: sin las de las hojas
+                      // 29-oct:
+                      aceptadaFecha: "AAAA-MM-DDTHH:mm" | "",
+                      verificador: { id, puesto, escalado: bool } | null,   // el puesto emparejado con «Verifica»
+                      pdf: bool,               // equipo.todo, o quien lo ocupa si está «Abierto al equipo»
+                      hojas: [{ hoja, pasos: [{ orden, momento, paso }],
+                                marcas: [{ fecha, usuario, orden, iniciales }],      // últimos 120 días
+                                revisiones: [{ fecha, revisor, periodo, sorpresa, resultado, nota }] }] } },
   mios: ["<id>", ...],          // puestos que ocupo y están «Abierto al equipo»
-  revisar: ["<id>", ...]        // puestos que verifico o de los que soy jefe, abiertos
+  revisar: ["<id>", ...],       // puestos que verifico o de los que soy jefe, abiertos, y que NO ocupo
+  // 29-oct:
+  reglas: [{ seccion, textos: ["…"] }],          // Reglas del juego, para todos (secciones en el orden del Sheet; textos por Orden)
+  momentos: [{ momento, hora }],                 // la hora de cada momento, para todos (etiquetas junto a los textos)
+  horarios: [{ momento, unidad, hora, puestos: ["<nombre del puesto>"] }]   // solo con equipo.todo
 }
 ```
+
+La hora de un momento se muestra junto a un estándar, un punto de la lista o
+un paso de una hoja que **nombre** el momento (`comun/puestos.js` ›
+`momentosEn`: el nombre dentro del texto, sin mayúsculas ni tildes, palabras
+enteras; si dos se pisan, gana el más largo). Es un dato de «Horarios del
+servicio»: cambiarla no cambia la versión de ningún contrato.
 
 ## Preschool (`/kinder/`, `kinder/config.php` y `kinder/csv.php`) — 28-oct
 

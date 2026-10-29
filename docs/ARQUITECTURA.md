@@ -479,6 +479,53 @@ elegir `actualizarEstructura` y «Ejecutar». Crea la pestaña «Metas» con sus
 títulos y listas, y agrega «Visible solo para» a Puestos si faltara. No
 mueve ni borra nada.
 
+## 2g. Equipo v2 (29-oct): contrato en formato papel, hojas diarias, Reglas del juego, Horarios y organigrama 3D
+
+- **Datos**: Procesos.gs **v3** lee además Hojas, Reglas del juego, Horarios
+  del servicio y Marcas de hojas (esta la crea él mismo la primera vez que
+  escribe, o `actualizarEstructura()`, que también agrega su renglón al
+  Léeme). Acción nueva `marcarHoja`; `revisar` con `hoja` (contrato en
+  [ACCIONES_API.md › Equipo](ACCIONES_API.md)). El portal escribe solo en
+  Aceptaciones, Marcas, Marcas de hojas y Revisiones.
+- **El puente** (`equipo/api.php`) empareja «Verifica» con el nombre de un
+  puesto, sube la verificación a Dirección cuando alguien se verificaría a sí
+  mismo, manda a todos las Reglas del juego y la hora de cada momento, y la
+  tabla de Horarios solo con `equipo.todo`. Quién ocupa qué: una sola
+  función, `eq_asignaciones()` (hoy, la pestaña Asignaciones).
+- **Colores de las áreas en un solo lugar**: `comun/puestos.js` (`AREAS`).
+  Qué áreas hay y su orden salen de Puestos. El mismo archivo busca los
+  momentos dentro de los textos (`momentosEn`) para poner la hora al lado;
+  lo usan la ficha y Mi lista.
+- **Organigrama «Escenario 3D»** (`comun/organigrama.js` + `vea.css`
+  › Equipo v2), en `/procesos/#equipo`: la escena oscura (`<html
+  class="eq-escena">`: degradado casi negro, brillos de los colores de las
+  áreas, la foto del vidrio muy tenue, piso con cuadrícula y la barra de
+  arriba en vidrio oscuro con el logo en blanco). Dirección arriba con su
+  halo; las áreas en columnas; plano inclinado 7° con `perspective`;
+  tarjetas con grosor que se levantan; «Por cargar» como vidrio con borde
+  punteado. Entrada en cascada (~2,5 s, una vez), luz en las líneas, chispas
+  (16, máximo 20), halo. Solo `transform` y `opacity`; se pausa con la
+  pestaña oculta; «reducir movimiento» = quieto; «reducir transparencia» o
+  sin desenfoque = fondo plano sin foto ni animación. Se mantienen mover,
+  acercar y «Ajustar». En celular, la lista por áreas, sin 3D.
+- **Ficha** (`<dialog>`): el formato del contrato en papel («Contrato de
+  posición», tabla Puesto · Unidad · Reporta a, 1. Resultado, 2. Trabajo,
+  3. Estándares, 4. Aceptación); debajo, la lista de verificación y cada hoja
+  diaria (por momento; cada paso se marca al tocarlo con la hora y las
+  iniciales; el mismo día se desmarca; quien verifica tiene el formulario).
+  **Aceptar** solo con el puesto «Abierto al equipo» y a quien lo ocupa, y
+  pasa antes por las Reglas del juego con la confirmación «Leí las Reglas del
+  juego». **Descargar PDF**: una hoja de impresión propia (`#eq-impresion`,
+  `@media print`, letra Inter, títulos en verde, firma, nombre y fecha) y el
+  diálogo de imprimir del navegador; sin librerías; sin las horas de los
+  momentos (pueden cambiar sin que cambie el contrato).
+- **Rutas** de `/procesos/`: `#equipo`, `#reglas` (Reglas del juego, todos),
+  `#horarios` (Horarios del servicio, Dirección y Administrador) y
+  `#puesto=<ID>` (Equipo con esa ficha abierta; Mi lista enlaza ahí para la
+  hoja diaria).
+- **Página aparte del organigrama**: no existe en el portal (se buscó en el
+  código y en el servidor de pruebas); el único organigrama es este.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
@@ -526,7 +573,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
 | `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, altas, bajas y pruebas que se inscriben de After School con su plazo y su período cubierto, altas y bajas del negocio con desglose, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
 | `pruebas-portal/prueba-preschool.js` | El tablero de Preschool (`kinder/index.html`) con un documento de mentira y datos inventados: ningún monto en pantalla aunque la hoja mandara la columna de pagos, globo con nombre y edad, cupos libres por salón, salidas del mes con motivo, pendientes de pago (solo inscritos, solo meses activos, hasta el último mes con pagos) y «Plan por registrar»; con sus roturas. Lo del servidor (`kinder/csv.php`) lo prueba `prueba-portal.js`. |
-| `pruebas-portal/prueba-organigrama.js` | El organigrama (`comun/organigrama.js`): áreas en una fila, cada línea de su jefe y del color del área, conteo de la lista del celular, y que la ficha es un diálogo con Esc, tocar afuera y el foco atrapado; con sus roturas. |
+| `pruebas-portal/prueba-organigrama.js` | El organigrama y la ficha (`comun/organigrama.js`, `comun/puestos.js`; 29-oct: Equipo v2): áreas en columnas en el orden de Puestos, sangría, líneas del color del área, cascada que termina a tiempo, máximo 20 chispas, colores en un solo lugar, la hora de los momentos, la ficha pintada con datos inventados (formato del contrato, cuándo hay Aceptar, Reglas antes de aceptar, hoja diaria, PDF) y, en el código y en vea.css, el diálogo, la pausa, «reducir movimiento», la versión sólida y la hoja de impresión; con sus roturas. |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 
 Los datos de prueba son siempre inventados.

@@ -34,7 +34,21 @@ const ROTURAS = [
   ['actualizarEstructura repite los títulos', "  var faltan = agregar.filter(function (t) { return tiene.indexOf(normalizar_(t)) < 0; });", "  var faltan = agregar.slice();"],
   ['actualizarEstructura escribe encima de la última columna', "  h.getRange(fila + 1, ancho + 1, 1, faltan.length).setValues([faltan]);", "  h.getRange(fila + 1, ancho, 1, faltan.length).setValues([faltan]);"],
   ['Estado de Metas acepta cualquier cosa', ".setAllowInvalid(false).build();", ".setAllowInvalid(true).build();"],
-  ['escribe encima de la última fila', "var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos) + 1;", "var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos);"]
+  // 29-oct (v3)
+  ['no lee la pestaña Hojas', "  hojas: { hoja: 'Hojas'", "  hojasNo: { hoja: 'Hojas'"],
+  ['la hora se lee como fecha (no como se ve)', "['Hora', 'hora', 'visible']", "['Hora', 'hora', 'fechaHora']"],
+  ['avisa que falta Marcas de hojas antes de que exista', "if (!h) { if (!def.opcional) faltan.push(", "if (!h) { if (true) faltan.push("],
+  ['no avisa los puestos que no están en Puestos', "if (x.puesto && !ids[x.puesto]) malos[x.puesto] = true;", ""],
+  ['marca un paso en un puesto que no está abierto', "  var ss = SpreadsheetApp.getActiveSpreadsheet(), p = puestoAbierto_(ss, d.puesto);\n  var pasos = pasosDe_(ss, p.id, d.hoja);", "  var ss = SpreadsheetApp.getActiveSpreadsheet(), p = leerTabla_(ss, TABLAS.puestos, []).filas.filter(function (x) { return x.id === texto_(d.puesto); })[0];\n  var pasos = pasosDe_(ss, p.id, d.hoja);"],
+  ['marca un paso que no es de la hoja', "  if (!paso) throw new ErrorUsuario_('El paso '", "  if (!paso) paso = pasos[0]; if (false) throw new ErrorUsuario_('El paso '"],
+  ['marca dos veces el mismo paso el mismo día', "  if (d.marcado && !ya.length) {", "  if (d.marcado) {"],
+  ['desmarca la marca de otra persona', "if (ya.some(function (m) { return normalizar_(m.usuario) !== normalizar_(usuario); })) throw", "if (false) throw"],
+  ['desmarca marcas de días anteriores', "    if (fecha.slice(0, 10) !== hoy) continue;\n", ""],
+  ['las iniciales llegan sin limpiar', "'Iniciales': iniciales_(d.iniciales, usuario)", "'Iniciales': texto_(d.iniciales)"],
+  ['la verificación de una hoja acepta un día futuro', " || texto_(d.periodo) > hoyISO_()) throw", ") throw"],
+  ['la nota de la verificación no dice la hoja', "  if (notaHoja) nota = notaHoja + (nota ? ' · ' + nota : '');", ""],
+  ['actualizarEstructura repite el renglón del Léeme', "    if (lv.some(function (f) { return normalizar_(f[0]) === normalizar_(LEEME_MARCAS_HOJAS[0]); })) hechos.push", "    if (false) hechos.push"],
+  ['escribe encima de la última fila',"var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos) + 1;", "var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos);"]
 ];
 
 const original = fs.readFileSync(GS, 'utf8').replace(/\r\n/g, '\n');

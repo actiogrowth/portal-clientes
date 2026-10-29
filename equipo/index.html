@@ -11,7 +11,10 @@
     /equipo/            Mi lista: los puestos que ocupo y están «Abierto al equipo»
     /equipo/#revisar    Revisar: los puestos que verifico o de los que soy jefe
   El período de cada marca lo pone el servidor (Procesos.gs): aquí solo se
-  muestra el que está en curso. -->
+  muestra el que está en curso.
+  29-oct: junto a cada punto, la hora del momento que nombra (Horarios del
+  servicio, con comun/puestos.js); la hoja diaria se marca y se verifica en
+  la ficha del puesto (/procesos/#puesto=<ID>). -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
 <meta name="theme-color" content="#FFFFFF">
@@ -20,7 +23,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=154fbf55d7">
+<link rel="stylesheet" href="/comun/vea.css?v=8df6ea0528">
 </head>
 <body>
 <header id="cab"></header>
@@ -50,8 +53,9 @@
   </section>
 </main>
 
-<script src="/comun/datos.js?v=78ef6c43a8"></script>
+<script src="/comun/datos.js?v=1b3dcca978"></script>
 <script src="/comun/marca.js?v=37b691d840"></script>
+<script src="/comun/puestos.js?v=2b894f4e25"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -69,6 +73,10 @@ function periodoTexto(p) {
   return p;
 }
 const nombreDe = id => (D.puestos.find(p => p.id === id) || {}).puesto || id;
+/* 29-oct: la hora de los momentos que nombra un texto, y el aviso de las hojas diarias del puesto (se marcan en su ficha). */
+const horas = t => Puestos.etiquetasHora(t, D.momentos, esc);
+const fichaUrl = id => '/procesos/#puesto=' + encodeURIComponent(id);
+const hojasAviso = (f, id, que) => (f.hojas || []).map(h => '<div class="aviso ml-aviso">Hoja diaria «' + esc(h.hoja) + '». <a href="' + fichaUrl(id) + '">' + que + '</a></div>').join('');
 /* 26-oct: quién marcó o revisó, con su nombre y cargo (el servidor manda solo los de estas fichas). Sin nombre: el usuario, como antes. */
 const quien = u => { const p = D.personas && D.personas[u]; return p && p.nombre ? p.nombre + ' · ' + p.cargo : u; };
 /* La última marca de un punto en un período (la de más tarde vale; las anteriores quedan). */
@@ -125,9 +133,10 @@ function pintarLista() {
     puesto = b.dataset.puesto; marcas = {}; notas = {}; abiertaNota = {}; pintarLista();
   });
   // El contrato: si no está aceptado (o hay una versión nueva), se pide aquí también.
-  $('#contrato').innerHTML = f.aceptada ? '' : '<div class="aviso ojo ml-aviso">' + (f.aceptadaVersion !== null && f.aceptadaVersion !== undefined
+  $('#contrato').innerHTML = (f.aceptada ? '' : '<div class="aviso ojo ml-aviso">' + (f.aceptadaVersion !== null && f.aceptadaVersion !== undefined
     ? '<b>Hay una versión nueva de tu contrato</b> de ' + esc(nombreDe(puesto)) + '. '
-    : 'Todavía no aceptaste tu contrato de ' + esc(nombreDe(puesto)) + '. ') + '<a href="/procesos/#equipo">Leerlo y aceptarlo</a></div>';
+    : 'Todavía no aceptaste tu contrato de ' + esc(nombreDe(puesto)) + '. ') + '<a href="' + fichaUrl(puesto) + '">Leerlo y aceptarlo</a></div>') +
+    hojasAviso(f, puesto, 'Márcala en tu ficha');
   const grupos = FRECUENCIAS.concat([...new Set(f.lista.map(x => x.frecuencia))].filter(x => !FRECUENCIAS.includes(x)))
     .map(fr => ({ fr, puntos: f.lista.filter(x => x.frecuencia === fr) })).filter(g => g.puntos.length);
   let diarios = 0, diariosHechos = 0;
@@ -138,7 +147,7 @@ function pintarLista() {
       if (g.fr === 'Diario') { diarios++; if (elegido) diariosHechos++; }
       const nota = k in notas ? notas[k] : (u ? u.nota : '');
       const boton = (v, cls) => '<button type="button" class="ml-res ' + cls + '" data-orden="' + k + '" data-res="' + v + '" aria-pressed="' + (elegido === v) + '">' + v + '</button>';
-      return '<div class="ml-punto"><div class="ml-punto-txt"><span class="ml-que">' + esc(x.texto) + '</span>' +
+      return '<div class="ml-punto"><div class="ml-punto-txt"><span class="ml-que">' + esc(x.texto) + '</span>' + horas(x.texto) +
         (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') +
         (u ? '<span class="ayuda ml-ya">Marcado por ' + esc(quien(u.usuario)) + ' · ' + esc(u.fecha.replace('T', ' ')) + (k in marcas ? ' · se corrige al guardar' : '') + '</span>' : '') +
         (abiertaNota[k] || nota ? '<label class="ml-nota"><span class="sr">Nota</span><input type="text" maxlength="500" data-nota="' + k + '" value="' + esc(nota) + '" placeholder="Nota (opcional)"></label>' : '') + '</div>' +
@@ -185,6 +194,7 @@ function pintarRevisar() {
   const periodos = [...new Set(f.marcas.map(m => m.periodo))].sort().reverse();
   const texto = o => (f.lista.find(x => +x.orden === +o) || {}).texto || ('Punto ' + o);
   $('#revCuerpo').innerHTML = '<p class="ml-rev-titulo">' + esc(nombreDe(revPuesto)) + (f.comoVerifica ? ' · <span>' + esc(f.comoVerifica) + '</span>' : '') + '</p>' +
+    hojasAviso(f, revPuesto, 'Verifícala en la ficha del puesto') +
     (periodos.length ? periodos.map(per => {
       const ordenes = [...new Set(f.marcas.filter(m => m.periodo === per).map(m => +m.orden))].sort((a, b) => a - b);
       const revs = f.revisiones.filter(r => r.periodo === per);
