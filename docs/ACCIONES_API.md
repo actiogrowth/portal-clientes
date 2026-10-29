@@ -417,10 +417,20 @@ la puso el mismo usuario; las de días anteriores no se tocan. Si la pestaña
   **Versión actual** del puesto. Si la Versión sube, la anterior deja de valer
   y la pantalla pide aceptar la nueva.
 - **Período de una marca** (lo calcula el script con la fecha de hoy y «Cada
-  cuánto» del punto; solo se marca el período en curso): Diario, Cuando aplica,
-  Por persona nueva → `AAAA-MM-DD`; Semanal → `AAAA-Sss` (semana ISO);
-  Mensual → `AAAA-MM`; Por temporada → `AAAA`. Corregir = una marca nueva en
-  el mismo período; vale la última y la anterior queda.
+  cuánto» del punto; solo se marca el período en curso): Diario y los de **por
+  evento** (lo que empieza con «Por », Cada rotación, Cada cambio de tema,
+  Cuando aplica, Por persona nueva) → `AAAA-MM-DD`; Semanal → `AAAA-Sss`
+  (semana ISO); Quincenal → `AAAA-MM-Q1` / `-Q2` (1–15 / 16–fin); Mensual →
+  `AAAA-MM`; Trimestral → `AAAA-T1`…`T4`; Cada 4 meses → `AAAA-C1`…`C3`
+  (ene–abr, may–ago, sep–dic); Por temporada → `AAAA` (30-oct, v4). Revisar
+  acepta solo períodos de estas formas. Corregir = una marca nueva en el mismo
+  período; vale la última y la anterior queda.
+- **Grupos de la lista** (30-oct): cada punto trae `grupo` y `grupoOrden`, que
+  pone el script: Diario 1, Semanal 2, Quincenal 3, Mensual 4, Trimestral 5,
+  Cada 4 meses 6, Por temporada 7 y «Cada vez que ocurre» 8 (todos los de por
+  evento); uno desconocido, su propio texto y 99. La pantalla solo ordena y
+  muestra junto al punto su «Cada cuánto» original cuando no es el nombre del
+  grupo («Por cumpleaños»).
 - **Lista sin revisar** (la usa el Resumen de Dirección): un puesto y un
   período con al menos una marca y ninguna revisión de ese período.
 
@@ -433,7 +443,7 @@ la puso el mismo usuario; las de días anteriores no se tocan. Si la pestaña
            }],
   fichas: { "<id>": { version, fechaVersion, verifica, comoVerifica,
                       contrato: { resultado: [..], trabajo: [..], estandares: [..] },
-                      lista: [{ orden, texto, evidencia, frecuencia, periodo }],
+                      lista: [{ orden, texto, evidencia, frecuencia, periodo, grupo, grupoOrden }],   // 30-oct: grupo y grupoOrden
                       procesos: [{ proceso, descripcion, enlace, estado }],
                       ocupo: bool, jefe: bool, verifico: bool,
                       aceptada: bool, aceptadaVersion: n|null,

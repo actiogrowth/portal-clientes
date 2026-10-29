@@ -44,18 +44,19 @@
   const esc = s => Marca.esc(s), norm = s => Marca.normal(s);
   const ABIERTO = 'Abierto al equipo';
   const colorArea = a => Puestos.colorArea(a);
-  const FRECUENCIAS = ['Diario', 'Semanal', 'Mensual', 'Por temporada', 'Cuando aplica', 'Por persona nueva'];
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const TEXTO_ACEPTACION = 'Acepto ser responsable de producir el resultado de esta posición, del trabajo y de los estándares con que se evalúa. Este contrato puede cambiar según las necesidades de Vida en Arte.';
   const estadoVisible = e => norm(e) === 'por cargar' ? 'En construcción' : e;
   const enConstruccion = p => norm(estadoVisible(p.estado)) === 'en construccion';
   /* Medidas de la escena (px, antes del zoom) y del movimiento. */
-  const M = { col: 210, sep: 16, margen: 24, bus: 56, sangria: 16 };
+  // 30-oct: legible = la escala mínima con la que se lee el texto de las tarjetas (13 px × 0,85 ≈ 11 px);
+  // tronco = dónde baja la línea que une las filas (a la izquierda de la primera columna).
+  const M = { col: 210, sep: 16, margen: 24, bus: 56, sangria: 16, legible: 0.85, tronco: -12 };
   const ENTRADA = { dir: 0.15, lineas: 0.6, areas: 1.25, paso: 0.09, puestos: 1.7, puesto: 0.07, tope: 2.4, total: 2.6 };
   const CHISPAS = 16;   // máximo 20
   const ZOOM_MIN = 0.3, ZOOM_MAX = 1.6, CELULAR = '(max-width: 640px)';
 
-  let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '';
+  let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '', porFila = 0;
   let dlg = null, origen = null, modo = '', abiertas = {}, vista = { x: 0, y: 0, s: 1 }, mundo = null, lienzo = null, ajustado = false;
   let entro = false, diaHoja = {}, avisoHoja = {}, guardandoPaso = '';
 
@@ -95,24 +96,48 @@
    * La escena: ancho, centro de cada columna, los trazos que bajan de
    * Dirección y el retraso de entrada de cada pieza (en segundos; la cascada
    * termina antes de ENTRADA.total).
+   * 30-oct: porFila = cuántas áreas van en una fila (todas, si no se dice).
+   * Con más de una fila, cada fila tiene su barra y todas cuelgan de un
+   * tronco a la izquierda (M.tronco), que baja desde la barra de la primera
+   * (su alto lo mide la pantalla: depende de lo alta que salga cada fila).
    */
-  function escena(a) {
-    const n = a.columnas.length, ancho = n * M.col + Math.max(0, n - 1) * M.sep;
-    const centros = a.columnas.map((c, i) => i * (M.col + M.sep) + M.col / 2);
-    const lineas = [];
-    // La barra une solo las áreas (los sueltos, al final, no cuelgan de Dirección).
-    const areas = a.columnas.filter(c => !c.suelta).length;
-    if (a.raiz && areas) {
-      lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: M.bus / 2 - 2, color: '#FFFFFF', d: ENTRADA.lineas });
-      if (areas > 1) lineas.push({ tipo: 'h', x: centros[0], y: M.bus / 2 - 2, largo: centros[areas - 1] - centros[0], color: '#FFFFFF', d: ENTRADA.lineas + 0.25 });
-      a.columnas.forEach((c, i) => { if (!c.suelta) lineas.push({ tipo: 'v', x: centros[i], y: M.bus / 2 - 2, largo: M.bus / 2 + 2, color: colorArea(c.cab.area).fondo, d: ENTRADA.lineas + 0.5 + i * 0.05 }); });
-    }
+  function escena(a, porFila) {
+    const n = a.columnas.length, k = Math.max(1, Math.min(n || 1, porFila || n || 1));
+    const ancho = k * M.col + Math.max(0, k - 1) * M.sep;
+    const centroEn = j => j * (M.col + M.sep) + M.col / 2;
     const columnas = a.columnas.map((c, i) => ({
       cab: c.cab, suelta: !!c.suelta, color: colorArea(c.cab.area), cuantos: 1 + c.puestos.length, d: ENTRADA.areas + i * ENTRADA.paso,
       puestos: c.puestos.map((x, j) => ({ p: x.p, nivel: x.nivel, padre: x.padre, sangria: x.nivel * M.sangria,
         d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto) }))
     }));
-    return { ancho, centros, lineas, columnas };
+    const filas = [];
+    for (let i = 0; i < n; i += k) filas.push({ columnas: columnas.slice(i, i + k), desde: i, lineas: [] });
+    const varias = filas.length > 1, y = M.bus / 2 - 2;
+    if (a.raiz) filas.forEach((f, r) => {
+      // La barra une solo las áreas (los sueltos, al final, no cuelgan de Dirección).
+      const areas = f.columnas.filter(c => !c.suelta).length;
+      if (!areas) return;
+      const ultimo = centroEn(areas - 1), desde = varias ? M.tronco : centroEn(0);
+      if (r === 0) f.lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: y, color: '#FFFFFF', d: ENTRADA.lineas });
+      if (areas > 1 || varias) f.lineas.push({ tipo: 'h', x: desde, y, largo: ultimo - desde, color: '#FFFFFF', d: ENTRADA.lineas + 0.25 });
+      f.columnas.forEach((c, j) => { if (!c.suelta) f.lineas.push({ tipo: 'v', x: centroEn(j), y, largo: M.bus / 2 + 2, color: c.color.fondo, d: ENTRADA.lineas + 0.5 + (f.desde + j) * 0.05 }); });
+    });
+    return { ancho, porFila: k, filas, varias, centros: filas.length ? filas[0].columnas.map((c, j) => centroEn(j)) : [], lineas: filas.flatMap(f => f.lineas), columnas };
+  }
+
+  /**
+   * 30-oct: cuántas áreas por fila caben en `disponible` px con la letra legible
+   * (escala ≥ M.legible): todas en una fila si se puede; si no, en 2, 3… filas
+   * parejas. Así «Ajustar» encaja al ancho sin achicar el texto de más.
+   */
+  function porFilaPara(n, disponible) {
+    if (!n || !disponible) return n || 1;
+    const anchoDe = k => k * M.col + Math.max(0, k - 1) * M.sep + 2 * M.margen;
+    for (let filas = 1; filas <= n; filas++) {
+      const k = Math.ceil(n / filas);
+      if ((disponible - 16) / anchoDe(k) >= M.legible) return k;
+    }
+    return 1;
   }
 
   /** «3 puestos · 2 en borrador» (con todo); «4 puestos · en construcción» si nada está más avanzado. */
@@ -188,15 +213,27 @@
     titulo('Equipo', subtitulo());
     modo = window.matchMedia && window.matchMedia(CELULAR).matches ? 'lista' : 'arbol';
     const a = arbol(D.puestos);
-    el.innerHTML = (D.faltan && D.faltan.length ? '<div class="aviso ojo">En el Sheet faltan: ' + esc(D.faltan.join(' · ')) + '.</div>' : '') +
+    // 30-oct: cuántas áreas por fila, según el ancho que hay (en una fila si se lee; si no, en varias filas parejas).
+    porFila = porFilaPara(a.columnas.length, el.clientWidth);
+    el.innerHTML = avisosHtml() +
       '<div class="eq-barra">' + accesos() + leyenda() + '</div>' +
-      (modo === 'lista' ? listaHtml(a) : arbolHtml(a));
+      (modo === 'lista' ? listaHtml(a) : arbolHtml(a, porFila));
     if (modo === 'arbol') {
+      medirTronco();
       prepararLienzo();
       if (!entro) setTimeout(() => { entro = true; }, ENTRADA.total * 1000);
     }
   }
   function titulo(t, s) { if (op.alTitulo) op.alTitulo(t, s); }
+
+  /* 30-oct: lo que el Sheet avisa (solo llega con equipo.todo: Dirección y Administrador), en una franja de una línea que se despliega. */
+  let avisosAbiertos = false;
+  function avisosHtml() {
+    if (!D.faltan || !D.faltan.length) return '';
+    return '<details class="eq-avisos"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +
+      '<ul>' + D.faltan.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></details>';
+  }
+  document.addEventListener('toggle', ev => { if (ev.target.matches && ev.target.matches('.eq-avisos')) avisosAbiertos = ev.target.open; }, true);
 
   /* La escena oscura de la página (fondo, piso, chispas y la barra de arriba en vidrio oscuro). */
   function escenaOscura(si) {
@@ -233,14 +270,16 @@
       : '<div class="eq-losa ' + clases + '"' + st + '>' + interior + '</div>';
   }
 
-  function arbolHtml(a) {
-    const E = escena(a);
+  function arbolHtml(a, porFila) {
+    const E = escena(a, porFila);
     const r = a.raiz;
     const dir = r ? '<div class="eq-dir-fila"><div class="eq-dir eq-entra" style="--d:' + ENTRADA.dir + 's"><div class="eq-halo" aria-hidden="true"></div>' +
       losa(r, 'eq-losa-dir', '', '<span class="eq-dir-id">' + esc(r.id) + '</span><span class="eq-dir-nom">' + esc(r.puesto) + '</span>') + '</div></div>' : '';
-    const bus = '<div class="eq-bus" aria-hidden="true">' + E.lineas.map(l => '<i class="eq-lin eq-lin-' + l.tipo + ' eq-crece-' + l.tipo + '" style="--c:' + l.color + ';--d:' + l.d.toFixed(2) + 's;left:' + l.x + 'px;top:' + l.y + 'px;' +
-      (l.tipo === 'v' ? 'height:' + l.largo + 'px' : 'width:' + l.largo + 'px') + '"></i>').join('') + '</div>';
-    const cols = E.columnas.map(c => {
+    const linea = l => '<i class="eq-lin eq-lin-' + l.tipo + ' eq-crece-' + l.tipo + '" style="--c:' + l.color + ';--d:' + l.d.toFixed(2) + 's;left:' + l.x + 'px;top:' + l.y + 'px;' +
+      (l.tipo === 'v' ? 'height:' + l.largo + 'px' : 'width:' + l.largo + 'px') + '"></i>';
+    // Con varias filas, el tronco que las une baja por la izquierda; su alto lo pone medirTronco() al pintar.
+    const tronco = E.varias ? '<i class="eq-lin eq-lin-v eq-crece-v eq-tronco" style="--c:#FFFFFF;--d:' + (ENTRADA.lineas + 0.2).toFixed(2) + 's;left:' + M.tronco + 'px;top:' + (M.bus / 2 - 2) + 'px;height:0"></i>' : '';
+    const columna = c => {
       const col = c.color, cab = c.cab, fantasma = enConstruccion(cab);
       const cabeza = losa(cab, 'eq-losa-cab eq-entra' + (fantasma ? ' eq-tenue' : ''), '--d:' + c.d.toFixed(2) + 's',
         '<span class="eq-cab-banda" style="background:' + col.fondo + ';color:' + col.texto + '"><span class="eq-cab-area">' + esc(cab.area || cab.puesto) + '</span>' +
@@ -252,13 +291,14 @@
         (x.p.cantidad ? '<span class="eq-nota">' + esc(x.p.cantidad) + '</span>' : '') + '<span class="eq-fila">' + chip(x.p.estado) + '</span>')).join('');
       return '<div class="eq-col" style="--c:' + col.fondo + '">' + cabeza +
         (c.puestos.length ? '<div class="eq-hijos"><i class="eq-lin eq-lin-v eq-lin-col eq-crece-v" aria-hidden="true" style="--c:' + col.fondo + ';--d:' + (c.d + 0.35).toFixed(2) + 's"></i>' + hijos + '</div>' : '') + '</div>';
-    }).join('');
+    };
+    const filas = E.filas.map((f, i) => (r ? '<div class="eq-bus-caja" style="width:' + E.ancho + 'px"><div class="eq-bus" aria-hidden="true">' + (i === 0 ? tronco : '') + f.lineas.map(linea).join('') + '</div></div>' : '') +
+      '<div class="eq-columnas" style="grid-template-columns:repeat(' + E.porFila + ',' + M.col + 'px);column-gap:' + M.sep + 'px">' + f.columnas.map(columna).join('') + '</div>').join('');
     const boton = (k, t, etq) => '<button type="button" class="btn-circulo" data-eq-zoom="' + k + '" aria-label="' + etq + '">' + t + '</button>';
     return '<div class="eq-org3d' + (entro ? ' eq-quieto' : '') + '">' +
-      '<div class="eq-lienzo" role="region" aria-label="Organigrama. Se arrastra para moverlo; la rueda o el pellizco acercan y alejan.">' +
+      '<div class="eq-lienzo" role="region" aria-label="Organigrama. Se arrastra para moverlo; Ctrl con la rueda, o el pellizco, acercan y alejan.">' +
         '<div class="eq-mundo" style="width:' + (E.ancho + 2 * M.margen) + 'px"><div class="eq-escenario"><div class="eq-plano" style="padding:' + M.margen + 'px">' +
-          dir + (r ? '<div class="eq-bus-caja" style="width:' + E.ancho + 'px">' + bus + '</div>' : '') +
-          '<div class="eq-columnas" style="grid-template-columns:repeat(' + E.columnas.length + ',' + M.col + 'px);column-gap:' + M.sep + 'px">' + cols + '</div>' +
+          dir + filas +
         '</div></div></div></div>' +
       '<div class="eq-pie"><div class="eq-zoom" role="group" aria-label="Acercar o alejar">' + boton('-', '−', 'Alejar') + boton('+', '+', 'Acercar') +
         '<button type="button" class="btn sec chico" data-eq-zoom="ajustar">Ajustar</button></div></div></div>';
@@ -303,12 +343,21 @@
     vista.x = Math.min(vw - q, Math.max(q - W * vista.s, vista.x));
     vista.y = Math.min(vh - q, Math.max(q - H * vista.s, vista.y));
   }
+  /* 30-oct: «Ajustar» encaja el árbol al ANCHO del lienzo (sin pasar de 1) y el
+     lienzo crece hasta mostrarlo entero a esa escala: la página baja con su
+     scroll de siempre. */
   function ajustar() {
     if (!lienzo) return;
-    const { vw, vh, W, H } = medidas();
-    vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W, (vh - 16) / H));
-    vista.x = (vw - W * vista.s) / 2; vista.y = Math.max(8, (vh - H * vista.s) / 2);
+    const { vw, W, H } = medidas();
+    vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W));
+    lienzo.style.height = Math.ceil(H * vista.s + 16) + 'px';
+    vista.x = (vw - W * vista.s) / 2; vista.y = 8;
     aplicar();
+  }
+  /* El tronco que une las filas: de la barra de la primera fila a la de la última (alturas reales, antes del zoom). */
+  function medirTronco() {
+    const t = el.querySelector('.eq-tronco'), cajas = el.querySelectorAll('.eq-bus-caja');
+    if (t && cajas.length > 1) t.style.height = (cajas[cajas.length - 1].offsetTop - cajas[0].offsetTop) + 'px';
   }
   /* Acercar o alejar dejando quieto el punto (px, py) del lienzo. */
   function zoom(f, px, py) {
@@ -322,7 +371,7 @@
     lienzo = el.querySelector('.eq-lienzo'); mundo = el.querySelector('.eq-mundo');
     // Oculto (la vista todavía no se muestra) no tiene medidas: se ajusta al mostrarlo.
     if (!lienzo.clientWidth) return;
-    if (!ajustado) { ajustar(); ajustado = true; } else { limitar(); aplicar(); }
+    if (!ajustado) { ajustar(); ajustado = true; } else { lienzo.style.height = Math.ceil(mundo.offsetHeight * vista.s + 16) + 'px'; limitar(); aplicar(); }
     const punteros = new Map();
     let inicio = null, pellizco = null, movido = false;
     const local = e => { const r = lienzo.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
@@ -356,7 +405,8 @@
     };
     lienzo.addEventListener('pointerup', soltar);
     lienzo.addEventListener('pointercancel', soltar);
-    lienzo.addEventListener('wheel', e => { e.preventDefault(); const p = local(e); zoom(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+    // 30-oct: la rueda sola baja la página (el lienzo ya es tan alto como el árbol); con Ctrl (o el pellizco del panel táctil) acerca y aleja.
+    lienzo.addEventListener('wheel', e => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const p = local(e); zoom(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
     // Con el teclado: el puesto que recibe el foco se trae a la vista.
     lienzo.addEventListener('focusin', e => {
       const b = e.target.closest('[data-eq-puesto]');
@@ -413,11 +463,12 @@
   }
 
   function listaHtmlFicha(f) {
-    const grupos = FRECUENCIAS.concat([...new Set(f.lista.map(x => x.frecuencia))].filter(x => !FRECUENCIAS.includes(x)))
-      .map(fr => ({ fr, puntos: f.lista.filter(x => x.frecuencia === fr) })).filter(g => g.puntos.length);
+    // 30-oct: agrupada como la manda el script (Diario … Por temporada, y al final «Cada vez que ocurre»); cada punto conserva su «Cada cuánto».
+    const grupos = Puestos.agrupar(f.lista);
     return '<section class="eq-sec eq-sec-lista"><h3>Lista de verificación</h3>' + verificaHtml(f) +
-      (grupos.length ? grupos.map(g => '<h4 class="eq-frec">' + esc(g.fr) + '</h4><ul class="eq-puntos">' + g.puntos.map(x =>
-        '<li><span>' + esc(x.texto) + '</span>' + horas(x.texto) + (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') + '</li>').join('') + '</ul>').join('')
+      (grupos.length ? grupos.map(g => '<h4 class="eq-frec">' + esc(g.grupo) + '</h4><ul class="eq-puntos">' + g.puntos.map(x =>
+        '<li><span>' + esc(x.texto) + '</span>' + (Puestos.frecuenciaPropia(x) ? '<span class="eq-cuando">' + esc(Puestos.frecuenciaPropia(x)) + '</span>' : '') + horas(x.texto) +
+        (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') + '</li>').join('') + '</ul>').join('')
         : '<p class="ayuda">Sin lista de verificación cargada todavía.</p>') + '</section>';
   }
 
@@ -631,7 +682,11 @@
       }
       // Si cambia el tamaño de la pantalla (girar la tablet), el árbol se vuelve a ajustar.
       let espera = null;
-      window.addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(() => { if (modo === 'arbol' && lienzo && document.contains(lienzo) && lienzo.clientWidth) ajustar(); }, 150); });
+      window.addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(() => {
+        if (!(modo === 'arbol' && lienzo && document.contains(lienzo) && lienzo.clientWidth)) return;
+        // 30-oct: si al girar cambia cuántas áreas caben por fila, se vuelve a dibujar; si no, solo se ajusta al ancho.
+        if (porFilaPara(arbol(D.puestos).columnas.length, el.clientWidth) !== porFila) { ajustado = false; pintar(); } else ajustar();
+      }, 150); });
     }
     if ((op.vista || 'org') !== ((opciones || {}).vista || 'org')) ajustado = false;   // al volver al organigrama, se ajusta de nuevo
     op = opciones || {};
@@ -645,7 +700,7 @@
     }
   }
 
-  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
+  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
     // Para la prueba (pruebas-portal/prueba-organigrama.js): pintar la ficha con datos inventados, sin navegador.
     _probar: { datos(d) { D = d; }, ficha(id, p) { paso = p || 'contrato'; return fichaHtml(id); } } };
 })();

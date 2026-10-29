@@ -364,7 +364,9 @@ function eq_vista(array $S, string $usuario, array $roles, array $nombresRol, bo
             'version' => $version, 'fechaVersion' => (string) ($p['fechaVersion'] ?? ''), 'verifica' => (string) ($p['verifica'] ?? ''), 'comoVerifica' => (string) ($p['comoVerifica'] ?? ''),
             'unidad' => (string) ($p['unidad'] ?? ''), 'contrato' => $contrato,
             'lista' => array_map(fn($x) => ['orden' => $x['orden'] ?? null, 'texto' => (string) ($x['texto'] ?? ''), 'evidencia' => (string) ($x['evidencia'] ?? ''),
-                                           'frecuencia' => (string) ($x['frecuencia'] ?? ''), 'periodo' => (string) ($x['periodo'] ?? '')], $orden($de('listas', $id))),
+                                           'frecuencia' => (string) ($x['frecuencia'] ?? ''), 'periodo' => (string) ($x['periodo'] ?? ''),
+                                           // 30-oct: el grupo y su orden los pone Procesos.gs (v4); con un script viejo, el texto de «Cada cuánto».
+                                           'grupo' => (string) ($x['grupo'] ?? ($x['frecuencia'] ?? '')), 'grupoOrden' => (int) ($x['grupoOrden'] ?? 99)], $orden($de('listas', $id))),
             'procesos' => array_map(fn($x) => ['proceso' => (string) ($x['proceso'] ?? ''), 'descripcion' => (string) ($x['descripcion'] ?? ''),
                                               'enlace' => (string) ($x['enlace'] ?? ''), 'estado' => (string) ($x['estado'] ?? '')], $de('procesos', $id)),
             'ocupo' => $ocupa, 'jefe' => $jefe, 'verifico' => $puedeRevisar,

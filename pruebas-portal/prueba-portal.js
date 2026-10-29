@@ -231,7 +231,8 @@ const PR_DATOS = () => {
       P('VAL', 'Puesto validado', 'JEF', 'Validado', 1), P('RES', 'Puesto RESERVADO de prueba', 'JEF', 'Abierto al equipo', 1, ' Contabilidad-NO , prueba-recepcion ')],
     contratos: ids.map(id => ({ puesto: id, seccion: 'Resultado', orden: 1, texto: (['OTR', 'BOR', 'VAL'].includes(id) ? 'SECRETO-' : 'TEXTO-') + id }))
       .concat([{ puesto: 'RES', seccion: 'Resultado', orden: 1, texto: 'RESERVADO-CONTRATO' }, { puesto: 'PRO', seccion: 'Estándar', orden: 1, texto: 'ESTANDAR-PRO' }, { puesto: 'PRO', seccion: 'Trabajo', orden: 1, texto: 'TRABAJO-PRO' }]),
-    listas: ids.concat(['RES']).map(id => ({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' })),
+    listas: ids.concat(['RES']).map(id => Object.assign({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' },
+      id === 'PRO' ? { frecuencia: 'Por cumpleaños', grupo: 'Cada vez que ocurre', grupoOrden: 8 } : {})),   // 30-oct: el grupo lo pone Procesos.gs v4; los demás, como un script viejo
     procesos: [{ puesto: 'OTR', proceso: 'SECRETO-PROCESO-OTR', descripcion: '', enlace: '', estado: '' }],
     asignaciones: [{ usuario: 'Usuario del rol Coordinación After School', puesto: 'JEF', desde: '', hasta: '' },
       { usuario: 'Usuario del rol Coordinación After School', puesto: 'CUMP', desde: '', hasta: '' },
@@ -1081,6 +1082,9 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         'el contrato llega en sus tres partes: resultado, trabajo y estándares');
       ok(pro.fichas.PRO.aceptada === false && pro.fichas.PRO.aceptadaVersion === null, 'Profesor: todavía sin aceptar');
 
+      // 30-oct: el grupo de cada punto llega tal como lo manda el script; sin él (script viejo), su «Cada cuánto» y al final.
+      ok(JSON.stringify(pro.fichas.PRO.lista.map(x => [x.frecuencia, x.grupo, x.grupoOrden])) === '[["Por cumpleaños","Cada vez que ocurre",8]]' &&
+        JSON.stringify(rec.fichas.REC.lista.map(x => [x.grupo, x.grupoOrden])) === '[["Diario",99]]', 'la lista trae el grupo y su orden del script (sin ellos, el «Cada cuánto» y al final)');
       // 29-oct (Equipo v2): hojas diarias, Reglas del juego, horarios, quién verifica y el PDF.
       const hp = pro.fichas.PRO.hojas;
       ok(hp.length === 1 && hp[0].hoja === 'Hoja de PRO' && hp[0].pasos.map(x => x.paso).join() === 'PASO-PRO-1,PASO-PRO-2' && hp[0].pasos[0].momento === 'Al empezar',

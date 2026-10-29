@@ -780,7 +780,18 @@ body.eq-ficha-abierta { overflow: hidden; }
 .eq-leyenda .eq-chip { margin-right: 2px; }
 /* El lienzo: transparente sobre la escena; se arrastra y se acerca como antes. */
 .eq-org3d { display: flex; flex-direction: column; gap: 12px; }
-.eq-org3d .eq-lienzo { background: transparent; height: clamp(460px, calc(100dvh - 250px), 900px); border-radius: 0; }
+/* 30-oct: el lienzo toma el alto del árbol ajustado al ancho (lo pone organigrama.js) y deja que el dedo
+   baje la página (pan-y); arrastrar a los lados y el pellizco siguen moviendo y acercando el árbol. */
+.eq-org3d .eq-lienzo { background: transparent; height: 600px; border-radius: 0; touch-action: pan-y; }
+.eq-escena .pagina, .eq-escena .cab-in { max-width: 1440px; }
+.eq-columnas + .eq-bus-caja { margin-top: 28px; }
+/* Los avisos del Sheet (Dirección y Administrador): una franja que se despliega. */
+.eq-avisos { border-radius: 14px; background: #FFF4DE; color: var(--cafe); font-size: 13px; }
+.eq-avisos summary { cursor: pointer; min-height: var(--toque); display: flex; align-items: center; padding: 0 14px; font-weight: 600; }
+.eq-avisos summary:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
+.eq-avisos ul { margin: 0; padding: 0 14px 12px 30px; max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; line-height: 1.4; }
+/* El «Cada cuánto» propio de un punto dentro de su grupo («Por cumpleaños» en «Cada vez que ocurre»). */
+.eq-cuando { align-self: flex-start; display: inline-block; margin: 2px 6px 0 0; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #EFEFEF; color: #3D3D3D; white-space: nowrap; }
 .eq-org3d .eq-pie { justify-content: flex-end; }
 .eq-org3d .eq-zoom .btn-circulo { background: rgba(255, 255, 255, .9); }
 .eq-escenario { perspective: 1800px; perspective-origin: 50% 0%; }

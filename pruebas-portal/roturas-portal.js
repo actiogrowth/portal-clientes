@@ -165,6 +165,7 @@ const ROTURAS = [
   ["Horarios con el ID del puesto en vez del nombre", "equipo/api.php", "(string) ($todos[trim($x)]['puesto'] ?? trim($x))", "trim($x)"],
   ["la verificación de una hoja se mezcla con la lista", "equipo/api.php", "'revisiones' => array_values(array_filter($revs, fn($r) => $deHoja($r['nota']) === null)),", "'revisiones' => $revs,"],
   ["el PDF a quien no le toca", "equipo/api.php", "'pdf' => $todo || ($ocupa && $abierto),", "'pdf' => $todo || $ocupa || $jefe,"],
+  ["30-oct: el grupo de la lista no pasa del script a la pantalla", "equipo/api.php", "'grupo' => (string) ($x['grupo'] ?? ($x['frecuencia'] ?? '')), 'grupoOrden' => (int) ($x['grupoOrden'] ?? 99)", "'grupo' => (string) ($x['frecuencia'] ?? ''), 'grupoOrden' => 99"],
   ["las Reglas del juego con filas vacías", "equipo/api.php", "if (!is_array($r) || trim((string) ($r['texto'] ?? '')) === '') continue;", "if (!is_array($r)) continue;"],
   ["el Profesor no abre Equipo", "portal-raiz/permisos.php", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo']", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*']"],
   ["el Profesor abre el Resumen de Dirección", "portal-raiz/permisos.php", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo']", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo', 'area:resumen']"],

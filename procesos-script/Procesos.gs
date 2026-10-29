@@ -39,6 +39,11 @@
  *    Desde v3 escribe solo en Aceptaciones, Marcas, Marcas de hojas y
  *    Revisiones (en Marcas de hojas también borra, al desmarcar).
  *
+ *  · 30-oct (v4): «Cada cuánto» acepta Quincenal (AAAA-MM-Q1/Q2), Trimestral
+ *    (AAAA-T1…T4), Cada 4 meses (AAAA-C1…C3) y los de «por evento» (lo que
+ *    empieza con «Por », Cada rotación, Cada cambio de tema): período = el
+ *    día. «leer» agrega a cada punto su grupo y el orden del grupo.
+ *
  *  Instalación: Extensiones › Apps Script en el MISMO Sheet, pegar este
  *  archivo, poner la propiedad PR_CLAVE_API e Implementar como aplicación
  *  web (pasos en docs/ARQUITECTURA.md › Equipo). Al cambiar de versión:
@@ -46,7 +51,7 @@
  *  dirección /exec no cambia), y correr actualizarEstructura una vez.
  * ═════════════════════════════════════════════════════════════════════════════ */
 
-var VERSION_SCRIPT = 'v3';   // 29-oct: Hojas, Reglas del juego, Horarios y Marcas de hojas
+var VERSION_SCRIPT = 'v4';   // 30-oct: frecuencias nuevas de «Cada cuánto» (v3, 29-oct: Hojas, Reglas, Horarios y Marcas de hojas)
 var PROP_CLAVE = 'PR_CLAVE_API';
 var FILAS_PARA_BUSCAR_TITULOS = 10;
 
@@ -55,8 +60,19 @@ var ABIERTO = 'Abierto al equipo';
 var RESULTADOS = ['Cumplido', 'No'];
 var SORPRESA = ['Sí', 'No'];
 var SECCIONES = { resultado: 'Resultado', trabajo: 'Trabajo', estandares: 'Estándar' };
-/* «Cada cuánto» → forma del período. */
-var PERIODOS = { 'diario': 'dia', 'cuando aplica': 'dia', 'por persona nueva': 'dia', 'semanal': 'semana', 'mensual': 'mes', 'por temporada': 'anio' };
+/* «Cada cuánto» → [forma del período, grupo de la lista, orden del grupo].
+   30-oct (v4): Quincenal, Trimestral y Cada 4 meses; y «por evento»: lo que
+   empieza con «Por » (Por pago, Por cumpleaños…), Cada rotación, Cada cambio
+   de tema, Cuando aplica y Por persona nueva → se marca cada vez que ocurre,
+   período = el día, grupo «Cada vez que ocurre». «Por temporada» es de
+   calendario (va antes de la regla de «Por »). */
+var PERIODOS = {
+  'diario': ['dia', 'Diario', 1], 'semanal': ['semana', 'Semanal', 2], 'quincenal': ['quincena', 'Quincenal', 3],
+  'mensual': ['mes', 'Mensual', 4], 'trimestral': ['trimestre', 'Trimestral', 5], 'cada 4 meses': ['cuatrimestre', 'Cada 4 meses', 6],
+  'por temporada': ['anio', 'Por temporada', 7]
+};
+var POR_EVENTO = ['dia', 'Cada vez que ocurre', 8];
+var EVENTOS = ['cuando aplica', 'por persona nueva', 'cada rotacion', 'cada cambio de tema'];
 
 /* Las pestañas y sus columnas ('campo' en la respuesta). */
 var TABLAS = {
@@ -159,7 +175,10 @@ function leer_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet(), faltan = [], out = { generado: new Date().toISOString(), hoy: hoyISO_(), version: VERSION_SCRIPT };
   Object.keys(TABLAS).forEach(function (k) { out[k] = leerTabla_(ss, TABLAS[k], faltan).filas; });
   // El período en curso de cada punto (la regla vive SOLO aquí: el puente y la pantalla no la repiten).
+  // 30-oct: también su grupo en la lista y el orden del grupo (desconocido: su propio texto, al final).
   out.listas.forEach(function (x) {
+    var r = reglaDe_(x.frecuencia);
+    x.grupo = r ? r[1] : texto_(x.frecuencia); x.grupoOrden = r ? r[2] : 99;
     try { x.periodo = periodoDe_(x.frecuencia, out.hoy); }
     catch (e) { x.periodo = ''; faltan.push('Listas: «Cada cuánto» = «' + x.frecuencia + '» (' + x.puesto + ' · ' + x.orden + ') no es uno de los conocidos'); }
   });
@@ -241,14 +260,26 @@ function convertir_(x, tipo) {
 
 /* ─── Períodos ─────────────────────────────────────────────────────────── */
 
+/** [forma, grupo, orden] de un «Cada cuánto», o null si no encaja en ninguna regla. */
+function reglaDe_(frecuencia) {
+  var n = normalizar_(frecuencia);
+  if (PERIODOS[n]) return PERIODOS[n];
+  if (EVENTOS.indexOf(n) >= 0 || /^por \S/.test(n)) return POR_EVENTO;
+  return null;
+}
+
 /** El período en curso de un punto según «Cada cuánto» (hoy en la zona del archivo). */
 function periodoDe_(frecuencia, iso) {
-  var forma = PERIODOS[normalizar_(frecuencia)];
-  if (!forma) throw new ErrorUsuario_('«Cada cuánto» = «' + texto_(frecuencia) + '» no es uno de: Diario, Semanal, Mensual, Por temporada, Cuando aplica, Por persona nueva.', 'frecuencia');
+  var r = reglaDe_(frecuencia);
+  if (!r) throw new ErrorUsuario_('«Cada cuánto» = «' + texto_(frecuencia) + '» no es uno de: Diario, Semanal, Quincenal, Mensual, Trimestral, Cada 4 meses, Por temporada, Cuando aplica, Cada rotación, Cada cambio de tema o uno que empiece con «Por » (por evento).', 'frecuencia');
+  var forma = r[0], anio = iso.slice(0, 4), mes = +iso.slice(5, 7);
   if (forma === 'dia') return iso;
+  if (forma === 'semana') return semanaISO_(iso);
+  if (forma === 'quincena') return iso.slice(0, 7) + (+iso.slice(8, 10) <= 15 ? '-Q1' : '-Q2');   // del 1 al 15, y del 16 a fin de mes
   if (forma === 'mes') return iso.slice(0, 7);
-  if (forma === 'anio') return iso.slice(0, 4);
-  return semanaISO_(iso);
+  if (forma === 'trimestre') return anio + '-T' + Math.ceil(mes / 3);
+  if (forma === 'cuatrimestre') return anio + '-C' + Math.ceil(mes / 4);                       // ene–abr, may–ago, sep–dic
+  return anio;
 }
 
 /** Semana ISO 8601: «2026-S44». */
@@ -260,7 +291,10 @@ function semanaISO_(iso) {
   return d.getUTCFullYear() + '-S' + dos_(Math.ceil(((d - inicio) / 86400000 + 1) / 7));
 }
 
-function periodoValido_(p) { return /^\d{4}(-\d{2}(-\d{2})?|-S\d{2})?$/.test(texto_(p)); }
+/** Un período de alguna de las formas de arriba, y nada más: año, mes, día, semana, quincena, trimestre o cuatrimestre. */
+function periodoValido_(p) {
+  return /^\d{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12]\d|3[01])|-Q[12])?|-S(0[1-9]|[1-4]\d|5[0-3])|-T[1-4]|-C[1-3])?$/.test(texto_(p));
+}
 
 /* ─── Escribir ─────────────────────────────────────────────────────────── */
 

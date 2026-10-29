@@ -58,5 +58,25 @@
       .map(m => '<span class="eq-hora">' + esc(m.momento) + ' · ' + esc(m.hora) + '</span>').join('');
   }
 
-  window.Puestos = { AREAS, colorArea, momentosEn, etiquetasHora, normal };
+  /**
+   * 30-oct: los puntos de una lista agrupados para mostrarlos: [{grupo, puntos}].
+   * El grupo y su orden los pone Procesos.gs (Diario, Semanal, Quincenal,
+   * Mensual, Trimestral, Cada 4 meses, Por temporada y «Cada vez que ocurre»);
+   * aquí solo se ordena. Sin grupo (script viejo), su «Cada cuánto», al final.
+   * Empate de orden: en el orden en que aparecen.
+   */
+  function agrupar(lista) {
+    const grupos = [];
+    (lista || []).forEach(x => {
+      const nombre = x.grupo || x.frecuencia || 'Sin frecuencia', orden = x.grupoOrden == null ? 99 : +x.grupoOrden;
+      let g = grupos.find(y => y.grupo === nombre);
+      if (!g) grupos.push(g = { grupo: nombre, orden, puntos: [] });
+      g.puntos.push(x);
+    });
+    return grupos.map((g, i) => Object.assign(g, { i })).sort((a, b) => a.orden - b.orden || a.i - b.i).map(({ grupo, puntos }) => ({ grupo, puntos }));
+  }
+  /** El «Cada cuánto» propio de un punto, si no es el nombre de su grupo («Por cumpleaños» dentro de «Cada vez que ocurre»). */
+  const frecuenciaPropia = x => x.frecuencia && normal(x.frecuencia) !== normal(x.grupo || x.frecuencia) ? x.frecuencia : '';
+
+  window.Puestos = { AREAS, colorArea, momentosEn, etiquetasHora, normal, agrupar, frecuenciaPropia };
 })();

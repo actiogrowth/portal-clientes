@@ -523,6 +523,15 @@ mueve ni borra nada.
   `#horarios` (Horarios del servicio, Dirección y Administrador) y
   `#puesto=<ID>` (Equipo con esa ficha abierta; Mi lista enlaza ahí para la
   hoja diaria).
+- **Ajuste 1 (30-oct)**: «Ajustar» encaja el árbol al ANCHO del lienzo (sin
+  pasar de escala 1) y el lienzo crece hasta mostrarlo entero; la página baja
+  con su scroll (la rueda sola y el dedo bajan la página; Ctrl con la rueda, o
+  el pellizco, acercan). Si a ese ancho la letra quedaría por debajo de la
+  escala 0,85 (`M.legible`), las áreas se reparten en filas parejas
+  (tablet vertical: dos filas de 3), unidas por un tronco a la izquierda; al
+  girar la tablet se vuelve a repartir. En Equipo la página llega a 1440 px de
+  ancho. Los avisos del Sheet (solo Dirección y Administrador) van en una
+  franja «Avisos del Sheet (n)» que se despliega.
 - **Página aparte del organigrama**: no existe en el portal (se buscó en el
   código y en el servidor de pruebas); el único organigrama es este.
 

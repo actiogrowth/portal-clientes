@@ -103,6 +103,41 @@ function comprobar(cargado, decir, FUENTE, CSS) {
   ok(O._conteo(PUESTOS().filter(p => p.area === 'Administración')) === '2 puestos · 2 en borrador' && O._conteo([P('X', 'x', 'y', '')]) === '1 puesto · en construcción', 'celular: el conteo de cada área');
   ok(O._hora12('18:05') === '6:05 p. m.' && O._hora12('09:30') === '9:30 a. m.' && O._hora12('12:00') === '12:00 p. m.', 'la hora de una marca: «6:05 p. m.»');
 
+  // 30-oct: ajustar al ancho, áreas por fila y el tronco que une las filas.
+  const anchoDe = k => k * M.col + (k - 1) * M.sep + 2 * M.margen;
+  ok(O._porFila(6, 1326) === 6 && O._porFila(6, 1500) === 6, 'computador (1366 px): las 6 áreas en una sola fila');
+  ok(O._porFila(6, 728) === 3 && O._porFila(6, 984) === 3, 'tablet (768 px vertical o 1024 horizontal): dos filas de 3');
+  ok([1326, 984, 728, 500].every(w => (w - 16) / anchoDe(O._porFila(6, w)) >= M.legible || O._porFila(6, w) === 1) && M.legible >= 0.8,
+    'con las filas que elige, la letra de las tarjetas queda a escala ' + M.legible + ' o más (13 px se leen)');
+  ok(O._porFila(7, 728) === 3 && O._porFila(6, 0) === 6, 'con 7 columnas, filas de 3; sin medida todavía, una sola fila');
+  const dos = O._escena(a, 3);
+  ok(dos.filas.length === 3 && dos.filas[0].columnas.map(c => c.cab.id).join() === 'COM,ADM,OPE' && dos.filas[1].columnas.map(c => c.cab.id).join() === 'PRE,AS,VER' && dos.ancho === 3 * M.col + 2 * M.sep && dos.varias,
+    'en filas de 3: el ancho de 3 columnas y las áreas en el orden del Sheet');
+  const barra = f => f.lineas.find(l => l.tipo === 'h');
+  ok(dos.filas.slice(0, 2).every(f => barra(f) && barra(f).x === M.tronco) && dos.filas[0].lineas.filter(l => l.tipo === 'v' && l.y === 0).length === 1 && dos.filas[1].lineas.every(l => l.y !== 0),
+    'con varias filas, cada barra sale del tronco de la izquierda; Dirección baja solo a la primera');
+  ok(/function ajustar\(\) \{[\s\S]*?vista\.s = Math\.max\(ZOOM_MIN, Math\.min\(1, \(vw - 16\) \/ W\)\);[\s\S]*?lienzo\.style\.height = Math\.ceil\(H \* vista\.s \+ 16\) \+ 'px';/.test(FUENTE),
+    '«Ajustar» encaja al ANCHO (sin pasar de 1) y el lienzo crece hasta mostrar el árbol entero');
+  ok(/if \(porFilaPara\(arbol\(D\.puestos\)\.columnas\.length, el\.clientWidth\) !== porFila\) \{ ajustado = false; pintar\(\); \} else ajustar\(\);/.test(FUENTE), 'al girar la tablet se vuelve a ajustar (y a repartir en filas si hace falta)');
+  ok(/addEventListener\('wheel', e => \{ if \(!e\.ctrlKey && !e\.metaKey\) return;/.test(FUENTE) && /\.eq-org3d \.eq-lienzo \{[^}]*touch-action: pan-y;/.test(CSS),
+    'la rueda y el dedo bajan la página; Ctrl con la rueda, o el pellizco, acercan');
+  ok(/t\.style\.height = \(cajas\[cajas\.length - 1\]\.offsetTop - cajas\[0\]\.offsetTop\) \+ 'px'/.test(FUENTE), 'el tronco mide de la primera barra a la última');
+
+  // 30-oct: los grupos de la lista (los manda el script) y los avisos del Sheet.
+  const ag = Pu.agrupar([{ orden: 1, frecuencia: 'Por cumpleaños', grupo: 'Cada vez que ocurre', grupoOrden: 8 }, { orden: 2, frecuencia: 'Mensual', grupo: 'Mensual', grupoOrden: 4 },
+    { orden: 3, frecuencia: 'Cada luna', grupo: 'Cada luna', grupoOrden: 99 }, { orden: 4, frecuencia: 'Diario', grupo: 'Diario', grupoOrden: 1 }, { orden: 5, frecuencia: 'Cada rotación', grupo: 'Cada vez que ocurre', grupoOrden: 8 },
+    { orden: 6, frecuencia: 'Quincenal', grupo: 'Quincenal', grupoOrden: 3 }, { orden: 7, frecuencia: 'Viejo' }]);
+  ok(ag.map(g => g.grupo + ':' + g.puntos.map(x => x.orden).join('+')).join(' ') === 'Diario:4 Quincenal:6 Mensual:2 Cada vez que ocurre:1+5 Cada luna:3 Viejo:7',
+    'grupos en el orden del script (Diario, Quincenal, Mensual… y «Cada vez que ocurre»), lo desconocido al final (' + ag.map(g => g.grupo).join(', ') + ')');
+  ok(Pu.frecuenciaPropia({ frecuencia: 'Por cumpleaños', grupo: 'Cada vez que ocurre' }) === 'Por cumpleaños' && Pu.frecuenciaPropia({ frecuencia: 'Mensual', grupo: 'Mensual' }) === '',
+    'cada punto de «Cada vez que ocurre» conserva su texto («Por cumpleaños»)');
+  O._probar.datos(datos((D, f) => { f.lista = [{ orden: 1, texto: 'PUNTO-EVENTO', frecuencia: 'Por cumpleaños', grupo: 'Cada vez que ocurre', grupoOrden: 8, periodo: '2026-10-29' },
+    { orden: 2, texto: 'PUNTO-DIARIO', frecuencia: 'Diario', grupo: 'Diario', grupoOrden: 1, periodo: '2026-10-29' }]; }));
+  const fl = O._probar.ficha('PRO');
+  ok(fl.indexOf('>Diario</h4>') < fl.indexOf('>Cada vez que ocurre</h4>') && /PUNTO-EVENTO<\/span><span class="eq-cuando">Por cumpleaños<\/span>/.test(fl), 'la ficha agrupa así y muestra el «Cada cuánto» propio');
+  ok(/<details class="eq-avisos"' \+ \(avisosAbiertos \? ' open' : ''\) \+ '><summary>Avisos del Sheet \(' \+ D\.faltan\.length \+ '\)<\/summary>/.test(FUENTE) && !/En el Sheet faltan/.test(FUENTE),
+    'los avisos del Sheet: una franja «Avisos del Sheet (n)» que se despliega');
+
   // La ficha, pintada con datos inventados.
   const ficha = (cambio, paso) => { O._probar.datos(datos(cambio)); return O._probar.ficha('PRO', paso); };
   const h = ficha();
@@ -174,7 +209,19 @@ const ROTURAS = [
   ['las áreas salen en otro orden', 'org', "const cabs = raiz ? hijos(raiz.id) : [];", "const cabs = raiz ? hijos(raiz.id).reverse() : [];"],
   ['sin sangría por nivel', 'org', "sangria: x.nivel * M.sangria,", "sangria: 0,"],
   ['la sangría también a quien reporta a la coordinación', 'org', "sangria: x.nivel * M.sangria,", "sangria: (x.nivel + 1) * M.sangria,"],
-  ['las líneas son todas blancas', 'org', "color: colorArea(c.cab.area).fondo, d: ENTRADA.lineas + 0.5", "color: '#FFFFFF', d: ENTRADA.lineas + 0.5"],
+  ['las líneas son todas blancas', 'org', "color: c.color.fondo, d: ENTRADA.lineas + 0.5", "color: '#FFFFFF', d: ENTRADA.lineas + 0.5"],
+  // 30-oct
+  ['«Ajustar» vuelve a encajar al alto', 'org', "vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W));", "vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W, 600 / H));"],
+  ['el lienzo no crece con el árbol', 'org', "    lienzo.style.height = Math.ceil(H * vista.s + 16) + 'px';\n", ""],
+  ['en tablet todas las áreas en una fila (letra diminuta)', 'org', "if ((disponible - 16) / anchoDe(k) >= M.legible) return k;", "return n;"],
+  ['la letra legible se baja a la mitad', 'org', "legible: 0.85,", "legible: 0.5,"],
+  ['las filas no cuelgan del tronco', 'org', "desde = varias ? M.tronco : centroEn(0);", "desde = centroEn(0);"],
+  ['la rueda sola acerca (no deja bajar la página)', 'org', "if (!e.ctrlKey && !e.metaKey) return; ", ""],
+  ['al girar la tablet no se reparte en filas', 'org', "if (porFilaPara(arbol(D.puestos).columnas.length, el.clientWidth) !== porFila) { ajustado = false; pintar(); } else ajustar();", "ajustar();"],
+  ['los grupos salen en otro orden', 'puestos', ".sort((a, b) => a.orden - b.orden || a.i - b.i)", ".sort((a, b) => a.i - b.i)"],
+  ['el punto pierde su «Cada cuánto»', 'puestos', "normal(x.frecuencia) !== normal(x.grupo || x.frecuencia) ? x.frecuencia : ''", "''"],
+  ['los avisos tapan la pantalla', 'org', "return '<details class=\"eq-avisos\"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +", "return '<div class=\"aviso ojo\">En el Sheet faltan: ' + D.faltan.join(' · ') + '<details class=\"eq-avisos\"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +"],
+  ['en la tablet el dedo no deja bajar la página', 'css', "touch-action: pan-y; }", "touch-action: none; }"],
   ['la cascada no termina', 'org', "d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto)", "d: ENTRADA.puestos + i * ENTRADA.paso + j * 0.3"],
   ['demasiadas chispas', 'org', "const CHISPAS = 16;", "const CHISPAS = 40;"],
   ['Operación sin su rojo', 'puestos', "'operacion':      { fondo: '#D71C0E'", "'operacion':      { fondo: '#555555'"],

@@ -50,6 +50,14 @@ const HOJAS = () => ({
     [5, 'COO', 'Punto cuando aplica', 'registro', 'Cuando aplica'],
     [6, 'COO', 'Punto por persona nueva', 'registro', 'Por persona nueva'],
     [7, 'COO', 'Punto con frecuencia rara', 'registro', 'Cada luna'],
+    // 30-oct (v4): las frecuencias nuevas (con mayúsculas, tildes y espacios de más, como pueden venir del Sheet).
+    [8, 'COO', 'Punto quincenal', 'registro', 'Quincenal'],
+    [9, 'COO', 'Punto trimestral', 'registro', 'Trimestral'],
+    [10, 'COO', 'Punto cada 4 meses', 'registro', 'Cada 4 meses'],
+    [11, 'COO', 'Punto por cumpleaños', 'registro', 'Por cumpleaños'],
+    [12, 'COO', 'Punto por pago', 'registro', 'POR  pago'],
+    [13, 'COO', 'Punto cada rotación', 'registro', 'Cada rotacion'],
+    [14, 'COO', 'Punto cada cambio de tema', 'registro', 'Cada cambio de tema'],
     [1, 'ADM', 'Punto de un borrador', 'registro', 'Diario']
   ],
   'Procesos': [['Puesto ID', 'Proceso', 'Descripción', 'Enlace', 'Estado'], ['COO', 'Proceso de prueba', 'Descripción', '/biblioteca/x.html', 'Listo']],
@@ -149,7 +157,13 @@ seccion('leer: por título, con todas las pestañas');
     'lee; solo avisa el «Cada cuánto» desconocido y el puesto de Hojas que no está en Puestos; la pestaña Marcas de hojas que todavía no existe no se avisa (' + JSON.stringify(r.resultado && r.resultado.faltan) + ')');
   const R = r.resultado, coo = R.puestos.find(p => p.id === 'COO');
   const perLeer = R.listas.filter(x => x.puesto === 'COO').map(x => x.orden + '=' + x.periodo).join(' ');
-  ok(perLeer === '1=2026-10-28 2=2026-S44 3=2026-10 4=2026 5=2026-10-28 6=2026-10-28 7=', 'cada punto trae su período en curso (' + perLeer + ')');
+  ok(perLeer === '1=2026-10-28 2=2026-S44 3=2026-10 4=2026 5=2026-10-28 6=2026-10-28 7= 8=2026-10-Q2 9=2026-T4 10=2026-C3 11=2026-10-28 12=2026-10-28 13=2026-10-28 14=2026-10-28',
+    'cada punto trae su período en curso; Quincenal, Trimestral, Cada 4 meses y los de por evento también (' + perLeer + ')');
+  const grupos = R.listas.filter(x => x.puesto === 'COO').map(x => x.orden + ':' + x.grupo + ':' + x.grupoOrden).join(' | ');
+  ok(grupos === '1:Diario:1 | 2:Semanal:2 | 3:Mensual:4 | 4:Por temporada:7 | 5:Cada vez que ocurre:8 | 6:Cada vez que ocurre:8 | 7:Cada luna:99 | 8:Quincenal:3 | 9:Trimestral:5 | 10:Cada 4 meses:6 | ' +
+    '11:Cada vez que ocurre:8 | 12:Cada vez que ocurre:8 | 13:Cada vez que ocurre:8 | 14:Cada vez que ocurre:8',
+    'cada punto trae su grupo y el orden del grupo; uno desconocido, su propio texto y al final (' + grupos + ')');
+  ok(R.listas.find(x => x.orden === 11).frecuencia === 'Por cumpleaños', 'el punto conserva su «Cada cuánto» original');
   ok(R.puestos.length === 4 && coo.puesto === 'Coordinación inventada' && coo.reportaA === 'DIR' && coo.version === 2 && coo.fechaVersion === '2026-10-20',
     'Puestos: títulos en la fila 2, columnas en otro orden; versión como número y fecha como AAAA-MM-DD');
   ok(R.puestos.find(p => p.id === 'REC').version === 1 && R.puestos.find(p => p.id === 'DIR').version === null, 'versión escrita como texto o vacía');
@@ -158,8 +172,8 @@ seccion('leer: por título, con todas las pestañas');
   const sinCol = HOJAS(); sinCol['Puestos'] = sinCol['Puestos'].map(f => f.slice(0, 12));
   const rs = cargar(P, sinCol).llamar('leer').resultado;
   ok(rs.puestos.length === 4 && rs.puestos.every(p => p.soloPara === '') && rs.faltan.length === 2, 'sin la columna «Visible solo para» (opcional): todos vacíos y no se avisa nada');
-  ok(R.contratos.length === 5 && R.listas.length === 8 && R.procesos.length === 1 && R.asignaciones[0].desde === '2026-10-01', 'Contratos, Listas, Procesos y Asignaciones');
-  ok(R.hoy === '2026-10-28' && R.version === 'v3', 'hoy (en la zona del archivo) y la versión del script');
+  ok(R.contratos.length === 5 && R.listas.length === 15 && R.procesos.length === 1 && R.asignaciones[0].desde === '2026-10-01', 'Contratos, Listas, Procesos y Asignaciones');
+  ok(R.hoy === '2026-10-28' && R.version === 'v4', 'hoy (en la zona del archivo) y la versión del script');
   ok(JSON.stringify(R.metas) === JSON.stringify([{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' },
     { cifra: 'Bajas', unidad: 'After School', periodo: '2026', valor: 3, estado: 'Confirmada' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: 12, estado: '' }]),
     'Metas: un mes que Sheets volvió fecha se lee como mes; un año escrito como número, como año (' + JSON.stringify(R.metas) + ')');
@@ -201,13 +215,39 @@ seccion('marcar: el período lo calcula el script según «Cada cuánto»');
   r = g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'No' }] });
   ok(r.ok && M.vals.length === 8 && M.vals[1][5] === 'Cumplido', 'corregir agrega una marca nueva; la anterior queda');
   const antes = M.vals.length;
-  ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 9, resultado: 'Cumplido' }] }).codigo === 'punto', 'un punto que no es del puesto: se niega');
+  ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 99, resultado: 'Cumplido' }] }).codigo === 'punto', 'un punto que no es del puesto: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'Tal vez' }] }).codigo === 'resultado', 'resultado inválido: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'No' }, { orden: 1, resultado: 'No' }] }).codigo === 'punto', 'el mismo punto dos veces: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 7, resultado: 'No' }] }).codigo === 'frecuencia', '«Cada cuánto» desconocido: se niega y lo dice');
   ok(g.llamar('marcar', { puesto: 'ADM', marcas: [{ orden: 1, resultado: 'No' }] }).codigo === 'no_abierto', 'un puesto en Borrador: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [] }).codigo === 'vacia', 'sin marcas: se niega');
   ok(M.vals.length === antes, 'ninguna marca rechazada se escribió (ni a medias)');
+  // 30-oct (v4): se marcan las frecuencias nuevas, cada una con su período.
+  r = g.llamar('marcar', { puesto: 'COO', marcas: [8, 9, 10, 11, 12, 13, 14].map(o => ({ orden: o, resultado: 'Cumplido' })) });
+  const nuevos = M.vals.slice(antes).map(f => f[3] + '=' + f[4]).join(' ');
+  ok(r.ok && nuevos === '8=2026-10-Q2 9=2026-T4 10=2026-C3 11=2026-10-28 12=2026-10-28 13=2026-10-28 14=2026-10-28',
+    'Quincenal → la quincena; Trimestral → el trimestre; Cada 4 meses → el cuatrimestre; por evento → el día (' + (r.error || nuevos) + ')');
+}
+
+seccion('períodos (v4): los bordes de cada forma, y nada que no encaje');
+{
+  const g = cargar(P), per = (f, iso) => { try { return g.ctx.periodoDe_(f, iso); } catch (e) { return 'ERROR'; } };
+  ok(per('Quincenal', '2026-10-15') === '2026-10-Q1' && per('Quincenal', '2026-10-16') === '2026-10-Q2' && per('Quincenal', '2026-02-28') === '2026-02-Q2' && per('quincenal', '2026-01-01') === '2026-01-Q1',
+    'Quincenal: del 1 al 15 es Q1; del 16 a fin de mes, Q2');
+  ok(per('Trimestral', '2026-03-31') === '2026-T1' && per('Trimestral', '2026-04-01') === '2026-T2' && per('Trimestral', '2026-09-30') === '2026-T3' && per('Trimestral', '2026-12-31') === '2026-T4',
+    'Trimestral: T1 a T4');
+  ok(per('Cada 4 meses', '2026-04-30') === '2026-C1' && per('Cada 4 meses', '2026-05-01') === '2026-C2' && per('Cada 4 meses', '2026-08-31') === '2026-C2' && per('cada 4 MESES', '2026-09-01') === '2026-C3',
+    'Cada 4 meses: enero a abril C1, mayo a agosto C2, septiembre a diciembre C3');
+  ok(['Por reembolso', 'Por niño nuevo', 'Por reposición', 'Cuando aplica', 'Por persona nueva', 'Cada rotación', 'Cada cambio de tema'].every(f => per(f, '2026-10-28') === '2026-10-28'),
+    'por evento (Por …, Cada rotación, Cada cambio de tema, Cuando aplica, Por persona nueva) → el día');
+  ok(per('Por temporada', '2026-10-28') === '2026', '«Por temporada» sigue siendo el año (no es por evento)');
+  ok(['Por', 'Porción diaria', 'Cada luna', 'Cada rotaciones', 'Bimestral', ''].every(f => per(f, '2026-10-28') === 'ERROR'), 'lo que no encaja en ninguna regla se sigue rechazando');
+  const v = p => g.ctx.periodoValido_(p);
+  ok(['2026', '2026-10', '2026-10-28', '2026-S44', '2026-10-Q1', '2026-10-Q2', '2026-T1', '2026-T4', '2026-C1', '2026-C3'].every(v), 'períodos válidos: año, mes, día, semana, quincena, trimestre y cuatrimestre');
+  ok(!['2026-10-Q3', '2026-T5', '2026-T0', '2026-C4', '2026-13', '2026-10-32', '2026-S54', '2026-Q1', '2026-10-28-Q1', 'ayer', '2026-10-T1'].some(v), 'y nada más');
+}
+
+{
 }
 
 seccion('revisar');

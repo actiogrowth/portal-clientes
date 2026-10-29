@@ -233,7 +233,7 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 | Léeme | — | Texto para quien edita; el script no la lee. |
 | Puestos | ID, Puesto, Área, Unidad, Reporta a, Cantidad, Estado, Versión, Fecha versión, Verifica, Cómo verifica, Visible solo para (opcional, 26-oct) | «Visible solo para»: vacía o sin la columna, como siempre; con usuarios o roles separados por coma, el puesto solo existe para ellos, Dirección y Administrador (puesto de prueba). Estado: Por cargar · Borrador · Validado · Abierto al equipo. «Reporta a» es el ID del jefe. «Verifica»: quién y cada cuánto («Dirección, cada semana»; cuenta lo que va antes de la coma). |
 | Contratos | Puesto ID, Sección, Orden, Texto | Sección: Resultado · Trabajo · Estándar. |
-| Listas | Puesto ID, Orden, Qué se verifica, Evidencia, Cada cuánto | Cada cuánto: Diario · Semanal · Mensual · Por temporada · Cuando aplica · Por persona nueva. |
+| Listas | Puesto ID, Orden, Qué se verifica, Evidencia, Cada cuánto | Cada cuánto (30-oct, Procesos.gs v4): de calendario, Diario · Semanal · Quincenal · Mensual · Trimestral · Cada 4 meses · Por temporada; **por evento** (se marca cada vez que ocurre), todo lo que empiece con «Por » (Por pago, Por cumpleaños…), Cada rotación, Cada cambio de tema, Cuando aplica y Por persona nueva. Otro valor: el script lo avisa y no deja marcarlo. |
 | Procesos | Puesto ID, Proceso, Descripción, Enlace, Estado | Los procesos de cada puesto (vacía al 26-oct). |
 | Asignaciones | Usuario del portal, Puesto ID, Desde, Hasta | Un usuario o un rol («Usuario del rol Coordinación After School»). Desde y Hasta vacíos = sin límite. |
 | Aceptaciones | Fecha y hora, Usuario, Puesto ID, Versión | La escribe el portal. Vale solo la de la versión vigente del puesto. |
@@ -245,9 +245,12 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 | Marcas de hojas (29-oct) | Fecha y hora, Usuario, Puesto ID, Hoja, Orden, Iniciales | La escribe el portal (si no existe, la crea). Un paso marcado hoy, con la hora del servidor y las iniciales de quien lo marcó. Desmarcar el mismo día borra la fila. |
 | Metas (26-oct) | Cifra, Unidad, Período, Valor, Estado | La crea `actualizarEstructura()` (Procesos.gs v2); la escribe Vida en Arte; el portal solo la lee (`resumen/api.php`). Cifra: Ocupación · Niños activos · Altas · Bajas · Pruebas que se inscriben · Facturación · Margen de la unidad · Margen neto. Unidad: Negocio · Preschool · After School · Veranito · Baby & Me · Cumpleaños. Período (texto): `2026-10` (mes) o `2026` (año). Valor: número (un porcentaje se escribe 70 o 70 %). Estado: Tentativa · Confirmada (vacío = tentativa). Para Bajas, la meta es el tope normal. |
 
-**Período** (texto, formato `@`): Diario, Cuando aplica y Por persona nueva →
-la fecha (`2026-10-26`); Semanal → la semana ISO (`2026-S44`); Mensual → el
-mes (`2026-10`); Por temporada → el año (`2026`). Lo pone el script con la
+**Período** (texto, formato `@`): Diario y los de por evento → la fecha
+(`2026-10-26`); Semanal → la semana ISO (`2026-S44`); Quincenal → `2026-10-Q1`
+(del 1 al 15) o `2026-10-Q2` (del 16 a fin de mes); Mensual → el mes
+(`2026-10`); Trimestral → `2026-T1` … `2026-T4`; Cada 4 meses → `2026-C1`
+(enero a abril), `2026-C2` (mayo a agosto), `2026-C3` (septiembre a
+diciembre); Por temporada → el año (`2026`). Lo pone el script con la
 fecha de hoy del Sheet; solo se marca el período en curso.
 
 ---
