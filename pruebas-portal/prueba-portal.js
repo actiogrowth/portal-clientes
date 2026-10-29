@@ -1299,7 +1299,10 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
     {
       const pr = (await n['prueba-recepcion'].get('/procesos/')).texto;
       ok(/class="pr-entrada vidrio-tarjeta" href="#documentos"/.test(pr) && /class="pr-entrada vidrio-tarjeta" href="#equipo"/.test(pr) && !/pr-vistas|Por unidad/.test(pr), 'Procesos: dos tarjetas, Documentos y Equipo; sin las pestañas de antes');
-      ok(/cabecera\(\[RUTA_PROCESOS, RUTA_DOCS, \{ texto: nom \}\]\)/.test(pr) && /cabecera\(\[RUTA_PROCESOS, \{ texto: 'Equipo' \}\]\)/.test(pr), 'ruta Inicio / Procesos / Documentos y Inicio / Procesos / Equipo');
+      ok(/cabecera\(\[RUTA_PROCESOS, RUTA_DOCS, \{ texto: nom \}\]\)/.test(pr) && /cabecera\(sub === 'org' \? \[RUTA_PROCESOS, \{ texto: 'Equipo' \}\] : \[RUTA_PROCESOS, RUTA_EQUIPO, \{ texto: sub === 'reglas' \? 'Reglas del juego' : 'Horarios del servicio' \}\]\)/.test(pr),
+        'ruta Inicio / Procesos / Documentos, Inicio / Procesos / Equipo y (29-oct) Inicio / Procesos / Equipo / Reglas del juego u Horarios del servicio');
+      ok(/const VISTAS_EQUIPO = \{ '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' \};/.test(pr) && /if \(v !== 'equipo'\) Organigrama\.salir\(\);/.test(pr) && /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/organigrama\.js/.test(pr),
+        '29-oct: Procesos abre Reglas del juego, Horarios y una ficha por dirección, carga comun/puestos.js y apaga la escena oscura al salir de Equipo');
       const as = (await n['prueba-coord-as'].get('/after-school/')).texto;
       ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(as) && /id="ocTotal"/.test(as) && /const o = Cifras\.ocupacionAS\(E\);/.test(as), 'Ocupación: el total de la semana con la regla del Resumen');
     }
