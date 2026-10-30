@@ -532,6 +532,17 @@ mueve ni borra nada.
   girar la tablet se vuelve a repartir. En Equipo la página llega a 1440 px de
   ancho. Los avisos del Sheet (solo Dirección y Administrador) van en una
   franja «Avisos del Sheet (n)» que se despliega.
+- **Ajuste 2 (30-oct): el clic en las tarjetas.** Con el plano inclinado en 3D
+  (`rotateX` con perspectiva), Chrome ubicaba mal un botón que además tenía
+  su propia transformación (`translateZ`, y al pasar el cursor
+  `translateY` + `translateZ`): el clic caía en la columna (`.eq-hijos`) y
+  la ficha no se abría. Ahora cada tarjeta es un botón SIN transformación
+  (la zona de clic) y lo que se ve y se levanta es su cara (`.eq-cara`), que
+  no recibe clics; tampoco las líneas, el halo ni los trazos. Con el mouse, a
+  la escala de «Ajustar» no se arrastra (sin manito; la mano de clic solo
+  sobre las tarjetas); acercado con + o Ctrl + rueda, sí; en pantalla
+  táctil, siempre. Lo prueba `pruebas-portal/prueba-clics-organigrama.js`
+  con clics y toques reales en Chrome (Playwright).
 - **Página aparte del organigrama**: no existe en el portal (se buscó en el
   código y en el servidor de pruebas); el único organigrama es este.
 
@@ -582,6 +593,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
 | `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, altas, bajas y pruebas que se inscriben de After School con su plazo y su período cubierto, altas y bajas del negocio con desglose, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
 | `pruebas-portal/prueba-preschool.js` | El tablero de Preschool (`kinder/index.html`) con un documento de mentira y datos inventados: ningún monto en pantalla aunque la hoja mandara la columna de pagos, globo con nombre y edad, cupos libres por salón, salidas del mes con motivo, pendientes de pago (solo inscritos, solo meses activos, hasta el último mes con pagos) y «Plan por registrar»; con sus roturas. Lo del servidor (`kinder/csv.php`) lo prueba `prueba-portal.js`. |
+| `pruebas-portal/prueba-clics-organigrama.js` | (30-oct) Clics y toques REALES en Chrome (Playwright, `playwright-core` + el Chrome instalado): pasar el mouse, esperar y hacer clic en el centro y en las esquinas de tarjetas de 4 áreas, y tocar en tablet; que se abra su ficha; la manito y el arrastre según la escala; sin errores de JavaScript. Falla con b4d1ff6. |
 | `pruebas-portal/prueba-organigrama.js` | El organigrama y la ficha (`comun/organigrama.js`, `comun/puestos.js`; 29-oct: Equipo v2): áreas en columnas en el orden de Puestos, sangría, líneas del color del área, cascada que termina a tiempo, máximo 20 chispas, colores en un solo lugar, la hora de los momentos, la ficha pintada con datos inventados (formato del contrato, cuándo hay Aceptar, Reglas antes de aceptar, hoja diaria, PDF) y, en el código y en vea.css, el diálogo, la pausa, «reducir movimiento», la versión sólida y la hoja de impresión; con sus roturas. |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 

@@ -85,6 +85,12 @@ jobs:
       - name: Equipo · organigrama (una fila, lista en celular, ficha) y sus roturas
         run: node pruebas-portal/prueba-organigrama.js
 
+      # 30-oct (ajuste 2): clics y toques REALES (Playwright + el Chrome de la imagen) sobre las tarjetas del organigrama.
+      - name: Equipo · clics reales en el organigrama (mouse y toque, Chrome)
+        run: |
+          npm install --no-save --no-audit --no-fund playwright-core@1.47.0
+          node pruebas-portal/prueba-clics-organigrama.js
+
       - name: Versión de los archivos de comun/ en cada página (caché del navegador)
         run: node pruebas-portal/prueba-versiones.js
 

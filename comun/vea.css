@@ -782,7 +782,10 @@ body.eq-ficha-abierta { overflow: hidden; }
 .eq-org3d { display: flex; flex-direction: column; gap: 12px; }
 /* 30-oct: el lienzo toma el alto del árbol ajustado al ancho (lo pone organigrama.js) y deja que el dedo
    baje la página (pan-y); arrastrar a los lados y el pellizco siguen moviendo y acercando el árbol. */
-.eq-org3d .eq-lienzo { background: transparent; height: 600px; border-radius: 0; touch-action: pan-y; }
+.eq-org3d .eq-lienzo { background: transparent; height: 600px; border-radius: 0; touch-action: pan-y; cursor: default; }
+/* 30-oct (ajuste 2): la manito de arrastrar solo cuando se puede arrastrar: acercado con + o Ctrl + rueda, o en pantalla táctil. */
+.eq-org3d .eq-lienzo.puede-arrastrar { cursor: grab; }
+.eq-org3d .eq-lienzo.arrastrando { cursor: grabbing; }
 .eq-escena .pagina, .eq-escena .cab-in { max-width: 1440px; }
 .eq-columnas + .eq-bus-caja { margin-top: 28px; }
 /* Los avisos del Sheet (Dirección y Administrador): una franja que se despliega. */
@@ -797,17 +800,25 @@ body.eq-ficha-abierta { overflow: hidden; }
 .eq-escenario { perspective: 1800px; perspective-origin: 50% 0%; }
 .eq-plano { transform-style: preserve-3d; transform: rotateX(7deg); animation: eq-plano 1.4s cubic-bezier(.2, .8, .2, 1) backwards; }
 @keyframes eq-plano { from { transform: rotateX(38deg) translateY(60px) scale(.94); opacity: 0; } to { transform: rotateX(7deg); opacity: 1; } }
-/* Las losas: tarjetas blancas con grosor (sombras escalonadas) que se levantan. */
-.eq-losa { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; box-sizing: border-box; padding: 9px 10px 9px 12px;
-  border: 0; border-radius: 14px; background: linear-gradient(180deg, #FFFFFF, #F2F2F2); color: #111111; font: inherit; text-align: left; transform: translateZ(0);
-  box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 18px 30px rgba(0, 0, 0, .45);
-  transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s; }
+/* Las losas: tarjetas blancas con grosor (sombras escalonadas) que se levantan.
+   30-oct (ajuste 2): la losa (el botón) es solo la zona de clic y NO tiene
+   transformación propia: con el plano inclinado en 3D, Chrome ubicaba mal un
+   botón transformado y el clic caía en su columna. Lo que se ve y se levanta
+   es su cara (.eq-cara), que no recibe clics (pointer-events: none). */
+.eq-losa { position: relative; display: block; width: 100%; box-sizing: border-box; padding: 0; margin: 0; border: 0; border-radius: 14px; background: none;
+  color: #111111; font: inherit; text-align: left; }
 button.eq-losa { cursor: pointer; }
 .eq-losa:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
+.eq-cara { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; box-sizing: border-box; padding: 9px 10px 9px 12px;
+  border-radius: 14px; background: linear-gradient(180deg, #FFFFFF, #F2F2F2); color: inherit; pointer-events: none;
+  box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 18px 30px rgba(0, 0, 0, .45);
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s; }
 @media (hover: hover) {
-  button.eq-losa:hover { transform: translateY(-6px) translateZ(40px);
+  button.eq-losa:hover > .eq-cara { transform: translateY(-6px) translateZ(40px);
     box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 34px 50px rgba(0, 0, 0, .55); }
 }
+/* Nada decorativo recibe clics: las líneas, el halo y los trazos van «a través». */
+.eq-lin, .eq-tic, .eq-halo, .eq-bus { pointer-events: none; }
 .eq-losa .eq-nombre { font-size: 13px; font-weight: 600; line-height: 1.2; }
 .eq-losa .eq-nota { font-size: 11px; color: #4A4A4A; white-space: normal; }
 .eq-losa .eq-fila { margin-top: 2px; }
@@ -817,7 +828,7 @@ button.eq-losa { cursor: pointer; }
 .eq-halo { position: absolute; inset: -14px; border-radius: 24px; background: radial-gradient(closest-side, rgba(255, 255, 255, .35), transparent); pointer-events: none;
   opacity: .35; animation: eq-respira 3.2s ease-in-out infinite; animation-delay: 2.6s; }
 @keyframes eq-respira { 0%, 100% { opacity: .35; transform: scale(.96); } 50% { opacity: .8; transform: scale(1.04); } }
-.eq-losa-dir { align-items: center; padding: 14px 40px; background: linear-gradient(180deg, #2A2A2A, #0E0E0E); color: #FFFFFF;
+.eq-losa-dir > .eq-cara { align-items: center; padding: 14px 40px; background: linear-gradient(180deg, #2A2A2A, #0E0E0E); color: #FFFFFF;
   box-shadow: 0 1px 0 #333333, 0 2px 0 #2B2B2B, 0 3px 0 #222222, 0 4px 0 #1A1A1A, 0 5px 0 #111111, 0 22px 40px rgba(0, 0, 0, .6); }
 .eq-dir-id { font-size: 11px; letter-spacing: 2px; color: rgba(255, 255, 255, .7); }
 .eq-dir-nom { font-family: var(--titulos); font-size: 34px; line-height: 1; letter-spacing: 1px; }
@@ -838,7 +849,7 @@ button.eq-losa { cursor: pointer; }
 /* Las columnas: la cabeza del color del área y debajo sus puestos. */
 .eq-columnas { display: grid; align-items: start; }
 .eq-col { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
-.eq-losa-cab { padding: 0; overflow: hidden; gap: 0; }
+.eq-losa-cab > .eq-cara { padding: 0; overflow: hidden; gap: 0; }
 .eq-losa-cab.eq-tenue { opacity: .85; }
 .eq-cab-banda { width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; }
 /* 24 px: texto grande, así el blanco sobre el verde de Comercial pasa (3:1). */
@@ -848,14 +859,15 @@ button.eq-losa { cursor: pointer; }
 .eq-cab-cuerpo .eq-nombre { font-size: 14px; }
 .eq-hijos { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 14px 0 0 18px; }
 .eq-lin-col { left: 9px; top: 0; bottom: 24px; }
-.eq-losa-puesto { border-left: 4px solid var(--c); }
+.eq-losa-puesto > .eq-cara { border-left: 4px solid var(--c); }
 .eq-tic { position: absolute; left: calc(-4px - var(--tic, 10px)); top: 50%; width: var(--tic, 10px); height: 2px; background: var(--c); opacity: .7; }
 /* «Por cargar»: vidrio translúcido con borde punteado. */
-.eq-fantasma { background: rgba(255, 255, 255, .09); color: #FFFFFF; outline: 1px dashed rgba(255, 255, 255, .55); outline-offset: -1px;
+.eq-fantasma { color: #FFFFFF; }
+.eq-fantasma > .eq-cara { background: rgba(255, 255, 255, .09); outline: 1px dashed rgba(255, 255, 255, .55); outline-offset: -1px;
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
 .eq-fantasma .eq-nota { color: rgba(255, 255, 255, .9); }
 .eq-fantasma .eq-chip.construccion { background: rgba(255, 255, 255, .14); color: #FFFFFF; }
-@media (hover: hover) { button.eq-fantasma:hover { box-shadow: 0 24px 40px rgba(0, 0, 0, .5); } }
+@media (hover: hover) { button.eq-fantasma:hover > .eq-cara { box-shadow: 0 24px 40px rgba(0, 0, 0, .5); } }
 /* La entrada en cascada (una sola vez: después, .eq-quieto). */
 .eq-entra { animation: eq-aparece .7s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: var(--d, 0s); }
 @keyframes eq-aparece { from { opacity: 0; transform: translateY(-18px) translateZ(80px) rotateX(-20deg); } to { opacity: 1; transform: translateZ(0); } }
@@ -871,14 +883,14 @@ button.eq-losa { cursor: pointer; }
   .eq-escena body { background: #141618; }
   .eq-fondo { display: none; }
   .eq-escena .cab { background: #141618; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .eq-fantasma, .eq-acceso { background: #2A2D31; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .eq-fantasma > .eq-cara, .eq-acceso { background: #2A2D31; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .eq-org3d *, .eq-org3d *::after { animation: none !important; }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .eq-escena body { background: #141618; }
   .eq-fondo { display: none; }
   .eq-escena .cab { background: #141618; }
-  .eq-fantasma, .eq-acceso { background: #2A2D31; }
+  .eq-fantasma > .eq-cara, .eq-acceso { background: #2A2D31; }
   .eq-org3d *, .eq-org3d *::after { animation: none !important; }
 }
 @media (max-width: 640px) { .eq-piso, .eq-chispa { display: none; } }

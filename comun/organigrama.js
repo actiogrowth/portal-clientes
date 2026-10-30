@@ -262,12 +262,14 @@
   function salir() { escenaOscura(false); }
   document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('eq-pausa', document.hidden));
 
-  /* Una tarjeta de la escena (la «losa»): botón si su ficha llegó. */
+  /* Una tarjeta de la escena (la «losa»): botón si su ficha llegó.
+     30-oct (ajuste 2): el botón es la zona de clic y no se transforma; lo que se ve y
+     se levanta al pasar el cursor es su cara (.eq-cara), que no recibe clics. */
   function losa(p, clases, estilo, interior) {
-    const st = estilo ? ' style="' + estilo + '"' : '';
+    const st = estilo ? ' style="' + estilo + '"' : '', cara = '<span class="eq-cara">' + interior + '</span>';
     return p.ficha
-      ? '<button type="button" class="eq-losa ' + clases + '"' + st + ' data-eq-puesto="' + esc(p.id) + '" aria-haspopup="dialog">' + interior + '</button>'
-      : '<div class="eq-losa ' + clases + '"' + st + '>' + interior + '</div>';
+      ? '<button type="button" class="eq-losa ' + clases + '"' + st + ' data-eq-puesto="' + esc(p.id) + '" aria-haspopup="dialog">' + cara + '</button>'
+      : '<div class="eq-losa ' + clases + '"' + st + '>' + cara + '</div>';
   }
 
   function arbolHtml(a, porFila) {
@@ -335,7 +337,15 @@
 
   /* ── Mover y acercar ──────────────────────────────────────────────────── */
 
-  function aplicar() { if (mundo) mundo.style.transform = 'translate(' + Math.round(vista.x) + 'px,' + Math.round(vista.y) + 'px) scale(' + vista.s.toFixed(3) + ')'; }
+  function aplicar() {
+    if (mundo) mundo.style.transform = 'translate(' + Math.round(vista.x) + 'px,' + Math.round(vista.y) + 'px) scale(' + vista.s.toFixed(3) + ')';
+    if (lienzo) lienzo.classList.toggle('puede-arrastrar', arrastrable());
+  }
+  /* 30-oct (ajuste 2): en computador, a la escala de «Ajustar» el organigrama no se arrastra (la página baja con su scroll):
+     se arrastra si se acercó con + o Ctrl + rueda, y siempre en una pantalla táctil. */
+  let escalaAjuste = 1;
+  const tactil = () => (navigator.maxTouchPoints || 0) > 0 || !!(window.matchMedia && window.matchMedia('(any-pointer: coarse)').matches);
+  const arrastrable = () => tactil() || vista.s > escalaAjuste + 0.001;
   function medidas() { return { vw: lienzo.clientWidth, vh: lienzo.clientHeight, W: mundo.offsetWidth, H: mundo.offsetHeight }; }
   /* Que el árbol no se vaya del todo: siempre quedan 80 px a la vista. */
   function limitar() {
@@ -350,6 +360,7 @@
     if (!lienzo) return;
     const { vw, W, H } = medidas();
     vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W));
+    escalaAjuste = vista.s;
     lienzo.style.height = Math.ceil(H * vista.s + 16) + 'px';
     vista.x = (vw - W * vista.s) / 2; vista.y = 8;
     aplicar();
@@ -379,7 +390,7 @@
       if (e.button !== undefined && e.button !== 0) return;
       punteros.set(e.pointerId, local(e));
       movido = false;
-      if (punteros.size === 1) inicio = { p: local(e), x: vista.x, y: vista.y, id: e.pointerId };
+      if (punteros.size === 1 && (e.pointerType !== 'mouse' || arrastrable())) inicio = { p: local(e), x: vista.x, y: vista.y, id: e.pointerId };
       if (punteros.size === 2) { const [a, b] = [...punteros.values()]; pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y), s: vista.s }; }
     });
     lienzo.addEventListener('pointermove', e => {

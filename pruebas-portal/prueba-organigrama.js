@@ -191,8 +191,16 @@ function comprobar(cargado, decir, FUENTE, CSS) {
   ok(/@media \(prefers-reduced-motion: reduce\) \{\s*\.eq-fondo \*, \.eq-org3d \*, \.eq-org3d \*::after \{ animation: none !important; \}/.test(CSS), 'con «reducir movimiento», todo quieto');
   ok(/@media \(prefers-reduced-transparency: reduce\) \{\s*\.eq-escena body \{ background: #141618; \}\s*\.eq-fondo \{ display: none; \}/.test(CSS) && /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\) \{\s*\.eq-escena body \{ background: #141618; \}\s*\.eq-fondo \{ display: none; \}/.test(CSS),
     'versión sólida (reducir transparencia o sin desenfoque): fondo plano, sin foto ni animación');
-  ok(/\.eq-plano \{ transform-style: preserve-3d; transform: rotateX\(7deg\)/.test(CSS) && /\.eq-escenario \{ perspective: 1800px/.test(CSS) && /button\.eq-losa:hover \{ transform: translateY\(-6px\) translateZ\(40px\)/.test(CSS),
-    'el plano inclinado 7° con perspectiva, y la tarjeta se levanta al pasar el cursor');
+  ok(/\.eq-plano \{ transform-style: preserve-3d; transform: rotateX\(7deg\)/.test(CSS) && /\.eq-escenario \{ perspective: 1800px/.test(CSS) && /button\.eq-losa:hover > \.eq-cara \{ transform: translateY\(-6px\) translateZ\(40px\)/.test(CSS),
+    'el plano inclinado 7° con perspectiva, y la tarjeta (su cara) se levanta al pasar el cursor');
+  // 30-oct (ajuste 2): la zona de clic no se transforma; la cara no recibe clics; lo decorativo tampoco.
+  const reglaLosa = (CSS.match(/\n\.eq-losa \{[^}]*\}/) || [''])[0], reglaCara = (CSS.match(/\n\.eq-cara \{[^}]*\}/) || [''])[0];
+  ok(reglaLosa && !/transform|transition/.test(reglaLosa) && !/button\.eq-losa:hover \{/.test(CSS) && /pointer-events: none/.test(reglaCara) && /\.eq-lin, \.eq-tic, \.eq-halo, \.eq-bus \{ pointer-events: none; \}/.test(CSS),
+    'el botón de la tarjeta no tiene transformación propia; la cara y lo decorativo no reciben clics');
+  ok(/cara = '<span class="eq-cara">' \+ interior \+ '<\/span>'/.test(FUENTE) && /data-eq-puesto="' \+ esc\(p\.id\) \+ '" aria-haspopup="dialog">' \+ cara \+ '<\/button>'/.test(FUENTE), 'cada tarjeta lleva su cara dentro del botón');
+  ok(/if \(punteros\.size === 1 && \(e\.pointerType !== 'mouse' \|\| arrastrable\(\)\)\) inicio =/.test(FUENTE) && /const arrastrable = \(\) => tactil\(\) \|\| vista\.s > escalaAjuste \+ 0\.001;/.test(FUENTE) &&
+    /\.eq-org3d \.eq-lienzo \{[^}]*cursor: default; \}/.test(CSS) && /\.eq-org3d \.eq-lienzo\.puede-arrastrar \{ cursor: grab; \}/.test(CSS),
+    'manito: con el mouse, a la escala de «Ajustar» no se arrastra (sin manito); acercado o en pantalla táctil, sí');
   ok(/\.eq-quieto \.eq-entra/.test(CSS) && /if \(!entro\) setTimeout\(\(\) => \{ entro = true; \}/.test(FUENTE), 'la entrada en cascada pasa una sola vez');
   ok(/window\.print\(\)/.test(FUENTE) && /@media print \{[\s\S]*html\.eq-imprimiendo body > \*:not\(#eq-impresion\) \{ display: none !important; \}/.test(CSS) && /#eq-impresion \{ display: none; \}/.test(CSS) && /family=Inter/.test(CSS),
     'PDF: hoja de impresión propia (solo el contrato), con Inter, sin librerías');
@@ -221,7 +229,14 @@ const ROTURAS = [
   ['los grupos salen en otro orden', 'puestos', ".sort((a, b) => a.orden - b.orden || a.i - b.i)", ".sort((a, b) => a.i - b.i)"],
   ['el punto pierde su «Cada cuánto»', 'puestos', "normal(x.frecuencia) !== normal(x.grupo || x.frecuencia) ? x.frecuencia : ''", "''"],
   ['los avisos tapan la pantalla', 'org', "return '<details class=\"eq-avisos\"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +", "return '<div class=\"aviso ojo\">En el Sheet faltan: ' + D.faltan.join(' · ') + '<details class=\"eq-avisos\"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +"],
-  ['en la tablet el dedo no deja bajar la página', 'css', "touch-action: pan-y; }", "touch-action: none; }"],
+  ['en la tablet el dedo no deja bajar la página', 'css', "touch-action: pan-y; cursor: default; }", "touch-action: none; cursor: default; }"],
+  // 30-oct (ajuste 2)
+  ['el botón de la tarjeta vuelve a transformarse (el clic cae en la columna)', 'css', "color: #111111; font: inherit; text-align: left; }\nbutton.eq-losa", "color: #111111; font: inherit; text-align: left; transform: translateZ(0); }\nbutton.eq-losa"],
+  ['la cara recibe los clics', 'css', "color: inherit; pointer-events: none;", "color: inherit;"],
+  ['las líneas reciben clics', 'css', ".eq-lin, .eq-tic, .eq-halo, .eq-bus { pointer-events: none; }", ".eq-tic, .eq-halo { pointer-events: none; }"],
+  ['la tarjeta sin cara', 'org', "cara = '<span class=\"eq-cara\">' + interior + '</span>';", "cara = interior;"],
+  ['con el mouse siempre se arrastra', 'org', "(e.pointerType !== 'mouse' || arrastrable())", "(true)"],
+  ['la manito siempre', 'css', ".eq-org3d .eq-lienzo.puede-arrastrar { cursor: grab; }", ".eq-org3d .eq-lienzo { cursor: grab; }"],
   ['la cascada no termina', 'org', "d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto)", "d: ENTRADA.puestos + i * ENTRADA.paso + j * 0.3"],
   ['demasiadas chispas', 'org', "const CHISPAS = 16;", "const CHISPAS = 40;"],
   ['Operación sin su rojo', 'puestos', "'operacion':      { fondo: '#D71C0E'", "'operacion':      { fondo: '#555555'"],
