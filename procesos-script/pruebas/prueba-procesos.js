@@ -129,7 +129,7 @@ function cargar(props, hojas) {
     ContentService: { createTextOutput: t => ({ texto: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
     LockService: { getScriptLock: () => ({ tryLock: () => { if (lock.ocupado) return false; lock.tomado++; return true; }, releaseLock: () => { lock.tomado--; } }) },
     Utilities: { formatDate: (d, z, p) => p.replace('yyyy', d.getFullYear()).replace('MM', two(d.getMonth() + 1)).replace('dd', two(d.getDate()))
-      .replace("'T'", 'T').replace('HH', two(d.getHours())).replace('mm', two(d.getMinutes())) },
+      .replace("'T'", 'T').replace('HH', two(d.getHours())).replace('mm', two(d.getMinutes())).replace('ss', two(d.getSeconds())) },
     Date: DateFija, JSON, Math, String, Number, Object, Array, isNaN, parseFloat
   };
   vm.createContext(ctx);
@@ -173,7 +173,7 @@ seccion('leer: por título, con todas las pestañas');
   const rs = cargar(P, sinCol).llamar('leer').resultado;
   ok(rs.puestos.length === 4 && rs.puestos.every(p => p.soloPara === '') && rs.faltan.length === 2, 'sin la columna «Visible solo para» (opcional): todos vacíos y no se avisa nada');
   ok(R.contratos.length === 5 && R.listas.length === 15 && R.procesos.length === 1 && R.asignaciones[0].desde === '2026-10-01', 'Contratos, Listas, Procesos y Asignaciones');
-  ok(R.hoy === '2026-10-28' && R.version === 'v4', 'hoy (en la zona del archivo) y la versión del script');
+  ok(R.hoy === '2026-10-28' && R.version === 'v5', 'hoy (en la zona del archivo) y la versión del script');
   ok(JSON.stringify(R.metas) === JSON.stringify([{ cifra: 'Ocupación', unidad: 'Preschool', periodo: '2026-10', valor: 70, estado: 'Tentativa' },
     { cifra: 'Bajas', unidad: 'After School', periodo: '2026', valor: 3, estado: 'Confirmada' }, { cifra: 'Altas', unidad: 'Negocio', periodo: '2026-10', valor: 12, estado: '' }]),
     'Metas: un mes que Sheets volvió fecha se lee como mes; un año escrito como número, como año (' + JSON.stringify(R.metas) + ')');
@@ -204,26 +204,27 @@ seccion('aceptar: solo un puesto abierto y con su versión vigente');
 seccion('marcar: el período lo calcula el script según «Cada cuánto»');
 {
   const g = cargar(P), M = g.hoja('Marcas');
-  const marcas = [1, 2, 3, 4, 5, 6].map(o => ({ orden: o, resultado: o === 2 ? 'No' : 'Cumplido', nota: o === 2 ? 'falta un dato' : '' }));
+  // 2-nov (v5): «Cumplido» y «No» (de un portal viejo) se escriben «Ejecutado» y «No ejecutado»; los por evento (5 y 6) llevan nota.
+  const marcas = [1, 2, 3, 4, 5, 6].map(o => ({ orden: o, resultado: o === 2 ? 'No' : 'Cumplido', nota: o === 2 ? 'falta un dato' : o >= 5 ? 'el evento' : '' }));
   let r = g.llamar('marcar', { puesto: 'COO', marcas, periodo: '2020-01' });   // el período del navegador se ignora
   ok(r.ok, 'marca seis puntos (' + (r.error || '') + ')');
   const per = M.vals.slice(1).map(f => f[3] + '=' + f[4]).join(' ');
   ok(per === '1=2026-10-28 2=2026-S44 3=2026-10 4=2026 5=2026-10-28 6=2026-10-28',
     'Diario, Cuando aplica y Por persona nueva → el día; Semanal → la semana ISO; Mensual → el mes; Por temporada → el año (' + per + ')');
   ok(M.vals.slice(1).every(f => typeof f[4] === 'string'), 'el período queda como texto (Sheets no lo convierte en fecha)');
-  ok(M.vals[2][5] === 'No' && M.vals[2][6] === 'falta un dato' && M.vals[2][1] === 'usuario-de-prueba', 'resultado, nota y usuario');
-  r = g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'No' }] });
-  ok(r.ok && M.vals.length === 8 && M.vals[1][5] === 'Cumplido', 'corregir agrega una marca nueva; la anterior queda');
+  ok(M.vals[2][5] === 'No ejecutado' && M.vals[1][5] === 'Ejecutado' && M.vals[2][6] === 'falta un dato' && M.vals[2][1] === 'usuario-de-prueba', 'resultado (con su nombre de hoy), nota y usuario');
+  r = g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'No', nota: 'x' }] });
+  ok(!r.ok && r.codigo === 'ya_marcado' && M.vals.length === 7 && M.vals[1][5] === 'Ejecutado', '2-nov: un punto ya marcado en su período no se marca otra vez (primero se quita la marca)');
   const antes = M.vals.length;
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 99, resultado: 'Cumplido' }] }).codigo === 'punto', 'un punto que no es del puesto: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'Tal vez' }] }).codigo === 'resultado', 'resultado inválido: se niega');
-  ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 1, resultado: 'No' }, { orden: 1, resultado: 'No' }] }).codigo === 'punto', 'el mismo punto dos veces: se niega');
+  ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 8, resultado: 'No', nota: 'x' }, { orden: 8, resultado: 'No', nota: 'x' }] }).codigo === 'punto', 'el mismo punto dos veces: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [{ orden: 7, resultado: 'No' }] }).codigo === 'frecuencia', '«Cada cuánto» desconocido: se niega y lo dice');
   ok(g.llamar('marcar', { puesto: 'ADM', marcas: [{ orden: 1, resultado: 'No' }] }).codigo === 'no_abierto', 'un puesto en Borrador: se niega');
   ok(g.llamar('marcar', { puesto: 'COO', marcas: [] }).codigo === 'vacia', 'sin marcas: se niega');
   ok(M.vals.length === antes, 'ninguna marca rechazada se escribió (ni a medias)');
   // 30-oct (v4): se marcan las frecuencias nuevas, cada una con su período.
-  r = g.llamar('marcar', { puesto: 'COO', marcas: [8, 9, 10, 11, 12, 13, 14].map(o => ({ orden: o, resultado: 'Cumplido' })) });
+  r = g.llamar('marcar', { puesto: 'COO', marcas: [8, 9, 10, 11, 12, 13, 14].map(o => ({ orden: o, resultado: 'Cumplido', nota: o >= 11 ? 'el evento' : '' })) });
   const nuevos = M.vals.slice(antes).map(f => f[3] + '=' + f[4]).join(' ');
   ok(r.ok && nuevos === '8=2026-10-Q2 9=2026-T4 10=2026-C3 11=2026-10-28 12=2026-10-28 13=2026-10-28 14=2026-10-28',
     'Quincenal → la quincena; Trimestral → el trimestre; Cada 4 meses → el cuatrimestre; por evento → el día (' + (r.error || nuevos) + ')');
@@ -267,12 +268,12 @@ seccion('marcarHoja: un paso hoy, con la hora del servidor y las iniciales');
   ok(!g.hoja('Marcas de hojas'), '(control) todavía no existe la pestaña Marcas de hojas');
   let r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'cierre DE prueba', orden: 2, marcado: true, iniciales: 'j.p.' });
   const MH = g.hoja('Marcas de hojas');
-  ok(r.ok && MH && JSON.stringify(MH.vals[0]) === JSON.stringify(['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales']) && MH.congeladas === 1,
+  ok(r.ok && MH && JSON.stringify(MH.vals[0]) === JSON.stringify(['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales', 'Resultado', 'Nota']) && MH.congeladas === 1,
     'la primera marca crea la pestaña con sus títulos (' + (r.error || '') + ')');
   ok(MH.vals.length === 2 && MH.vals[1][1] === 'usuario-de-prueba' && MH.vals[1][2] === 'COO' && MH.vals[1][3] === 'Cierre de prueba' && MH.vals[1][4] === 2 && MH.vals[1][5] === 'JP' &&
     Object.prototype.toString.call(MH.vals[1][0]) === '[object Date]', 'fecha y hora, usuario, puesto, la hoja con su nombre del Sheet, el paso e iniciales limpias');
-  ok(r.ok && JSON.stringify(r.resultado.marcas) === JSON.stringify([{ orden: 2, fecha: '2026-10-28T10:30', usuario: 'usuario-de-prueba', iniciales: 'JP' }]) && r.resultado.hoy === '2026-10-28',
-    'responde las marcas de hoy de esa hoja (' + JSON.stringify(r.resultado) + ')');
+  ok(r.ok && JSON.stringify(r.resultado.filas) === JSON.stringify([{ fecha: '2026-10-28T10:30:00', usuario: 'usuario-de-prueba', orden: 2, iniciales: 'JP', resultado: 'Ejecutado', nota: '' }]) && r.resultado.hoy === '2026-10-28' && MH.vals[1][6] === 'Ejecutado',
+    '2-nov: responde la fila escrita («Ejecutado») (' + JSON.stringify(r.resultado) + ')');
   r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 2, marcado: true, iniciales: 'XX' });
   ok(r.ok && MH.vals.length === 2, 'marcar otra vez un paso ya marcado hoy no lo repite');
   r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 3, marcado: true }, { usuario: 'otra-persona' });
@@ -283,11 +284,12 @@ seccion('marcarHoja: un paso hoy, con la hora del servidor y las iniciales');
   r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: false });
   ok(r.ok && MH.vals.length === 4, 'una marca de ayer no se desmarca (solo el mismo día)');
   r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: true });
-  ok(r.ok && MH.vals.length === 5 && r.resultado.marcas.map(m => m.orden).sort().join() === '1,2,3', 'la marca de ayer no cuenta como de hoy: el paso se marca de nuevo');
+  ok(r.ok && MH.vals.length === 5 && r.resultado.filas.length === 1, 'la marca de ayer no cuenta como de hoy: el paso se marca de nuevo');
   r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 2, marcado: false });
-  ok(r.ok && MH.vals.length === 4 && MH.borradas === 1 && !MH.vals.some(f => f[4] === 2) && r.resultado.marcas.map(m => m.orden).sort().join() === '1,3', 'desmarcar el mismo día borra solo esa marca, la propia');
+  ok(r.ok && MH.vals.length === 6 && !MH.borradas && MH.vals[5][6] === 'Desmarcada' && MH.vals[5][7] === '2026-10-28T10:30:00' && MH.vals[1][4] === 2,
+    '2-nov: desmarcar no borra: agrega «Desmarcada» con la fecha y hora de la marca que quita (D-086 cambia)');
   r = g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 2, marcado: false });
-  ok(r.ok && MH.vals.length === 4, 'desmarcar un paso sin marca no hace nada');
+  ok(r.ok && MH.vals.length === 6, 'desmarcar un paso sin marca no hace nada');
   const antes = MH.vals.length;
   ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 9, marcado: true }).codigo === 'paso', 'un paso que no es de la hoja: se niega');
   ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Otra hoja', orden: 1, marcado: true }).codigo === 'hoja', 'una hoja que el puesto no tiene: se niega');
@@ -295,7 +297,7 @@ seccion('marcarHoja: un paso hoy, con la hora del servidor y las iniciales');
   ok(g.llamar('marcarHoja', { puesto: 'COO', hoja: 'Cierre de prueba', orden: 1, marcado: 'si' }).codigo === 'marcado', 'sin decir marcar o desmarcar: se niega');
   ok(g.llamar('marcarHoja', { puesto: 'ADM', hoja: 'Hoja de un borrador', orden: 1, marcado: true }).codigo === 'no_abierto', 'un puesto en Borrador: se niega');
   ok(MH.vals.length === antes, 'nada rechazado se escribió');
-  ok(g.llamar('leer').resultado.marcasHojas.length === 3, 'leer trae las marcas de hojas (también la de ayer)');
+  ok(g.llamar('leer').resultado.marcasHojas.length === 5, 'leer trae las marcas de hojas (también la de ayer y la «Desmarcada»)');
 }
 
 seccion('revisar una hoja: período = el día; la nota empieza con Hoja «…»');
@@ -360,10 +362,11 @@ seccion('actualizarEstructura (v3): crea Marcas de hojas y la explica en el Lée
   const g = cargar(P);
   g.ctx.actualizarEstructura();
   const MH = g.hoja('Marcas de hojas'), L = g.hoja('Léeme');
-  ok(MH && JSON.stringify(MH.vals[0]) === JSON.stringify(['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales']), 'crea «Marcas de hojas» con sus seis títulos');
-  ok(L.vals.length === 3 && L.vals[2][0] === 'Marcas de hojas' && /La escribe el portal/.test(L.vals[2][1]) && L.vals[1][0] === 'Qué es', 'agrega al final del Léeme el renglón «Marcas de hojas»; lo demás no se toca');
+  ok(MH && JSON.stringify(MH.vals[0]) === JSON.stringify(['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales', 'Resultado', 'Nota']), 'crea «Marcas de hojas» con sus ocho títulos (2-nov: con Resultado y Nota)');
+  ok(L.vals.length === 5 && L.vals[2][0] === 'Marcas de hojas' && /La escribe el portal/.test(L.vals[2][1]) && L.vals[1][0] === 'Qué es', 'agrega al final del Léeme sus renglones (2-nov: tres); lo demás no se toca');
+  ok(g.hoja('Hojas').vals[0][5] === 'Asignación', '2-nov: agrega «Asignación» al final de Hojas');
   g.ctx.actualizarEstructura();
-  ok(L.vals.length === 3 && g.objs.filter(h => h.getName() === 'Marcas de hojas').length === 1, 'correrla otra vez no repite nada');
+  ok(L.vals.length === 5 && g.objs.filter(h => h.getName() === 'Marcas de hojas').length === 1 && g.hoja('Hojas').vals[0].length === 6, 'correrla otra vez no repite nada');
 }
 
 console.log(fallos ? '✗ ' + fallos + ' de ' + total + ' comprobaciones fallaron' : '✓ ' + total + ' comprobaciones pasan');

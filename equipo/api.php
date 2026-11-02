@@ -42,6 +42,19 @@
  *   · Reglas del juego y la hora de cada momento van a todos los que ven
  *     Equipo; la tabla completa de Horarios del servicio, solo con equipo.todo.
  *
+ * 2-nov (Equipo v3, Procesos.gs v5):
+ *   · Acción nueva «desmarcar» { puesto, orden, fecha }: solo quien ocupa el
+ *     puesto (el script mira que la marca sea suya y su período siga abierto).
+ *   · Las marcas llegan con su Resultado: «Ejecutado», «No ejecutado» o
+ *     «Desmarcada» (las viejas «Cumplido» y «No» se traducen AQUÍ, en
+ *     eq_resultado()); las de las hojas, con Resultado y Nota (vacío =
+ *     Ejecutado).
+ *   · Cada punto y cada paso traen su «forma» (dia, semana…) y la respuesta el
+ *     «calendario» del script: con eso la pantalla muestra Pendiente o Vencido
+ *     en cualquier día, sin repetir la regla de los períodos.
+ *   · Una hoja con «Asignación» = «Temporal» (en cualquiera de sus filas)
+ *     llega con temporal = true.
+ *
  * EQ_SOLO_FUNCIONES (26-oct): con esa constante definida el archivo solo
  * declara sus funciones (eq_sheet, eq_vista…); lo usan resumen/api.php y
  * pendientes/api.php.
@@ -62,7 +75,8 @@ require_once dirname(__DIR__) . '/auth.php';
 const EQ_ABIERTO = 'Abierto al equipo';
 const EQ_CACHE_SEG = 60;
 const EQ_DIAS_MARCAS = 120;   // marcas y revisiones que se mandan: las de los últimos N días
-const EQ_ACCIONES = ['leer', 'aceptar', 'marcar', 'revisar', 'marcarHoja'];
+const EQ_ACCIONES = ['leer', 'aceptar', 'marcar', 'desmarcar', 'revisar', 'marcarHoja'];
+const EQ_TEMPORAL = 'Temporal';   // 2-nov: el valor de «Asignación» (pestaña Hojas) que hace temporal una hoja
 
 if (!defined('EQ_SOLO_FUNCIONES')) {
 requerir_sesion();
@@ -103,8 +117,10 @@ $puesto = (string) ($d['puesto'] ?? '');
 $p = $V['puestos'][$puesto] ?? null;
 if (!$p) fallo('No existe el puesto.', 403, 'sin_permiso');
 if (!eq_abierto($p)) fallo('El puesto todavía no está abierto al equipo.', 403, 'no_abierto');
-if (in_array($accion, ['aceptar', 'marcar', 'marcarHoja'], true) && !in_array($puesto, $V['ocupo'], true))
-    fallo('Solo quien ocupa el puesto puede ' . ($accion === 'aceptar' ? 'aceptar su contrato.' : ($accion === 'marcar' ? 'marcar su lista.' : 'marcar su hoja.')), 403, 'sin_permiso');
+if (in_array($accion, ['aceptar', 'marcar', 'desmarcar', 'marcarHoja'], true) && !in_array($puesto, $V['ocupo'], true))
+    fallo('Solo quien ocupa el puesto puede ' . ($accion === 'aceptar' ? 'aceptar su contrato.' : ($accion === 'marcarHoja' ? 'marcar su hoja.' : 'marcar su lista.')), 403, 'sin_permiso');
+// 2-nov: al script le llega solo lo que la acción usa.
+if ($accion === 'desmarcar') $d = ['puesto' => $puesto, 'orden' => $d['orden'] ?? null, 'fecha' => (string) ($d['fecha'] ?? '')];
 if ($accion === 'revisar' && !in_array($puesto, $V['reviso'], true))
     fallo('Solo quien verifica el puesto o su jefe puede revisarlo, y nunca quien también lo ocupa.', 403, 'sin_permiso');
 if ($accion === 'marcarHoja') {
@@ -188,6 +204,12 @@ function eq_norm(string $s): string {
     return strtr($s, ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n']);
 }
 function eq_abierto(array $p): bool { return eq_norm((string) ($p['estado'] ?? '')) === eq_norm(EQ_ABIERTO); }
+
+/** 2-nov: el Resultado de una marca con su nombre de hoy: «Cumplido» → «Ejecutado», «No» → «No ejecutado» (las de antes de Equipo v3). */
+function eq_resultado(string $r): string {
+    $n = eq_norm($r);
+    return $n === 'cumplido' ? 'Ejecutado' : ($n === 'no' ? 'No ejecutado' : $r);
+}
 
 /** ¿Esta fila de Asignaciones es de esta persona? Un usuario, o un rol («Usuario del rol X» o «X»). */
 function eq_es_mia(string $quien, string $usuario, array $nombresRol): bool {
@@ -348,12 +370,15 @@ function eq_vista(array $S, string $usuario, array $roles, array $nombresRol, bo
         foreach ($orden($de('hojas', $id)) as $x) {
             $k = eq_norm((string) ($x['hoja'] ?? ''));
             if ($k === '') continue;
-            if (!isset($hojas[$k])) $hojas[$k] = ['hoja' => (string) $x['hoja'], 'pasos' => [], 'marcas' => [], 'revisiones' => []];
-            $hojas[$k]['pasos'][] = ['orden' => $x['orden'] ?? null, 'momento' => (string) ($x['momento'] ?? ''), 'paso' => (string) ($x['paso'] ?? '')];
+            if (!isset($hojas[$k])) $hojas[$k] = ['hoja' => (string) $x['hoja'], 'temporal' => false, 'pasos' => [], 'marcas' => [], 'revisiones' => []];
+            // 2-nov: la forma del período del paso (la pone el script; sin ella, el día) y si la hoja es temporal.
+            $hojas[$k]['pasos'][] = ['orden' => $x['orden'] ?? null, 'momento' => (string) ($x['momento'] ?? ''), 'paso' => (string) ($x['paso'] ?? ''), 'forma' => (string) ($x['forma'] ?? '') ?: 'dia'];
+            if (eq_norm((string) ($x['asignacion'] ?? '')) === eq_norm(EQ_TEMPORAL)) $hojas[$k]['temporal'] = true;
         }
         foreach ($reciente($de('marcasHojas', $id)) as $m) {
             $k = eq_norm((string) ($m['hoja'] ?? ''));
-            if (isset($hojas[$k])) $hojas[$k]['marcas'][] = ['fecha' => (string) ($m['fecha'] ?? ''), 'usuario' => (string) ($m['usuario'] ?? ''), 'orden' => $m['orden'] ?? null, 'iniciales' => (string) ($m['iniciales'] ?? '')];
+            if (isset($hojas[$k])) $hojas[$k]['marcas'][] = ['fecha' => (string) ($m['fecha'] ?? ''), 'usuario' => (string) ($m['usuario'] ?? ''), 'orden' => $m['orden'] ?? null, 'iniciales' => (string) ($m['iniciales'] ?? ''),
+                                                             'resultado' => trim((string) ($m['resultado'] ?? '')) ?: 'Ejecutado', 'nota' => (string) ($m['nota'] ?? '')];
         }
         foreach ($revs as $r) {
             $h = $deHoja($r['nota']);
@@ -366,7 +391,9 @@ function eq_vista(array $S, string $usuario, array $roles, array $nombresRol, bo
             'lista' => array_map(fn($x) => ['orden' => $x['orden'] ?? null, 'texto' => (string) ($x['texto'] ?? ''), 'evidencia' => (string) ($x['evidencia'] ?? ''),
                                            'frecuencia' => (string) ($x['frecuencia'] ?? ''), 'periodo' => (string) ($x['periodo'] ?? ''),
                                            // 30-oct: el grupo y su orden los pone Procesos.gs (v4); con un script viejo, el texto de «Cada cuánto».
-                                           'grupo' => (string) ($x['grupo'] ?? ($x['frecuencia'] ?? '')), 'grupoOrden' => (int) ($x['grupoOrden'] ?? 99)], $orden($de('listas', $id))),
+                                           'grupo' => (string) ($x['grupo'] ?? ($x['frecuencia'] ?? '')), 'grupoOrden' => (int) ($x['grupoOrden'] ?? 99),
+                                           // 2-nov: la forma del período y si es por evento (los pone Procesos.gs v5).
+                                           'forma' => (string) ($x['forma'] ?? ''), 'evento' => (bool) ($x['evento'] ?? false)], $orden($de('listas', $id))),
             'procesos' => array_map(fn($x) => ['proceso' => (string) ($x['proceso'] ?? ''), 'descripcion' => (string) ($x['descripcion'] ?? ''),
                                               'enlace' => (string) ($x['enlace'] ?? ''), 'estado' => (string) ($x['estado'] ?? '')], $de('procesos', $id)),
             'ocupo' => $ocupa, 'jefe' => $jefe, 'verifico' => $puedeRevisar,
@@ -376,7 +403,7 @@ function eq_vista(array $S, string $usuario, array $roles, array $nombresRol, bo
             'pdf' => $todo || ($ocupa && $abierto),
             'hojas' => array_values($hojas),
             'marcas' => array_map(fn($x) => ['fecha' => (string) ($x['fecha'] ?? ''), 'usuario' => (string) ($x['usuario'] ?? ''), 'orden' => $x['orden'] ?? null,
-                                            'periodo' => (string) ($x['periodo'] ?? ''), 'resultado' => (string) ($x['resultado'] ?? ''), 'nota' => (string) ($x['nota'] ?? '')],
+                                            'periodo' => (string) ($x['periodo'] ?? ''), 'resultado' => eq_resultado((string) ($x['resultado'] ?? '')), 'nota' => (string) ($x['nota'] ?? '')],
                                   $reciente($de('marcas', $id))),
             'revisiones' => array_values(array_filter($revs, fn($r) => $deHoja($r['nota']) === null)),
         ];
@@ -393,7 +420,9 @@ function eq_vista(array $S, string $usuario, array $roles, array $nombresRol, bo
     $horarios = array_values(array_filter((array) ($S['horarios'] ?? []), fn($h) => is_array($h) && trim((string) ($h['momento'] ?? '')) !== ''));
     $respuesta = ['hoy' => $hoy, 'generado' => (string) ($S['generado'] ?? ''), 'yo' => ['usuario' => $usuario, 'todo' => $todo],
                   'puestos' => $lista, 'fichas' => (object) $fichas, 'mios' => $mios, 'revisar' => $revisar,
-                  'reglas' => $reglas, 'momentos' => array_map(fn($h) => ['momento' => (string) $h['momento'], 'hora' => (string) ($h['hora'] ?? '')], $horarios)];
+                  'reglas' => $reglas, 'momentos' => array_map(fn($h) => ['momento' => (string) $h['momento'], 'hora' => (string) ($h['hora'] ?? '')], $horarios),
+                  // 2-nov: {día: {dia, semana, quincena, mes, …}} de los últimos días (lo arma Procesos.gs v5; con un script viejo, vacío).
+                  'calendario' => (object) (is_array($S['calendario'] ?? null) ? $S['calendario'] : [])];
     if ($todo) {
         $respuesta['faltan'] = array_values(array_filter((array) ($S['faltan'] ?? []), 'is_string'));
         // La tabla de Horarios del servicio, con el NOMBRE de los puestos (un ID que no existe queda tal cual).

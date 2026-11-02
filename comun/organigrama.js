@@ -32,12 +32,24 @@
      sin desenfoque) el fondo es plano, sin foto ni animación.
    · Celular: una lista por áreas que se despliega, sin 3D.
    · La ficha se abre CENTRADA en un <dialog> (Esc, tocar afuera, foco
-     atrapado). Tiene el formato del contrato en papel: «Contrato de
-     posición», la tabla Puesto · Unidad · Reporta a, 1. Resultado,
-     2. Trabajo, 3. Estándares, 4. Aceptación; debajo, la lista de
-     verificación y la hoja diaria. Aceptar pasa antes por las Reglas del
-     juego. «Descargar PDF» arma una hoja de impresión (Inter, títulos en
-     verde, firma, nombre y fecha) y abre el diálogo de imprimir.
+     atrapado). Aceptar pasa antes por las Reglas del juego. «Descargar PDF»
+     arma una hoja de impresión (Inter, títulos en verde, firma, nombre y
+     fecha) y abre el diálogo de imprimir.
+   · 2-nov (Equipo v3): la ficha va en pestañas: «Contrato» | «Lista de
+     verificación» | «Hojas del día» (esta, si el puesto tiene hojas).
+     – Contrato: la misma hoja del PDF (papelHtml: «Contrato de posición», la
+       tabla Puesto · Unidad · Reporta a, 1 a 3, y 4. Aceptación), sin la
+       lista. «Ampliar» la abre a pantalla completa, con letra más grande; se
+       vuelve con la X, Esc o «Volver», y desde ahí se acepta y se descarga.
+     – Subpuntos: una fila de Trabajo o Estándar que empieza con «N.M »
+       («1.1 ») va sangrada bajo su punto general, con su «1.1» y sin número
+       de la lista; los generales se numeran 1, 2, 3… sin contarlos. Igual en
+       la ficha, ampliado y en el PDF.
+     – Lista de verificación: comun/verificacion.js (la misma de Mi lista).
+     – Hojas del día: un paso se marca una vez en su período (el día; «Cada
+       semana», su semana; «Cada mes», su mes): Pendiente mientras siga
+       abierto, Vencido después. Quitar una marca agrega «Desmarcada» en el
+       Sheet. «Asignación temporal» junto al nombre de la hoja si lo dice.
    ========================================================================== */
 (function () {
   'use strict';
@@ -59,6 +71,9 @@
   let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '', porFila = 0;
   let dlg = null, origen = null, modo = '', abiertas = {}, vista = { x: 0, y: 0, s: 1 }, mundo = null, lienzo = null, ajustado = false;
   let entro = false, diaHoja = {}, avisoHoja = {}, guardandoPaso = '';
+  // 2-nov: la pestaña de la ficha ('contrato' | 'lista' | 'hojas'), el contrato ampliado y la lista de verificación.
+  let pestana = 'contrato', ampliado = false;
+  const lista = window.Verificacion ? Verificacion.crear({ datos: () => D, puesto: () => sel, aLogin: () => Datos.aLogin(), revisar: '/equipo/#revisar', repintar: f => repintarFicha(f) }) : null;
 
   async function cargar() {
     cargando = true;
@@ -72,7 +87,7 @@
     }
     cargando = false;
     pintar();
-    if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]')); }
+    if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]'), op.pestana); }
   }
 
   /* ── Estructura (sin pantalla: se prueba con node) ─────────────────────── */
@@ -331,7 +346,8 @@
 
   function horariosHtml() {
     return '<div class="vidrio-tarjeta eq-horarios"><table class="tabla"><thead><tr><th scope="col">Momento</th><th scope="col">Unidad</th><th scope="col">Hora</th><th scope="col">Puestos que lo usan</th></tr></thead><tbody>' +
-      D.horarios.map(h => '<tr><td><b>' + esc(h.momento) + '</b></td><td>' + esc(h.unidad) + '</td><td class="eq-horarios-hora">' + esc(h.hora) + '</td><td>' + esc(h.puestos.join(', ')) + '</td></tr>').join('') +
+      // 2-nov: una hora sin escribir sale «Por definir», nunca vacía.
+      D.horarios.map(h => '<tr><td><b>' + esc(h.momento) + '</b></td><td>' + esc(h.unidad) + '</td><td class="eq-horarios-hora">' + esc(Puestos.hora(h.hora)) + '</td><td>' + esc(h.puestos.join(', ')) + '</td></tr>').join('') +
       '</tbody></table></div>';
   }
 
@@ -431,9 +447,28 @@
 
   /* ── Ficha: el contrato con el formato del papel ──────────────────────── */
 
+  /**
+   * 2-nov: los puntos de Trabajo o Estándar con sus subpuntos: [{texto, subs: [{n, texto}], suelto}].
+   * Una fila que empieza con «N.M » («1.1 ») es subpunto del punto general de arriba (sin número propio
+   * en la lista); si no hay uno arriba, va sola y sin número.
+   */
+  const SUBPUNTO = /^(\d+\.\d+)\s+/;
+  function conSubpuntos(l) {
+    const out = [];
+    l.forEach(t => {
+      const m = SUBPUNTO.exec(t), sub = m && { n: m[1], texto: t.slice(m[0].length) };
+      if (sub && out.length) out[out.length - 1].subs.push(sub);
+      else if (sub) out.push({ texto: '', subs: [sub], suelto: true });
+      else out.push({ texto: t, subs: [] });
+    });
+    return out;
+  }
+
   function contratoHtml(p, f, conHoras) {
     const jefe = D.puestos.find(x => x.id === p.reportaA), c = f.contrato, h = conHoras ? horas : () => '';
-    const ol = (l, t) => l.length ? '<ol class="eq-ol">' + l.map(x => '<li><span>' + esc(x) + '</span>' + h(x) + '</li>').join('') + '</ol>' : '<p class="ayuda">Sin ' + t + ' cargado todavía.</p>';
+    const subs = x => x.subs.length ? '<ul class="eq-subs">' + x.subs.map(s => '<li><b class="eq-subn">' + esc(s.n) + '</b> <span>' + esc(s.texto) + '</span>' + h(s.texto) + '</li>').join('') + '</ul>' : '';
+    const ol = (l, t) => l.length ? '<ol class="eq-ol">' + conSubpuntos(l).map(x => x.suelto ? '<li class="eq-sin-numero">' + subs(x) + '</li>'
+      : '<li><span>' + esc(x.texto) + '</span>' + h(x.texto) + subs(x) + '</li>').join('') + '</ol>' : '<p class="ayuda">Sin ' + t + ' cargado todavía.</p>';
     return '<table class="eq-contrato-tabla"><tbody><tr><th scope="row">Puesto</th><td>' + esc(p.puesto) + '</td></tr>' +
         '<tr><th scope="row">Unidad</th><td>' + esc(f.unidad || '—') + '</td></tr>' +
         '<tr><th scope="row">Reporta a</th><td>' + esc(jefe ? jefe.puesto : '—') + '</td></tr></tbody></table>' +
@@ -473,14 +508,15 @@
       '<button type="button" class="btn negro" data-eq-confirmar' + (leyoReglas ? '' : ' disabled') + '>Acepto el contrato · versión ' + esc(f.version) + '</button></div></section>';
   }
 
+  /* 2-nov: la hoja del contrato, la misma del PDF: «Vida en Arte», «Contrato de posición», el puesto, la tabla y 1 a 3. */
+  function papelHtml(p, f, conHoras) {
+    return '<p class="eqp-marca">Vida en Arte</p><h3 class="eqp-tit">Contrato de posición</h3><p class="eqp-puesto">' + esc(p.puesto) + '</p>' + contratoHtml(p, f, conHoras);
+  }
+
+  /* 2-nov: la pestaña Lista de verificación: quién verifica y la lista de comun/verificacion.js (se marca aquí y en Mi lista). */
   function listaHtmlFicha(f) {
-    // 30-oct: agrupada como la manda el script (Diario … Por temporada, y al final «Cada vez que ocurre»); cada punto conserva su «Cada cuánto».
-    const grupos = Puestos.agrupar(f.lista);
     return '<section class="eq-sec eq-sec-lista"><h3>Lista de verificación</h3>' + verificaHtml(f) +
-      (grupos.length ? grupos.map(g => '<h4 class="eq-frec">' + esc(g.grupo) + '</h4><ul class="eq-puntos">' + g.puntos.map(x =>
-        '<li><span>' + esc(x.texto) + '</span>' + (Puestos.frecuenciaPropia(x) ? '<span class="eq-cuando">' + esc(Puestos.frecuenciaPropia(x)) + '</span>' : '') + horas(x.texto) +
-        (x.evidencia ? '<span class="ayuda">Evidencia: ' + esc(x.evidencia) + '</span>' : '') + '</li>').join('') + '</ul>').join('')
-        : '<p class="ayuda">Sin lista de verificación cargada todavía.</p>') + '</section>';
+      (lista ? lista.html() : '<p class="ayuda">Sin lista de verificación cargada todavía.</p>') + '</section>';
   }
 
   function verificaHtml(f) {
@@ -491,33 +527,44 @@
       (f.comoVerifica ? '<br><b>Cómo:</b> ' + esc(f.comoVerifica) : '') + '</p>';
   }
 
-  /* La hoja diaria: por momento, cada paso con su hora de marca y las iniciales. */
+  /*
+   * La hoja: por momento, cada paso con su hora de marca y las iniciales.
+   * 2-nov: cada paso se marca una vez en su período (el día; «Cada semana», su semana; «Cada mes», su mes;
+   * el período de cada día lo manda el servidor en D.calendario). Las marcas quitadas («Desmarcada») no cuentan.
+   * Sin marca: «Pendiente» mientras siga abierto un paso semanal o mensual, «Vencido» si su período ya cerró.
+   */
   function hojaHtml(p, f, h, k) {
     const abierto = norm(p.estado) === norm(ABIERTO), puedeMarcar = abierto && f.ocupo;
-    const dias = [...new Set([D.hoy].concat(h.marcas.map(m => m.fecha.slice(0, 10))).concat(h.revisiones.map(r => r.periodo)))].filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort().reverse();
+    const V = Verificacion, pie = V.enPie(h.marcas, m => +m.orden);
+    const dias = [...new Set([D.hoy].concat(pie.map(m => m.fecha.slice(0, 10))).concat(h.revisiones.map(r => r.periodo)))].filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x)).sort().reverse();
     const dia = dias.includes(diaHoja[k]) ? diaHoja[k] : D.hoy, hoy = dia === D.hoy;
-    const marcasDia = h.marcas.filter(m => m.fecha.slice(0, 10) === dia);
-    const marcaDe = o => marcasDia.filter(m => +m.orden === +o).sort((a, b) => a.fecha.localeCompare(b.fecha)).pop() || null;
+    const periodo = (x, d) => V.periodoEn(D, x.forma || 'dia', d);
+    const marcaDe = x => { const P = periodo(x, dia); return P ? pie.filter(m => +m.orden === +x.orden && periodo(x, m.fecha.slice(0, 10)) === P).sort((a, b) => a.fecha.localeCompare(b.fecha)).pop() || null : null; };
+    const abiertoPaso = x => !!periodo(x, dia) && periodo(x, dia) === periodo(x, D.hoy);
     const momentos = [...new Set(h.pasos.map(x => x.momento))];
-    const hechos = h.pasos.filter(x => marcaDe(x.orden)).length;
+    const hechos = h.pasos.filter(x => marcaDe(x)).length;
     const yo = norm(D.yo.usuario);
-    // Si el momento ES uno de Horarios del servicio, junto al título va solo su hora.
-    const horaDe = mo => { const m = Puestos.momentosEn(mo, D.momentos); return m.length === 1 && norm(m[0].momento) === norm(mo) ? (m[0].hora ? '<span class="eq-hora">' + esc(m[0].hora) + '</span>' : '') : horas(mo); };
+    // Si el momento ES uno de Horarios del servicio, junto al título va solo su hora («Por definir» si no tiene).
+    const horaDe = mo => { const m = Puestos.momentosEn(mo, D.momentos); return m.length === 1 && norm(m[0].momento) === norm(mo) ? '<span class="eq-hora">' + esc(Puestos.hora(m[0].hora)) + '</span>' : horas(mo); };
     const cuerpo = momentos.map(mo => '<h4 class="eq-frec">' + esc(mo || 'Sin momento') + horaDe(mo) + '</h4><ul class="eq-pasos">' + h.pasos.filter(x => x.momento === mo).map(x => {
-      const m = marcaDe(x.orden), clave = k + ':' + x.orden, ajena = m && norm(m.usuario) !== yo;
-      const activo = puedeMarcar && hoy && !ajena && guardandoPaso !== clave;
-      const sello = m ? '<span class="eq-sello">' + esc(hora12(m.fecha.slice(11, 16))) + ' · ' + esc(m.iniciales || '') + '</span>' : '';
+      const m = marcaDe(x), clave = k + ':' + x.orden, ajena = m && norm(m.usuario) !== yo, diario = (x.forma || 'dia') === 'dia';
+      const activo = puedeMarcar && hoy && abiertoPaso(x) && !ajena && guardandoPaso !== clave;
+      // La marca de un paso semanal o mensual dice también qué día se hizo.
+      const sello = m ? '<span class="eq-sello">' + (diario ? '' : esc(diaTexto(m.fecha).replace(/ de \d{4}$/, '')) + ' · ') + esc(hora12(m.fecha.slice(11, 16))) + ' · ' + esc(m.iniciales || '') + '</span>'
+        : !abiertoPaso(x) ? '<span class="vf-estado vencido">Vencido</span>'
+        : !diario ? '<span class="vf-estado pendiente">Pendiente · ' + (x.forma === 'mes' ? 'este mes' : x.forma === 'semana' ? 'esta semana' : 'abierto') + '</span>' : '';
       return '<li><button type="button" class="eq-paso" data-eq-paso="' + esc(clave) + '" aria-pressed="' + !!m + '"' + (activo ? '' : ' disabled') +
         (ajena ? ' title="Lo marcó ' + esc(quien(m.usuario)) + '"' : '') + '><span class="eq-caja" aria-hidden="true"></span><span class="eq-paso-txt">' + esc(x.paso) + horas(x.paso) + '</span>' +
         (guardandoPaso === clave ? '<span class="eq-sello">Guardando…</span>' : sello) + '</button></li>';
     }).join('') + '</ul>').join('');
     const revs = h.revisiones.filter(r => r.periodo === dia);
-    const nota = !abierto ? 'Se marca cuando el puesto esté «Abierto al equipo».' : puedeMarcar ? (hoy ? 'Toca un paso al hacerlo: queda con la hora y tus iniciales. Puedes desmarcarlo hoy mismo.' : 'Los días anteriores se ven, pero ya no se marcan.') : '';
+    const nota = !abierto ? 'Se marca cuando el puesto esté «Abierto al equipo».' : puedeMarcar ? (hoy ? 'Toca un paso al hacerlo: queda con la hora y tus iniciales. Tu marca se quita tocándola de nuevo mientras siga abierto su período.' : 'Los días anteriores se ven, pero ya no se marcan.') : '';
     const verif = f.verifico ? '<form class="ml-revisar eq-verificar-hoja" data-eq-hoja-rev="' + esc(k) + '"><fieldset><legend>Resultado</legend>' +
         '<label><input type="radio" name="r" value="Cumplido" checked> Cumplido</label><label><input type="radio" name="r" value="No"> No</label></fieldset>' +
         '<fieldset><legend>Sorpresa</legend><label><input type="radio" name="s" value="Sí"> Sí</label><label><input type="radio" name="s" value="No" checked> No</label></fieldset>' +
         '<label class="ml-nota-rev">Nota <input type="text" maxlength="400" name="nota"></label><button type="submit" class="btn negro">Verificar la hoja del ' + esc(diaTexto(dia)) + '</button></form>' : '';
-    return '<section class="eq-sec eq-hoja" data-eq-hoja="' + esc(k) + '"><h3>Hoja diaria · ' + esc(h.hoja) + '</h3>' +
+    // 2-nov: «Asignación temporal» junto al nombre si la hoja lo dice; y la hora si su nombre es un momento («Apertura del local · Por definir»).
+    return '<section class="eq-sec eq-hoja" data-eq-hoja="' + esc(k) + '"><h3>' + esc(h.hoja) + (h.temporal ? ' <span class="eq-temporal">Asignación temporal</span>' : '') + horas(h.hoja) + '</h3>' +
       '<div class="eq-hoja-cab"><span class="eq-pill' + (hechos === h.pasos.length ? ' ok' : '') + '">' + hechos + ' de ' + plural(h.pasos.length, 'paso', 'pasos') + '</span>' +
         (dias.length > 1 ? '<label class="eq-dia">Día <select data-eq-dia="' + esc(k) + '">' + dias.map(d => '<option value="' + d + '"' + (d === dia ? ' selected' : '') + '>' + (d === D.hoy ? 'Hoy' : esc(diaTexto(d))) + '</option>').join('') + '</select></label>' : '') + '</div>' +
       (nota ? '<p class="ayuda">' + nota + '</p>' : '') + (avisoHoja[k] ? '<div class="aviso mal">' + esc(avisoHoja[k]) + '</div>' : '') + cuerpo +
@@ -533,11 +580,27 @@
         (x.enlace && window.Visor && Visor.vista(x.enlace).modo !== 'nada' ? '<button type="button" class="pa-boton" data-eq-proceso="' + i + '">Abrir</button>' : '') + '</li>').join('') + '</ul></section>' : '';
     const estado = '<span class="eq-pill oscuro">' + esc(estadoVisible(p.estado)) + (f.version !== null && f.version !== undefined ? ' · versión ' + esc(f.version) : '') + '</span>';
     const pdf = f.pdf ? '<button type="button" class="btn sec chico" data-eq-pdf>Descargar PDF</button>' : '';
+    const cerrar = (attr, etq) => '<button type="button" class="btn-circulo" ' + attr + ' aria-label="' + etq + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+    // 2-nov: el contrato ampliado ocupa toda la pantalla; la X, Esc o «Volver» regresan a la ficha.
+    if (ampliado && paso !== 'reglas') {
+      return '<div class="eq-amplio"><div class="eq-amplio-barra"><button type="button" class="btn sec chico" data-eq-reducir>← Volver</button>' +
+        '<span class="eq-amplio-tit" id="eqFichaTit">Contrato de posición · ' + esc(p.puesto) + '</span><span class="eq-amplio-acc">' + pdf + cerrar('data-eq-reducir', 'Volver a la ficha') + '</span></div>' +
+        '<div class="eq-amplio-cuerpo"><article class="eq-papel grande">' + papelHtml(p, f, true) + aceptacionHtml(p, f) + '</article></div></div>';
+    }
+    // 2-nov: pestañas Contrato | Lista de verificación | Hojas del día (si el puesto tiene hojas).
+    const pestanas = [['contrato', 'Contrato'], ['lista', 'Lista de verificación']].concat(f.hojas.length ? [['hojas', 'Hojas del día']] : []);
+    if (!pestanas.some(x => x[0] === pestana)) pestana = 'contrato';
+    const tabs = '<div class="eq-pestanas" role="tablist" aria-label="Partes de la ficha">' + pestanas.map(([k, t]) =>
+      '<button type="button" role="tab" id="eqTab-' + k + '" aria-controls="eqPanel" aria-selected="' + (k === pestana) + '" tabindex="' + (k === pestana ? 0 : -1) + '" data-eq-pestana="' + k + '">' + t + '</button>').join('') + '</div>';
     const cuerpo = paso === 'reglas' ? pasoReglasHtml(p, f)
-      : contratoHtml(p, f, true) + aceptacionHtml(p, f) + listaHtmlFicha(f) + f.hojas.map((h, i) => hojaHtml(p, f, h, String(i))).join('') + procesos;
-    return '<div class="eq-ficha"><div class="eq-ficha-cab"><div><span class="eq-sobre">Contrato de posición</span><h2 class="titulo" id="eqFichaTit">' + esc(p.puesto) + '</h2></div>' +
-      '<button type="button" class="btn-circulo" data-eq-cerrar aria-label="Cerrar la ficha"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
-      '<div class="eq-pills">' + estado + pdf + '</div><div class="eq-cuerpo">' + cuerpo + '</div></div>';
+      : pestana === 'lista' ? listaHtmlFicha(f)
+      : pestana === 'hojas' ? f.hojas.map((h, i) => hojaHtml(p, f, h, String(i))).join('')
+      : '<div class="eq-papel-barra"><button type="button" class="btn sec chico" data-eq-ampliar>Ampliar</button>' + pdf + '</div>' +
+        '<article class="eq-papel">' + papelHtml(p, f, true) + aceptacionHtml(p, f) + '</article>' + procesos;
+    return '<div class="eq-ficha"><div class="eq-ficha-cab"><div><span class="eq-sobre">Ficha del puesto</span><h2 class="titulo" id="eqFichaTit">' + esc(p.puesto) + '</h2></div>' +
+      cerrar('data-eq-cerrar', 'Cerrar la ficha') + '</div>' +
+      '<div class="eq-pills">' + estado + '</div>' + (paso === 'reglas' ? '' : tabs) +
+      '<div class="eq-cuerpo"' + (paso === 'reglas' ? '' : ' role="tabpanel" id="eqPanel" aria-labelledby="eqTab-' + pestana + '"') + '>' + cuerpo + '</div></div>';
   }
 
   /* ── PDF: una hoja de impresión con el formato del modelo ─────────────── */
@@ -549,7 +612,7 @@
     const hoja = document.createElement('div');
     hoja.id = 'eq-impresion';
     // Sin las horas de los momentos: la hora es del servicio y puede cambiar sin que cambie el contrato firmado.
-    hoja.innerHTML = '<p class="eqp-marca">Vida en Arte</p><h1>Contrato de posición</h1><h2>' + esc(p.puesto) + '</h2>' + contratoHtml(p, f, false) +
+    hoja.innerHTML = papelHtml(p, f, false) +
       '<section class="eq-sec eqp-firma"><h3>4. Firma</h3><p class="eq-texto-acepto">' + TEXTO_ACEPTACION + '</p>' +
       '<div class="eqp-linea"></div><p class="eqp-firma-tit">Firma</p><div class="eqp-datos"><span>Nombre:</span><span>Fecha:</span></div></section>';
     document.body.appendChild(hoja);
@@ -569,16 +632,25 @@
     dlg.className = 'eq-dialogo';
     dlg.setAttribute('aria-labelledby', 'eqFichaTit');
     document.body.appendChild(dlg);
-    dlg.addEventListener('click', ev => { if (ev.target === dlg) { cerrarFicha(); return; } clic(ev); });   // tocar afuera (el fondo) cierra
-    dlg.addEventListener('cancel', ev => { ev.preventDefault(); cerrarFicha(); });                       // Esc
+    // Tocar afuera (el fondo) cierra; con el contrato ampliado no hay afuera.
+    dlg.addEventListener('click', ev => { if (ev.target === dlg && !ampliado) { cerrarFicha(); return; } if (lista && lista.clic(ev)) return; clic(ev); });
+    dlg.addEventListener('cancel', ev => { ev.preventDefault(); salirFicha(); });                         // Esc
     dlg.addEventListener('change', ev => {
       const t = ev.target;
+      if (lista && lista.cambio(ev)) return;
       if (t.matches('[data-eq-lei]')) { leyoReglas = t.checked; const b = dlg.querySelector('[data-eq-confirmar]'); if (b) b.disabled = !leyoReglas; }
       if (t.matches('[data-eq-dia]')) { diaHoja[t.dataset.eqDia] = t.value; repintarFicha('[data-eq-dia="' + t.dataset.eqDia + '"]'); }
     });
-    dlg.addEventListener('submit', ev => { const fm = ev.target.closest('form[data-eq-hoja-rev]'); if (fm) { ev.preventDefault(); verificarHoja(fm); } });
+    dlg.addEventListener('input', ev => { if (lista) lista.entrada(ev); });
+    dlg.addEventListener('submit', ev => { if (lista && lista.enviar(ev)) return; const fm = ev.target.closest('form[data-eq-hoja-rev]'); if (fm) { ev.preventDefault(); verificarHoja(fm); } });
     dlg.addEventListener('keydown', ev => {
-      if (ev.key === 'Escape') { ev.preventDefault(); cerrarFicha(); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); salirFicha(); return; }
+      // 2-nov: en las pestañas, las flechas pasan a la de al lado.
+      const tab = ev.target.closest && ev.target.closest('[data-eq-pestana]');
+      if (tab && (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft')) {
+        const ts = [...dlg.querySelectorAll('[data-eq-pestana]')], i = ts.indexOf(tab), j = (i + (ev.key === 'ArrowRight' ? 1 : ts.length - 1)) % ts.length;
+        ev.preventDefault(); irPestana(ts[j].dataset.eqPestana); return;
+      }
       if (ev.key !== 'Tab') return;
       // El foco no sale de la ficha mientras está abierta.
       const f = enfocables();
@@ -589,10 +661,12 @@
     });
   }
 
-  function abrirFicha(id, desde) {
+  function abrirFicha(id, desde, conPestana) {
     if (!D.fichas[id]) return;
     sel = id; paso = 'contrato'; leyoReglas = false; aviso = ''; diaHoja = {}; avisoHoja = {}; origen = desde || null;
+    pestana = conPestana || 'contrato'; ampliado = false; if (lista) lista.reiniciar();
     if (!dlg) crearDialogo();
+    dlg.classList.remove('amplio');
     dlg.innerHTML = fichaHtml(id);
     if (!dlg.open) { dlg.showModal ? dlg.showModal() : dlg.setAttribute('open', ''); }
     document.body.classList.add('eq-ficha-abierta');
@@ -601,14 +675,28 @@
   }
   function repintarFicha(foco) {
     if (!dlg || !sel) return;
-    const caja = dlg.querySelector('.eq-ficha'), arriba = caja ? caja.scrollTop : 0;
+    const caja = dlg.querySelector('.eq-ficha, .eq-amplio-cuerpo'), arriba = caja ? caja.scrollTop : 0;
+    dlg.classList.toggle('amplio', ampliado && paso !== 'reglas');
     dlg.innerHTML = fichaHtml(sel);
-    const nueva = dlg.querySelector('.eq-ficha'); if (nueva) nueva.scrollTop = arriba;
+    const nueva = dlg.querySelector('.eq-ficha, .eq-amplio-cuerpo'); if (nueva) nueva.scrollTop = arriba;
     const f = foco && dlg.querySelector(foco); if (f) f.focus({ preventScroll: true });
   }
+  /* 2-nov: cambiar de pestaña (el foco queda en la pestaña); ampliar y reducir el contrato. */
+  function irPestana(k) {
+    pestana = k; if (lista) lista.reiniciar();
+    repintarFicha('[data-eq-pestana="' + k + '"]');
+    const c = dlg.querySelector('.eq-ficha'); if (c) c.scrollTop = 0;
+  }
+  function ampliar(si) {
+    ampliado = si;
+    repintarFicha(si ? '[data-eq-reducir]' : '[data-eq-ampliar]');
+    const c = dlg.querySelector('.eq-ficha, .eq-amplio-cuerpo'); if (c && si) c.scrollTop = 0;
+  }
+  /* Esc: del contrato ampliado vuelve a la ficha; de la ficha, la cierra. */
+  function salirFicha() { if (ampliado) ampliar(false); else cerrarFicha(); }
   function cerrarFicha() {
     if (!dlg) return;
-    sel = ''; aviso = '';
+    sel = ''; aviso = ''; ampliado = false; dlg.classList.remove('amplio');
     if (dlg.open) { dlg.close ? dlg.close() : dlg.removeAttribute('open'); }
     document.body.classList.remove('eq-ficha-abierta');
     // El foco vuelve al puesto que la abrió (aunque se haya repintado).
@@ -618,14 +706,18 @@
   }
 
   function clic(ev) {
-    const b = ev.target.closest('[data-eq-puesto],[data-eq-cerrar],[data-eq-aceptar],[data-eq-confirmar],[data-eq-volver],[data-eq-pdf],[data-eq-paso],[data-eq-proceso],[data-eq-reintentar],[data-eq-zoom],[data-eq-area]');
+    const b = ev.target.closest('[data-eq-puesto],[data-eq-cerrar],[data-eq-aceptar],[data-eq-confirmar],[data-eq-volver],[data-eq-pdf],[data-eq-paso],[data-eq-proceso],[data-eq-reintentar],[data-eq-zoom],[data-eq-area],[data-eq-pestana],[data-eq-ampliar],[data-eq-reducir]');
     if (!b) return;
+    if (b.dataset.eqPestana) { irPestana(b.dataset.eqPestana); return; }
+    if (b.dataset.eqAmpliar !== undefined) { ampliar(true); return; }
+    if (b.dataset.eqReducir !== undefined) { ampliar(false); return; }
     if (b.dataset.eqReintentar !== undefined) { el.innerHTML = '<div class="pantalla"><h2>Cargando…</h2></div>'; cargar(); return; }
     if (b.dataset.eqZoom) { if (b.dataset.eqZoom === 'ajustar') ajustar(); else zoom(b.dataset.eqZoom === '+' ? 1.25 : 0.8); return; }
     if (b.dataset.eqArea) { abiertas[b.dataset.eqArea] = !abiertas[b.dataset.eqArea]; pintar(); const v = el.querySelector('[data-eq-area="' + b.dataset.eqArea + '"]'); if (v) v.focus(); return; }
     if (b.dataset.eqPuesto) { if (lienzo && lienzo.dataset.arrastre) return; abrirFicha(b.dataset.eqPuesto, b); return; }
     if (b.dataset.eqCerrar !== undefined) { cerrarFicha(); return; }
-    if (b.dataset.eqAceptar !== undefined) { paso = 'reglas'; aviso = ''; repintarFicha('[data-eq-lei]'); const c = dlg.querySelector('.eq-ficha'); if (c) c.scrollTop = 0; return; }
+    // Aceptar (también desde el contrato ampliado): primero las Reglas del juego, en la ficha.
+    if (b.dataset.eqAceptar !== undefined) { paso = 'reglas'; aviso = ''; ampliado = false; pestana = 'contrato'; repintarFicha('[data-eq-lei]'); const c = dlg.querySelector('.eq-ficha'); if (c) c.scrollTop = 0; return; }
     if (b.dataset.eqVolver !== undefined) { paso = 'contrato'; aviso = ''; repintarFicha('[data-eq-aceptar]'); return; }
     if (b.dataset.eqConfirmar !== undefined) { if (leyoReglas) aceptar(b); return; }
     if (b.dataset.eqPdf !== undefined) { imprimir(sel); return; }
@@ -652,14 +744,14 @@
     }
   }
 
-  /* Marcar o desmarcar un paso: se guarda al tocarlo; la respuesta trae las marcas de hoy de esa hoja. */
+  /* Marcar o desmarcar un paso: se guarda al tocarlo. 2-nov: la respuesta trae las filas escritas («Ejecutado» o «Desmarcada»), que se suman a las de la hoja. */
   async function marcarPaso(clave, marcado) {
     if (guardandoPaso) return;
     const [k, orden] = clave.split(':'), f = D.fichas[sel], h = f.hojas[+k], id = sel;
     guardandoPaso = clave; avisoHoja[k] = ''; repintarFicha('[data-eq-paso="' + clave + '"]');
     try {
       const r = (await Datos.equipo.marcarHoja(id, h.hoja, +orden, marcado)).resultado;
-      h.marcas = h.marcas.filter(m => m.fecha.slice(0, 10) !== r.hoy).concat(r.marcas);
+      h.marcas = h.marcas.concat(r.filas || []);
     } catch (e) {
       if (e.codigo === 'sesion') { Datos.aLogin(); return; }
       avisoHoja[k] = e.codigo === 'incierto' || e.codigo === 'red' ? 'No llegó la respuesta. Cierra y vuelve a abrir la ficha: si se guardó, ya aparece marcado.' : e.message;
@@ -704,7 +796,7 @@
     escenaOscura(true);
     if (D) {
       pintar();
-      if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]')); }
+      if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]'), op.pestana); }
     } else {
       titulo(op.vista === 'reglas' ? 'Reglas del juego' : op.vista === 'horarios' ? 'Horarios del servicio' : 'Equipo', '');
       if (!cargando) { el.innerHTML = '<div class="pantalla"><h2>Cargando…</h2><p>Leyendo los puestos de Vida en Arte.</p></div>'; cargar(); }
@@ -713,5 +805,8 @@
 
   window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
     // Para la prueba (pruebas-portal/prueba-organigrama.js): pintar la ficha con datos inventados, sin navegador.
-    _probar: { datos(d) { D = d; }, ficha(id, p) { paso = p || 'contrato'; return fichaHtml(id); } } };
+    // 2-nov: ficha(id, paso, pestaña, ampliado); papel(id) = la hoja del PDF.
+    _probar: { datos(d) { D = d; }, ficha(id, p, t, a) { paso = p || 'contrato'; pestana = t || 'contrato'; ampliado = !!a; sel = id; return fichaHtml(id); },
+               papel(id) { return papelHtml(D.puestos.find(x => x.id === id), D.fichas[id], false); },
+               dia(d) { lista.cambio({ target: { matches: () => true, value: d } }); } } };
 })();

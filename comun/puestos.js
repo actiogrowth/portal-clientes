@@ -17,7 +17,8 @@
      del texto, sin mayúsculas ni tildes y como palabras enteras; si dos se
      pisan («Salida del mediodía» dentro de «Preparación de la salida del
      mediodía»), gana el más largo. La hora es un dato del Sheet: cambiarla
-     no cambia ningún contrato.
+     no cambia ningún contrato. 2-nov: una hora vacía se muestra «Por
+     definir» (hora()).
    ========================================================================== */
 (function () {
   'use strict';
@@ -52,10 +53,14 @@
     return out.sort((a, b) => a.en - b.en).map(({ momento, hora }) => ({ momento, hora }));
   }
 
-  /** Las etiquetas «Momento · hora» para poner junto a un texto (HTML, ya escapado). */
+  /** 2-nov: la hora de un momento como se muestra: la del Sheet, o «Por definir» si está vacía (nunca un espacio en blanco). */
+  const POR_DEFINIR = 'Por definir';
+  const hora = h => String(h == null ? '' : h).trim() || POR_DEFINIR;
+
+  /** Las etiquetas «Momento · hora» para poner junto a un texto (HTML, ya escapado). 2-nov: sin hora, «Por definir». */
   function etiquetasHora(texto, momentos, esc) {
-    return momentosEn(texto, momentos).filter(m => m.hora)
-      .map(m => '<span class="eq-hora">' + esc(m.momento) + ' · ' + esc(m.hora) + '</span>').join('');
+    return momentosEn(texto, momentos)
+      .map(m => '<span class="eq-hora">' + esc(m.momento) + ' · ' + esc(hora(m.hora)) + '</span>').join('');
   }
 
   /**
@@ -78,5 +83,5 @@
   /** El «Cada cuánto» propio de un punto, si no es el nombre de su grupo («Por cumpleaños» dentro de «Cada vez que ocurre»). */
   const frecuenciaPropia = x => x.frecuencia && normal(x.frecuencia) !== normal(x.grupo || x.frecuencia) ? x.frecuencia : '';
 
-  window.Puestos = { AREAS, colorArea, momentosEn, etiquetasHora, normal, agrupar, frecuenciaPropia };
+  window.Puestos = { AREAS, colorArea, momentosEn, etiquetasHora, hora, normal, agrupar, frecuenciaPropia };
 })();

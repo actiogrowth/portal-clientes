@@ -232,7 +232,8 @@ const PR_DATOS = () => {
     contratos: ids.map(id => ({ puesto: id, seccion: 'Resultado', orden: 1, texto: (['OTR', 'BOR', 'VAL'].includes(id) ? 'SECRETO-' : 'TEXTO-') + id }))
       .concat([{ puesto: 'RES', seccion: 'Resultado', orden: 1, texto: 'RESERVADO-CONTRATO' }, { puesto: 'PRO', seccion: 'Estándar', orden: 1, texto: 'ESTANDAR-PRO' }, { puesto: 'PRO', seccion: 'Trabajo', orden: 1, texto: 'TRABAJO-PRO' }]),
     listas: ids.concat(['RES']).map(id => Object.assign({ puesto: id, orden: 1, texto: 'PUNTO-' + id, evidencia: 'EVIDENCIA-' + id, frecuencia: 'Diario', periodo: '2026-10-26' },
-      id === 'PRO' ? { frecuencia: 'Por cumpleaños', grupo: 'Cada vez que ocurre', grupoOrden: 8 } : {})),   // 30-oct: el grupo lo pone Procesos.gs v4; los demás, como un script viejo
+      // 30-oct: el grupo lo pone Procesos.gs v4; 2-nov: la forma y si es por evento, v5. Los demás, como un script viejo.
+      id === 'PRO' ? { frecuencia: 'Por cumpleaños', grupo: 'Cada vez que ocurre', grupoOrden: 8, forma: 'dia', evento: true } : {})),
     procesos: [{ puesto: 'OTR', proceso: 'SECRETO-PROCESO-OTR', descripcion: '', enlace: '', estado: '' }],
     asignaciones: [{ usuario: 'Usuario del rol Coordinación After School', puesto: 'JEF', desde: '', hasta: '' },
       { usuario: 'Usuario del rol Coordinación After School', puesto: 'CUMP', desde: '', hasta: '' },
@@ -247,14 +248,19 @@ const PR_DATOS = () => {
       { fecha: '2026-10-02T09:00', usuario: 'prueba-contabilidad', puesto: 'OTR', version: 1 },
       { fecha: '2026-10-02T09:00', usuario: 'otra-persona', puesto: 'PRO', version: 1 }],   // de otro: al Profesor no le cuenta
     marcas: ids.concat(['RES']).map(id => ({ fecha: '2026-10-26T10:00', usuario: 'quien-' + id, puesto: id, orden: 1, periodo: '2026-10-26', resultado: 'Cumplido', nota: 'MARCA-' + id }))
-      .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' }]),
+      .concat([{ fecha: '2026-01-02T10:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-01-02', resultado: 'No', nota: 'MARCA-VIEJA' },
+        // 2-nov: una «No» reciente (se lee «No ejecutado») y una marca quitada.
+        { fecha: '2026-10-26T11:00:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-10-26', resultado: 'No', nota: 'MARCA-NO' },
+        { fecha: '2026-10-26T11:05:00', usuario: 'quien-PRO', puesto: 'PRO', orden: 1, periodo: '2026-10-26', resultado: 'Desmarcada', nota: '2026-10-26T11:00:00' }]),
     revisiones: [{ fecha: '2026-10-26T11:00', revisor: 'prueba-direccion', puesto: 'OTR', periodo: '2026-10-26', sorpresa: 'Sí', resultado: 'Cumplido', nota: 'REVISION-OTR' },
       // 29-oct: la verificación de una hoja (va con su hoja, no con la lista).
       { fecha: '2026-10-26T19:00', revisor: 'quien-PRO-verifica', puesto: 'PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido', nota: 'Hoja «Hoja de PRO» · VERIFICA-HOJA-PRO' }],
     // 29-oct: hojas diarias, Reglas del juego y Horarios del servicio. OTR tiene una hoja SECRETA (nadie más la ve).
-    hojas: [{ puesto: 'PRO', hoja: 'Hoja de PRO', orden: 2, momento: 'Al final', paso: 'PASO-PRO-2' }, { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, momento: 'Al empezar', paso: 'PASO-PRO-1' },
+    // 2-nov: el paso 2 es semanal (forma de Procesos.gs v5); el 1, sin forma (script viejo: el día). La hoja de PRO es temporal (en una sola fila basta).
+    hojas: [{ puesto: 'PRO', hoja: 'Hoja de PRO', orden: 2, momento: 'Cada semana', paso: 'PASO-PRO-2', forma: 'semana', asignacion: ' temporal ' }, { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, momento: 'Al empezar', paso: 'PASO-PRO-1' },
       { puesto: 'OTR', hoja: 'SECRETO-HOJA', orden: 1, momento: 'x', paso: 'SECRETO-PASO' }],
-    marcasHojas: [{ fecha: '2026-10-26T18:00', usuario: 'quien-PRO', puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, iniciales: 'QP' },
+    calendario: { '2026-10-25': { dia: '2026-10-25', semana: '2026-S43', mes: '2026-10' }, '2026-10-26': { dia: '2026-10-26', semana: '2026-S44', mes: '2026-10' } },
+    marcasHojas: [{ fecha: '2026-10-26T18:00', usuario: 'quien-PRO', puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, iniciales: 'QP', resultado: 'Desmarcada', nota: '2026-10-26T17:00:00' },
       { fecha: '2026-01-02T18:00', usuario: 'quien-PRO', puesto: 'PRO', hoja: 'Hoja de PRO', orden: 2, iniciales: 'QP' },
       { fecha: '2026-10-26T18:00', usuario: 'quien-OTR', puesto: 'OTR', hoja: 'SECRETO-HOJA', orden: 1, iniciales: 'SECRETO-INI' }],
     reglas: [{ seccion: 'Sección dos', orden: 1, texto: 'REGLA-DOS' }, { seccion: 'Sección uno', orden: 2, texto: 'REGLA-UNO-B' }, { seccion: 'Sección dos', orden: 0, texto: '' }, { seccion: 'Sección uno', orden: 1, texto: 'REGLA-UNO-A' }],
@@ -1092,6 +1098,14 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(hp[0].marcas.length === 1 && hp[0].marcas[0].iniciales === 'QP' && hp[0].revisiones.length === 1 && /VERIFICA-HOJA-PRO/.test(hp[0].revisiones[0].nota),
         'con sus marcas recientes (no las de hace meses) y su verificación');
       ok(!pro.fichas.PRO.revisiones.some(r => /^Hoja «/.test(r.nota)), 'la verificación de la hoja no se mezcla con las revisiones de la lista');
+      // 2-nov (Equipo v3): resultados con su nombre de hoy, marcas quitadas, forma, temporal y calendario.
+      const res = pro.fichas.PRO.marcas.map(m => m.resultado).join();
+      ok(res === 'Ejecutado,No ejecutado,Desmarcada', 'las marcas viejas «Cumplido» y «No» llegan como «Ejecutado» y «No ejecutado»; la quitada, «Desmarcada» (' + res + ')');
+      ok(hp[0].marcas[0].resultado === 'Desmarcada' && hp[0].marcas[0].nota === '2026-10-26T17:00:00', 'las marcas de las hojas llegan con su Resultado y su Nota');
+      ok(JSON.stringify(hp[0].pasos.map(x => x.forma)) === '["dia","semana"]' && hp[0].temporal === true, 'cada paso con su forma (sin ella, el día) y la hoja «Temporal» (en una de sus filas, sin mayúsculas ni espacios)');
+      ok(rec.fichas.REC.hojas.length === 0 && pro.fichas.PRO.lista[0].forma === 'dia' && pro.fichas.PRO.lista[0].evento === true && rec.fichas.REC.lista[0].evento === false && rec.fichas.REC.lista[0].forma === '',
+        'cada punto con su forma y si es por evento (con un script viejo: sin forma y no por evento)');
+      ok(pro.calendario && pro.calendario['2026-10-26'] && pro.calendario['2026-10-26'].semana === '2026-S44', 'la respuesta trae el calendario del script');
       ok(JSON.stringify(pro.reglas) === JSON.stringify([{ seccion: 'Sección dos', textos: ['REGLA-DOS'] }, { seccion: 'Sección uno', textos: ['REGLA-UNO-A', 'REGLA-UNO-B'] }]),
         'Reglas del juego para todos: por sección, en el orden del Sheet y por Orden; sin filas vacías (' + JSON.stringify(pro.reglas) + ')');
       ok(JSON.stringify(pro.momentos) === '[{"momento":"Momento de prueba","hora":"10:00"}]' && pro.horarios === undefined,
@@ -1143,6 +1157,15 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       await escribe('prueba-coord-as', 'marcarHoja', { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, marcado: true }, 403, 'sin_permiso', 'el jefe no marca la hoja de su equipo');
       await escribe('prueba-profesor-1', 'marcarHoja', { puesto: 'BOR', hoja: 'x', orden: 1, marcado: true }, 403, 'no_abierto', 'ni la de un puesto suyo que no está abierto');
       await escribe('prueba-direccion', 'marcarHoja', { puesto: 'PRO', hoja: 'Hoja de PRO', orden: 1, marcado: true }, 403, 'sin_permiso', 'Dirección no marca hojas ajenas');
+      // 2-nov: quitar una marca de la lista.
+      const dm = await escribe('prueba-profesor-1', 'desmarcar', { puesto: 'PRO', orden: 1, fecha: '2026-10-26T11:00:00', usuario: 'otro', resultado: 'Ejecutado' }, 200, '', 'el Profesor quita una marca de su lista');
+      ok(dm.llego[0] && JSON.stringify(dm.llego[0].datos) === '{"puesto":"PRO","orden":1,"fecha":"2026-10-26T11:00:00"}', 'al script le llega solo el puesto, el orden y la fecha de la marca (' + JSON.stringify(dm.llego[0] && dm.llego[0].datos) + ')');
+      await escribe('prueba-coord-as', 'desmarcar', { puesto: 'PRO', orden: 1, fecha: '2026-10-26T11:00:00' }, 403, 'sin_permiso', 'el jefe no quita marcas de su equipo');
+      await escribe('prueba-direccion', 'desmarcar', { puesto: 'PRO', orden: 1, fecha: '2026-10-26T11:00:00' }, 403, 'sin_permiso', 'Dirección tampoco');
+      await escribe('prueba-recepcion', 'desmarcar', { puesto: 'PRO', orden: 1, fecha: '2026-10-26T11:00:00' }, 403, 'sin_permiso', 'ni un compañero');
+      await escribe('prueba-profesor-1', 'desmarcar', { puesto: 'BOR', orden: 1, fecha: 'x' }, 403, 'no_abierto', 'ni en un puesto suyo que no está abierto');
+      PR.siguiente = { ok: false, codigo: 'ajena', error: 'Esa marca la puso otra persona: solo ella puede quitarla.' };
+      await escribe('prueba-profesor-1', 'desmarcar', { puesto: 'PRO', orden: 1, fecha: '2026-10-26T10:00' }, 400, 'ajena', 'la marca de otra persona la rechaza el script, y el aviso llega a la pantalla', true);
       await escribe('prueba-coord-as', 'revisar', { puesto: 'CUMP', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 403, 'sin_permiso', 'quien ocupa CUMP no lo verifica, aunque sea su jefe y su verificador');
       await escribe('prueba-direccion', 'revisar', { puesto: 'CUMP', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'lo verifica Dirección');
       const vh = await escribe('prueba-coord-as', 'revisar', { puesto: 'PRO', hoja: 'Hoja de PRO', periodo: '2026-10-26', sorpresa: 'No', resultado: 'Cumplido' }, 200, '', 'el jefe verifica la hoja de su equipo');
@@ -1305,7 +1328,9 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
       ok(/class="pr-entrada vidrio-tarjeta" href="#documentos"/.test(pr) && /class="pr-entrada vidrio-tarjeta" href="#equipo"/.test(pr) && !/pr-vistas|Por unidad/.test(pr), 'Procesos: dos tarjetas, Documentos y Equipo; sin las pestañas de antes');
       ok(/cabecera\(\[RUTA_PROCESOS, RUTA_DOCS, \{ texto: nom \}\]\)/.test(pr) && /cabecera\(sub === 'org' \? \[RUTA_PROCESOS, \{ texto: 'Equipo' \}\] : \[RUTA_PROCESOS, RUTA_EQUIPO, \{ texto: sub === 'reglas' \? 'Reglas del juego' : 'Horarios del servicio' \}\]\)/.test(pr),
         'ruta Inicio / Procesos / Documentos, Inicio / Procesos / Equipo y (29-oct) Inicio / Procesos / Equipo / Reglas del juego u Horarios del servicio');
-      ok(/const VISTAS_EQUIPO = \{ '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' \};/.test(pr) && /if \(v !== 'equipo'\) Organigrama\.salir\(\);/.test(pr) && /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/organigrama\.js/.test(pr),
+      ok(/const VISTAS_EQUIPO = \{ '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' \};/.test(pr) && /if \(v !== 'equipo'\) Organigrama\.salir\(\);/.test(pr) && /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/organigrama\.js/.test(pr) &&
+        // 2-nov: Mi lista carga la misma lista de verificación que la ficha.
+        /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>/.test(fs.readFileSync(path.join(web, 'equipo', 'index.html'), 'utf8')),
         '29-oct: Procesos abre Reglas del juego, Horarios y una ficha por dirección, carga comun/puestos.js y apaga la escena oscura al salir de Equipo');
       const as = (await n['prueba-coord-as'].get('/after-school/')).texto;
       ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(as) && /id="ocTotal"/.test(as) && /const o = Cifras\.ocupacionAS\(E\);/.test(as), 'Ocupación: el total de la semana con la regla del Resumen');

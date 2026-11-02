@@ -39,6 +39,13 @@ const FICHA = { version: 1, fechaVersion: '2026-10-29', verifica: 'Dirección, c
   lista: [], procesos: [], ocupo: false, jefe: false, verifico: false, aceptada: false, aceptadaVersion: null, aceptadaFecha: '', verificador: null, pdf: true, hojas: [], marcas: [], revisiones: [] };
 const LEER = { hoy: '2026-10-29', generado: '', yo: { usuario: 'admin-de-prueba', todo: true }, puestos: PUESTOS, fichas: Object.fromEntries(PUESTOS.map(p => [p.id, FICHA])),
   mios: [], revisar: [], reglas: [], momentos: [], horarios: [], faltan: [], personas: {} };
+// 2-nov (Equipo v3): O0 abierto, ocupado por quien mira, con subpuntos, lista y una hoja: para las pestañas y «Ampliar».
+PUESTOS.find(p => p.id === 'O0').estado = 'Abierto al equipo';
+LEER.fichas.O0 = Object.assign({}, FICHA, { ocupo: true, contrato: { resultado: ['Resultado de prueba'], trabajo: ['General de prueba. Incluye:', '1.1 Subpunto de prueba', 'Otro general de prueba'], estandares: ['Estándar de prueba'] },
+  lista: [{ orden: 1, texto: 'Punto de prueba', evidencia: '', frecuencia: 'Diario', periodo: '2026-10-29', forma: 'dia', evento: false, grupo: 'Diario', grupoOrden: 1 }],
+  hojas: [{ hoja: 'Hoja de prueba', temporal: true, pasos: [{ orden: 1, momento: 'Al abrir', paso: 'Paso de prueba', forma: 'dia' }], marcas: [], revisiones: [] }] });
+LEER.reglas = [{ seccion: 'Regla de prueba', textos: ['Texto de la regla'] }];
+LEER.calendario = { '2026-10-29': { dia: '2026-10-29', semana: '2026-S44', mes: '2026-10' } };
 const SESION = { ok: true, usuario: 'admin-de-prueba', nombre: '', apellido: '', roles: [{ id: 'admin', nombre: 'Administrador' }], areas: '*', inicio: '/' };
 // Las cuatro tarjetas (de cuatro áreas, arriba y abajo de sus columnas) que se tocan.
 const OBJETIVOS = ['O0', 'S3', 'F6', 'V1'];
@@ -80,6 +87,49 @@ async function preparar(navegador, opciones) {
   await page.waitForSelector('[data-eq-puesto="DIR"]');
   await page.waitForTimeout(3200);   // termina la entrada en cascada (~2,5 s)
   return { ctx, page, errores };
+}
+
+/*
+ * 2-nov (Equipo v3): las pestañas de la ficha y «Ampliar», con clics reales (o toques).
+ * Ampliar: abre a pantalla completa con letra grande; se vuelve con Esc, con la X y con «Volver»;
+ * desde ahí se descarga el PDF (con los subpuntos) y se acepta (pasando por las Reglas del juego).
+ */
+async function fichaV3(page, donde, yaAbierta) {
+  const tocar = async sel => { await page.locator(sel).first().scrollIntoViewIfNeeded(); if (yaAbierta) await page.locator(sel).first().tap(); else await page.locator(sel).first().click(); await page.waitForTimeout(200); };
+  const estado = () => page.evaluate(() => { const d = document.querySelector('dialog.eq-dialogo'), r = d.getBoundingClientRect(), p = document.querySelector('.eq-papel.grande');
+    return { abierta: d.open, amplio: d.classList.contains('amplio'), lleno: Math.round(r.width) === innerWidth && Math.round(r.height) === innerHeight, letra: p ? getComputedStyle(p).fontSize : '',
+      pestana: (document.querySelector('[role="tab"][aria-selected="true"]') || {}).textContent || '', reglas: !!document.querySelector('[data-eq-lei]') }; });
+  if (!yaAbierta) {
+    const p = await centro(page, 'O0');
+    await page.mouse.move(p.x, p.y, { steps: 3 }); await page.waitForTimeout(400); await page.mouse.click(p.x, p.y); await page.waitForTimeout(250);
+  }
+  ok(await abierta(page) === nombre('O0') && (await estado()).pestana === 'Contrato', donde + ': la ficha abre en la pestaña «Contrato»');
+  await tocar('[data-eq-pestana="lista"]');
+  ok((await estado()).pestana === 'Lista de verificación' && await page.locator('.vf-lista [data-vf-marcar="1|Ejecutado"]').count() === 1, donde + ': la pestaña «Lista de verificación» muestra la lista con sus botones');
+  await tocar('[data-eq-pestana="hojas"]');
+  ok((await estado()).pestana === 'Hojas del día' && /Asignación temporal/.test(await page.locator('.eq-hoja h3').textContent()), donde + ': la pestaña «Hojas del día» muestra la hoja (con «Asignación temporal»)');
+  await tocar('[data-eq-pestana="contrato"]');
+  await tocar('[data-eq-ampliar]');
+  let e = await estado();
+  ok(e.amplio && e.lleno && e.letra === '18px', donde + ': «Ampliar» abre el contrato a pantalla completa, con letra de 18 px (' + JSON.stringify(e) + ')');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  e = await estado();
+  ok(e.abierta && !e.amplio && e.pestana === 'Contrato', donde + ': Esc vuelve a la ficha (no la cierra)');
+  await tocar('[data-eq-ampliar]'); await tocar('.eq-amplio-acc [data-eq-reducir]');
+  e = await estado();
+  ok(e.abierta && !e.amplio, donde + ': la X vuelve a la ficha');
+  await tocar('[data-eq-ampliar]'); await tocar('.eq-amplio-barra > [data-eq-reducir]');
+  e = await estado();
+  ok(e.abierta && !e.amplio, donde + ': «Volver» vuelve a la ficha');
+  await tocar('[data-eq-ampliar]');
+  await page.evaluate(() => { window.__impresiones = []; window.print = () => { window.__impresiones.push(document.getElementById('eq-impresion').innerHTML); }; });
+  await tocar('.eq-amplio-acc [data-eq-pdf]'); await page.waitForTimeout(150);
+  const imp = await page.evaluate(() => window.__impresiones);
+  ok(imp.length === 1 && /<ul class="eq-subs"><li><b class="eq-subn">1\.1<\/b> <span>Subpunto de prueba<\/span>/.test(imp[0]) && /4\. Firma/.test(imp[0]), donde + ': desde el ampliado se descarga el PDF, con los subpuntos');
+  await tocar('.eq-amplio [data-eq-aceptar]');
+  e = await estado();
+  ok(e.abierta && !e.amplio && e.reglas, donde + ': desde el ampliado se acepta: primero las Reglas del juego, en la ficha');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
 }
 
 let base = '';
@@ -132,6 +182,20 @@ let base = '';
       const p = await centro(page, 'S3');
       await page.mouse.move(p.x, p.y, { steps: 3 }); await page.waitForTimeout(400); await page.mouse.click(p.x, p.y); await page.waitForTimeout(250);
       ok(await abierta(page) === nombre('S3'), 'y después de acercar y ajustar, el clic sigue abriendo la ficha');
+      await cerrar(page);
+      await fichaV3(page, '1366 × 768');
+      ok(!errores.length, 'sin errores de JavaScript (' + errores.join(' | ') + ')');
+      await ctx.close();
+    }
+    console.log('· celular (375 × 812, táctil): la ficha por dirección');
+    {
+      const ctx = await navegador.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
+      const page = await ctx.newPage(), errores = [];
+      page.on('pageerror', e => errores.push(e.message));
+      await page.goto(base + '/procesos/#puesto=O0');
+      await page.waitForSelector('dialog.eq-dialogo[open]');
+      ok(await page.evaluate(() => { const t = document.querySelector('.eq-pestanas'); return t.scrollWidth <= t.clientWidth && t.children.length === 3; }), 'las tres pestañas caben en el ancho del celular');
+      await fichaV3(page, '375 × 812', true);
       ok(!errores.length, 'sin errores de JavaScript (' + errores.join(' | ') + ')');
       await ctx.close();
     }

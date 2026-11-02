@@ -37,12 +37,32 @@
  *    · La Hora de «Horarios del servicio» se lee COMO SE VE en el Sheet
  *      (Sheets convierte «10:00» en una hora y la devolvería como fecha).
  *    Desde v3 escribe solo en Aceptaciones, Marcas, Marcas de hojas y
- *    Revisiones (en Marcas de hojas también borra, al desmarcar).
+ *    Revisiones (en v3 y v4, Marcas de hojas también borraba al desmarcar;
+ *    desde v5 no borra nada, ver abajo).
  *
  *  · 30-oct (v4): «Cada cuánto» acepta Quincenal (AAAA-MM-Q1/Q2), Trimestral
  *    (AAAA-T1…T4), Cada 4 meses (AAAA-C1…C3) y los de «por evento» (lo que
  *    empieza con «Por », Cada rotación, Cada cambio de tema): período = el
  *    día. «leer» agrega a cada punto su grupo y el orden del grupo.
+ *
+ *  · 2-nov (v5): Equipo v3.
+ *    · Marcas: el resultado es «Ejecutado» o «No ejecutado» (lo que llegue
+ *      como «Cumplido» o «No», de un portal viejo, se escribe con el nombre
+ *      nuevo). «No ejecutado» pide nota (el motivo); los puntos «por evento»
+ *      también (a qué evento corresponde). Un punto que no es por evento se
+ *      marca una vez por período: para cambiarlo se quita la marca primero.
+ *    · desmarcar { puesto, orden, fecha }: quita una marca SIN borrar nada:
+ *      agrega una fila con Resultado «Desmarcada» y en la Nota la fecha y hora
+ *      de la marca que quita. Solo la propia y solo mientras siga abierto su
+ *      período (el día, la semana, el mes… del punto; por evento, el mismo día).
+ *    · marcarHoja: desmarcar ya no borra la fila (D-086 cambia): agrega
+ *      «Desmarcada», con las mismas reglas. Los pasos con Momento «Cada
+ *      semana» o «Cada mes» se marcan una vez en su semana o su mes.
+ *    · «leer» trae el calendario de los últimos DIAS_CALENDARIO días (el
+ *      período de cada forma para cada día: así la pantalla consulta el
+ *      historial sin repetir la regla), la forma de cada punto y de cada paso,
+ *      y la fecha y hora con segundos (identifica la marca que se quita).
+ *    · Hojas tiene la columna opcional «Asignación» («Temporal»).
  *
  *  Instalación: Extensiones › Apps Script en el MISMO Sheet, pegar este
  *  archivo, poner la propiedad PR_CLAVE_API e Implementar como aplicación
@@ -51,14 +71,20 @@
  *  dirección /exec no cambia), y correr actualizarEstructura una vez.
  * ═════════════════════════════════════════════════════════════════════════════ */
 
-var VERSION_SCRIPT = 'v4';   // 30-oct: frecuencias nuevas de «Cada cuánto» (v3, 29-oct: Hojas, Reglas, Horarios y Marcas de hojas)
+var VERSION_SCRIPT = 'v5';   // 2-nov: Equipo v3 — Ejecutado / No ejecutado, desmarcar sin borrar (v4, 30-oct: frecuencias nuevas)
 var PROP_CLAVE = 'PR_CLAVE_API';
 var FILAS_PARA_BUSCAR_TITULOS = 10;
+var DIAS_CALENDARIO = 120;   // el historial que se puede consultar (equipo/api.php manda las marcas de los mismos 120 días)
 
 /* Vocabulario del Sheet (lo que dice su pestaña Léeme). */
 var ABIERTO = 'Abierto al equipo';
-var RESULTADOS = ['Cumplido', 'No'];
+var RESULTADOS = ['Ejecutado', 'No ejecutado'];                       // marcas de la lista (2-nov)
+var SINONIMOS = { 'cumplido': 'Ejecutado', 'no': 'No ejecutado' };    // lo que mandaba el portal hasta v4
+var DESMARCADA = 'Desmarcada';
+var RESULTADOS_REVISION = ['Cumplido', 'No'];                         // la revisión de quien verifica, como siempre
 var SORPRESA = ['Sí', 'No'];
+/* 2-nov: el Momento de un paso de hoja que no es de cada día → la forma de su período. */
+var MOMENTO_PERIODO = { 'cada semana': 'semana', 'cada mes': 'mes' };
 var SECCIONES = { resultado: 'Resultado', trabajo: 'Trabajo', estandares: 'Estándar' };
 /* «Cada cuánto» → [forma del período, grupo de la lista, orden del grupo].
    30-oct (v4): Quincenal, Trimestral y Cada 4 meses; y «por evento»: lo que
@@ -103,17 +129,25 @@ var TABLAS = {
     ['Cifra', 'cifra'], ['Unidad', 'unidad'], ['Período', 'periodo', 'periodoMeta'], ['Valor', 'valor', 'numero'], ['Estado', 'estado']] },
   // 29-oct (v3): las tres pestañas nuevas que edita Actio y la que escribe el portal.
   hojas: { hoja: 'Hojas', obligatorias: ['Puesto ID', 'Hoja', 'Paso'], columnas: [
-    ['Puesto ID', 'puesto'], ['Hoja', 'hoja'], ['Orden', 'orden', 'numero'], ['Momento', 'momento'], ['Paso', 'paso']] },
+    ['Puesto ID', 'puesto'], ['Hoja', 'hoja'], ['Orden', 'orden', 'numero'], ['Momento', 'momento'], ['Paso', 'paso'],
+    // 2-nov (v5): opcional; «Temporal» = la hoja la tiene el puesto por un tiempo (el portal lo dice junto a su nombre).
+    ['Asignación', 'asignacion']] },
   reglas: { hoja: 'Reglas del juego', obligatorias: ['Sección', 'Texto'], columnas: [
     ['Sección', 'seccion'], ['Orden', 'orden', 'numero'], ['Texto', 'texto']] },
   horarios: { hoja: 'Horarios del servicio', obligatorias: ['Momento', 'Hora'], columnas: [
     ['Momento', 'momento'], ['Unidad', 'unidad'], ['Hora', 'hora', 'visible'], ['Puestos que lo usan', 'puestos']] },
   // Opcional: la crea marcarHoja (o actualizarEstructura) la primera vez; mientras no exista, no se avisa.
   marcasHojas: { hoja: 'Marcas de hojas', opcional: true, obligatorias: ['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden'], columnas: [
-    ['Fecha y hora', 'fecha', 'fechaHora'], ['Usuario', 'usuario'], ['Puesto ID', 'puesto'], ['Hoja', 'hoja'], ['Orden', 'orden', 'numero'], ['Iniciales', 'iniciales']] }
+    ['Fecha y hora', 'fecha', 'fechaHora'], ['Usuario', 'usuario'], ['Puesto ID', 'puesto'], ['Hoja', 'hoja'], ['Orden', 'orden', 'numero'], ['Iniciales', 'iniciales'],
+    // 2-nov (v5): «Ejecutado» o «Desmarcada» (vacío = Ejecutado: las filas de antes) y, al desmarcar, la fecha y hora de la marca que se quita.
+    ['Resultado', 'resultado'], ['Nota', 'nota']] }
 };
-var TITULOS_MARCAS_HOJAS = ['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales'];
-var LEEME_MARCAS_HOJAS = ['Marcas de hojas', 'La escribe el portal: cada paso marcado de una hoja diaria, con la fecha y hora y las iniciales de quien lo marcó. No editar a mano.'];
+var TITULOS_MARCAS_HOJAS = ['Fecha y hora', 'Usuario', 'Puesto ID', 'Hoja', 'Orden', 'Iniciales', 'Resultado', 'Nota'];
+/* Renglones del Léeme que escribe este script: si falta, se agrega al final; si ya está, se pone el texto de esta versión. */
+var LEEME = [
+  ['Marcas de hojas', 'La escribe el portal: cada paso marcado de una hoja, con la fecha y hora y las iniciales de quien lo marcó. Quitar una marca no borra nada: agrega una fila con Resultado «Desmarcada» y en la Nota la fecha y hora de la marca que quita. No editar a mano.'],
+  ['Marcas: Ejecutado, No ejecutado y Desmarcada', 'Cada punto de la lista se marca «Ejecutado» o «No ejecutado» (con el motivo en la Nota). Quitar una marca agrega una fila «Desmarcada» con la fecha y hora de la marca que quita; nada se borra. Las marcas viejas «Cumplido» y «No» se leen como «Ejecutado» y «No ejecutado».'],
+  ['Asignación (pestaña Hojas)', 'Opcional. «Temporal» = el puesto tiene esa hoja por un tiempo; el portal muestra «Asignación temporal» junto al nombre de la hoja.']];
 /* Las pestañas cuyas filas nombran un puesto: «leer» avisa si el puesto no existe en Puestos. */
 var CON_PUESTO = ['contratos', 'listas', 'hojas', 'procesos', 'asignaciones'];
 
@@ -144,7 +178,7 @@ function igualSeguro_(a, b) {
 function ErrorUsuario_(mensaje, codigo) { this.message = mensaje; this.codigo = codigo || ''; }
 
 var ACCIONES = { leer: { escribe: false, fn: leer_ }, aceptar: { escribe: true, fn: aceptar_ }, marcar: { escribe: true, fn: marcar_ }, revisar: { escribe: true, fn: revisar_ },
-                 marcarHoja: { escribe: true, fn: marcarHoja_ } };
+                 marcarHoja: { escribe: true, fn: marcarHoja_ }, desmarcar: { escribe: true, fn: desmarcar_ } };
 
 function atender_(p) {
   var clave = PropertiesService.getScriptProperties().getProperty(PROP_CLAVE);
@@ -176,12 +210,16 @@ function leer_() {
   Object.keys(TABLAS).forEach(function (k) { out[k] = leerTabla_(ss, TABLAS[k], faltan).filas; });
   // El período en curso de cada punto (la regla vive SOLO aquí: el puente y la pantalla no la repiten).
   // 30-oct: también su grupo en la lista y el orden del grupo (desconocido: su propio texto, al final).
+  // 2-nov (v5): la forma del período (dia, semana…) y si es «por evento» (la nota es obligatoria).
   out.listas.forEach(function (x) {
     var r = reglaDe_(x.frecuencia);
     x.grupo = r ? r[1] : texto_(x.frecuencia); x.grupoOrden = r ? r[2] : 99;
+    x.forma = r ? r[0] : ''; x.evento = r === POR_EVENTO;
     try { x.periodo = periodoDe_(x.frecuencia, out.hoy); }
     catch (e) { x.periodo = ''; faltan.push('Listas: «Cada cuánto» = «' + x.frecuencia + '» (' + x.puesto + ' · ' + x.orden + ') no es uno de los conocidos'); }
   });
+  out.hojas.forEach(function (x) { x.forma = formaPaso_(x.momento); });
+  out.calendario = calendario_(out.hoy);
   // 29-oct: filas que nombran un puesto que no está en Puestos (no se cortan: se avisan).
   var ids = {};
   out.puestos.forEach(function (p) { ids[p.id] = true; });
@@ -235,11 +273,13 @@ function dos_(n) { return (n < 10 ? '0' : '') + n; }
 function zona_() { return SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(); }
 function hoyISO_() { return Utilities.formatDate(new Date(), zona_(), 'yyyy-MM-dd'); }
 function isoDe_(d) { return Utilities.formatDate(d, zona_(), 'yyyy-MM-dd'); }
+function fechaHoraDe_(d) { return Utilities.formatDate(d, zona_(), "yyyy-MM-dd'T'HH:mm:ss"); }
 
 function convertir_(x, tipo) {
   if (tipo === 'numero') { if (x === '' || x == null) return null; var n = Number(String(x).replace(',', '.')); return isNaN(n) ? null : n; }
   if (tipo === 'fecha' || tipo === 'fechaHora') {
-    if (Object.prototype.toString.call(x) === '[object Date]') return tipo === 'fecha' ? isoDe_(x) : Utilities.formatDate(x, zona_(), "yyyy-MM-dd'T'HH:mm");
+    // 2-nov (v5): con segundos — la Nota de una fila «Desmarcada» nombra así la marca que quita.
+    if (Object.prototype.toString.call(x) === '[object Date]') return tipo === 'fecha' ? isoDe_(x) : fechaHoraDe_(x);
     var s = texto_(x), m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (m) return m[3] + '-' + dos_(+m[2]) + '-' + dos_(+m[1]);
     return s;
@@ -272,7 +312,32 @@ function reglaDe_(frecuencia) {
 function periodoDe_(frecuencia, iso) {
   var r = reglaDe_(frecuencia);
   if (!r) throw new ErrorUsuario_('«Cada cuánto» = «' + texto_(frecuencia) + '» no es uno de: Diario, Semanal, Quincenal, Mensual, Trimestral, Cada 4 meses, Por temporada, Cuando aplica, Cada rotación, Cada cambio de tema o uno que empiece con «Por » (por evento).', 'frecuencia');
-  var forma = r[0], anio = iso.slice(0, 4), mes = +iso.slice(5, 7);
+  return periodoForma_(r[0], iso);
+}
+
+/** 2-nov: la forma del período de un paso de hoja: «Cada semana» → semana, «Cada mes» → mes, lo demás → el día. */
+function formaPaso_(momento) { return MOMENTO_PERIODO[normalizar_(momento)] || 'dia'; }
+
+/** 2-nov: el día AAAA-MM-DD que está n días antes de iso. */
+function diasAntes_(iso, n) {
+  var d = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) - n));
+  return d.getUTCFullYear() + '-' + dos_(d.getUTCMonth() + 1) + '-' + dos_(d.getUTCDate());
+}
+
+/** 2-nov: {AAAA-MM-DD: {dia, semana, quincena, mes, trimestre, cuatrimestre, anio}} de hoy y los DIAS_CALENDARIO días anteriores. */
+function calendario_(hoy) {
+  var out = {}, formas = ['dia', 'semana', 'quincena', 'mes', 'trimestre', 'cuatrimestre', 'anio'];
+  for (var i = DIAS_CALENDARIO; i >= 0; i--) {
+    var dia = diasAntes_(hoy, i), c = {};
+    formas.forEach(function (f) { c[f] = periodoForma_(f, dia); });
+    out[dia] = c;
+  }
+  return out;
+}
+
+/** El período de una forma (dia, semana, quincena, mes, trimestre, cuatrimestre, anio) que contiene el día iso. */
+function periodoForma_(forma, iso) {
+  var anio = iso.slice(0, 4), mes = +iso.slice(5, 7);
   if (forma === 'dia') return iso;
   if (forma === 'semana') return semanaISO_(iso);
   if (forma === 'quincena') return iso.slice(0, 7) + (+iso.slice(8, 10) <= 15 ? '-Q1' : '-Q2');   // del 1 al 15, y del 16 a fin de mes
@@ -306,10 +371,17 @@ function puestoAbierto_(ss, id) {
   return p;
 }
 
-/** Agrega filas al final de una pestaña, cada valor en la columna de su título. Período y versión como texto. */
+/**
+ * Agrega filas al final de una pestaña, cada valor en la columna de su título. Período, versión y nota como texto.
+ * 2-nov: si una fila trae un título que la pestaña no tiene, NO escribe nada (una «Desmarcada» sin su columna
+ * Resultado se leería como una marca nueva).
+ */
 function agregar_(ss, def, objetos) {
   var f = [], t = leerTabla_(ss, def, f);
   if (!t.hoja || !t.col) throw new ErrorUsuario_('Falta la pestaña «' + def.hoja + '» o sus títulos.', 'sin_estructura');
+  objetos.forEach(function (o) { Object.keys(o).forEach(function (titulo) {
+    if (!t.col[normalizar_(titulo)]) throw new ErrorUsuario_('A la pestaña «' + def.hoja + '» le falta la columna «' + titulo + '». Corre actualizarEstructura en el editor del script.', 'sin_estructura');
+  }); });
   var ancho = Math.max.apply(null, Object.keys(t.col).map(function (k) { return t.col[k]; }));
   var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos) + 1;
   var matriz = objetos.map(function (o) {
@@ -317,7 +389,7 @@ function agregar_(ss, def, objetos) {
     Object.keys(o).forEach(function (titulo) { var c = t.col[normalizar_(titulo)]; if (c) fila[c - 1] = o[titulo]; });
     return fila;
   });
-  ['Período', 'Versión', 'Orden del punto'].forEach(function (titulo) {
+  ['Período', 'Versión', 'Orden del punto', 'Nota'].forEach(function (titulo) {
     var c = t.col[normalizar_(titulo)];
     if (c) t.hoja.getRange(desde, c, objetos.length, 1).setNumberFormat('@');
   });
@@ -332,24 +404,67 @@ function aceptar_(d, usuario) {
   return { puesto: p.id, version: p.version };
 }
 
+/**
+ * 2-nov: las marcas que siguen en pie. Una fila «Desmarcada» quita la marca de su mismo usuario y punto
+ * cuya fecha y hora es su Nota. clave(x) dice qué es «el mismo punto» (en Marcas, el orden; en las hojas,
+ * la hoja y el orden). Las filas sin Resultado (Marcas de hojas de antes de v5) son marcas.
+ */
+function vigentes_(filas, clave) {
+  var quitadas = {};
+  filas.forEach(function (x) { if (normalizar_(x.resultado) === normalizar_(DESMARCADA)) quitadas[normalizar_(x.usuario) + '|' + clave(x) + '|' + texto_(x.nota)] = true; });
+  return filas.filter(function (x) { return normalizar_(x.resultado) !== normalizar_(DESMARCADA) && !quitadas[normalizar_(x.usuario) + '|' + clave(x) + '|' + x.fecha]; });
+}
+
+/** «Ejecutado» o «No ejecutado» (también lo que mandaba un portal viejo: «Cumplido» y «No»). */
+function resultado_(v) {
+  var n = normalizar_(v), r = RESULTADOS.filter(function (x) { return normalizar_(x) === n; })[0] || SINONIMOS[n];
+  if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(v) + '» (Ejecutado o No ejecutado).', 'resultado');
+  return r;
+}
+
+function fila_(m) { return { fecha: m['Fecha y hora'] instanceof Date ? fechaHoraDe_(m['Fecha y hora']) : texto_(m['Fecha y hora']), usuario: m['Usuario'], orden: Number(m['Orden del punto']),
+                             periodo: m['Período'], resultado: m['Resultado'], nota: m['Nota'] }; }
+
 function marcar_(d, usuario) {
   var ss = SpreadsheetApp.getActiveSpreadsheet(), p = puestoAbierto_(ss, d.puesto), f = [];
   var puntos = leerTabla_(ss, TABLAS.listas, f).filas.filter(function (x) { return x.puesto === p.id; });
   var marcas = Object.prototype.toString.call(d.marcas) === '[object Array]' ? d.marcas : [];
   if (!marcas.length) throw new ErrorUsuario_('No hay marcas para guardar.', 'vacia');
   var hoy = hoyISO_(), vistos = {}, ahora = new Date();
+  // 2-nov: lo ya marcado en pie, para no marcar dos veces el mismo período.
+  var enPie = vigentes_(leerTabla_(ss, TABLAS.marcas, f).filas.filter(function (x) { return x.puesto === p.id; }), function (x) { return x.orden; });
   var filas = marcas.map(function (m) {
     var orden = Number(m && m.orden), punto = puntos.filter(function (x) { return x.orden === orden; })[0];
     if (!punto) throw new ErrorUsuario_('El punto ' + texto_(m && m.orden) + ' no es de la lista de «' + p.puesto + '».', 'punto');
-    if (vistos[orden]) throw new ErrorUsuario_('El punto ' + orden + ' viene dos veces.', 'punto');
+    var evento = reglaDe_(punto.frecuencia) === POR_EVENTO, periodo = periodoDe_(punto.frecuencia, hoy);
+    // Por evento se marca cada vez que ocurre (varias en un envío, cada una con su nota); lo demás, una vez.
+    if (vistos[orden] && !evento) throw new ErrorUsuario_('El punto ' + orden + ' viene dos veces.', 'punto');
     vistos[orden] = true;
-    var r = RESULTADOS.filter(function (x) { return normalizar_(x) === normalizar_(m.resultado); })[0];
-    if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(m.resultado) + '» (Cumplido o No).', 'resultado');
-    return { 'Fecha y hora': ahora, 'Usuario': usuario, 'Puesto ID': p.id, 'Orden del punto': String(orden),
-             'Período': periodoDe_(punto.frecuencia, hoy), 'Resultado': r, 'Nota': texto_(m.nota).slice(0, 500) };
+    var r = resultado_(m.resultado), nota = texto_(m.nota).slice(0, 500);
+    if (r === 'No ejecutado' && !nota) throw new ErrorUsuario_('«No ejecutado» lleva el motivo en la nota (punto ' + orden + ').', 'nota');
+    if (evento && !nota) throw new ErrorUsuario_('El punto ' + orden + ' se marca cada vez que ocurre: la nota dice a qué corresponde.', 'nota');
+    if (!evento && enPie.some(function (x) { return x.orden === orden && x.periodo === periodo; }))
+      throw new ErrorUsuario_('El punto ' + orden + ' ya está marcado en este período. Para cambiarlo, primero quita la marca.', 'ya_marcado');
+    return { 'Fecha y hora': ahora, 'Usuario': usuario, 'Puesto ID': p.id, 'Orden del punto': String(orden), 'Período': periodo, 'Resultado': r, 'Nota': nota };
   });
   agregar_(ss, TABLAS.marcas, filas);
-  return { puesto: p.id, marcas: filas.map(function (x) { return { orden: Number(x['Orden del punto']), periodo: x['Período'] }; }) };
+  return { puesto: p.id, marcas: filas.map(fila_) };
+}
+
+/** 2-nov: quitar una marca propia de un período abierto: agrega «Desmarcada» (nunca borra ni edita). */
+function desmarcar_(d, usuario) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), p = puestoAbierto_(ss, d.puesto), f = [];
+  var orden = Number(d.orden), fecha = texto_(d.fecha);
+  var punto = leerTabla_(ss, TABLAS.listas, f).filas.filter(function (x) { return x.puesto === p.id && x.orden === orden; })[0];
+  if (!punto) throw new ErrorUsuario_('El punto ' + texto_(d.orden) + ' no es de la lista de «' + p.puesto + '».', 'punto');
+  var m = vigentes_(leerTabla_(ss, TABLAS.marcas, f).filas.filter(function (x) { return x.puesto === p.id; }), function (x) { return x.orden; })
+    .filter(function (x) { return x.orden === orden && x.fecha === fecha; })[0];
+  if (!m) throw new ErrorUsuario_('Esa marca ya no está: se quitó antes o no existe.', 'sin_marca');
+  if (normalizar_(m.usuario) !== normalizar_(usuario)) throw new ErrorUsuario_('Esa marca la puso otra persona: solo ella puede quitarla.', 'ajena');
+  if (m.periodo !== periodoDe_(punto.frecuencia, hoyISO_())) throw new ErrorUsuario_('El período de esa marca ya cerró: no se puede quitar.', 'cerrado');
+  var fila = { 'Fecha y hora': new Date(), 'Usuario': usuario, 'Puesto ID': p.id, 'Orden del punto': String(orden), 'Período': m.periodo, 'Resultado': DESMARCADA, 'Nota': m.fecha };
+  agregar_(ss, TABLAS.marcas, [fila]);
+  return { puesto: p.id, marca: fila_(fila) };
 }
 
 /** Los pasos de una hoja de un puesto (la hoja por su nombre, sin mayúsculas ni tildes). */
@@ -369,7 +484,7 @@ function revisar_(d, usuario) {
     notaHoja = 'Hoja «' + pasos[0].hoja + '»';
   }
   if (!periodoValido_(d.periodo)) throw new ErrorUsuario_('Período inválido: «' + texto_(d.periodo) + '».', 'periodo');
-  var r = RESULTADOS.filter(function (x) { return normalizar_(x) === normalizar_(d.resultado); })[0];
+  var r = RESULTADOS_REVISION.filter(function (x) { return normalizar_(x) === normalizar_(d.resultado); })[0];
   if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(d.resultado) + '» (Cumplido o No).', 'resultado');
   var s = SORPRESA.filter(function (x) { return normalizar_(x) === normalizar_(d.sorpresa); })[0];
   if (!s) throw new ErrorUsuario_('Sorpresa: Sí o No.', 'sorpresa');
@@ -382,30 +497,23 @@ function revisar_(d, usuario) {
 
 /* ─── Hojas diarias (29-oct) ───────────────────────────────────────────── */
 
-/** La pestaña «Marcas de hojas»; si no existe, la crea con sus títulos. */
+/**
+ * La pestaña «Marcas de hojas»; si no existe, la crea con sus títulos. 2-nov (v5): si existe sin «Resultado»
+ * o «Nota», se los agrega al final (sin ellos, quitar una marca no tendría dónde decir «Desmarcada»).
+ */
 function hojaMarcasHojas_(ss) {
   var h = hoja_(ss, TABLAS.marcasHojas.hoja);
-  if (h) return h;
+  if (h) { agregarTitulos_(h, TABLAS.marcasHojas.obligatorias, TITULOS_MARCAS_HOJAS); return h; }
   h = ss.insertSheet(TABLAS.marcasHojas.hoja);
   h.getRange(1, 1, 1, TITULOS_MARCAS_HOJAS.length).setValues([TITULOS_MARCAS_HOJAS]);
   h.setFrozenRows(1);
   return h;
 }
 
-/** Las marcas de HOY de una hoja: [{orden, fecha, usuario, iniciales, fila}] (fila = número de fila en la pestaña). */
-function marcasDeHoy_(ss, puesto, hoja) {
-  var t = leerTabla_(ss, TABLAS.marcasHojas, []), hoy = hoyISO_(), out = [];
-  if (!t.hoja || !t.col) return out;
-  var vals = t.hoja.getDataRange().getValues(), c = function (titulo) { return t.col[normalizar_(titulo)] - 1; };
-  for (var i = t.filaTitulos; i < vals.length; i++) {
-    var f = vals[i];
-    if (texto_(f[c('Puesto ID')]) !== puesto || normalizar_(f[c('Hoja')]) !== normalizar_(hoja)) continue;
-    var fecha = convertir_(f[c('Fecha y hora')], 'fechaHora');
-    if (fecha.slice(0, 10) !== hoy) continue;
-    out.push({ orden: convertir_(f[c('Orden')], 'numero'), fecha: fecha, usuario: texto_(f[c('Usuario')]),
-               iniciales: t.col[normalizar_('Iniciales')] ? texto_(f[c('Iniciales')]) : '', fila: i + 1 });
-  }
-  return out;
+/** 2-nov: las marcas en pie de una hoja (todas las fechas): [{fecha, usuario, orden, iniciales, …}]. */
+function marcasHojaEnPie_(ss, puesto, hoja) {
+  var filas = leerTabla_(ss, TABLAS.marcasHojas, []).filas.filter(function (x) { return x.puesto === puesto && normalizar_(x.hoja) === normalizar_(hoja); });
+  return vigentes_(filas, function (x) { return x.orden; });
 }
 
 /** Iniciales limpias: hasta 4 letras en mayúscula; sin nada, las dos primeras del usuario. */
@@ -421,15 +529,20 @@ function marcarHoja_(d, usuario) {
   var orden = Number(d.orden), paso = pasos.filter(function (x) { return x.orden === orden; })[0];
   if (!paso) throw new ErrorUsuario_('El paso ' + texto_(d.orden) + ' no es de la hoja «' + pasos[0].hoja + '».', 'paso');
   if (d.marcado !== true && d.marcado !== false) throw new ErrorUsuario_('Falta decir si el paso se marca o se desmarca.', 'marcado');
-  var h = hojaMarcasHojas_(ss), ya = marcasDeHoy_(ss, p.id, paso.hoja).filter(function (m) { return m.orden === orden; });
+  // 2-nov (v5): el período del paso (el día; «Cada semana», su semana; «Cada mes», su mes) y sus marcas en pie en ese período.
+  hojaMarcasHojas_(ss);
+  var forma = formaPaso_(paso.momento), hoy = hoyISO_(), actual = periodoForma_(forma, hoy);
+  var ya = marcasHojaEnPie_(ss, p.id, paso.hoja).filter(function (m) { return m.orden === orden && periodoForma_(forma, m.fecha.slice(0, 10)) === actual; });
+  var filas = [], ahora = new Date();
   if (d.marcado && !ya.length) {
-    agregar_(ss, TABLAS.marcasHojas, [{ 'Fecha y hora': new Date(), 'Usuario': usuario, 'Puesto ID': p.id, 'Hoja': paso.hoja, 'Orden': orden, 'Iniciales': iniciales_(d.iniciales, usuario) }]);
+    filas.push({ 'Fecha y hora': ahora, 'Usuario': usuario, 'Puesto ID': p.id, 'Hoja': paso.hoja, 'Orden': orden, 'Iniciales': iniciales_(d.iniciales, usuario), 'Resultado': 'Ejecutado' });
   } else if (!d.marcado && ya.length) {
-    // Solo hoy y solo lo propio: una marca de otra persona no se borra desde aquí.
+    // Solo lo propio y solo en su período: nada se borra, se agrega «Desmarcada» con la fecha y hora de la marca que quita.
     if (ya.some(function (m) { return normalizar_(m.usuario) !== normalizar_(usuario); })) throw new ErrorUsuario_('Ese paso lo marcó otra persona: solo ella puede desmarcarlo.', 'ajena');
-    ya.map(function (m) { return m.fila; }).sort(function (a, b) { return b - a; }).forEach(function (fila) { h.deleteRow(fila); });
+    ya.forEach(function (m) { filas.push({ 'Fecha y hora': ahora, 'Usuario': usuario, 'Puesto ID': p.id, 'Hoja': paso.hoja, 'Orden': orden, 'Iniciales': m.iniciales, 'Resultado': DESMARCADA, 'Nota': m.fecha }); });
   }
-  return { puesto: p.id, hoja: paso.hoja, hoy: hoyISO_(), marcas: marcasDeHoy_(ss, p.id, paso.hoja).map(function (m) { return { orden: m.orden, fecha: m.fecha, usuario: m.usuario, iniciales: m.iniciales }; }) };
+  if (filas.length) agregar_(ss, TABLAS.marcasHojas, filas);
+  return { puesto: p.id, hoja: paso.hoja, hoy: hoy, filas: filas.map(function (x) { return { fecha: fechaHoraDe_(ahora), usuario: usuario, orden: orden, iniciales: x['Iniciales'], resultado: x['Resultado'], nota: x['Nota'] || '' }; }) };
 }
 
 /* ─── Estructura (26-oct; se corre a mano desde el editor) ─────────────── */
@@ -439,6 +552,8 @@ function marcarHoja_(d, usuario) {
  * listas desplegables, y agrega AL FINAL de la fila de títulos los que falten
  * en Metas y en Puestos («Visible solo para»). 29-oct (v3): crea también
  * «Marcas de hojas» y agrega al final del Léeme el renglón que la explica.
+ * 2-nov (v5): agrega «Resultado» y «Nota» al final de «Marcas de hojas»,
+ * «Asignación» al final de Hojas, y los renglones del Léeme de esta versión.
  * No mueve, no renombra y no borra nada: se puede correr las veces que haga
  * falta.
  * Cómo: en el editor de Apps Script, arriba, elegir «actualizarEstructura» y
@@ -468,14 +583,23 @@ function actualizarEstructura() {
   }
   var p = hoja_(ss, TABLAS.puestos.hoja);
   if (p) hechos = hechos.concat(agregarTitulos_(p, TABLAS.puestos.obligatorias, ['Visible solo para']));
-  // 29-oct (v3): «Marcas de hojas» y su renglón en el Léeme.
+  // 29-oct (v3): «Marcas de hojas»; 2-nov (v5): con «Resultado» y «Nota» al final.
   if (!hoja_(ss, TABLAS.marcasHojas.hoja)) { hojaMarcasHojas_(ss); hechos.push('Creé la pestaña «Marcas de hojas» con sus títulos.'); }
   else hechos = hechos.concat(agregarTitulos_(hoja_(ss, TABLAS.marcasHojas.hoja), TABLAS.marcasHojas.obligatorias, TITULOS_MARCAS_HOJAS));
+  // 2-nov (v5): Hojas con «Asignación» al final.
+  var hh = hoja_(ss, TABLAS.hojas.hoja);
+  if (hh) hechos = hechos.concat(agregarTitulos_(hh, TABLAS.hojas.obligatorias, ['Asignación']));
+  else hechos.push('No encontré la pestaña «Hojas»; no la toqué.');
+  // Los renglones del Léeme que escribe este script: el que falta se agrega al final; el que cambió, se pone al día (solo su Detalle).
   var l = hoja_(ss, 'Léeme');
   if (l) {
-    var lv = l.getDataRange().getValues();
-    if (lv.some(function (f) { return normalizar_(f[0]) === normalizar_(LEEME_MARCAS_HOJAS[0]); })) hechos.push('Léeme: ya decía qué es «Marcas de hojas».');
-    else { l.getRange(l.getLastRow() + 1, 1, 1, 2).setValues([LEEME_MARCAS_HOJAS]); hechos.push('Léeme: agregué al final qué es «Marcas de hojas».'); }
+    LEEME.forEach(function (r) {
+      var lv = l.getDataRange().getValues(), i = -1;
+      lv.forEach(function (f, k) { if (i < 0 && normalizar_(f[0]) === normalizar_(r[0])) i = k; });
+      if (i < 0) { l.getRange(l.getLastRow() + 1, 1, 1, 2).setValues([r]); hechos.push('Léeme: agregué al final «' + r[0] + '».'); }
+      else if (texto_(lv[i][1]) !== r[1]) { l.getRange(i + 1, 2).setValue(r[1]); hechos.push('Léeme: puse al día el detalle de «' + r[0] + '».'); }
+      else hechos.push('Léeme: «' + r[0] + '» ya estaba al día.');
+    });
   } else hechos.push('No encontré la pestaña «Léeme»; no la toqué.');
   Logger.log(hechos.join('\n'));
   return hechos;

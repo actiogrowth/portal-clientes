@@ -944,6 +944,80 @@ button.eq-losa { cursor: pointer; }
 .eq-sello { flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--verde-oscuro); white-space: nowrap; }
 .eq-verificar-hoja { border-top: 1px solid #E2E2E2; }
 
+/* ── Equipo v3 (2-nov): pestañas de la ficha, contrato como el PDF, Ampliar, subpuntos ── */
+.eq-pestanas { flex-shrink: 0; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--pildora); overflow-x: auto; scrollbar-width: none; }
+.eq-pestanas::-webkit-scrollbar { display: none; }
+.eq-pestanas [role="tab"] { flex: 1 0 auto; font: inherit; font-size: 14px; font-weight: 500; min-height: var(--toque); padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--texto-2); cursor: pointer; white-space: nowrap; }
+.eq-pestanas [role="tab"][aria-selected="true"] { background: var(--blanco); color: var(--texto); font-weight: 600; box-shadow: 0 1px 4px rgba(0, 0, 0, .14); }
+.eq-pestanas [role="tab"]:focus-visible { outline: 3px solid var(--negro); outline-offset: 1px; }
+/* La hoja del contrato: la misma tipografía y jerarquía que el PDF (Inter, títulos en verde). */
+.eq-papel-barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.eq-papel { font-family: 'Inter', system-ui, sans-serif; color: #1A1A1A; background: #FFFFFF; border: 1px solid #E1E4E1; border-radius: 6px; padding: 28px 30px; box-shadow: 0 2px 10px rgba(0, 0, 0, .06);
+  display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
+.eq-papel .eqp-marca { font-size: 12px; font-weight: 600; color: #5A6B7B; margin: 0; }
+.eq-papel .eqp-tit { font-family: 'Inter', system-ui, sans-serif; font-size: 26px; font-weight: 700; color: #0E4A2B; line-height: 1.15; margin: 0; letter-spacing: 0; text-transform: none; }
+.eq-papel .eqp-puesto { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
+.eq-papel .eq-sec > h3 { font-family: 'Inter', system-ui, sans-serif; font-size: 15px; margin-top: 10px; }
+.eq-papel .eq-resultado { font-size: 14px; font-weight: 400; }
+.eq-papel .eq-contrato-tabla { font-size: 13px; }
+.eq-papel.grande { font-size: 18px; line-height: 1.55; padding: 40px 48px; max-width: 860px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.eq-papel.grande .eqp-tit { font-size: 36px; }
+.eq-papel.grande .eqp-puesto { font-size: 22px; }
+.eq-papel.grande .eq-sec > h3 { font-size: 20px; }
+.eq-papel.grande .eq-resultado, .eq-papel.grande .eq-ol, .eq-papel.grande .eq-contrato-tabla, .eq-papel.grande .eq-texto-acepto { font-size: 18px; }
+/* Subpuntos: bajo su punto general, sangrados, con su «1.1» y sin número de la lista. */
+.eq-subs { list-style: none; margin: 4px 0 2px; padding-left: 14px; display: flex; flex-direction: column; gap: 4px; }
+.eq-subs li { display: block; }
+.eq-subn { font-weight: 600; margin-right: 2px; }
+.eq-ol li.eq-sin-numero { list-style: none; counter-increment: none; }
+/* El contrato ampliado: toda la pantalla, letra grande; la barra de arriba no se va. */
+.eq-dialogo.amplio { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; }
+.eq-amplio { height: 100dvh; display: flex; flex-direction: column; background: #EEF0EE; }
+.eq-amplio-barra { display: flex; align-items: center; gap: 10px; padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); background: #FFFFFF; border-bottom: 1px solid #DADADA; }
+.eq-amplio-tit { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eq-amplio-acc { display: flex; align-items: center; gap: 8px; }
+.eq-amplio-acc .btn-circulo { width: var(--toque); height: var(--toque); flex-shrink: 0; }
+.eq-amplio-cuerpo { flex: 1; overflow-y: auto; padding: 24px 16px calc(32px + env(safe-area-inset-bottom, 0px)); }
+.eq-temporal { display: inline-block; vertical-align: 2px; margin-left: 6px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #FFF4DE; color: var(--cafe); }
+@media (max-width: 640px) {
+  /* Las tres pestañas caben en el ancho del celular: el nombre largo baja a una segunda línea. */
+  .eq-pestanas [role="tab"] { flex: 1 1 0; min-width: 0; padding: 4px 8px; font-size: 13px; line-height: 1.15; white-space: normal; }
+  .eq-papel { padding: 18px 16px; }
+  .eq-papel.grande { padding: 22px 18px; }
+  .eq-papel.grande .eqp-tit { font-size: 28px; }
+  .eq-amplio-tit { display: none; }
+  .eq-amplio-barra { justify-content: space-between; }
+}
+
+/* La lista de verificación (comun/verificacion.js): la de la ficha y la de Mi lista. */
+.vf-lista { display: flex; flex-direction: column; gap: 6px; }
+.vf-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.vf-cab input[type="date"] { min-height: var(--toque); font: inherit; font-size: 14px; padding: 0 8px; border: 1px solid #CFCFCF; border-radius: 10px; background: var(--blanco); }
+.vf-resumen { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.vf-puntos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.vf-punto { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 0; border-bottom: 1px solid #ECECEC; }
+.vf-punto:last-child { border-bottom: 0; }
+.vf-cuerpo { flex: 1 1 280px; min-width: 0; display: flex; align-items: flex-start; gap: 10px; }
+.vf-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.vf-estado { flex-shrink: 0; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: var(--pildora); color: var(--texto-2); }
+.vf-estado.si { background: var(--verde-fondo); color: var(--verde-oscuro); }
+.vf-estado.no { background: #FBE3E1; color: #8C1D16; }
+.vf-estado.pendiente { background: #FFF4DE; color: var(--cafe); }
+.vf-estado.vencido { background: #B3261E; color: #FFFFFF; }
+.vf-marca { font-size: 13px; color: var(--texto-2); display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.vf-res { font-weight: 600; }
+.vf-res.si { color: var(--verde-oscuro); } .vf-res.no { color: #8C1D16; }
+.vf-quitar { font: inherit; font-size: 12px; font-weight: 600; min-height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid #CFCFCF; background: var(--blanco); color: var(--texto); cursor: pointer; }
+.vf-quitadas { font-size: 12px; color: #8C1D16; line-height: 1.4; }
+.vf-nota { flex: 1 1 100%; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--fondo-suave); }
+.vf-nota label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.vf-nota small { font-weight: 400; color: var(--texto-2); }
+.vf-nota input { min-height: var(--toque); font: inherit; font-size: 15px; padding: 0 10px; border: 1px solid #CFCFCF; border-radius: 10px; background: var(--blanco); }
+.ml-res[disabled] { opacity: .45; cursor: not-allowed; }
+.ml-res.si[aria-pressed="true"][disabled], .ml-res.no[aria-pressed="true"][disabled] { opacity: 1; cursor: default; }
+.ml-estado.neutro { background: var(--pildora); color: var(--texto-2); }
+.ml-quitada { color: #8C1D16; }
+
 /* La hoja de impresión del contrato (Descargar PDF): Inter, títulos en verde, firma, nombre y fecha. */
 #eq-impresion { display: none; }
 @media print {
@@ -953,8 +1027,10 @@ button.eq-losa { cursor: pointer; }
   html.eq-imprimiendo body > *:not(#eq-impresion) { display: none !important; }
   html.eq-imprimiendo #eq-impresion { display: block; font-family: 'Inter', system-ui, sans-serif; color: #1A1A1A; font-size: 10.5pt; line-height: 1.4; }
   #eq-impresion .eqp-marca { font-size: 9.5pt; font-weight: 600; color: #5A6B7B; margin: 0; }
-  #eq-impresion h1 { font-family: 'Inter', sans-serif; font-size: 22pt; font-weight: 700; color: #0E4A2B; margin: 0; line-height: 1.15; }
-  #eq-impresion h2 { font-family: 'Inter', sans-serif; font-size: 14pt; font-weight: 700; margin: 0 0 8pt; }
+  #eq-impresion .eqp-tit { font-family: 'Inter', sans-serif; font-size: 22pt; font-weight: 700; color: #0E4A2B; margin: 0; line-height: 1.15; letter-spacing: 0; text-transform: none; }
+  #eq-impresion .eqp-puesto { font-family: 'Inter', sans-serif; font-size: 14pt; font-weight: 700; margin: 0 0 8pt; }
+  #eq-impresion .eq-subs { display: block; list-style: none; padding-left: 12pt; margin: 2pt 0 0; }
+  #eq-impresion .eq-subs li { margin: 0 0 2pt; break-inside: avoid; }
   #eq-impresion .eq-contrato-tabla { font-size: 10pt; margin-bottom: 6pt; }
   #eq-impresion .eq-sec { display: block; break-inside: auto; }
   #eq-impresion .eq-sec > h3 { font-size: 13pt; color: #0E4A2B; border-bottom: 1.5pt solid #0E4A2B; margin: 12pt 0 6pt; padding-bottom: 2pt; break-after: avoid; }

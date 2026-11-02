@@ -17,6 +17,7 @@
     /procesos/#reglas        29-oct: las Reglas del juego (todos)
     /procesos/#horarios      29-oct: los Horarios del servicio (Dirección y Administrador)
     /procesos/#puesto=<ID>   29-oct: Equipo con la ficha de ese puesto abierta (Mi lista enlaza aquí)
+                             2-nov: …&pestana=hojas (o lista) la abre en esa pestaña
   Equipo, Reglas y Horarios van sobre la escena oscura (la pone organigrama.js).
   Los documentos se leen solo al entrar a Documentos. El buscador busca en
   todas las unidades. -->
@@ -28,7 +29,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=8e979f9099">
+<link rel="stylesheet" href="/comun/vea.css?v=594c2a5232">
 </head>
 <body>
 <header id="cab"></header>
@@ -65,12 +66,13 @@
   <div id="equipo" class="oculto"></div>
 </main>
 
-<script src="/comun/datos.js?v=1b3dcca978"></script>
+<script src="/comun/datos.js?v=d44db5caef"></script>
 <script src="/comun/marca.js?v=37b691d840"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
-<script src="/comun/puestos.js?v=081774db60"></script>
-<script src="/comun/organigrama.js?v=a1dfb774d7"></script>
+<script src="/comun/puestos.js?v=5a4377db79"></script>
+<script src="/comun/verificacion.js?v=afe956c5dd"></script>
+<script src="/comun/organigrama.js?v=7863e51324"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -207,9 +209,10 @@ function pintar() {
   if (v !== 'equipo') Organigrama.salir();
   if (v === 'entrada') { pintarEntrada(); return; }
   if (v === 'equipo') {
-    const sub = VISTAS_EQUIPO[location.hash] || 'org', abrir = (location.hash.match(/^#puesto=([^&]+)$/) || [])[1];
+    // 2-nov: #puesto=<ID>&pestana=lista|hojas abre la ficha en esa pestaña.
+    const sub = VISTAS_EQUIPO[location.hash] || 'org', m = location.hash.match(/^#puesto=([^&]+)(?:&pestana=(lista|hojas))?$/) || [], abrir = m[1];
     cabecera(sub === 'org' ? [RUTA_PROCESOS, { texto: 'Equipo' }] : [RUTA_PROCESOS, RUTA_EQUIPO, { texto: sub === 'reglas' ? 'Reglas del juego' : 'Horarios del servicio' }]);
-    Organigrama.mostrar($('#equipo'), { vista: sub, abrir: abrir ? decodeURIComponent(abrir) : '', alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
+    Organigrama.mostrar($('#equipo'), { vista: sub, abrir: abrir ? decodeURIComponent(abrir) : '', pestana: m[2] || '', alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
     return;
   }
   // Documentos: se leen la primera vez que se entra.

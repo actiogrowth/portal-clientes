@@ -21,7 +21,7 @@ const ROTURAS = [
   ['no salta las filas vacías', "if (!vacia) filas.push(o);", "filas.push(o);"],
   ['escribe en un puesto que no está abierto', "if (normalizar_(p.estado) !== normalizar_(ABIERTO)) throw", "if (false) throw"],
   ['acepta un contrato con la versión vieja', "if (Number(d.version) !== p.version) throw", "if (false) throw"],
-  ['el período lo elige el navegador', "'Período': periodoDe_(punto.frecuencia, hoy)", "'Período': texto_(d.periodo) || periodoDe_(punto.frecuencia, hoy)"],
+  ['el período lo elige el navegador', "periodo = periodoDe_(punto.frecuencia, hoy);", "periodo = texto_(d.periodo) || periodoDe_(punto.frecuencia, hoy);"],
   ['semanal se guarda como mes', "  if (forma === 'semana') return semanaISO_(iso);", "  if (forma === 'semana') return iso.slice(0, 7);"],
   // 30-oct (v4): frecuencias nuevas
   ['la quincena corta en otro día', "(+iso.slice(8, 10) <= 15 ? '-Q1' : '-Q2')", "(+iso.slice(8, 10) < 15 ? '-Q1' : '-Q2')"],
@@ -36,7 +36,7 @@ const ROTURAS = [
   ['un período inválido de cuatrimestre se acepta', "|-C[1-3])?$/", "|-C\\d)?$/"],
   ['el período no queda como texto (Sheets lo convierte en fecha)', "    if (c) t.hoja.getRange(desde, c, objetos.length, 1).setNumberFormat('@');", ""],
   ['marca un punto que no es del puesto', "    if (!punto) throw new ErrorUsuario_('El punto '", "    if (!punto) punto = puntos[0] || { frecuencia: 'Diario' }; if (false) throw new ErrorUsuario_('El punto '"],
-  ['acepta cualquier resultado', "    if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(m.resultado)", "    if (!r) r = texto_(m.resultado); if (false) throw new ErrorUsuario_('Resultado inválido: «' + texto_(m.resultado)"],
+  ['acepta cualquier resultado', "  if (!r) throw new ErrorUsuario_('Resultado inválido: «' + texto_(v)", "  if (!r) return texto_(v); if (false) throw new ErrorUsuario_('Resultado inválido: «' + texto_(v)"],
   ['acepta un período inválido al revisar', "if (!periodoValido_(d.periodo)) throw", "if (false) throw"],
   ['escribe sin candado', "if (!lock.tryLock(20000)) return", "if (false) return"],
   ['no lee la pestaña Metas', "  metas: { hoja: 'Metas'", "  metasNo: { hoja: 'Metas'"],
@@ -54,11 +54,16 @@ const ROTURAS = [
   ['marca un paso que no es de la hoja', "  if (!paso) throw new ErrorUsuario_('El paso '", "  if (!paso) paso = pasos[0]; if (false) throw new ErrorUsuario_('El paso '"],
   ['marca dos veces el mismo paso el mismo día', "  if (d.marcado && !ya.length) {", "  if (d.marcado) {"],
   ['desmarca la marca de otra persona', "if (ya.some(function (m) { return normalizar_(m.usuario) !== normalizar_(usuario); })) throw", "if (false) throw"],
-  ['desmarca marcas de días anteriores', "    if (fecha.slice(0, 10) !== hoy) continue;\n", ""],
+  ['desmarca marcas de días anteriores', " && periodoForma_(forma, m.fecha.slice(0, 10)) === actual; });", "; });"],
+  // 2-nov (v5)
+  ['un punto se marca dos veces en su período', "if (!evento && enPie.some(", "if (false && enPie.some("],
+  ['«Cumplido» y «No» se escriben tal cual', "|| SINONIMOS[n];", "|| (n === 'cumplido' ? 'Cumplido' : n === 'no' ? 'No' : '');"],
+  ['actualizarEstructura no agrega «Asignación»', "  if (hh) hechos = hechos.concat(agregarTitulos_(hh, TABLAS.hojas.obligatorias, ['Asignación']));\n", ""],
+  ['desmarcar un paso lo vuelve a contar (sin «Desmarcada»)', "'Resultado': DESMARCADA, 'Nota': m.fecha });", "'Resultado': 'Ejecutado', 'Nota': m.fecha });"],
   ['las iniciales llegan sin limpiar', "'Iniciales': iniciales_(d.iniciales, usuario)", "'Iniciales': texto_(d.iniciales)"],
   ['la verificación de una hoja acepta un día futuro', " || texto_(d.periodo) > hoyISO_()) throw", ") throw"],
   ['la nota de la verificación no dice la hoja', "  if (notaHoja) nota = notaHoja + (nota ? ' · ' + nota : '');", ""],
-  ['actualizarEstructura repite el renglón del Léeme', "    if (lv.some(function (f) { return normalizar_(f[0]) === normalizar_(LEEME_MARCAS_HOJAS[0]); })) hechos.push", "    if (false) hechos.push"],
+  ['actualizarEstructura repite el renglón del Léeme', "      if (i < 0) { l.getRange(", "      if (true) { l.getRange("],
   ['escribe encima de la última fila',"var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos) + 1;", "var desde = Math.max(t.hoja.getLastRow(), t.filaTitulos);"]
 ];
 

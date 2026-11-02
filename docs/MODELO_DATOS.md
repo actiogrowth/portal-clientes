@@ -222,8 +222,9 @@ Se buscan solo las **últimas 500 filas** (un reintento llega en segundos).
 
 Otro archivo, de Actio, con su propio Apps Script (`procesos-script/Procesos.gs`).
 Lo edita Actio a mano; el portal solo **escribe** en Aceptaciones, Marcas,
-Marcas de hojas (29-oct) y Revisiones (siempre al final; en Marcas de hojas,
-desmarcar el mismo día borra esa fila). Las columnas se buscan **por título** (el
+Marcas de hojas (29-oct) y Revisiones, siempre al final y **sin borrar ni
+editar nada** (2-nov, Procesos.gs v5: quitar una marca agrega una fila
+«Desmarcada»; hasta v4, desmarcar un paso de hoja borraba su fila). Las columnas se buscan **por título** (el
 script toma como fila de títulos la primera de las 10 de arriba que tenga
 «Puesto ID» o «ID»); se saltan las filas vacías. Si falta una columna, el
 script la nombra en `faltan` (lo ven Dirección y Administrador).
@@ -237,12 +238,12 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 | Procesos | Puesto ID, Proceso, Descripción, Enlace, Estado | Los procesos de cada puesto (vacía al 26-oct). |
 | Asignaciones | Usuario del portal, Puesto ID, Desde, Hasta | Un usuario o un rol («Usuario del rol Coordinación After School»). Desde y Hasta vacíos = sin límite. |
 | Aceptaciones | Fecha y hora, Usuario, Puesto ID, Versión | La escribe el portal. Vale solo la de la versión vigente del puesto. |
-| Marcas | Fecha y hora, Usuario, Puesto ID, Orden del punto, Período, Resultado, Nota | La escribe el portal. Resultado: Cumplido · No. Una corrección es otra fila del mismo período (vale la última; las anteriores quedan de rastro). |
+| Marcas | Fecha y hora, Usuario, Puesto ID, Orden del punto, Período, Resultado, Nota | La escribe el portal. 2-nov (v5): Resultado **Ejecutado · No ejecutado · Desmarcada** (las viejas «Cumplido» y «No» se leen como Ejecutado y No ejecutado). «No ejecutado» lleva el motivo en la Nota; un punto por evento, a qué evento corresponde. Un punto que no es por evento tiene una sola marca en pie por período: para cambiarla se quita primero. **Quitar una marca** = una fila «Desmarcada» del mismo usuario, punto y Período, con la **fecha y hora de la marca que quita en la Nota** (`AAAA-MM-DDTHH:mm:ss`); la fila original no se toca. |
 | Revisiones | Fecha y hora, Revisor, Puesto ID, Período, Sorpresa, Resultado, Nota | La escribe el portal. Sorpresa: Sí · No. 29-oct: la verificación de una hoja diaria es una fila más, con Período = el día y la Nota que empieza con `Hoja «<nombre>»`. |
-| Hojas (29-oct) | Puesto ID, Hoja, Orden, Momento, Paso | Hojas de pasos diarios de un puesto (cierre del local, limpieza del día). Una fila por paso; el portal los agrupa por Momento, en el orden de Orden. La verifica el puesto de «Verifica». |
+| Hojas (29-oct) | Puesto ID, Hoja, Orden, Momento, Paso, Asignación (opcional, 2-nov) | Hojas de pasos de un puesto (cierre del local, limpieza del día, apertura del local). Una fila por paso; el portal los agrupa por Momento, en el orden de Orden. La verifica el puesto de «Verifica». 2-nov: un paso con Momento **«Cada semana»** o **«Cada mes»** se marca una vez en su semana (ISO) o su mes; los demás, una vez por día. **Asignación** «Temporal» (en cualquier fila de la hoja) = el portal muestra «Asignación temporal» junto a su nombre; la columna la agrega `actualizarEstructura()` al final. |
 | Reglas del juego (29-oct) | Sección, Orden, Texto | Lo que une a todos. Se muestra en Procesos › Equipo y antes de aceptar cualquier contrato. |
 | Horarios del servicio (29-oct) | Momento, Unidad, Hora, Puestos que lo usan | La hora de cada momento del servicio. Los textos nombran el momento, no la hora. La Hora se lee **como se ve** en el Sheet (texto). «Puestos que lo usan»: IDs separados por coma. Cambiar una hora no sube ninguna versión. |
-| Marcas de hojas (29-oct) | Fecha y hora, Usuario, Puesto ID, Hoja, Orden, Iniciales | La escribe el portal (si no existe, la crea). Un paso marcado hoy, con la hora del servidor y las iniciales de quien lo marcó. Desmarcar el mismo día borra la fila. |
+| Marcas de hojas (29-oct) | Fecha y hora, Usuario, Puesto ID, Hoja, Orden, Iniciales, Resultado (2-nov), Nota (2-nov) | La escribe el portal (si no existe, la crea; si le faltan Resultado y Nota, los agrega al final). Un paso marcado, con la hora del servidor y las iniciales de quien lo marcó; Resultado «Ejecutado» (vacío = Ejecutado: las filas de antes). 2-nov: desmarcar ya **no borra** (D-086 → D-094): agrega «Desmarcada» con la fecha y hora de la marca en la Nota; solo la propia y mientras siga abierto el período del paso. |
 | Metas (26-oct) | Cifra, Unidad, Período, Valor, Estado | La crea `actualizarEstructura()` (Procesos.gs v2); la escribe Vida en Arte; el portal solo la lee (`resumen/api.php`). Cifra: Ocupación · Niños activos · Altas · Bajas · Pruebas que se inscriben · Facturación · Margen de la unidad · Margen neto. Unidad: Negocio · Preschool · After School · Veranito · Baby & Me · Cumpleaños. Período (texto): `2026-10` (mes) o `2026` (año). Valor: número (un porcentaje se escribe 70 o 70 %). Estado: Tentativa · Confirmada (vacío = tentativa). Para Bajas, la meta es el tope normal. |
 
 **Período** (texto, formato `@`): Diario y los de por evento → la fecha
@@ -251,7 +252,10 @@ script la nombra en `faltan` (lo ven Dirección y Administrador).
 (`2026-10`); Trimestral → `2026-T1` … `2026-T4`; Cada 4 meses → `2026-C1`
 (enero a abril), `2026-C2` (mayo a agosto), `2026-C3` (septiembre a
 diciembre); Por temporada → el año (`2026`). Lo pone el script con la
-fecha de hoy del Sheet; solo se marca el período en curso.
+fecha de hoy del Sheet; solo se marca el período en curso. 2-nov (v5):
+«leer» manda también el **calendario** de los últimos 120 días (para cada día,
+el período de cada forma), así la pantalla muestra Pendiente o Vencido de
+cualquier día sin repetir la regla.
 
 ---
 

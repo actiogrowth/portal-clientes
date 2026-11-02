@@ -546,6 +546,45 @@ mueve ni borra nada.
 - **Página aparte del organigrama**: no existe en el portal (se buscó en el
   código y en el servidor de pruebas); el único organigrama es este.
 
+## 2h. Equipo v3 (2-nov): ficha en pestañas, contrato como el PDF, lista con marcas y desmarcadas
+
+- **Datos**: Procesos.gs **v5**. Marcas con Resultado «Ejecutado», «No
+  ejecutado» o «Desmarcada»; acción nueva `desmarcar` (quitar una marca
+  propia mientras siga su período: agrega «Desmarcada», nunca borra);
+  `marcarHoja` tampoco borra ya (D-094). `leer` manda el calendario de 120
+  días y la forma de cada punto y paso (D-095). `actualizarEstructura()`
+  agrega Resultado y Nota a Marcas de hojas, Asignación a Hojas y sus
+  renglones del Léeme. Columnas en [MODELO_DATOS.md](MODELO_DATOS.md);
+  acciones en [ACCIONES_API.md › Equipo](ACCIONES_API.md).
+- **El puente** traduce las marcas viejas (`eq_resultado`), deja pasar
+  `desmarcar` solo a quien ocupa el puesto y manda al script solo puesto,
+  orden y fecha; marca las hojas temporales.
+- **La lista de verificación es una sola pieza**: `comun/verificacion.js`
+  (`Verificacion.crear`), que usan la pestaña «Lista de verificación» de la
+  ficha y Mi lista (`equipo/index.html`, sin botón Guardar). Se guarda al
+  tocar; «No ejecutado» y los puntos por evento abren la nota obligatoria;
+  la marca propia se quita tocándola; Pendiente / Vencido y el selector de
+  fecha (solo lectura en días anteriores). Quien no ocupa el puesto la ve de
+  solo lectura, con las marcas quitadas y el enlace a Revisar. Revisar
+  muestra también las quitadas.
+- **Ficha** (`comun/organigrama.js`): pestañas Contrato · Lista de
+  verificación · Hojas del día (flechas del teclado entre pestañas). La
+  pestaña Contrato es la hoja del PDF (`papelHtml`, la misma que imprime
+  «Descargar PDF», sin las horas). «Ampliar» pone el mismo `<dialog>` a
+  pantalla completa (clase `amplio`, letra de 18 px); Esc, la X y «Volver»
+  regresan; desde ahí, Descargar PDF y Aceptar (por las Reglas del juego).
+  Subpuntos «N.M »: `conSubpuntos` los cuelga del punto general de arriba.
+  Las hojas: cada paso en su período (día, semana o mes), «Pendiente ·
+  esta semana / este mes», «Vencido», «Asignación temporal» y la hora del
+  momento junto al nombre de la hoja («Por definir» si no tiene).
+- **Rutas**: `/procesos/#puesto=<ID>&pestana=lista|hojas` abre la ficha en
+  esa pestaña; Mi lista enlaza a la de hojas.
+- **Pruebas**: `procesos-script/pruebas/prueba-equipo-v3.js` (el script contra
+  un Sheet en memoria, con roturas), `prueba-procesos.js` al día,
+  `prueba-organigrama.js` (pestañas, contrato, Ampliar, subpuntos, lista y
+  hojas), `prueba-clics-organigrama.js` (pestañas y Ampliar con clics y
+  toques reales, computador y celular) y `prueba-portal.js` (el puente).
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
@@ -593,8 +632,9 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
 | `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, altas, bajas y pruebas que se inscriben de After School con su plazo y su período cubierto, altas y bajas del negocio con desglose, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
 | `pruebas-portal/prueba-preschool.js` | El tablero de Preschool (`kinder/index.html`) con un documento de mentira y datos inventados: ningún monto en pantalla aunque la hoja mandara la columna de pagos, globo con nombre y edad, cupos libres por salón, salidas del mes con motivo, pendientes de pago (solo inscritos, solo meses activos, hasta el último mes con pagos) y «Plan por registrar»; con sus roturas. Lo del servidor (`kinder/csv.php`) lo prueba `prueba-portal.js`. |
-| `pruebas-portal/prueba-clics-organigrama.js` | (30-oct) Clics y toques REALES en Chrome (Playwright, `playwright-core` + el Chrome instalado): pasar el mouse, esperar y hacer clic en el centro y en las esquinas de tarjetas de 4 áreas, y tocar en tablet; que se abra su ficha; la manito y el arrastre según la escala; sin errores de JavaScript. Falla con b4d1ff6. |
-| `pruebas-portal/prueba-organigrama.js` | El organigrama y la ficha (`comun/organigrama.js`, `comun/puestos.js`; 29-oct: Equipo v2): áreas en columnas en el orden de Puestos, sangría, líneas del color del área, cascada que termina a tiempo, máximo 20 chispas, colores en un solo lugar, la hora de los momentos, la ficha pintada con datos inventados (formato del contrato, cuándo hay Aceptar, Reglas antes de aceptar, hoja diaria, PDF) y, en el código y en vea.css, el diálogo, la pausa, «reducir movimiento», la versión sólida y la hoja de impresión; con sus roturas. |
+| `pruebas-portal/prueba-clics-organigrama.js` | (30-oct) Clics y toques REALES en Chrome (Playwright, `playwright-core` + el Chrome instalado): pasar el mouse, esperar y hacer clic en el centro y en las esquinas de tarjetas de 4 áreas, y tocar en tablet; que se abra su ficha; la manito y el arrastre según la escala; sin errores de JavaScript. Falla con b4d1ff6. 2-nov: en computador y en celular, las pestañas de la ficha y «Ampliar» (pantalla completa, letra de 18 px, Esc / X / «Volver», PDF con subpuntos y Aceptar desde ahí). |
+| `pruebas-portal/prueba-organigrama.js` | El organigrama y la ficha (`comun/organigrama.js`, `comun/puestos.js`; 29-oct: Equipo v2): áreas en columnas en el orden de Puestos, sangría, líneas del color del área, cascada que termina a tiempo, máximo 20 chispas, colores en un solo lugar, la hora de los momentos, la ficha pintada con datos inventados (formato del contrato, cuándo hay Aceptar, Reglas antes de aceptar, hoja diaria, PDF) y, en el código y en vea.css, el diálogo, la pausa, «reducir movimiento», la versión sólida y la hoja de impresión; con sus roturas. 2-nov: también `comun/verificacion.js` (pestañas, contrato como el PDF, subpuntos, Ampliar, la lista con Ejecutado / No ejecutado, quitar, Pendiente / Vencido, por evento, historial, hojas semanales y mensuales, «Asignación temporal», «Por definir»). |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
+| `procesos-script/pruebas/prueba-equipo-v3.js` | (2-nov) Procesos.gs v5 contra un Sheet en memoria con el reloj fijo: Ejecutado / No ejecutado con motivo, por evento con nota, una marca por período, desmarcar que AGREGA «Desmarcada» y no borra (solo la propia y en su período), hojas «Cada semana» y «Cada mes», el calendario de 120 días, que no escribe si falta una columna y `actualizarEstructura` (Asignación, Resultado, Nota, Léeme) sin tocar datos; con sus roturas dentro. |
 
 Los datos de prueba son siempre inventados.

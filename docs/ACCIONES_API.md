@@ -368,14 +368,25 @@ persona con lo que le toca. El navegador nunca recibe lo que no le toca.
 |---|---|---|---|---|---|
 | `leer` | L | todos (lo que ve cada uno, abajo) | — | ver abajo | `sin_configuracion` |
 | `aceptar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `version` | `{puesto, version}` | `sin_permiso` · `no_abierto` · `version_vieja` |
-| `marcar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `marcas[{orden, resultado: "Cumplido"\|"No", nota?}]` | `{puesto, marcas[{orden, periodo}]}` | `sin_permiso` · `no_abierto` · punto que no es del puesto · resultado inválido |
+| `marcar` | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `marcas[{orden, resultado: "Ejecutado"\|"No ejecutado", nota?}]` (2-nov; «Cumplido» y «No» de un portal viejo se escriben con el nombre nuevo). `nota` obligatoria con «No ejecutado» (el motivo) y en los puntos por evento | `{puesto, marcas[{fecha, usuario, orden, periodo, resultado, nota}]}` (2-nov: las filas escritas) | `sin_permiso` · `no_abierto` · `punto` · `resultado` · `nota` · `ya_marcado` (el punto ya tiene una marca en pie en su período; no por evento) |
+| `desmarcar` (2-nov) | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `orden`, `fecha` (la `fecha` de la marca que se quita, `AAAA-MM-DDTHH:mm:ss`). El puente manda al script solo esos tres | `{puesto, marca: {fecha, usuario, orden, periodo, resultado: "Desmarcada", nota: <fecha de la marca>}}` | `sin_permiso` · `no_abierto` · `punto` · `sin_marca` (no está o ya se quitó) · `ajena` (la puso otra persona) · `cerrado` (su período ya cerró) |
 | `revisar` | E | quien verifica el puesto (abajo) y su jefe, **nunca quien también lo ocupa** (29-oct); solo «Abierto al equipo» | `puesto`, `periodo`, `sorpresa: "Sí"\|"No"`, `resultado: "Cumplido"\|"No"`, `nota?`; 29-oct: con `hoja`, verifica la hoja diaria de ese día (`periodo` = `AAAA-MM-DD`, hoy si no viene, nunca futuro; la Nota queda «Hoja «<nombre>» · <nota>») | `{puesto, periodo}` | `sin_permiso` · `no_abierto` · período inválido · `hoja` |
-| `marcarHoja` (29-oct) | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `hoja`, `orden`, `marcado: true\|false`. Las **iniciales** las pone el puente (nombre y apellido de la cuenta; sin nombre, las dos primeras letras del usuario); lo que mande el navegador se descarta | `{puesto, hoja, hoy, marcas[{orden, fecha, usuario, iniciales}]}` (las de HOY de esa hoja) | `sin_permiso` · `no_abierto` · `hoja` · `paso` · `marcado` · `ajena` (desmarcar la marca de otra persona) |
+| `marcarHoja` (29-oct) | E | quien OCUPA el puesto, solo «Abierto al equipo» | `puesto`, `hoja`, `orden`, `marcado: true\|false`. Las **iniciales** las pone el puente (nombre y apellido de la cuenta; sin nombre, las dos primeras letras del usuario); lo que mande el navegador se descarta | 2-nov: `{puesto, hoja, hoy, filas[{fecha, usuario, orden, iniciales, resultado, nota}]}` (las filas escritas: «Ejecutado», o «Desmarcada»; ninguna si ya estaba así) | `sin_permiso` · `no_abierto` · `hoja` · `paso` · `marcado` · `ajena` (desmarcar la marca de otra persona) · `sin_estructura` |
 
-`marcarHoja` marca un paso **hoy**, con la hora del servidor; marcarlo otra
-vez no lo repite. Desmarcar **borra** la marca de hoy de ese paso, y solo si
-la puso el mismo usuario; las de días anteriores no se tocan. Si la pestaña
-«Marcas de hojas» no existe, el script la crea con sus títulos.
+`marcarHoja` marca un paso una vez **en su período** (2-nov): el día; si su
+Momento es «Cada semana», la semana ISO; si es «Cada mes», el mes. Con la hora
+del servidor; marcarlo otra vez en el mismo período no lo repite. Desmarcar
+(2-nov, Procesos.gs v5) **ya no borra**: agrega una fila «Desmarcada» con la
+fecha y hora de la marca en la Nota, solo si la puso el mismo usuario y
+mientras siga abierto el período del paso. Si la pestaña «Marcas de hojas»
+no existe, el script la crea con sus títulos; si le faltan Resultado y Nota,
+se los agrega al final.
+
+**Marcas en pie** (2-nov): una fila «Desmarcada» quita la marca del mismo
+usuario y del mismo punto (en las hojas, la misma hoja y paso) cuya `fecha`
+es su `nota`. La regla está igual en el script (`vigentes_`) y en la pantalla
+(`comun/verificacion.js` › `enPie`). El puente no filtra: manda las filas
+«Desmarcada» a quien ve la ficha (quien verifica ve quién quitó qué y cuándo).
 
 ### Quién ve qué (lo arma el puente)
 
@@ -423,8 +434,16 @@ la puso el mismo usuario; las de días anteriores no se tocan. Si la pestaña
   (semana ISO); Quincenal → `AAAA-MM-Q1` / `-Q2` (1–15 / 16–fin); Mensual →
   `AAAA-MM`; Trimestral → `AAAA-T1`…`T4`; Cada 4 meses → `AAAA-C1`…`C3`
   (ene–abr, may–ago, sep–dic); Por temporada → `AAAA` (30-oct, v4). Revisar
-  acepta solo períodos de estas formas. Corregir = una marca nueva en el mismo
-  período; vale la última y la anterior queda.
+  acepta solo períodos de estas formas. 2-nov (v5): un punto que no es por
+  evento tiene UNA marca en pie por período (otra → `ya_marcado`); para
+  cambiarla se quita con `desmarcar` y se marca de nuevo. Los por evento se
+  marcan cuantas veces ocurra, cada vez con su nota.
+- **Calendario** (2-nov): `leer` trae `calendario`, el período de cada forma
+  (`dia`, `semana`, `quincena`, `mes`, `trimestre`, `cuatrimestre`, `anio`)
+  para hoy y los 120 días anteriores; cada punto trae su `forma` y si es
+  `evento`, y cada paso de hoja su `forma` (`dia`, `semana` o `mes`). Con eso
+  la pantalla dice «Pendiente» (período abierto sin marca) o «Vencido»
+  (período cerrado sin marca; nunca en los por evento) en cualquier día.
 - **Grupos de la lista** (30-oct): cada punto trae `grupo` y `grupoOrden`, que
   pone el script: Diario 1, Semanal 2, Quincenal 3, Mensual 4, Trimestral 5,
   Cada 4 meses 6, Por temporada 7 y «Cada vez que ocurre» 8 (todos los de por
@@ -443,25 +462,29 @@ la puso el mismo usuario; las de días anteriores no se tocan. Si la pestaña
            }],
   fichas: { "<id>": { version, fechaVersion, verifica, comoVerifica,
                       contrato: { resultado: [..], trabajo: [..], estandares: [..] },
-                      lista: [{ orden, texto, evidencia, frecuencia, periodo, grupo, grupoOrden }],   // 30-oct: grupo y grupoOrden
+                      lista: [{ orden, texto, evidencia, frecuencia, periodo, grupo, grupoOrden,   // 30-oct: grupo y grupoOrden
+                                forma, evento }],                                             // 2-nov: «dia», «semana»… ('' con un script viejo); evento: bool
                       procesos: [{ proceso, descripcion, enlace, estado }],
                       ocupo: bool, jefe: bool, verifico: bool,
                       aceptada: bool, aceptadaVersion: n|null,
-                      marcas: [{ fecha, usuario, orden, periodo, resultado, nota }],
+                      marcas: [{ fecha, usuario, orden, periodo, resultado, nota }],   // 2-nov: resultado Ejecutado | No ejecutado | Desmarcada (nota = la fecha de la marca quitada)
                       revisiones: [{ fecha, revisor, periodo, sorpresa, resultado, nota }],   // 29-oct: sin las de las hojas
                       // 29-oct:
                       aceptadaFecha: "AAAA-MM-DDTHH:mm" | "",
                       verificador: { id, puesto, escalado: bool } | null,   // el puesto emparejado con «Verifica»
                       pdf: bool,               // equipo.todo, o quien lo ocupa si está «Abierto al equipo»
-                      hojas: [{ hoja, pasos: [{ orden, momento, paso }],
-                                marcas: [{ fecha, usuario, orden, iniciales }],      // últimos 120 días
+                      hojas: [{ hoja, temporal: bool,                                   // 2-nov: Asignación «Temporal»
+                                pasos: [{ orden, momento, paso, forma }],               // 2-nov: forma «dia» | «semana» | «mes»
+                                marcas: [{ fecha, usuario, orden, iniciales, resultado, nota }],      // últimos 120 días; 2-nov: resultado y nota
                                 revisiones: [{ fecha, revisor, periodo, sorpresa, resultado, nota }] }] } },
   mios: ["<id>", ...],          // puestos que ocupo y están «Abierto al equipo»
   revisar: ["<id>", ...],       // puestos que verifico o de los que soy jefe, abiertos, y que NO ocupo
   // 29-oct:
   reglas: [{ seccion, textos: ["…"] }],          // Reglas del juego, para todos (secciones en el orden del Sheet; textos por Orden)
   momentos: [{ momento, hora }],                 // la hora de cada momento, para todos (etiquetas junto a los textos)
-  horarios: [{ momento, unidad, hora, puestos: ["<nombre del puesto>"] }]   // solo con equipo.todo
+  horarios: [{ momento, unidad, hora, puestos: ["<nombre del puesto>"] }],  // solo con equipo.todo
+  // 2-nov:
+  calendario: { "AAAA-MM-DD": { dia, semana, quincena, mes, trimestre, cuatrimestre, anio } }   // hoy y los 120 días anteriores; {} con un script viejo
 }
 ```
 

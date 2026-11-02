@@ -132,13 +132,18 @@
       /** {resultado: {hoy, yo, puestos[], fichas{}, mios[], revisar[], reglas[], momentos[], horarios[]?}} — ya recortado para quien pregunta */
       leer() { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); },
       aceptar(puesto, version) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'aceptar', datos: { puesto, version } } }); },
-      /** marcas: [{orden, resultado: 'Cumplido' | 'No', nota}] — el período lo pone el servidor */
+      /** marcas: [{orden, resultado: 'Ejecutado' | 'No ejecutado', nota}] — el período y la hora los pone el servidor.
+          2-nov: {resultado: {puesto, marcas: [{fecha, usuario, orden, periodo, resultado, nota}]}} — las filas escritas */
       marcar(puesto, marcas) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'marcar', datos: { puesto, marcas } } }); },
+      /** 2-nov: quitar una marca propia de un período abierto (fecha = la de la marca). Nada se borra: queda una fila «Desmarcada».
+          {resultado: {puesto, marca: {fecha, usuario, orden, periodo, resultado: 'Desmarcada', nota}}} */
+      desmarcar(puesto, orden, fecha) { return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'desmarcar', datos: { puesto, orden, fecha } } }); },
       revisar(puesto, periodo, sorpresa, resultado, nota) {
         return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'revisar', datos: { puesto, periodo, sorpresa, resultado, nota } } });
       },
-      /** 29-oct: marcar (o desmarcar, el mismo día) un paso de una hoja diaria. La hora y las iniciales las pone el servidor.
-          {resultado: {puesto, hoja, hoy, marcas: [{orden, fecha, usuario, iniciales}]}} — las marcas de hoy de esa hoja */
+      /** 29-oct: marcar (o desmarcar, mientras siga su período) un paso de una hoja. La hora y las iniciales las pone el servidor.
+          2-nov: {resultado: {puesto, hoja, hoy, filas: [{fecha, usuario, orden, iniciales, resultado, nota}]}} — las filas escritas
+          («Ejecutado», o «Desmarcada» con la fecha de la marca que quita; ninguna si ya estaba así) */
       marcarHoja(puesto, hoja, orden, marcado) {
         return pedir('/equipo/api.php', { metodo: 'POST', cuerpo: { accion: 'marcarHoja', datos: { puesto, hoja, orden, marcado: !!marcado } } });
       },

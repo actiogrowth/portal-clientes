@@ -73,6 +73,9 @@ jobs:
       - name: Equipo · roturas del Apps Script
         run: node procesos-script/pruebas/roturas.js
 
+      - name: Equipo v3 · Apps Script (Ejecutado / No ejecutado, desmarcar sin borrar, hojas por semana y mes) y sus roturas
+        run: node procesos-script/pruebas/prueba-equipo-v3.js
+
       - name: Proyecto Actio · visor por tipo de enlace
         run: node pruebas-portal/prueba-visor.js
 
