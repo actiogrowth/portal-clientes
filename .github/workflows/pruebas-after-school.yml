@@ -98,6 +98,8 @@ jobs:
       # buscador y notificaciones), Ocupación y Pasar lista, en Chrome real; con sus roturas.
       - name: Rediseño · estructura común por rol, buscador, Ocupación y Pasar lista (Chrome)
         run: node pruebas-portal/prueba-rediseno.js
+        env:
+          TZ: America/Bogota   # el simulador del Sheet lo exige (la zona del Sheet y del script)
 
       - name: Versión de los archivos de comun/ en cada página (caché del navegador)
         run: node pruebas-portal/prueba-versiones.js
