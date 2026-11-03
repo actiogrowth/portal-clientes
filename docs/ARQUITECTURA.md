@@ -598,7 +598,7 @@ paneles `--panel` blancos con borde `--linea` #ECE8E2, radio 18 y sombra
 suave; tinta `--tinta` #16181D, texto suave `--suave` #5B5F68, `--tenue`
 #8A8E96 solo para detalles; botón principal `--accion` #D71C0E. Disciplinas
 con color fijo en toda la app: `--parkour` #E0412F, `--telas` #1974A8,
-`--parkids` #F2A01E, `--babyme` #7FB3D5. Estados `--ok` #2E9D4F, `--alerta`
+`--parkids` #F2A01E, `--babyme` #7FB3D5. Estados `--ok` #278746 (ajuste 1: el verde justo para letra blanca a 4,5:1; uno solo en toda la app), `--alerta`
 #E08A00, `--peligro` #D71C0E (con `*-texto` para letras sobre blanco y
 `*-fondo` para etiquetas). Los colores de las áreas de Equipo siguen solo en
 `comun/puestos.js`. Los nombres de antes (`--rojo`, `--texto`, `--gris`…)
@@ -687,13 +687,17 @@ acción, no hay botón.
   `Cifras.ocupacionAS`—, cupos para vender en lo que queda de la semana,
   inscritos activos y clases llenas), filtros por disciplina, cada clase con
   «N libres» o «Lleno» y la columna «Dónde hay más cupos» (las 6 clases con
-  más cupos libres en lo que queda de la semana). «Lleno» empieza en el
-  umbral «casi lleno» de Config (no en un número escrito en el código). En
+  más cupos libres en lo que queda de la semana). Ajuste 1 (decidido por Vida
+  en Arte): «Lleno» solo sin ningún cupo (inscritos + visitas del día ≥
+  cupo), con borde de color; «casi lleno» desde el umbral de Config hasta
+  antes de llenarse, con sus «N libres» en color de alerta y sin borde; la
+  cifra «Clases llenas» cuenta solo las de 100 % y las nombra. En
   celular la ventana de una clase va a pantalla completa y cada niño en un
   bloque (antes se cortaban los botones).
 - **Pasar lista**: botones de 48 px y ancho fijo (92 px; no saltan al
   marcarse), con el color del estado y una marca; «Guardar lista (N sin
-  marcar)» grande. El comportamiento no cambió (días, correcciones, niño
+  marcar)» grande, gris mientras no hay nada que guardar (todo botón de color
+  deshabilitado se ve gris) y rojo cuando se puede. El comportamiento no cambió (días, correcciones, niño
   fuera de lista, reglas del Profesor). El Profesor ve el título «Pasar
   lista» con la ceja «After School».
 - **Solo la base nueva** (estructura, fondo, tipografía, botones, tarjetas),

@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
+<link rel="stylesheet" href="/comun/vea.css?v=f59080bdb7">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
@@ -357,7 +357,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=ff1b1be99d"></script>
+<script src="/comun/marca.js?v=9a6eb9ed61"></script>
 <script src="/comun/cifras.js?v=5f9322ccbb"></script>
 <script>
 'use strict';
@@ -805,8 +805,10 @@ function pintarResumen() {
   $('#resumen').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { mostrarVista(b.dataset.ir); refrescar(); });
 }
 
-/* 3-nov: «Lleno» desde el umbral de Config («casi lleno»; sin umbral, al llegar al cupo). */
-const estaLleno = est => est === 'lleno' || est === 'casi';
+/* 3-nov, ajuste 1 (decidido por Vida en Arte): «Lleno» solo sin ningún cupo (inscritos + visitas
+   del día ≥ cupo). «Casi lleno» desde el umbral de Config hasta antes de llenarse: dice
+   «N libres» en color de alerta, sin el borde de lleno. */
+const estaLleno = est => est === 'lleno';
 const libresDe = (c, o) => Math.max(0, c.cupo - o.t);
 
 /* Una clase: «● Parkour 16/20» y debajo «4 libres» o «Lleno». El fondo se
@@ -818,7 +820,7 @@ function claseHtml(c, iso) {
   const lleno = Math.min(100, Math.round(o.t / c.cupo * 100)), libres = libresDe(c, o);
   const notas = iso <= E.hoy ? (IDX.insClase[c.codigo] || []).filter(i => i.nota && (!i.alta || i.alta <= iso)).length : 0;
   const etiqueta = c.servicio + ' ' + c.hora + ', ' + fecha(iso) + ': ' + o.i + ' inscritos' + (o.p ? ' y ' + textoVisitas(o.p) + ' (' + detalleTipos(o.tipos) + ')' : '') +
-    ', cupo ' + c.cupo + (est === 'inactiva' ? ', inactiva' : estaLleno(est) ? ', lleno' : ', ' + libres + ' libres') +
+    ', cupo ' + c.cupo + (est === 'inactiva' ? ', inactiva' : estaLleno(est) ? ', lleno' : ', ' + libres + ' libres' + (est === 'casi' ? ', casi lleno' : '')) +
     (notas ? ', ' + notas + (notas === 1 ? ' nota pendiente' : ' notas pendientes') : '');
   return '<button class="oc-clase ' + cls + ' ' + est + '" style="--lleno:' + (est === 'inactiva' ? 0 : lleno) + '%" data-clase="' + esc(c.codigo) + '" data-fecha="' + iso + '" type="button" aria-label="' + esc(etiqueta) + '">' +
     '<span class="fila1"><span class="nom"><span class="punto ' + cls + '"></span><span class="txt">' + esc(c.servicio) + '</span></span>' +
@@ -887,8 +889,8 @@ function pintarCifras(semana, dias) {
     tarjeta('Ocupación de la semana', cupos ? Math.round(ins / cupos * 100) + ' %' : '—', ins + ' inscritos en ' + cupos + ' cupos') +
     tarjeta('Cupos para vender', pasada ? '—' : vender, pasada ? 'la semana ya pasó' : deHoy ? 'lo que queda de esta semana' : 'esa semana', pasada ? '' : 'ok') +
     tarjeta('Inscritos activos', activos, activos === 1 ? 'niño' : 'niños') +
-    tarjeta('Clases llenas', llenas.length, llenas.length ? llenas.slice(0, 2).map(c => c.servicio + ' ' + corto(c.dia).toLowerCase() + ' ' + c.hora).join(' · ') + (llenas.length > 2 ? '…' : '')
-      : E.config.umbral != null ? 'ninguna desde ' + Math.round(E.config.umbral * 100) + ' %' : 'ninguna', llenas.length ? 'peligro' : '');
+    tarjeta('Clases llenas', llenas.length, llenas.length ? llenas.map(c => c.servicio + ' ' + corto(c.dia).toLowerCase() + ' ' + c.hora).join(' · ') : 'ninguna sin cupos',
+      llenas.length ? 'peligro' : '');
 }
 
 /* «Dónde hay más cupos»: las 6 clases con más cupos libres de lo que queda de la semana (con el filtro). */
@@ -917,7 +919,7 @@ function pintarFiltros() {
     else FILTRO.add(k);
     pintarOcupacion();
   });
-  $('#leyenda').innerHTML = '<span class="ayuda">Barra = ocupación · borde de color = lleno' + (E.config.umbral != null ? ' (desde ' + Math.round(E.config.umbral * 100) + ' %)' : '') + '</span>';
+  $('#leyenda').innerHTML = '<span class="ayuda">Barra = ocupación · borde de color = lleno' + (E.config.umbral != null ? '; naranja = casi lleno, desde ' + Math.round(E.config.umbral * 100) + ' %' : '') + '</span>';
 }
 
 function pintarOcupacion() {

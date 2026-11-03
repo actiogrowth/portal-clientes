@@ -38,8 +38,10 @@
   /* Disciplinas: fijos en toda la app. */
   --parkour: #E0412F; --telas: #1974A8; --parkids: #F2A01E; --babyme: #7FB3D5;
   /* Estados. Los *-texto son la versión para letras sobre blanco (≥ 4,5:1). */
-  --ok: #2E9D4F; --alerta: #E08A00; --peligro: #D71C0E;
-  --ok-texto: #1E7A3C; --alerta-texto: #8A5300; --peligro-texto: #B3170B;
+  /* Ajuste 1 (3-nov, decidido por Vida en Arte): un solo verde, #278746, oscurecido lo justo para que la
+     letra blanca llegue a 4,5:1 (4,53). El mismo para letra verde sobre blanco (--ok-texto). */
+  --ok: #278746; --alerta: #E08A00; --peligro: #D71C0E;
+  --ok-texto: var(--ok); --alerta-texto: #8A5300; --peligro-texto: #B3170B;
   --ok-fondo: #E4F4E9; --alerta-fondo: #FDF0DA; --peligro-fondo: #FCE5E2;
   /* Marca (los nombres de antes, para no romper ninguna página) */
   --rojo: #D71C0E;      /* blanco sobre rojo 5.1:1 · rojo sobre blanco 5.1:1 */
@@ -127,6 +129,9 @@ h2.titulo, h3.titulo { font-family: var(--fuente); font-weight: 600; font-size: 
 @media (pointer: coarse) { .btn.chico { min-height: var(--toque); } }
 .btn.grande { min-height: 56px; padding: 0 28px; font-size: 17px; border-radius: 14px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
+/* Ajuste 1 (3-nov): un botón de color deshabilitado se ve GRIS, no rojo pálido (parecía roto). Gris de
+   texto sobre gris claro: 5,2:1. En rojo solo cuando se puede usar. */
+.btn.primario:disabled, .btn.negro:disabled, .btn.azul:disabled { opacity: 1; background: #ECE8E2; border-color: #ECE8E2; color: var(--suave); box-shadow: none; }
 .btn-circulo, .btn-icono { width: var(--toque); height: var(--toque); border-radius: 12px; border: 1px solid var(--linea); background: var(--panel);
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--tinta); flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(22, 24, 29, .04); }
@@ -170,10 +175,12 @@ h2.titulo, h3.titulo { font-family: var(--fuente); font-weight: 600; font-size: 
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600;
   white-space: nowrap; background: var(--pildora); color: var(--texto); line-height: 1.6; }
 /* Etiquetas de estado (3-nov): ok, alerta, peligro y «Próximamente». */
-.chip.ok { background: var(--ok-fondo); color: var(--ok-texto); }
+.chip.ok { background: var(--ok); color: var(--blanco); }   /* blanco sobre el verde: 4,53:1 */
 .chip.alerta { background: var(--alerta-fondo); color: var(--alerta-texto); }
 .chip.peligro { background: var(--peligro-fondo); color: var(--peligro-texto); }
 .chip.pronto { background: var(--pildora); color: var(--suave); }
+/* La misma etiqueta sobre un fondo oscuro (blanco sobre #3B3D41: 11:1). */
+.chip.pronto.en-oscuro { background: #3B3D41; color: #FFFFFF; }
 .chip.Activo { background: var(--verde-fondo); color: var(--verde-oscuro); }
 .chip.Prospecto { background: var(--celeste); color: var(--negro); }
 .chip.Eventual { background: var(--arena); color: var(--cafe); }
@@ -343,8 +350,9 @@ a.unidad:hover { border-color: var(--negro); color: var(--texto); }
 .oc-clase .cifra { white-space: nowrap; font-weight: 500; display: inline-flex; gap: 4px; align-items: center; }
 .oc-clase .nota { color: var(--cafe); font-size: 13px; }
 .oc-clase:hover { border-color: var(--negro); }
-.oc-clase.casi, .oc-clase.lleno { border-color: var(--borde); }
-.oc-clase.casi .cifra, .oc-clase.lleno .cifra { font-weight: 700; }
+/* Ajuste 1: el borde de color es solo de «Lleno»; «casi lleno» lleva sus libres en naranja (más abajo). */
+.oc-clase.lleno { border-color: var(--borde); }
+.oc-clase.lleno .cifra { font-weight: 700; }
 .oc-clase.lleno { box-shadow: inset 0 0 0 1px var(--borde); }
 .oc-clase.inactiva { background: var(--fondo-suave); border-style: dashed; color: var(--texto-3); }
 .oc-clase.Parkour { --tinte: #FBDDD8; --borde: var(--parkour); }
@@ -1061,7 +1069,8 @@ button.eq-losa { cursor: pointer; }
 /* 3-nov: «Próximamente» como etiqueta (Poppins, en una línea), no en Bebas: en celular se partía. */
 .rs-kpi-num.pronto { font-family: var(--fuente); font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 1.6; color: var(--suave); background: var(--pildora);
   border-radius: 999px; padding: 2px 12px; align-self: flex-start; white-space: nowrap; text-transform: none; }
-.rs-kpi.oscuro .rs-kpi-num.pronto { color: #D9D9D9; }
+/* Ajuste 1 (3-nov): sobre negro, la etiqueta en su variante oscura: blanco sobre gris carbón (#3B3D41), 11:1. */
+.rs-kpi.oscuro .rs-kpi-num.pronto { color: #FFFFFF; background: #3B3D41; }
 .rs-kpi-nota, .rs-cmp { font-size: 13px; line-height: 1.4; color: var(--texto-2); }
 .rs-kpi.oscuro .rs-kpi-nota { color: #D9D9D9; }
 .rs-grafico-cab { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 14px; }
@@ -1259,10 +1268,11 @@ a.ini-acceso:hover { border-color: #D5CEC4; color: var(--tinta); }
 .oc-bloque { background: var(--panel); box-shadow: var(--sombra); }
 .oc-clase { min-height: 54px; flex-direction: column; align-items: stretch; justify-content: center; gap: 2px; padding: 6px 10px; border-radius: 10px; border-color: var(--linea); }
 .oc-clase .fila1 { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.oc-clase .libres { font-size: 13px; font-weight: 600; color: var(--ok-texto); }
-.oc-clase.casi .libres { color: var(--alerta-texto); }
+/* Los libres van sobre blanco (no sobre el tinte de la barra): el verde sobre blanco pasa 4,5:1. */
+.oc-clase .libres { font-size: 13px; font-weight: 600; color: var(--ok-texto); background: var(--blanco); border-radius: 999px; padding: 0 8px; align-self: flex-start; }
+.oc-clase.casi .libres { color: var(--alerta-texto); background: var(--alerta-fondo); border-radius: 999px; padding: 0 8px; align-self: flex-start; }
 .oc-clase.lleno .libres { color: var(--peligro-texto); }
-.oc-clase.lleno, .oc-clase.casi { border-width: 1.5px; }
+.oc-clase.lleno { border-width: 1.5px; }
 @media (max-width: 1180px) { .oc-cuerpo { grid-template-columns: minmax(0, 1fr); } .oc-cupos { position: static; } .oc-cupos-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; } }
 @media (max-width: 900px) { .as-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
 @media (max-width: 640px) {

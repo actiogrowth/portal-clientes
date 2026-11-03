@@ -64,6 +64,8 @@ function cargaAS() {
   }
   // Lunes y martes de Parkour llenos (10/10); el resto con menos.
   for (let i = 1; i <= 10; i++) { ins.push([String(90000 + i), 'LUN-1630-PARKOUR', '02/09/2026']); ins.push([String(90010 + i), 'MAR-1630-PARKOUR', '02/09/2026']); }
+  // Miércoles de Parkour casi lleno (9/10: desde el umbral de Config, sin llegar al cupo).
+  for (let i = 28; i <= 36; i++) ins.push([String(90000 + i), 'MIE-1630-PARKOUR', '02/09/2026']);
   for (let i = 21; i <= 24; i++) ins.push([String(90000 + i), 'MIE-1630-TELAS', '02/09/2026']);
   for (let i = 25; i <= 27; i++) ins.push([String(90000 + i), 'JUE-1800-PARKIDS', '02/09/2026']);
   l.hojaDesdeFilas('Niños', ninos);
@@ -92,6 +94,9 @@ function servidor() {
     req.on('end', () => {
       let p = {}; try { p = JSON.parse(cuerpo || '{}'); } catch (e) { }
       // Los puentes: cada uno exige su área o su permiso, como los de verdad.
+      // Sin ?formato=json, acceso.php da el JS de antes (lo usa Veranito).
+      if (url === '/acceso.php' && !/formato=json/.test(req.url)) { res.writeHead(200, { 'Content-Type': 'application/javascript' }); res.end('window.ACCESO = ' + JSON.stringify(S.areas) + ';'); return; }
+      if (url === '/kinder/config.php') { res.writeHead(200, { 'Content-Type': 'application/javascript' }); res.end('/* sin tablero en esta prueba */'); return; }
       if (url === '/acceso.php') return json(S);
       if (url === '/pendientes/api.php') return ve('equipo') ? json({ ok: true, resultado: { hoy: asPost('leer').resultado.hoy, items: PENDIENTES } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
       if (url === '/procesos/api.php') return ve('procesos') ? json({ ok: true, resultado: { procesos: [], documentos: [DOC_PROC] } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
@@ -108,7 +113,9 @@ function servidor() {
         const j = asPost(p.accion, Object.assign({}, p.datos, { soloHoy: false, limiteProfesor: false }), 'profesor-prueba');
         delete j.estado; j.permisos = { puedeOtroDia: true }; return json(j);
       }
-      const PAG = { '/': 'portal-raiz/index.html', '/after-school/': 'after-school/index.html' };
+      const PAG = { '/': 'portal-raiz/index.html' };
+      const carpeta = /^\/([a-z-]+)\/$/.exec(url);
+      if (carpeta) PAG[url] = carpeta[1] + '/index.html';
       const rel = PAG[url] || (url.startsWith('/comun/') ? url.slice(1) : null);
       if (!rel || !fs.existsSync(path.join(RAIZ, rel))) { res.writeHead(404); res.end('no'); return; }
       let t = fs.readFileSync(path.join(RAIZ, rel), 'utf8');
@@ -143,7 +150,7 @@ async function correr(nav, base, log) {
   {
     const css = fs.readFileSync(path.join(RAIZ, 'comun', 'vea.css'), 'utf8'), raiz = /:root \{([\s\S]*?)\n\}/.exec(css)[1];
     const COLORES = { fondo: '#FAF8F5', panel: '#FFFFFF', linea: '#ECE8E2', tinta: '#16181D', suave: '#5B5F68', tenue: '#8A8E96', accion: '#D71C0E',
-      parkour: '#E0412F', telas: '#1974A8', parkids: '#F2A01E', babyme: '#7FB3D5', ok: '#2E9D4F', alerta: '#E08A00', peligro: '#D71C0E' };
+      parkour: '#E0412F', telas: '#1974A8', parkids: '#F2A01E', babyme: '#7FB3D5', ok: '#278746', alerta: '#E08A00', peligro: '#D71C0E' };
     ok(Object.entries(COLORES).every(([k, v]) => new RegExp('--' + k + ': ' + v + '[;\\s]').test(raiz)), 'vea.css: los colores del sistema (fondo, panel, línea, tinta, disciplinas y estados)');
     const paginas = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
       'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html'];
@@ -155,6 +162,26 @@ async function correr(nav, base, log) {
       'partículas: quietas con «reducir movimiento», en pausa con la pestaña oculta y sin recibir clics');
     const mj = fs.readFileSync(path.join(RAIZ, 'comun', 'marca.js'), 'utf8'), n = +/for \(let i = 0; i < (\d+); i\+\+\) \{\s*const tam/.exec(mj)[1];
     ok(n <= 30, 'partículas: ' + n + ' (máximo 30)');
+  }
+
+  if (log) console.log('· la entrada activa de la barra, en cada página (también las de estilos propios)');
+  {
+    rol = 'administrador';
+    const PAGINAS = { '/': 'inicio', '/after-school/': 'afterschool', '/kinder/': 'kinder', '/veranito/': 'veranito', '/procesos/': 'procesos', '/procesos/#equipo': 'equipo',
+      '/equipo/': 'equipo', '/resumen/': 'resumen', '/proyecto-actio/': 'proyecto-actio', '/configuracion/': 'configuracion' };
+    for (const [ruta, id] of Object.entries(PAGINAS)) {
+      const [ctx, p] = await nueva(1440);
+      await p.goto(base + ruta); await p.waitForSelector('.lat [aria-current="page"]', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300);
+      const a = await p.evaluate(() => {
+        const x = document.querySelector('.lat [aria-current="page"]');
+        if (!x) return null;
+        const t = x.querySelector('.lat-txt'), r = t.getBoundingClientRect(), cs = getComputedStyle(x);
+        return { id: x.dataset.nav, fondo: cs.backgroundColor, letra: getComputedStyle(t).color, ancho: r.width, alto: r.height, texto: t.textContent.trim(), visible: getComputedStyle(t).visibility };
+      });
+      ok(a && a.id === id && a.fondo === 'rgb(22, 24, 29)' && a.letra === 'rgb(255, 255, 255)' && a.ancho > 20 && a.alto > 10 && a.texto && a.visible === 'visible',
+        ruta + ': la entrada activa («' + (a ? a.texto : '—') + '») se ve con su nombre y el fondo de activo' + (a ? ' (' + a.fondo + ' / ' + a.letra + ')' : ' (no hay)'));
+      await ctx.close();
+    }
   }
 
   for (const r of Object.keys(ESPERADO)) {
@@ -227,11 +254,20 @@ async function correr(nav, base, log) {
     const cifras = await p.$$eval('#ocCifras .as-cifra', l => l.map(x => x.querySelector('.cifra-grande').textContent));
     ok(cifras[0] === Math.round(o.inscritos / o.cupos * 100) + ' %', 'ocupación de la semana = la del Resumen (' + cifras[0] + ')');
     ok(cifras[2] === String(L.ninos.filter(x => x.estado === 'Activo').length), 'inscritos activos = niños «Activo» (' + cifras[2] + ')');
-    const clases = await p.$$eval('#grillas .oc-clase', l => l.map(x => ({ cifra: x.querySelector('.cifra').textContent, libres: (x.querySelector('.libres') || {}).textContent || '' })));
-    const llenas = clases.filter(c => c.libres === 'Lleno');
-    ok(llenas.length && llenas.every(c => { const [t, k] = c.cifra.split('/').map(Number); return t / k >= L.config.umbral; }), '«Lleno» desde el umbral de Config (' + llenas.length + ' clases)');
-    ok(clases.filter(c => c.libres !== 'Lleno').every(c => { const [t, k] = c.cifra.split('/').map(Number); return c.libres === (k - t) + (k - t === 1 ? ' libre' : ' libres'); }), 'cada clase dice sus cupos libres (cupo − ocupados)');
-    ok(cifras[3] === String(llenas.length), 'clases llenas = las que dicen «Lleno» (' + cifras[3] + ')');
+    const clases = await p.$$eval('#grillas .oc-clase', l => l.map(x => ({ cifra: x.querySelector('.cifra').textContent, libres: (x.querySelector('.libres') || {}).textContent || '',
+      casi: x.classList.contains('casi'), borde: getComputedStyle(x).borderTopColor })));
+    const num = c => c.cifra.split('/').map(Number);
+    const llenas = clases.filter(c => c.libres === 'Lleno'), casi = clases.filter(c => c.casi);
+    ok(llenas.length && llenas.every(c => { const [t, k] = num(c); return t >= k; }) && clases.filter(c => { const [t, k] = num(c); return t >= k; }).length === llenas.length,
+      '«Lleno» solo sin ningún cupo (' + llenas.length + ' clases)');
+    ok(casi.length && casi.every(c => { const [t, k] = num(c); return t < k && t / k >= L.config.umbral && c.libres === (k - t) + (k - t === 1 ? ' libre' : ' libres'); }),
+      '«Casi lleno» desde el umbral de Config: dice sus libres (' + casi.length + ' clases)');
+    ok(casi.every(c => !llenas.length || c.borde !== llenas[0].borde || false) && await p.$eval('#grillas .oc-clase.casi .libres', e => getComputedStyle(e).color) === 'rgb(138, 83, 0)',
+      '«Casi lleno» sin el borde de lleno y con sus libres en el color de alerta');
+    ok(clases.filter(c => c.libres !== 'Lleno').every(c => { const [t, k] = num(c); return c.libres === (k - t) + (k - t === 1 ? ' libre' : ' libres'); }), 'cada clase que no está llena dice sus cupos libres (cupo − ocupados)');
+    const detalle = await p.$eval('#ocCifras .as-cifra:nth-child(4) small', e => e.textContent);
+    ok(cifras[3] === String(llenas.length) && detalle.split(' · ').length === llenas.length, 'clases llenas = solo las de 100 %, y el detalle las nombra (' + cifras[3] + ': ' + detalle + ')');
+    ok(/naranja = casi lleno, desde \d+ %/.test(await p.textContent('#leyenda')), 'la leyenda explica lleno y casi lleno');
     const cupos = await p.$$eval('#ocCupos .oc-cupo .libres', l => l.map(x => parseInt(x.textContent, 10)));
     ok(cupos.length <= 6 && cupos.length > 0 && cupos.every((v, i) => !i || cupos[i - 1] >= v), '«Dónde hay más cupos»: hasta 6, de más a menos (' + cupos.join(', ') + ')');
     await p.click('[data-filtro="Telas"]'); await p.waitForTimeout(200);
@@ -276,6 +312,16 @@ async function correr(nav, base, log) {
     const sin = await p.$$eval('.pl-nino', l => l.filter(x => !x.querySelector('[aria-pressed="true"]')).length);
     const txt = await p.textContent('#plGuardar');
     ok(sin > 0 ? txt === 'Guardar lista (' + sin + ' sin marcar)' : /^(Guardar lista|✓ Lista guardada)$/.test(txt), '«Guardar lista» dice cuántos faltan (' + txt + '; sin marcar: ' + sin + ')');
+    const colorGuardar = () => p.$eval('#plGuardar', b => ({ des: b.disabled, fondo: getComputedStyle(b).backgroundColor }));
+    const gris = await p.evaluate(() => { const b = document.createElement('button'); b.className = 'btn primario guardar'; b.disabled = true; document.body.appendChild(b);
+      const f = getComputedStyle(b).backgroundColor; b.remove(); return f; });
+    ok(gris === 'rgb(236, 232, 226)', '«Guardar lista» sin nada que guardar: gris (deshabilitado), no rojo pálido (' + gris + ')');
+    const g1 = await colorGuardar();
+    ok(!g1.des && g1.fondo === 'rgb(215, 28, 14)', '«Guardar lista» con marcas: rojo (' + g1.fondo + ')');
+    const verde = await p.evaluate(() => { const g = document.createElement('div'); g.className = 'pl-botones'; g.innerHTML = '<button data-e="Presente" aria-pressed="true">x</button>';
+      document.querySelector('.pl-ninos').appendChild(g); const f = getComputedStyle(g.firstChild).backgroundColor; g.remove(); return f; });
+    const lum = c => { const v = c.match(/\d+/g).slice(0, 3).map(x => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+    ok(verde === 'rgb(39, 135, 70)' && 1.05 / (lum(verde) + 0.05) >= 4.5, '«Presente»: el verde de ok (#278746), con letra blanca a ' + (1.05 / (lum(verde) + 0.05)).toFixed(2) + ':1');
     await p.click('#plTodos'); await p.click('#plGuardar'); await p.waitForTimeout(800);
     const g0 = guardadas[0];
     ok(guardadas.length === 1 && g0.marcas.length === total && g0.marcas[0].estado === elegido && g0.marcas.slice(1).every(m => m.estado === 'Presente'),
@@ -296,9 +342,13 @@ const ROTURAS = [
   ['«Nuevo» ofrece acciones sin permiso', 'comun/marca.js', "NUEVO.filter(a => permAS(a.permiso))", "NUEVO.slice()"],
   ['las notificaciones cuentan los avisos en 0', 'comun/marca.js', "filter(x => NOTIFICACIONES[x.clave] && x.n);", "filter(x => NOTIFICACIONES[x.clave]);"],
   ['lo leído no se recuerda por usuario', 'comun/marca.js', "const claveUsuario = k => 'vea360.' + k + '.' + (S ? S.usuario : '');", "const claveUsuario = k => 'vea360.' + k;"],
-  ['«Lleno» con cualquier ocupación', 'after-school/index.html', "const estaLleno = est => est === 'lleno' || est === 'casi';", "const estaLleno = est => est !== 'inactiva';"],
+  ['«Lleno» con cualquier ocupación', 'after-school/index.html', "const estaLleno = est => est === 'lleno';", "const estaLleno = est => est !== 'inactiva';"],
+  ['«Lleno» vuelve a empezar en el umbral (casi lleno)', 'after-school/index.html', "const estaLleno = est => est === 'lleno';", "const estaLleno = est => est === 'lleno' || est === 'casi';"],
+  ['«Guardar lista» deshabilitado vuelve al rojo pálido', 'comun/vea.css', ".btn.primario:disabled, .btn.negro:disabled, .btn.azul:disabled { opacity: 1;", ".x-sin-uso:disabled { opacity: 1;"],
+  ['el verde de ok vuelve al claro (blanco a 3,5:1)', 'comun/vea.css', "--ok: #278746;", "--ok: #2E9D4F;"],
   ['«Dónde hay más cupos» sin ordenar', 'after-school/index.html', ".sort((a, b) => b.libres - a.libres || a.iso.localeCompare(b.iso) || a.c.hora.localeCompare(b.c.hora)).slice(0, 6);", ".slice(0, 6).reverse();"],
   ['los botones de Pasar lista cambian de ancho', 'comun/vea.css', ".pl-botones button[aria-pressed=\"true\"] .pl-check { display: inline-block; }", ".pl-botones button[aria-pressed=\"true\"] .pl-check { display: inline-block; } .pl-botones button[aria-pressed=\"true\"] { width: 130px; }"],
+  ['Preschool vuelve a redefinir --tinta en círculo', 'kinder/index.html', "  --tinta2:var(--texto-2);", "  --tinta:var(--texto); --linea:var(--gris); --tinta2:var(--texto-2);"],
   ['la barra inferior no aparece en celular', 'comun/armazon.css', "  .abajo { display: flex;", "  .abajo { display: none;"]
 ];
 

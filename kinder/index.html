@@ -7,7 +7,7 @@
 <!-- 22-oct: marca Vida en Arte Kids. Tipografía, colores, encabezado y
      tarjetas salen de /comun/vea.css (tema .tema-kids, en <html>); aquí
      queda solo lo propio de este tablero. -->
-<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
+<link rel="stylesheet" href="/comun/vea.css?v=f59080bdb7">
 <style>
 /* ==========================================================================
    TIPOGRAFIA
@@ -35,8 +35,11 @@
 
   /* Texto: los de vea.css, que pasan 4,5 sobre blanco. El gris de antes
      (#A3B3B7) daba 2,2 en los pies de las cifras. */
-  --tinta:var(--texto); --tinta2:var(--texto-2); --tinta3:var(--texto-3);
-  --linea:var(--gris); --papel:var(--blanco); --fondo:var(--fondo-suave); --vacio:#DDE4E7;
+  /* 3-nov (rediseño, ajuste 1): --tinta, --linea y --fondo ya los define vea.css (los del sistema
+     nuevo). Redefinirlos aquí como var(--texto) / var(--gris) hacía un círculo (en vea.css esos
+     apuntan a --tinta y --linea) y el color quedaba vacío: la barra lateral perdía su activo. */
+  --tinta2:var(--texto-2); --tinta3:var(--texto-3);
+  --papel:var(--blanco); --vacio:#DDE4E7;
   --azul-tenue:#CFE0F0; --rojo-tenue:var(--rosa);
 }
 body{font-size:13.5px;line-height:1.55}
@@ -405,7 +408,7 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
      Tiene que cargar ANTES del script principal. -->
 <script src="config.php"></script>
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=ff1b1be99d"></script>
+<script src="/comun/marca.js?v=9a6eb9ed61"></script>
 <script>
 /* El encabezado del portal. Si /comun/ no estuviera (otro servidor), la
    página sigue igual, sin encabezado: el tablero no depende de él. */

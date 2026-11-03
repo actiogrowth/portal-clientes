@@ -22,7 +22,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
+<link rel="stylesheet" href="/comun/vea.css?v=f59080bdb7">
 </head>
 <body>
 <header id="cab"></header>
@@ -45,7 +45,7 @@
   <section class="rs-seccion vidrio-tarjeta" aria-labelledby="tFin">
     <div class="rs-seccion-cab"><h2 class="titulo" id="tFin">Rentabilidad y facturación</h2><p class="ayuda" id="finSub"></p></div>
     <div class="rs-kpis" id="finKpis"></div>
-    <div class="rs-grafico-cab"><b>Últimos 12 meses</b><span class="rs-leyenda"><span><i style="background:#1974A8"></i>Facturación</span><span><i style="background:#E0951A"></i>Costos + gastos</span><span><i class="linea" style="background:#1E7A3C"></i>Utilidad neta</span></span></div>
+    <div class="rs-grafico-cab"><b>Últimos 12 meses</b><span class="rs-leyenda"><span><i style="background:#1974A8"></i>Facturación</span><span><i style="background:#E0951A"></i>Costos + gastos</span><span><i class="linea" style="background:#278746"></i>Utilidad neta</span></span></div>
     <div class="rs-grafico" id="finGrafico"></div>
     <p class="ayuda" id="finNota"></p>
   </section>
@@ -72,7 +72,7 @@
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
 <script src="/comun/cifras.js?v=5f9322ccbb"></script>
-<script src="/comun/marca.js?v=ff1b1be99d"></script>
+<script src="/comun/marca.js?v=9a6eb9ed61"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -123,7 +123,7 @@ function pintarFinanzas(N) {
   const barras = con.map(x => { const i = S.indexOf(x), x0 = i * ancho + ancho * 0.18, b = ancho * 0.3;
     return '<rect x="' + x0.toFixed(1) + '" y="' + y(x.facturacion).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.facturacion)).toFixed(1) + '" rx="3" fill="#1974A8"/>' +
       '<rect x="' + (x0 + b + 2).toFixed(1) + '" y="' + y(x.costosYGastos).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.costosYGastos)).toFixed(1) + '" rx="3" fill="#E0951A"/>'; }).join('');
-  const linea = con.length > 1 ? '<path d="' + con.map((x, k) => (k ? 'L' : 'M') + (S.indexOf(x) * ancho + ancho / 2).toFixed(1) + ' ' + y(Math.max(0, x.utilidad)).toFixed(1)).join(' ') + '" fill="none" stroke="#1E7A3C" stroke-width="2.5"/>' : '';
+  const linea = con.length > 1 ? '<path d="' + con.map((x, k) => (k ? 'L' : 'M') + (S.indexOf(x) * ancho + ancho / 2).toFixed(1) + ' ' + y(Math.max(0, x.utilidad)).toFixed(1)).join(' ') + '" fill="none" stroke="#278746" stroke-width="2.5"/>' : '';
   const ejes = S.map((x, i) => '<text x="' + (i * ancho + ancho / 2).toFixed(1) + '" y="194" text-anchor="middle">' + MESES_C[+x.mes.slice(5, 7) - 1] + '</text>').join('');
   $('#finGrafico').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + (con.length ? 'Facturación, costos y gastos y utilidad neta de los últimos 12 meses' : 'Gráfico de los últimos 12 meses: próximamente') + '">' +
     '<line x1="0" y1="' + base + '" x2="' + W + '" y2="' + base + '" stroke="#D8D8D8"/>' + barras + linea + ejes + '</svg>' +

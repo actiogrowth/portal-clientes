@@ -324,7 +324,7 @@
      transform y opacity; detrás del contenido y sin recibir clics. Se
      detienen con la pestaña oculta y quedan quietas con «reducir movimiento»
      (vea.css). */
-  const COLORES_PARTICULAS = ['#E0412F', '#1974A8', '#F2A01E', '#7FB3D5', '#2E9D4F', '#7E53A2'];
+  const COLORES_PARTICULAS = ['#E0412F', '#1974A8', '#F2A01E', '#7FB3D5', '#278746', '#7E53A2'];
   function particulas() {
     if (document.querySelector('.particulas')) return;
     const p = document.createElement('div');
