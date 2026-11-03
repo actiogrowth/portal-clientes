@@ -707,43 +707,33 @@ body.eq-ficha-abierta { overflow: hidden; }
   .eq-ficha-cab h2 { font-size: 30px; }
 }
 
-/* ── Procesos › Equipo v2 (29-oct): la escena oscura y el organigrama 3D ────
-   <html class="eq-escena"> lo pone comun/organigrama.js mientras se ve Equipo
-   (también Reglas del juego y Horarios). Los colores de las áreas llegan
-   como --c desde comun/puestos.js. Se anima SOLO transform y opacity:
+/* ── Procesos › Equipo v2 (29-oct): el «Escenario 3D» del organigrama ────────
+   3-nov (rediseño, ajuste 2, decidido por Vida en Arte): sobre el FONDO CLARO
+   de la app, como todas las páginas. Sin degradado oscuro, sin foto, sin
+   brillos de color y sin chispas propias: las partículas son las de la
+   estructura común (comun/armazon.css). <html class="eq-escena-clara"> lo
+   pone comun/organigrama.js mientras se ve Equipo (también Reglas del juego
+   y Horarios): solo ensancha la página y agrega el piso en perspectiva, gris.
+   Los colores de las áreas llegan como --c desde comun/puestos.js. Se anima
+   SOLO transform y opacity:
    · .eq-entra: la entrada en cascada (una vez; --d es el retraso).
-   · .eq-lin::after: la luz que recorre las líneas; .eq-chispa; .eq-halo.
+   · .eq-lin::after: la luz que recorre las líneas (del color de cada área); .eq-halo.
    Con la pestaña oculta (.eq-pausa) todo se detiene; con «reducir
    movimiento», todo quieto; con «reducir transparencia» o sin desenfoque,
-   fondo plano, sin foto, sin piso, sin chispas y sin animación. */
-.eq-escena body { background: #0E0F11; }
-.eq-escena body::before { background: linear-gradient(180deg, #17191C 0%, #0B0C0E 100%); }
+   sin piso, tarjetas sólidas y sin animación. */
 .eq-fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .eq-fondo[hidden] { display: none; }
-.eq-brillos { position: absolute; inset: 0; }
-.eq-brillos::before { content: ''; position: absolute; inset: 0; background: radial-gradient(1200px 520px at 50% -8%, rgba(255, 255, 255, .10), transparent 60%); }
 .eq-piso { position: absolute; left: -20%; right: -20%; bottom: -120px; height: 520px; transform: perspective(700px) rotateX(62deg); transform-origin: 50% 100%;
-  background-image: linear-gradient(rgba(255, 255, 255, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .07) 1px, transparent 1px); background-size: 64px 64px;
+  background-image: linear-gradient(rgba(22, 24, 29, .06) 1px, transparent 1px), linear-gradient(90deg, rgba(22, 24, 29, .06) 1px, transparent 1px); background-size: 64px 64px;
   -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 90%); mask-image: linear-gradient(to top, #000 10%, transparent 90%); }
-.eq-chispa { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #FFFFFF; opacity: 0; animation: eq-sube 9s linear infinite; }
-@keyframes eq-sube { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .6; } 100% { transform: translateY(-700px); opacity: 0; } }
-/* La barra de arriba: vidrio oscuro con el logo en blanco. */
-.eq-escena .cab { background: rgba(14, 15, 17, .55); border-bottom-color: rgba(255, 255, 255, .12); color: #FFFFFF; }
-.eq-escena .cab-logo img { filter: brightness(0) invert(1); }
-.eq-escena .cab-buscar { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .22); color: rgba(255, 255, 255, .8); }
-.eq-escena .cab-buscar kbd { background: transparent; border-color: rgba(255, 255, 255, .3); color: rgba(255, 255, 255, .8); }
-.eq-escena .cab-acciones .btn, .eq-escena .cab-acciones .btn-icono { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .3); color: #FFFFFF; }
-.eq-escena .cab-numero { border-color: #0E0F11; }
-.eq-escena .ceja, .eq-escena .ceja a { color: rgba(255, 255, 255, .78); }
 /* Arriba del organigrama: los accesos (Reglas del juego, Horarios) y la leyenda. */
 .eq-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
 .eq-accesos { display: flex; flex-wrap: wrap; gap: 8px; }
-.eq-acceso { display: inline-flex; align-items: center; min-height: var(--toque); padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 600; text-decoration: none;
-  color: #FFFFFF; border: 1px solid rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .08); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-.eq-acceso:hover { color: #FFFFFF; background: rgba(255, 255, 255, .16); }
-.eq-acceso:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
-.eq-escena .eq-leyenda { color: rgba(255, 255, 255, .85); }
-.eq-escena .eq-leyenda i.construccion { border: 1px dashed #FFFFFF; width: 14px; height: 14px; border-radius: 4px; }
+.eq-acceso { display: inline-flex; align-items: center; min-height: var(--toque); padding: 0 18px; border-radius: 12px; font-size: 15px; font-weight: 600; text-decoration: none;
+  color: var(--tinta); border: 1px solid var(--linea); background: var(--panel); box-shadow: 0 1px 2px rgba(22, 24, 29, .04); }
+.eq-acceso:hover { color: var(--tinta); background: var(--fondo-suave); border-color: #DCD6CD; }
+.eq-leyenda { color: var(--suave); }
+.eq-leyenda i.construccion { border: 1px dashed var(--tenue); width: 14px; height: 14px; border-radius: 4px; background: rgba(255, 255, 255, .6); }
 .eq-leyenda .eq-chip { margin-right: 2px; }
 /* El lienzo: transparente sobre la escena; se arrastra y se acerca como antes. */
 .eq-org3d { display: flex; flex-direction: column; gap: 12px; }
@@ -753,12 +743,12 @@ body.eq-ficha-abierta { overflow: hidden; }
 /* 30-oct (ajuste 2): la manito de arrastrar solo cuando se puede arrastrar: acercado con + o Ctrl + rueda, o en pantalla táctil. */
 .eq-org3d .eq-lienzo.puede-arrastrar { cursor: grab; }
 .eq-org3d .eq-lienzo.arrastrando { cursor: grabbing; }
-.eq-escena .pagina, .eq-escena .cab-in { max-width: 1440px; }
+.eq-escena-clara .pagina, .eq-escena-clara .cab-in { max-width: 1440px; }
 .eq-columnas + .eq-bus-caja { margin-top: 28px; }
 /* Los avisos del Sheet (Dirección y Administrador): una franja que se despliega. */
 .eq-avisos { border-radius: 14px; background: #FFF4DE; color: var(--cafe); font-size: 13px; }
 .eq-avisos summary { cursor: pointer; min-height: var(--toque); display: flex; align-items: center; padding: 0 14px; font-weight: 600; }
-.eq-avisos summary:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
+.eq-avisos summary:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
 .eq-avisos ul { margin: 0; padding: 0 14px 12px 30px; max-height: 40vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; line-height: 1.4; }
 /* El «Cada cuánto» propio de un punto dentro de su grupo («Por cumpleaños» en «Cada vez que ocurre»). */
 .eq-cuando { align-self: flex-start; display: inline-block; margin: 2px 6px 0 0; font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #EFEFEF; color: #3D3D3D; white-space: nowrap; }
@@ -775,38 +765,40 @@ body.eq-ficha-abierta { overflow: hidden; }
 .eq-losa { position: relative; display: block; width: 100%; box-sizing: border-box; padding: 0; margin: 0; border: 0; border-radius: 14px; background: none;
   color: #111111; font: inherit; text-align: left; }
 button.eq-losa { cursor: pointer; }
-.eq-losa:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
+.eq-losa:focus-visible { outline: 3px solid var(--azul); outline-offset: 3px; }
 .eq-cara { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; box-sizing: border-box; padding: 9px 10px 9px 12px;
-  border-radius: 14px; background: linear-gradient(180deg, #FFFFFF, #F2F2F2); color: inherit; pointer-events: none;
-  box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 18px 30px rgba(0, 0, 0, .45);
+  border-radius: 14px; background: linear-gradient(180deg, #FFFFFF, #F7F5F1); color: inherit; pointer-events: none;
+  /* El grosor: capas de gris cálido suave (sobre el fondo claro) y una sombra difusa, no negra. */
+  box-shadow: 0 0 0 1px var(--linea), 0 1px 0 #E6E1D9, 0 2px 0 #E0DAD1, 0 3px 0 #D9D3C9, 0 4px 0 #D3CCC1, 0 5px 0 #CCC5B9, 0 16px 28px rgba(22, 24, 29, .12);
   transition: transform .35s cubic-bezier(.2, .8, .2, 1), box-shadow .35s; }
 @media (hover: hover) {
   button.eq-losa:hover > .eq-cara { transform: translateY(-6px) translateZ(40px);
-    box-shadow: 0 1px 0 #D9D9D9, 0 2px 0 #CFCFCF, 0 3px 0 #C4C4C4, 0 4px 0 #B9B9B9, 0 5px 0 #AEAEAE, 0 34px 50px rgba(0, 0, 0, .55); }
+    box-shadow: 0 0 0 1px var(--linea), 0 1px 0 #E6E1D9, 0 2px 0 #E0DAD1, 0 3px 0 #D9D3C9, 0 4px 0 #D3CCC1, 0 5px 0 #CCC5B9, 0 30px 44px rgba(22, 24, 29, .18); }
 }
 /* Nada decorativo recibe clics: las líneas, el halo y los trazos van «a través». */
 .eq-lin, .eq-tic, .eq-halo, .eq-bus { pointer-events: none; }
 .eq-losa .eq-nombre { font-size: 13px; font-weight: 600; line-height: 1.2; }
-.eq-losa .eq-nota { font-size: 11px; color: #4A4A4A; white-space: normal; }
+.eq-losa .eq-nota { font-size: 11px; color: var(--suave); white-space: normal; }
 .eq-losa .eq-fila { margin-top: 2px; }
 /* Dirección: la losa negra con su halo que respira. */
 .eq-dir-fila { display: flex; justify-content: center; }
 .eq-dir { position: relative; }
-.eq-halo { position: absolute; inset: -14px; border-radius: 24px; background: radial-gradient(closest-side, rgba(255, 255, 255, .35), transparent); pointer-events: none;
+.eq-halo { position: absolute; inset: -14px; border-radius: 24px; background: radial-gradient(closest-side, rgba(22, 24, 29, .22), transparent); pointer-events: none;
   opacity: .35; animation: eq-respira 3.2s ease-in-out infinite; animation-delay: 2.6s; }
 @keyframes eq-respira { 0%, 100% { opacity: .35; transform: scale(.96); } 50% { opacity: .8; transform: scale(1.04); } }
 .eq-losa-dir > .eq-cara { align-items: center; padding: 14px 40px; background: linear-gradient(180deg, #2A2A2A, #0E0E0E); color: #FFFFFF;
-  box-shadow: 0 1px 0 #333333, 0 2px 0 #2B2B2B, 0 3px 0 #222222, 0 4px 0 #1A1A1A, 0 5px 0 #111111, 0 22px 40px rgba(0, 0, 0, .6); }
+  box-shadow: 0 1px 0 #333333, 0 2px 0 #2B2B2B, 0 3px 0 #222222, 0 4px 0 #1A1A1A, 0 5px 0 #111111, 0 20px 36px rgba(22, 24, 29, .22); }
 .eq-dir-id { font-size: 11px; letter-spacing: 2px; color: rgba(255, 255, 255, .7); }
 .eq-dir-nom { font-family: var(--titulos); font-size: 34px; line-height: 1; letter-spacing: 1px; }
 /* Las líneas: de Dirección a cada área y, en cada columna, a sus puestos. */
 .eq-bus-caja { position: relative; height: 56px; margin: 0 auto; }
-.eq-lin { position: absolute; display: block; background: rgba(255, 255, 255, .35); overflow: hidden; }
+.eq-lin { position: absolute; display: block; background: #958F86; overflow: hidden; }   /* gris medio sobre el fondo claro (3:1) */
+.eq-lin-col { background: color-mix(in srgb, var(--c) 55%, #FAF8F5); }                    /* las de cada área, con su color */
 .eq-lin-v { width: 2px; margin-left: -1px; transform-origin: top; }
 .eq-lin-h { height: 2px; transform-origin: center; }
 .eq-lin::after { content: ''; position: absolute; left: 0; top: 0; opacity: 0; }
-.eq-lin-v::after { width: 100%; height: 40%; background: linear-gradient(to bottom, transparent, var(--c, #FFFFFF), transparent); animation: eq-luz-v 2.2s linear infinite; animation-delay: 2.6s; }
-.eq-lin-h::after { height: 100%; width: 20%; background: linear-gradient(to right, transparent, #FFFFFF, transparent); animation: eq-luz-h 3s linear infinite; animation-delay: 2.6s; }
+.eq-lin-v::after { width: 100%; height: 40%; background: linear-gradient(to bottom, transparent, var(--c, var(--tinta)), transparent); animation: eq-luz-v 2.2s linear infinite; animation-delay: 2.6s; }
+.eq-lin-h::after { height: 100%; width: 20%; background: linear-gradient(to right, transparent, var(--c, var(--tinta)), transparent); animation: eq-luz-h 3s linear infinite; animation-delay: 2.6s; }
 @keyframes eq-luz-v { from { transform: translateY(-100%); opacity: 1; } to { transform: translateY(250%); opacity: 1; } }
 @keyframes eq-luz-h { from { transform: translateX(-100%); opacity: 1; } to { transform: translateX(500%); opacity: 1; } }
 .eq-crece-v { animation: eq-crece-v .5s ease-out backwards; animation-delay: var(--d, 0s); }
@@ -828,13 +820,13 @@ button.eq-losa { cursor: pointer; }
 .eq-lin-col { left: 9px; top: 0; bottom: 24px; }
 .eq-losa-puesto > .eq-cara { border-left: 4px solid var(--c); }
 .eq-tic { position: absolute; left: calc(-4px - var(--tic, 10px)); top: 50%; width: var(--tic, 10px); height: 2px; background: var(--c); opacity: .7; }
-/* «Por cargar»: vidrio translúcido con borde punteado. */
-.eq-fantasma { color: #FFFFFF; }
-.eq-fantasma > .eq-cara { background: rgba(255, 255, 255, .09); outline: 1px dashed rgba(255, 255, 255, .55); outline-offset: -1px;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(0, 0, 0, .35); }
-.eq-fantasma .eq-nota { color: rgba(255, 255, 255, .9); }
-.eq-fantasma .eq-chip.construccion { background: rgba(255, 255, 255, .14); color: #FFFFFF; }
-@media (hover: hover) { button.eq-fantasma:hover > .eq-cara { box-shadow: 0 24px 40px rgba(0, 0, 0, .5); } }
+/* «Por cargar» («En construcción»): tarjeta blanca semitransparente con borde punteado gris (ajuste 2). */
+.eq-fantasma { color: var(--tinta); }
+.eq-fantasma > .eq-cara { background: rgba(255, 255, 255, .62); outline: 1.5px dashed #958F86; outline-offset: -1.5px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 8px 20px rgba(22, 24, 29, .06); }
+.eq-fantasma .eq-nota { color: var(--suave); }
+.eq-fantasma .eq-chip.construccion { background: #ECE8E2; color: var(--tinta); }
+@media (hover: hover) { button.eq-fantasma:hover > .eq-cara { box-shadow: 0 22px 36px rgba(22, 24, 29, .14); } }
 /* La entrada en cascada (una sola vez: después, .eq-quieto). */
 .eq-entra { animation: eq-aparece .7s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: var(--d, 0s); }
 @keyframes eq-aparece { from { opacity: 0; transform: translateY(-18px) translateZ(80px) rotateX(-20deg); } to { opacity: 1; transform: translateZ(0); } }
@@ -842,27 +834,22 @@ button.eq-losa { cursor: pointer; }
 .eq-pausa .eq-fondo *, .eq-pausa .eq-org3d *, .eq-pausa .eq-org3d *::after { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
   .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }
-  .eq-chispa { display: none; }
   .eq-plano { transform: rotateX(7deg); }
 }
-/* Versión sólida: fondo plano, sin foto, sin piso, sin chispas, sin desenfoque y sin animación. */
+/* Versión sólida: sin piso, sin desenfoque, tarjetas «Por cargar» opacas y sin animación. */
 @media (prefers-reduced-transparency: reduce) {
-  .eq-escena body { background: #141618; }
   .eq-fondo { display: none; }
-  .eq-escena .cab { background: #141618; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .eq-fantasma > .eq-cara, .eq-acceso { background: #2A2D31; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .eq-fantasma > .eq-cara { background: #F4F1EC; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .eq-org3d *, .eq-org3d *::after { animation: none !important; }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .eq-escena body { background: #141618; }
   .eq-fondo { display: none; }
-  .eq-escena .cab { background: #141618; }
-  .eq-fantasma > .eq-cara, .eq-acceso { background: #2A2D31; }
+  .eq-fantasma > .eq-cara { background: #F4F1EC; }
   .eq-org3d *, .eq-org3d *::after { animation: none !important; }
 }
-@media (max-width: 640px) { .eq-piso, .eq-chispa { display: none; } }
+@media (max-width: 640px) { .eq-piso { display: none; } }
 
-/* Reglas del juego y Horarios del servicio: tarjetas de vidrio sobre la escena. */
+/* Reglas del juego y Horarios del servicio: tarjetas blancas, como el resto de la app. */
 .eq-reglas { display: flex; flex-direction: column; gap: 16px; }
 .pagina-reglas { max-width: 820px; }
 .eq-regla-sec { border-radius: 24px; padding: 20px 24px; border: 1px solid var(--gris); background: var(--blanco); }
@@ -873,7 +860,6 @@ button.eq-losa { cursor: pointer; }
 .eq-horarios { border-radius: 24px; padding: 8px 16px; border: 1px solid var(--gris); background: var(--blanco); overflow-x: auto; }
 .eq-horarios table { width: 100%; }
 .eq-horarios-hora { white-space: nowrap; font-weight: 600; }
-.eq-escena .encabezado h1, .eq-escena .encabezado .ayuda, .eq-escena .pr-miga { color: #FFFFFF; text-shadow: 0 1px 8px rgba(0, 0, 0, .55); }
 
 /* La ficha (29-oct): el formato del contrato en papel. */
 .eq-contrato-tabla { width: 100%; border-collapse: collapse; font-size: 14px; }

@@ -23,6 +23,7 @@ const FUENTE = fs.readFileSync(path.join(__dirname, '..', 'comun', 'organigrama.
 const PUESTOS_JS = fs.readFileSync(path.join(__dirname, '..', 'comun', 'puestos.js'), 'utf8');
 const VERIF_JS = fs.readFileSync(path.join(__dirname, '..', 'comun', 'verificacion.js'), 'utf8');   // 2-nov
 const CSS = fs.readFileSync(path.join(__dirname, '..', 'comun', 'vea.css'), 'utf8');
+const ARM = fs.readFileSync(path.join(__dirname, '..', 'comun', 'armazon.css'), 'utf8');   // 3-nov: la estructura común (las partículas)
 function cargar(fuente, puestosJs, verifJs) {
   const normal = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -96,7 +97,11 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
   const larga = O._escena(O._arbol([P('D', 'D', 'Dirección', '')].concat([1, 2, 3, 4, 5, 6].map(k => P('A' + k, 'a', 'Preschool', 'D')),
     Array.from({ length: 20 }, (_, k) => P('X' + k, 'x', 'Preschool', 'A6')))));
   ok(Math.max(...larga.columnas[5].puestos.map(x => x.d)) <= E_.tope, 'aunque un área tenga 20 puestos, la cascada termina a tiempo');
-  ok(O._chispas > 0 && O._chispas <= 20, 'como mucho 20 chispas');
+  // 3-nov (rediseño, ajuste 2): Equipo sobre el fondo claro; sin escena oscura ni una segunda capa de partículas.
+  ok(O._chispas === undefined && !/eq-chispa|eq-brillos|'eq-escena'/.test(FUENTE) && /classList\.toggle\('eq-escena-clara', si\)/.test(FUENTE),
+    'Equipo ya no usa la escena oscura: sin chispas ni brillos propios (las partículas son las de la estructura común)');
+  ok(!/\.eq-escena[ ,.{]|#0E0F11|#141618|eq-chispa|eq-brillos/.test(CSS) && /\.eq-piso \{[^}]*rgba\(22, 24, 29, \.06\)/.test(CSS) && !/\.eq-escena \.particulas/.test(ARM),
+    'vea.css: sin fondo oscuro, sin vidrio oscuro en la barra, piso gris suave y las partículas comunes también en Equipo');
   // Colores, en un solo lugar.
   ok(Pu.colorArea('Operación').fondo === '#D71C0E' && Pu.colorArea('comercial').fondo === '#2E9D4F' && Pu.colorArea('Dirección').fondo === '#111111' &&
     Pu.colorArea('After School').texto === '#111111' && Pu.colorArea('Veranito').fondo === '#FFA615' && Pu.colorArea('Otra').fondo === '#555555', 'los colores de las áreas (texto negro sobre el naranja; un área desconocida, gris)');
@@ -284,15 +289,23 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
   ok(/if \(ev\.key !== 'Tab'\) return;/.test(FUENTE) && /ultimo\.focus\(\)/.test(FUENTE) && /primero\.focus\(\)/.test(FUENTE), 'con Tab el foco da la vuelta dentro de la ficha');
   ok(/CELULAR = '\(max-width: 640px\)'/.test(FUENTE) && /modo = window\.matchMedia && window\.matchMedia\(CELULAR\)\.matches \? 'lista' : 'arbol'/.test(FUENTE), 'en celular (640 px o menos), la lista por áreas, sin 3D');
   ok(/data-eq-zoom="' \+ k/.test(FUENTE) && /'ajustar'/.test(FUENTE) && /addEventListener\('wheel'/.test(FUENTE) && /pellizco/.test(FUENTE), 'mover y acercar: rueda, pellizco y botones − / + / «Ajustar»');
-  ok(/class="eq-losa ' \+ clases \+ '"' \+ st \+ ' data-eq-puesto=/.test(FUENTE) && /<button type="button" class="eq-losa/.test(FUENTE) && /\.eq-losa:focus-visible \{ outline: 3px solid #FFFFFF/.test(CSS), 'cada tarjeta es un botón con foco visible que abre la ficha');
+  ok(/class="eq-losa ' \+ clases \+ '"' \+ st \+ ' data-eq-puesto=/.test(FUENTE) && /<button type="button" class="eq-losa/.test(FUENTE) && /\.eq-losa:focus-visible \{ outline: 3px solid var\(--azul\)/.test(CSS), 'cada tarjeta es un botón con foco visible que abre la ficha');
   ok(/addEventListener\('visibilitychange', \(\) => document\.documentElement\.classList\.toggle\('eq-pausa', document\.hidden\)\)/.test(FUENTE) && /\.eq-pausa \.eq-fondo \*, \.eq-pausa \.eq-org3d \*[^{]*\{ animation-play-state: paused !important; \}/.test(CSS),
     'con la pestaña oculta, las animaciones se pausan');
   const cuadros = [...CSS.matchAll(/@keyframes (eq-[\w-]+) \{([\s\S]*?)\}\s*\}/g)];
   const props = cuadros.flatMap(k => [...k[2].matchAll(/([a-z-]+)\s*:/g)].map(x => x[1]));
-  ok(cuadros.length >= 8 && props.length && props.every(p => p === 'transform' || p === 'opacity'), 'las animaciones de Equipo mueven solo transform y opacity (' + [...new Set(props)].join(', ') + ')');
+  // 3-nov (ajuste 2): sin la de las chispas quedan 7 (plano, respira, luz v/h, crece v/h, aparece).
+  ok(cuadros.length >= 7 && props.length && props.every(p => p === 'transform' || p === 'opacity'), 'las animaciones de Equipo mueven solo transform y opacity (' + [...new Set(props)].join(', ') + ')');
   ok(/@media \(prefers-reduced-motion: reduce\) \{\s*\.eq-fondo \*, \.eq-org3d \*, \.eq-org3d \*::after \{ animation: none !important; \}/.test(CSS), 'con «reducir movimiento», todo quieto');
-  ok(/@media \(prefers-reduced-transparency: reduce\) \{\s*\.eq-escena body \{ background: #141618; \}\s*\.eq-fondo \{ display: none; \}/.test(CSS) && /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\) \{\s*\.eq-escena body \{ background: #141618; \}\s*\.eq-fondo \{ display: none; \}/.test(CSS),
-    'versión sólida (reducir transparencia o sin desenfoque): fondo plano, sin foto ni animación');
+  ok(/@media \(prefers-reduced-transparency: reduce\) \{\s*\.eq-fondo \{ display: none; \}/.test(CSS) && /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\) \{\s*\.eq-fondo \{ display: none; \}/.test(CSS),
+    'versión sólida (reducir transparencia o sin desenfoque): sin piso, tarjetas opacas y sin animación');
+  // 3-nov (ajuste 2): sobre claro, las sombras de las losas son grises suaves (no negras) y los textos de la página, los normales.
+  const cara = (/\.eq-cara \{([^}]*)\}/.exec(CSS) || [])[1] || '';
+  ok(/rgba\(22, 24, 29, \.1\d\)/.test(cara) && !/rgba\(0, 0, 0, \.[3-9]/.test(cara), 'las tarjetas con grosor: sombras escalonadas grises y sombra difusa suave');
+  ok(/\.eq-acceso \{[^}]*color: var\(--tinta\)/.test(CSS) && /\.eq-leyenda \{ color: var\(--suave\); \}/.test(CSS) && /\.eq-fantasma \{ color: var\(--tinta\); \}/.test(CSS) && /\.eq-fantasma > \.eq-cara \{[^}]*dashed/.test(CSS),
+    'Reglas del juego, Horarios, la leyenda y «En construcción» en los colores normales de la app (no blancos)');
+  ok(/\.eq-lin \{[^}]*background: #958F86/.test(CSS) && /\.eq-lin-col \{ background: color-mix\(in srgb, var\(--c\)/.test(CSS) && /\.eq-lin-h::after \{[^}]*var\(--c, var\(--tinta\)\)/.test(CSS),
+    'líneas en gris medio, las de cada área con su color, y la luz del color del área');
   ok(/\.eq-plano \{ transform-style: preserve-3d; transform: rotateX\(7deg\)/.test(CSS) && /\.eq-escenario \{ perspective: 1800px/.test(CSS) && /button\.eq-losa:hover > \.eq-cara \{ transform: translateY\(-6px\) translateZ\(40px\)/.test(CSS),
     'el plano inclinado 7° con perspectiva, y la tarjeta (su cara) se levanta al pasar el cursor');
   // 30-oct (ajuste 2): la zona de clic no se transforma; la cara no recibe clics; lo decorativo tampoco.
@@ -340,7 +353,10 @@ const ROTURAS = [
   ['con el mouse siempre se arrastra', 'org', "(e.pointerType !== 'mouse' || arrastrable())", "(true)"],
   ['la manito siempre', 'css', ".eq-org3d .eq-lienzo.puede-arrastrar { cursor: grab; }", ".eq-org3d .eq-lienzo { cursor: grab; }"],
   ['la cascada no termina', 'org', "d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto)", "d: ENTRADA.puestos + i * ENTRADA.paso + j * 0.3"],
-  ['demasiadas chispas', 'org', "const CHISPAS = 16;", "const CHISPAS = 40;"],
+  ['vuelve la escena oscura', 'org', "classList.toggle('eq-escena-clara', si);", "classList.toggle('eq-escena-clara', si); document.documentElement.classList.toggle('eq-escena', si);"],
+  ['vuelven las chispas propias', 'org', "f.innerHTML = '<div class=\"eq-piso\"></div>';", "f.innerHTML = '<div class=\"eq-piso\"></div><span class=\"eq-chispa\"></span>';"],
+  ['las sombras de las losas vuelven a negro', 'css', "0 5px 0 #CCC5B9, 0 16px 28px rgba(22, 24, 29, .12);", "0 5px 0 #CCC5B9, 0 18px 30px rgba(0, 0, 0, .45);"],
+  ['«En construcción» vuelve al vidrio blanco sobre oscuro', 'css', ".eq-fantasma { color: var(--tinta); }", ".eq-fantasma { color: #FFFFFF; }"],
   ['Operación sin su rojo', 'puestos', "'operacion':      { fondo: '#D71C0E'", "'operacion':      { fondo: '#555555'"],
   ['el naranja de las líneas no se ve sobre blanco', 'puestos', "'after school':   { fondo: '#FFA615', texto: '#111111', linea: '#B86E00' }", "'after school':   { fondo: '#FFA615', texto: '#111111', linea: '#FFA615' }"],
   ['el momento corto le gana al largo', 'puestos', ".sort((a, b) => normal(b.momento).length - normal(a.momento).length)", ".sort((a, b) => normal(a.momento).length - normal(b.momento).length)"],
@@ -386,8 +402,8 @@ const ROTURAS = [
   ['el celular ve el árbol', 'org', "CELULAR = '(max-width: 640px)'", "CELULAR = '(max-width: 1px)'"],
   ['no se pausa con la pestaña oculta', 'org', "document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('eq-pausa', document.hidden));", ""],
   ['una animación mueve otra cosa (el piso)', 'css', "@keyframes eq-crece-v { from { transform: scaleY(0); } to { transform: scaleY(1); } }", "@keyframes eq-crece-v { from { height: 0; } to { height: 100%; } }"],
-  ['«reducir movimiento» ya no detiene todo', 'css', "  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }\n  .eq-chispa { display: none; }", "  .eq-chispa { display: none; }"],
-  ['la versión sólida conserva el fondo', 'css', "  .eq-escena body { background: #141618; }\n  .eq-fondo { display: none; }\n  .eq-escena .cab { background: #141618; -webkit-backdrop-filter", "  .eq-escena body { background: #141618; }\n  .eq-escena .cab { background: #141618; -webkit-backdrop-filter"],
+  ['«reducir movimiento» ya no detiene todo', 'css', "  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }\n  .eq-plano", "  .eq-plano"],
+  ['la versión sólida conserva el piso', 'css', "@media (prefers-reduced-transparency: reduce) {\n  .eq-fondo { display: none; }", "@media (prefers-reduced-transparency: reduce) {"],
   ['el PDF imprime toda la página', 'css', "  html.eq-imprimiendo body > *:not(#eq-impresion) { display: none !important; }\n", ""]
 ];
 console.log('\n· roturas');

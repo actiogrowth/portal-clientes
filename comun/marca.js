@@ -32,7 +32,7 @@
      piden en cuanto carga este archivo: cuando llega la sesión ya están. */
   if (!document.querySelector('link[data-armazon]')) {
     const l = document.createElement('link');
-    l.rel = 'stylesheet'; l.href = '/comun/armazon.css?v=ffd255cc6e'; l.setAttribute('data-armazon', '');
+    l.rel = 'stylesheet'; l.href = '/comun/armazon.css?v=35b1012ee7'; l.setAttribute('data-armazon', '');
     document.head.appendChild(l);
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

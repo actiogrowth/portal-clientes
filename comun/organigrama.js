@@ -13,20 +13,23 @@
 
      Organigrama.mostrar(el, { alTitulo(titulo, sub), vista, abrir })
        vista: 'org' (por defecto) | 'reglas' | 'horarios'; abrir: un ID de puesto
-     Organigrama.salir()   la página dejó Equipo: se apaga la escena oscura
+     Organigrama.salir()   la página dejó Equipo: se quita la escena (el piso del fondo)
 
    El organigrama sale de la pestaña Puestos («Reporta a»; el orden de las
    áreas es el del Sheet; los colores, de comun/puestos.js):
-   · Computador y tablet (más de 640 px): la escena oscura. Dirección arriba;
+   · Computador y tablet (más de 640 px): el «Escenario 3D», desde el 3-nov
+     (rediseño, ajuste 2) sobre el fondo claro de la app. Dirección arriba;
      las áreas (los puestos que le reportan) en columnas, cada una con la
      cabeza del color del área, su coordinación y el número de puestos; bajo
      cada una sus puestos, con sangría los que reportan a otro que no es la
      coordinación. Plano inclinado 7° con perspectiva, tarjetas con grosor
-     (sombras escalonadas) que se levantan al pasar el cursor; «Por cargar»
-     como vidrio translúcido con borde punteado. Se arrastra para moverlo, la
+     (sombras escalonadas, grises suaves) que se levantan al pasar el cursor;
+     «Por cargar» como tarjeta blanca semitransparente con borde punteado gris. Se arrastra para moverlo, la
      rueda o el pellizco acercan, y hay − / + / «Ajustar».
      Movimiento: entrada en cascada (~2,5 s, una vez), y después una luz que
-     recorre las líneas, chispas que suben (máx. 20) y el halo de Dirección.
+     recorre las líneas (del color de cada área) y el halo de Dirección. Las
+     partículas del fondo son las de la estructura común (comun/marca.js): no
+     hay una segunda capa.
      Solo se anima transform y opacity; se pausa con la pestaña oculta; con
      «reducir movimiento» todo queda quieto; con «reducir transparencia» (o
      sin desenfoque) el fondo es plano, sin foto ni animación.
@@ -65,7 +68,6 @@
   // tronco = dónde baja la línea que une las filas (a la izquierda de la primera columna).
   const M = { col: 210, sep: 16, margen: 24, bus: 56, sangria: 16, legible: 0.85, tronco: -12 };
   const ENTRADA = { dir: 0.15, lineas: 0.6, areas: 1.25, paso: 0.09, puestos: 1.7, puesto: 0.07, tope: 2.4, total: 2.6 };
-  const CHISPAS = 16;   // máximo 20
   const ZOOM_MIN = 0.3, ZOOM_MAX = 1.6, CELULAR = '(max-width: 640px)';
 
   let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '', porFila = 0;
@@ -133,8 +135,8 @@
       const areas = f.columnas.filter(c => !c.suelta).length;
       if (!areas) return;
       const ultimo = centroEn(areas - 1), desde = varias ? M.tronco : centroEn(0);
-      if (r === 0) f.lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: y, color: '#FFFFFF', d: ENTRADA.lineas });
-      if (areas > 1 || varias) f.lineas.push({ tipo: 'h', x: desde, y, largo: ultimo - desde, color: '#FFFFFF', d: ENTRADA.lineas + 0.25 });
+      if (r === 0) f.lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: y, color: '#5B5F68', d: ENTRADA.lineas });
+      if (areas > 1 || varias) f.lineas.push({ tipo: 'h', x: desde, y, largo: ultimo - desde, color: '#5B5F68', d: ENTRADA.lineas + 0.25 });
       f.columnas.forEach((c, j) => { if (!c.suelta) f.lineas.push({ tipo: 'v', x: centroEn(j), y, largo: M.bus / 2 + 2, color: c.color.fondo, d: ENTRADA.lineas + 0.5 + (f.desde + j) * 0.05 }); });
     });
     return { ancho, porFila: k, filas, varias, centros: filas.length ? filas[0].columnas.map((c, j) => centroEn(j)) : [], lineas: filas.flatMap(f => f.lineas), columnas };
@@ -217,7 +219,7 @@
 
   function pintar() {
     if (!D) return;
-    escenaOscura(true);
+    escenaClara(true);
     const v = op.vista || 'org';
     if (v === 'reglas') { titulo('Reglas del juego', 'Lo que une a todos en Vida en Arte. Se lee antes de aceptar cualquier contrato.'); el.innerHTML = reglasHtml(true); return; }
     if (v === 'horarios') {
@@ -250,31 +252,21 @@
   }
   document.addEventListener('toggle', ev => { if (ev.target.matches && ev.target.matches('.eq-avisos')) avisosAbiertos = ev.target.open; }, true);
 
-  /* La escena oscura de la página (fondo, piso, chispas y la barra de arriba en vidrio oscuro). */
-  function escenaOscura(si) {
-    const html = document.documentElement;
-    html.classList.toggle('eq-escena', si);
+  /* La escena de Equipo (3-nov, ajuste 2: sobre el fondo claro de la app). Solo agrega el piso en
+     perspectiva, en gris suave; sin degradado oscuro, sin brillos de color y sin chispas propias (las
+     partículas son las de la estructura común). <html class="eq-escena-clara"> ensancha la página. */
+  function escenaClara(si) {
+    document.documentElement.classList.toggle('eq-escena-clara', si);
     let f = document.getElementById('eqFondo');
     if (si && !f) {
       f = document.createElement('div');
       f.id = 'eqFondo'; f.className = 'eq-fondo'; f.setAttribute('aria-hidden', 'true');
-      // Chispas en lugares fijos (no al azar: la página se ve igual cada vez).
-      let s = 7, chispas = '';
-      const azar = () => (s = (s * 9301 + 49297) % 233280) / 233280;
-      for (let i = 0; i < Math.min(CHISPAS, 20); i++)
-        chispas += '<span class="eq-chispa" style="left:' + (4 + azar() * 92).toFixed(1) + '%;top:' + (60 + azar() * 38).toFixed(1) + '%;animation-delay:' + (ENTRADA.total + azar() * 9).toFixed(1) + 's"></span>';
-      f.innerHTML = '<div class="eq-brillos"></div><div class="eq-piso"></div>' + chispas;
+      f.innerHTML = '<div class="eq-piso"></div>';
       document.body.insertBefore(f, document.body.firstChild);
-    }
-    if (si && D) {
-      // Los brillos, de los colores de las áreas que hay (izquierda, centro y derecha).
-      const cols = arbol(D.puestos).columnas.filter(c => !c.suelta).map(c => colorArea(c.cab.area).fondo);
-      const b = f.querySelector('.eq-brillos'), en = (i, x, y) => cols.length ? 'radial-gradient(700px 420px at ' + x + ' ' + y + ', ' + cols[Math.min(cols.length - 1, i)] + '38, transparent 70%)' : '';
-      if (b) b.style.backgroundImage = [en(0, '8%', '70%'), en(Math.floor(cols.length / 2), '50%', '95%'), en(cols.length - 1, '92%', '65%')].filter(Boolean).join(',');
     }
     if (f) f.hidden = !si;
   }
-  function salir() { escenaOscura(false); }
+  function salir() { escenaClara(false); }
   document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('eq-pausa', document.hidden));
 
   /* Una tarjeta de la escena (la «losa»): botón si su ficha llegó.
@@ -295,7 +287,7 @@
     const linea = l => '<i class="eq-lin eq-lin-' + l.tipo + ' eq-crece-' + l.tipo + '" style="--c:' + l.color + ';--d:' + l.d.toFixed(2) + 's;left:' + l.x + 'px;top:' + l.y + 'px;' +
       (l.tipo === 'v' ? 'height:' + l.largo + 'px' : 'width:' + l.largo + 'px') + '"></i>';
     // Con varias filas, el tronco que las une baja por la izquierda; su alto lo pone medirTronco() al pintar.
-    const tronco = E.varias ? '<i class="eq-lin eq-lin-v eq-crece-v eq-tronco" style="--c:#FFFFFF;--d:' + (ENTRADA.lineas + 0.2).toFixed(2) + 's;left:' + M.tronco + 'px;top:' + (M.bus / 2 - 2) + 'px;height:0"></i>' : '';
+    const tronco = E.varias ? '<i class="eq-lin eq-lin-v eq-crece-v eq-tronco" style="--c:#5B5F68;--d:' + (ENTRADA.lineas + 0.2).toFixed(2) + 's;left:' + M.tronco + 'px;top:' + (M.bus / 2 - 2) + 'px;height:0"></i>' : '';
     const columna = c => {
       const col = c.color, cab = c.cab, fantasma = enConstruccion(cab);
       const cabeza = losa(cab, 'eq-losa-cab eq-entra' + (fantasma ? ' eq-tenue' : ''), '--d:' + c.d.toFixed(2) + 's',
@@ -793,7 +785,7 @@
     }
     if ((op.vista || 'org') !== ((opciones || {}).vista || 'org')) ajustado = false;   // al volver al organigrama, se ajusta de nuevo
     op = opciones || {};
-    escenaOscura(true);
+    escenaClara(true);
     if (D) {
       pintar();
       if (op.abrir && D.fichas[op.abrir]) { const id = op.abrir; op.abrir = ''; abrirFicha(id, el.querySelector('[data-eq-puesto="' + id + '"]'), op.pestana); }
@@ -803,7 +795,7 @@
     }
   }
 
-  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
+  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _hora12: hora12,
     // Para la prueba (pruebas-portal/prueba-organigrama.js): pintar la ficha con datos inventados, sin navegador.
     // 2-nov: ficha(id, paso, pestaña, ampliado); papel(id) = la hoja del PDF.
     _probar: { datos(d) { D = d; }, ficha(id, p, t, a) { paso = p || 'contrato'; pestana = t || 'contrato'; ampliado = !!a; sel = id; return fichaHtml(id); },

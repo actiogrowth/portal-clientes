@@ -130,7 +130,6 @@ body.hoja-abierta { overflow: hidden; }
   animation-name: vea-sube; animation-timing-function: linear; animation-iteration-count: infinite; }
 @keyframes vea-sube { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: var(--o, .3); } 85% { opacity: var(--o, .3); } 100% { transform: translateY(-105vh); opacity: 0; } }
 .vea-pausa .particulas i { animation-play-state: paused; }
-.eq-escena .particulas { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .particulas i { animation: none; opacity: var(--o, .3); }
   .particulas i:nth-child(odd) { transform: translateY(-40vh); } .particulas i:nth-child(3n) { transform: translateY(-75vh); }

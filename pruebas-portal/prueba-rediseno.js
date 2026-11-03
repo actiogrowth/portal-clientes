@@ -101,7 +101,12 @@ function servidor() {
       if (url === '/pendientes/api.php') return ve('equipo') ? json({ ok: true, resultado: { hoy: asPost('leer').resultado.hoy, items: PENDIENTES } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
       if (url === '/procesos/api.php') return ve('procesos') ? json({ ok: true, resultado: { procesos: [], documentos: [DOC_PROC] } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
       if (url === '/proyecto-actio/api.php') return ve('proyecto-actio') ? json({ ok: true, resultado: { proyectos: ['Proyecto 1'], entregables: [], documentos: [DOC_PA], reuniones: [], atencion: [], faltan: [] } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
-      if (url === '/equipo/api.php') return json({ ok: true, resultado: { hoy: '', mios: [], revisar: [], puestos: [], fichas: {} } });
+      if (url === '/equipo/api.php') {
+        // Un organigrama mínimo (Dirección, un área con su coordinación y un puesto «Por cargar»): solo puestos inventados.
+        const P = (id, puesto, area, reportaA, estado) => ({ id, puesto, area, reportaA, estado, ficha: false, unidad: 'Unidad', cantidad: '', version: null });
+        return json({ ok: true, resultado: { hoy: '2026-11-03', yo: { usuario: S.usuario, todo: true }, mios: [], revisar: [], reglas: [], momentos: [], horarios: [], faltan: [], personas: {}, calendario: {},
+          fichas: {}, puestos: [P('DIR', 'Dirección', 'Dirección', '', 'Por cargar'), P('C0', 'Coordinación de prueba', 'Comercial', 'DIR', 'Borrador'), P('C1', 'Puesto de prueba', 'Comercial', 'C0', 'Por cargar')] } });
+      }
       if (url === '/resumen/api.php') return ve('resumen') ? json({ ok: true, resultado: { hoy: asPost('leer').resultado.hoy, metas: [], preschool: null, finanzas: null, faltan: [] } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
       if (url === '/after-school/api.php') {
         if (!tiene('as.ver')) return json({ ok: false, codigo: 'sin_permiso', error: 'Tu rol no permite esto.' }, 403);
@@ -182,6 +187,24 @@ async function correr(nav, base, log) {
         ruta + ': la entrada activa («' + (a ? a.texto : '—') + '») se ve con su nombre y el fondo de activo' + (a ? ' (' + a.fondo + ' / ' + a.letra + ')' : ' (no hay)'));
       await ctx.close();
     }
+  }
+
+  if (log) console.log('· Equipo en claro (ajuste 2)');
+  {
+    rol = 'administrador';
+    const [ctx, p] = await nueva(1440);
+    await p.goto(base + '/procesos/#equipo'); await p.waitForSelector('.eq-acceso', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(500);
+    const e = await p.evaluate(() => ({
+      oscura: document.documentElement.classList.contains('eq-escena'), clara: document.documentElement.classList.contains('eq-escena-clara'),
+      fondo: getComputedStyle(document.body).backgroundColor, chispas: document.querySelectorAll('.eq-chispa, .eq-brillos').length,
+      particulas: (x => !!x && getComputedStyle(x).display !== 'none')(document.querySelector('.particulas')),
+      titulo: getComputedStyle(document.querySelector('main h1')).color, acceso: (x => x && getComputedStyle(x).color)(document.querySelector('.eq-acceso')),
+      barra: getComputedStyle(document.querySelector('.cab')).backgroundColor }));
+    ok(!e.oscura && e.clara && e.fondo === 'rgb(250, 248, 245)' && !e.chispas, 'Equipo ya no usa la escena oscura: fondo claro de la app, sin chispas ni brillos (' + e.fondo + ')');
+    ok(e.particulas, 'Equipo lleva las partículas de la estructura común (una sola capa)');
+    ok(e.titulo === 'rgb(22, 24, 29)' && e.acceso === 'rgb(22, 24, 29)' && !/^rgba\(14, 15, 17/.test(e.barra), 'título, «Reglas del juego» / «Horarios» y la barra de arriba en los colores normales de la app');
+    ok(!p.errores.length, 'Equipo sin errores de JavaScript' + (p.errores.length ? ' (' + p.errores.join(' | ') + ')' : ''));
+    await ctx.close();
   }
 
   for (const r of Object.keys(ESPERADO)) {
@@ -349,6 +372,7 @@ const ROTURAS = [
   ['«Dónde hay más cupos» sin ordenar', 'after-school/index.html', ".sort((a, b) => b.libres - a.libres || a.iso.localeCompare(b.iso) || a.c.hora.localeCompare(b.c.hora)).slice(0, 6);", ".slice(0, 6).reverse();"],
   ['los botones de Pasar lista cambian de ancho', 'comun/vea.css', ".pl-botones button[aria-pressed=\"true\"] .pl-check { display: inline-block; }", ".pl-botones button[aria-pressed=\"true\"] .pl-check { display: inline-block; } .pl-botones button[aria-pressed=\"true\"] { width: 130px; }"],
   ['Preschool vuelve a redefinir --tinta en círculo', 'kinder/index.html', "  --tinta2:var(--texto-2);", "  --tinta:var(--texto); --linea:var(--gris); --tinta2:var(--texto-2);"],
+  ['Equipo vuelve al fondo oscuro', 'comun/organigrama.js', "classList.toggle('eq-escena-clara', si);", "classList.toggle('eq-escena-clara', si); document.documentElement.classList.toggle('eq-escena', si); document.body.style.background = '#0E0F11';"],
   ['la barra inferior no aparece en celular', 'comun/armazon.css', "  .abajo { display: flex;", "  .abajo { display: none;"]
 ];
 
