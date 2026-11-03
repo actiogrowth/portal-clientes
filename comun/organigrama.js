@@ -263,7 +263,7 @@
       const azar = () => (s = (s * 9301 + 49297) % 233280) / 233280;
       for (let i = 0; i < Math.min(CHISPAS, 20); i++)
         chispas += '<span class="eq-chispa" style="left:' + (4 + azar() * 92).toFixed(1) + '%;top:' + (60 + azar() * 38).toFixed(1) + '%;animation-delay:' + (ENTRADA.total + azar() * 9).toFixed(1) + 's"></span>';
-      f.innerHTML = '<div class="eq-brillos"></div><div class="eq-foto"></div><div class="eq-piso"></div>' + chispas;
+      f.innerHTML = '<div class="eq-brillos"></div><div class="eq-piso"></div>' + chispas;
       document.body.insertBefore(f, document.body.firstChild);
     }
     if (si && D) {

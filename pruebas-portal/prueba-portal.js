@@ -691,8 +691,10 @@ async function correr(fuente) {
       ok(/\.tema-kids\s*\{[^}]*#7E53A2[^}]*#9DCC4C[^}]*#FCCC14/.test(css) && /@media \(pointer: fine\)/.test(css),
         'vea.css: tema Kids con la paleta de VEA Kids y Pasar lista compacta con mouse');
       const portada = (await n['admin-uno'].get('/')).texto;
-      ok(/nombre: 'Preschool', url: '\/kinder\/'/.test(portada) && !/Preescolar|Kínder/.test(portada) && /Reservas y eventos/.test(portada) && /nombre: 'Proyecto Actio', url: '\/proyecto-actio\/', area: 'proyecto-actio'/.test(portada) && !/Sistema Operativo|portal-v2/.test(portada),
-        'portada: la unidad se llama Preschool (la ruta sigue /kinder/), las tarjetas dicen qué serán y Proyecto Actio reemplaza a Sistema Operativo');
+      // 3-nov (rediseño): las unidades y la navegación viven en comun/marca.js (Inicio y la barra lateral usan la misma tabla).
+      const mjU = (await new Nav(base).get('/comun/marca.js')).texto;
+      ok(/kinder: +\{ nombre: 'Preschool', url: '\/kinder\/'/.test(mjU) && !/Preescolar|Kínder/.test(portada + mjU) && /Reservas y eventos/.test(mjU) && /texto: 'Proyecto Actio', url: '\/proyecto-actio\/', icono: 'maletin', areas: \['proyecto-actio'\]/.test(mjU) && !/Sistema Operativo|portal-v2/.test(portada + mjU),
+        'Inicio y barra lateral: la unidad se llama Preschool (la ruta sigue /kinder/), las tarjetas dicen qué serán y Proyecto Actio reemplaza a Sistema Operativo');
       for (const pagina of ['/', '/configuracion/', '/login.html', '/cambiar-clave.html']) {
         const t = (await n['admin-uno'].get(pagina)).texto;
         ok(/href="\/comun\/vea\.css\?v=[0-9a-f]{10}"/.test(t) && !/<style>/.test(t) && !/fetch\(/.test(t), pagina + ': usa vea.css y no hace fetch por su cuenta');
@@ -915,8 +917,9 @@ echo 'SIGUIO';
     seccion('portada por marca: logos, Procesos, Administración y la entrada de cada rol');
     {
       const portada = (await n['prueba-recepcion'].get('/')).texto;
-      ok(/function portada\(ve\)/.test(portada) && /function paginaMarca\(m, ve\)/.test(portada) && /class="marca-tarjeta/.test(portada) && /url: '\/procesos\/'/.test(portada),
-        'la portada lleva los logos de marca, la tarjeta Procesos y la página de cada marca (?marca=)');
+      // 3-nov (rediseño): una tarjeta por marca con sus unidades; Procesos y Administración van en la barra lateral.
+      ok(/function tarjetaMarca\(m\)/.test(portada) && /function pintar\(m\)/.test(portada) && /class="tarjeta ini-marca"/.test(portada) && /Marca\.MARCAS\.find\(x => x\.id === new URLSearchParams\(location\.search\)\.get\('marca'\)\)/.test(portada),
+        'Inicio lleva una tarjeta por marca con sus unidades y la página de cada marca (?marca=)');
       const marca = (await new Nav(base).get('/comun/marca.js')).texto;
       ok(/rutaUnidad/.test(marca) && /areas: \['afterschool', 'veranito', 'cumpleanos'\]/.test(marca) && /areas: \['kinder', 'babyandme'\]/.test(marca),
         'marca.js: Vida en Arte = After School, Veranito, Cumpleaños; Vida en Arte Kids = Preschool, Baby & Me');
@@ -1015,11 +1018,11 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false, 'Administrador: también otros días');
       await pl('prueba-direccion', 'leerLista', {});
       ok(ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false, 'Dirección: también otros días');
-      // La salida visible del Profesor: Inicio y Procesos en el encabezado de Pasar lista.
+      // La salida visible del Profesor (3-nov): la estructura común (barra lateral o inferior) y el título «Pasar lista».
       const asPg = (await n['prueba-profesor-1'].get('/after-school/')).texto;
-      ok(/accesos: accesosProfesor\(ses\)/.test(asPg) && /texto: 'Inicio', url: '\/'/.test(asPg) && /texto: 'Procesos', url: '\/procesos\/'/.test(asPg) &&
+      ok(/Marca\.cabecera\(\$\('#cab'\), \{ sesion: ses, ruta: \[\{ texto: 'Inicio', url: '\/' \}, \{ texto: 'After School' \}, \{ texto: 'Pasar lista' \}\] \}\)/.test(asPg) &&
         /id="plAnt"/.test(asPg) && /id="plSig"/.test(asPg) && /id="plHoy"/.test(asPg),
-        'Pasar lista: accesos Inicio y Procesos para el Profesor y flechas de día con «Hoy»');
+        'Pasar lista: el Profesor tiene la barra común (Inicio, Procesos, Equipo) y flechas de día con «Ir a hoy»');
       // 23-oct (ajustes): el cambio de día nunca pinta la respuesta de otro día ni pide dos toques.
       ok(/if \(n !== LISTA\.pedido\) return;\s+\/\/ respuesta de un pedido anterior/.test(asPg) && /if \(dia && r\.resultado\.fecha !== dia\) return;/.test(asPg) &&
         /function limpiarLista\(dia\)/.test(asPg) && /irADiaLista\(sumarDia\(diaActual\(\), 1\)\)/.test(asPg) && /LISTA\.datos = r\.resultado;/.test(asPg),
@@ -1030,8 +1033,10 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(/\.pl-botones button \{[^}]*min-height: var\(--toque\)/.test(cssPl) && /\.pl-nino \.datos b \{[^}]*font-size: 16px; font-weight: 600/.test(cssPl) && !/--toque-lista\)/.test(cssPl),
         'Pasar lista compacta en todas las pantallas: botones de 44 px y nombres en 16 px / 600');
       const mj = (await new Nav(base).get('/comun/marca.js')).texto, css = (await new Nav(base).get('/comun/vea.css')).texto;
-      ok(/cab-accesos/.test(mj) && /\.cab-accesos a \{[^}]*min-height: var\(--toque\)/.test(css) && !/\.cab-accesos[^{]*\{[^}]*display: none/.test(css),
-        'los accesos van en su propia fila del encabezado, de 44 px y sin ocultarse en celular');
+      // 3-nov (rediseño): la fila de accesos del Profesor la reemplaza la barra lateral (y la inferior en celular), que se ve en todo tamaño.
+      const arm = (await new Nav(base).get('/comun/armazon.css')).texto;
+      ok(/function abajoHtml\(\)/.test(mj) && /\.abajo \{ display: flex;/.test(arm) && /\.lat \{ display: none; \}/.test(arm) && !/cab-accesos/.test(mj + css),
+        'el Profesor navega con la barra lateral y, en celular, con la barra inferior (Inicio, After School, Buscar, Avisos, Más)');
       for (const u of ['prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
         antes = google.llamadas.length;
         r = await pl(u, 'leerLista');
@@ -1188,19 +1193,20 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         ok(r.status === 200 && /<title>Resumen del negocio/.test(r.texto), u + ': abre el Resumen del negocio');
       }
       const portada = (await n['prueba-direccion'].get('/')).texto;
-      ok(/return \(ve\(RESUMEN\.area\) \?/.test(portada) && /area: 'resumen'/.test(portada) && /id="miLista"/.test(portada), 'portada: la tarjeta del Resumen solo con el área «resumen», y Mi lista cuando hay puestos');
+      ok(/if \(!m && ve\('resumen'\)\) html \+=/.test(portada) && /Cifras\.resumenNegocio\(\{ periodo, E, pre: R\.preschool, metas: R\.metas, finanzas: R\.finanzas \}\)/.test(portada) && /const MI_LISTA = /.test(portada) && /j\.resultado\.mios\.length/.test(portada),
+        'Inicio: el Resumen en corto solo con el área «resumen» (las mismas cuentas de comun/cifras.js), y Mi lista cuando hay puestos');
       const res = (await n['prueba-direccion'].get('/resumen/')).texto;
       ok(/const PRONTO = 'Próximamente';/.test(res) && !/\$\s?\d|\d+\s?(USD|COP)/.test(res) && /kpi\('Facturación', d \? dinero\(F\.facturacion\) : null/.test(res), 'finanzas: «Próximamente» sin fuente, ningún número escrito en la página');
       ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(res) && /Cifras\.resumenNegocio\(\{ periodo, E: AS, pre: R\.preschool, metas: R\.metas, finanzas: R\.finanzas \}\)/.test(res) && /Datos\.resumen\.leer\(\)/.test(res),
         'Resumen del negocio: todas las cuentas en comun/cifras.js, con lo que manda resumen/api.php');
       ok(!/Inscripciones del mes/i.test(res), 'Resumen: «Inscripciones del mes» sigue fuera');
-      const clase = async ruta => { const t = (await n['admin-uno'].get(ruta)).texto; return /<html lang="es" class="vidrio">/.test(t) ? 'vidrio' : 'sin'; };
-      for (const ruta of ['/', '/procesos/', '/equipo/', '/resumen/']) ok(await clase(ruta) === 'vidrio', ruta + ' con estilo vidrio');
-      for (const ruta of ['/after-school/', '/pasar-lista/', '/configuracion/']) ok(await clase(ruta) === 'sin', ruta + ' sigue igual, sin vidrio');
-      const f = await new Nav(base).get('/comun/fondo-local.jpg');
-      ok(f.status === 200 && /image\/jpeg/.test(f.tipo || '') , 'la foto de fondo se sirve sin sesión, como imagen (' + f.status + ' ' + f.tipo + ')');
-      const css = fs.readFileSync(path.join(web, 'comun', 'vea.css'), 'utf8');
-      ok(/@supports not \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/.test(css) && /prefers-reduced-transparency: reduce/.test(css), 'vidrio: sin desenfoque o con «reducir transparencia», tarjetas sólidas');
+      // 3-nov (rediseño etapa 1): el vidrio y la foto de fondo se retiraron de TODAS las páginas.
+      for (const ruta of ['/', '/procesos/', '/equipo/', '/resumen/', '/after-school/', '/pasar-lista/', '/configuracion/', '/proyecto-actio/', '/veranito/', '/kinder/']) {
+        const t = (await n['admin-uno'].get(ruta)).texto;
+        ok(!/class="vidrio"|fondo-local/.test(t), ruta + ' sin vidrio ni foto de fondo');
+      }
+      const css = fs.readFileSync(path.join(web, 'comun', 'vea.css'), 'utf8') + fs.readFileSync(path.join(web, 'comun', 'organigrama.js'), 'utf8');
+      ok(!/fondo-local\.jpg|\.vidrio body|backdrop-filter: blur\(20px\)/.test(css) && !fs.existsSync(path.join(web, 'comun', 'fondo-local.jpg')), 'vea.css y el organigrama ya no usan la foto de fondo ni el vidrio');
     }
 
     seccion('Preschool operativo (28-oct): kinder/csv.php no entrega montos, ni plan, ni responsable');
@@ -1287,9 +1293,10 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         ok(R && !/AS-000|Inventado|Jefatura|RESERVADO|Recepción de prueba|LUN-1630/.test(r.texto), u + ': solo conteos, ningún nombre de niño ni de puesto');
       }
       ok((await new Nav(base).post('/pendientes/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');
-      const portada = (await n['prueba-coord-as'].get('/')).texto;
-      ok(/id="pendientes"/.test(portada) && /Datos\.pendientes\.leer\(\)/.test(portada) && /const items = r\.items\.filter\(x => PENDIENTES\[x\.clave\]\);/.test(portada) && /if \(!items\.length\) return;/.test(portada),
-        'portada: la tarjeta «Pendientes de hoy» muestra solo lo que manda el servidor (sin nada, no aparece)');
+      // 3-nov (rediseño): «Pendientes de hoy» pasa a la campana de notificaciones (comun/marca.js), con los mismos avisos del servidor.
+      const mjN = (await new Nav(base).get('/comun/marca.js')).texto;
+      ok(/Datos\.pendientes\.leer\(\)/.test(mjN) && /return \(NOTI\.items \|\| \[\]\)\.filter\(x => NOTIFICACIONES\[x\.clave\] && x\.n\);/.test(mjN) && /sinLista:[\s\S]*pruebas:[\s\S]*revisar:[\s\S]*contratos:/.test(mjN) && !/Datos\.pendientes/.test((await n['prueba-coord-as'].get('/')).texto),
+        'notificaciones: solo lo que manda el servidor (las cuatro claves de «Pendientes de hoy»); Inicio ya no las pide');
     }
 
     seccion('Nombre y apellido (26-oct): solo el Administrador; saludo, cabecera y Revisar con nombre y cargo');
@@ -1315,9 +1322,9 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
       const borra = await admin.config('nombre', { usuario: 'prueba-direccion', nombre: '', apellido: '' });
       ok(borra.status === 200 && (await dir.get('/acceso.php?formato=json')).j.nombre === '', 'vacío lo borra: vuelve a verse el usuario');
       const marca = fs.readFileSync(path.join(web, 'comun', 'marca.js'), 'utf8'), port = (await dir.get('/')).texto;
-      ok(/const nombreDe = s => s \? \(\(\(s\.nombre \|\| ''\) \+ ' ' \+ \(s\.apellido \|\| ''\)\)\.trim\(\) \|\| s\.usuario \|\| ''\) : '';/.test(marca) && /const usuario = nombreDe\(sesion\);/.test(marca),
-        'cabecera: nombre y apellido; sin nombre, el usuario');
-      ok(/\+ \(s \? ', ' \+ \(\(s\.nombre \|\| ''\)\.trim\(\) \|\| s\.usuario\) : ''\);/.test(marca) && /\$\('#hola'\)\.textContent = Marca\.saludo\(s\);/.test(port), 'saludo «Buenos días, <nombre>»; sin nombre, el usuario');
+      ok(/const nombreDe = s => s \? \(\(\(s\.nombre \|\| ''\) \+ ' ' \+ \(s\.apellido \|\| ''\)\)\.trim\(\) \|\| s\.usuario \|\| ''\) : '';/.test(marca) && /const nom = nombreDe\(S\) \|\| 'Usuario'/.test(marca),
+        'barra lateral: nombre y apellido; sin nombre, el usuario');
+      ok(/\+ \(s \? ', ' \+ \(\(s\.nombre \|\| ''\)\.trim\(\) \|\| s\.usuario\) : ''\);/.test(marca) && /\$\('#hola'\)\.textContent = Marca\.saludo\(S\);/.test(port), 'saludo «Buenos días, <nombre>»; sin nombre, el usuario');
       const conf = (await admin.get('/configuracion/')).texto;
       ok(/id="dnNombre"/.test(conf) && /\(D\.puedeAdmin \? b\('data-nombre', 'Nombre', 'sec', true\) : ''\)/.test(conf), 'Configuración › Usuarios: «Nombre» solo para el Administrador');
     }
@@ -1333,7 +1340,7 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>/.test(fs.readFileSync(path.join(web, 'equipo', 'index.html'), 'utf8')),
         '29-oct: Procesos abre Reglas del juego, Horarios y una ficha por dirección, carga comun/puestos.js y apaga la escena oscura al salir de Equipo');
       const as = (await n['prueba-coord-as'].get('/after-school/')).texto;
-      ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(as) && /id="ocTotal"/.test(as) && /const o = Cifras\.ocupacionAS\(E\);/.test(as), 'Ocupación: el total de la semana con la regla del Resumen');
+      ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(as) && /id="ocCifras"/.test(as) && /cif = deHoy \? Cifras\.ocupacionAS\(E\) : null;/.test(as), 'Ocupación: la ocupación de la semana con la regla del Resumen');
     }
 
 

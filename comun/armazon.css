@@ -1,0 +1,206 @@
+/* ==========================================================================
+   Vida en Arte 360 · ESTRUCTURA COMÚN de todas las páginas (3-nov-2026,
+   rediseño etapa 1)
+
+   La carga comun/marca.js (Marca.cabecera la arma). Va aparte de vea.css,
+   y SIN capa, para que gane también en las páginas que traen vea.css en una
+   capa (@layer vea) debajo de sus propios estilos: Veranito y la Base de
+   Datos. Usa las variables de vea.css (--panel, --linea, --tinta, --suave,
+   --accion, --lateral…); no declara colores de marca propios.
+   ========================================================================== */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REDISEÑO ETAPA 1 (3-nov): la estructura común de todas las páginas
+   (la arma comun/marca.js › Marca.cabecera)
+   ══════════════════════════════════════════════════════════════════════════ */
+.con-armazon { padding-left: var(--lateral); }
+
+/* ── Barra lateral (248 px; iconos en tablet; oculta en celular) ───────── */
+.lat { position: fixed; left: 0; top: 0; bottom: 0; width: var(--lateral); z-index: 30; background: var(--panel); border-right: 1px solid var(--linea);
+  display: flex; flex-direction: column; padding: 18px 14px 14px; gap: 10px; }
+.lat-logo { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px 14px; text-decoration: none; }
+.lat-logo img { height: 28px; width: auto; display: block; }
+.lat-logo-ic { display: none !important; }
+.lat-360 { font-size: 13px; font-weight: 600; color: var(--suave); letter-spacing: .04em; }
+.lat-nav { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin: 0 -4px; padding: 0 4px; }
+.lat-grupo { display: flex; flex-direction: column; gap: 2px; }
+.lat-grupo-tit { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); padding: 10px 12px 4px; }
+.lat-item { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 12px; border-radius: 12px; color: var(--tinta);
+  text-decoration: none; font-size: 15px; font-weight: 500; position: relative; }
+.lat-item svg { flex-shrink: 0; color: var(--suave); }
+a.lat-item:hover { background: var(--fondo-suave); color: var(--tinta); }
+.lat-item[aria-current="page"] { background: var(--tinta); color: var(--blanco); }
+.lat-item[aria-current="page"] svg { color: var(--blanco); }
+.lat-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
+.lat-txt small { font-size: 13px; font-weight: 500; color: var(--suave); }
+.lat-item.pronto { color: var(--suave); cursor: default; }
+.lat-punto { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.lat-usuario { position: relative; border-top: 1px solid var(--linea); padding-top: 12px; }
+.lat-yo { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; background: none; border-radius: 12px; cursor: pointer; text-align: left; }
+.lat-yo:hover { background: var(--fondo-suave); }
+.lat-yo b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lat-yo small { font-size: 13px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lat-yo > svg { color: var(--suave); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--telas); color: var(--blanco); display: inline-flex; align-items: center;
+  justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
+.lat-usuario .menu { bottom: calc(100% + 6px); left: 0; right: 0; top: auto; }
+
+/* ── Menús desplegables (usuario, «Nuevo») ─────────────────────────────── */
+.menu { position: absolute; z-index: 60; min-width: 240px; background: var(--panel); border: 1px solid var(--linea); border-radius: 14px;
+  box-shadow: var(--sombra-alta); padding: 6px; display: flex; flex-direction: column; }
+.menu a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 10px; text-decoration: none; color: var(--tinta); font-size: 15px; font-weight: 500; }
+.menu a:hover, .menu a:focus-visible { background: var(--fondo-suave); color: var(--tinta); }
+.menu a svg { color: var(--suave); flex-shrink: 0; }
+.menu a > span:last-child { display: flex; flex-direction: column; line-height: 1.3; }
+.menu small { font-size: 13px; color: var(--suave); font-weight: 400; }
+.menu-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--fondo-suave); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ── Barra superior: buscador, «Nuevo» y campana ───────────────────────── */
+.cab { position: sticky; top: 0; z-index: 20; background: rgba(250, 248, 245, .92); border-bottom: 1px solid var(--linea);
+  -webkit-backdrop-filter: saturate(1.2) blur(8px); backdrop-filter: saturate(1.2) blur(8px); }
+.cab-in { max-width: 1240px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 16px; min-height: var(--alto-cab); }
+.cab-logo { display: none; }
+.cab-logo img { height: 24px; width: auto; display: block; }
+.cab-buscar { flex: 0 1 520px; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px 0 14px; border: 1px solid var(--linea);
+  border-radius: 12px; background: var(--panel); color: var(--suave); cursor: text; font-size: 15px; text-align: left; box-shadow: 0 1px 2px rgba(22, 24, 29, .04); }
+.cab-buscar:hover { border-color: #DCD6CD; }
+.cab-buscar-txt { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+kbd { font-family: var(--fuente); font-size: 12px; color: var(--suave); border: 1px solid var(--linea); border-radius: 6px; padding: 1px 6px; background: var(--panel); white-space: nowrap; }
+.cab-acciones { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.nuevo { position: relative; }
+.nuevo .menu { right: 0; top: calc(100% + 8px); }
+.cab-campana { position: relative; }
+.cab-numero { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--accion); color: var(--blanco);
+  font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--fondo); line-height: 1; }
+
+/* ── Notificaciones ────────────────────────────────────────────────────── */
+.pop { position: fixed; z-index: 60; background: var(--panel); border: 1px solid var(--linea); border-radius: 16px; box-shadow: var(--sombra-alta); }
+.notif { top: 62px; right: max(24px, calc((100vw - var(--lateral) - 1240px) / 2 + 32px)); width: min(400px, calc(100vw - 24px)); overflow: hidden; }
+.notif-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--linea); }
+.notif-cab b { font-size: 16px; }
+.enlace { background: none; border: 0; color: var(--suave); font-size: 14px; cursor: pointer; padding: 6px 4px; min-height: 36px; }
+.enlace:hover:not(:disabled) { color: var(--tinta); text-decoration: underline; }
+.enlace:disabled { opacity: .5; cursor: default; }
+.notif-lista { max-height: min(60vh, 420px); overflow-y: auto; }
+.notif-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-bottom: 1px solid var(--linea); text-decoration: none; color: var(--tinta); }
+.notif-item:last-child { border-bottom: 0; }
+.notif-item:hover { background: var(--fondo-suave); color: var(--tinta); }
+.notif-item.nuevo { background: #FFFBF4; }
+.notif-punto { width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+.notif-item:not(.nuevo) .notif-punto { opacity: .35; }
+.notif-txt { flex: 1; display: flex; flex-direction: column; line-height: 1.35; }
+.notif-txt b { font-size: 15px; font-weight: 600; }
+.notif-item:not(.nuevo) .notif-txt b { font-weight: 500; }
+.notif-txt small, .notif-cuando { font-size: 13px; color: var(--suave); }
+.notif-vacio { padding: 18px 16px; font-size: 14px; color: var(--suave); }
+
+/* ── Buscador (Ctrl K) ─────────────────────────────────────────────────── */
+dialog.bus-dialogo { width: min(640px, calc(100vw - 24px)); margin: 10vh auto auto; border-radius: 18px; overflow: hidden; }
+dialog.bus-dialogo::backdrop { background: rgba(22, 24, 29, .35); }
+.bus-cab { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--linea); color: var(--suave); }
+.bus-cab input { border: 0; box-shadow: none; padding: 10px 0; min-height: 48px; font-size: 17px; flex: 1; background: none; }
+.bus-cab input:focus { box-shadow: none; }
+.bus-res { max-height: min(60vh, 480px); overflow-y: auto; padding: 6px; }
+.bus-grupo { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); padding: 10px 10px 4px; }
+.bus-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border: 0; background: none; border-radius: 10px; cursor: pointer; text-align: left; min-height: 48px; }
+.bus-item[aria-selected="true"], .bus-item:hover { background: var(--fondo-suave); }
+.bus-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--fondo-suave); color: var(--suave); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bus-item[aria-selected="true"] .bus-ic { background: var(--tinta); color: var(--blanco); }
+.bus-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.bus-txt b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-txt small { font-size: 13px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-vacio { padding: 14px 10px; color: var(--suave); font-size: 14px; }
+.bus-pie { display: flex; gap: 16px; padding: 10px 14px; border-top: 1px solid var(--linea); font-size: 13px; color: var(--suave); flex-wrap: wrap; }
+.bus-pie kbd { margin-right: 2px; }
+
+/* ── Barra inferior y hoja «Más» (celular) ─────────────────────────────── */
+.abajo { display: none; }
+.hoja { position: fixed; inset: 0; z-index: 70; background: rgba(22, 24, 29, .4); display: flex; align-items: flex-end; }
+.hoja-in { background: var(--panel); width: 100%; max-height: 88vh; border-radius: 20px 20px 0 0; padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.hoja-in .lat-nav { overflow-y: auto; }
+.hoja-cab { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; }
+.hoja-cab b { font-size: 17px; }
+.hoja .lat-usuario .menu { position: static; box-shadow: none; border: 0; padding: 0; }
+body.hoja-abierta { overflow: hidden; }
+
+/* ── Partículas del fondo ──────────────────────────────────────────────── */
+.particulas { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.particulas i { position: absolute; bottom: -10px; border-radius: 50%; opacity: 0; will-change: transform, opacity;
+  animation-name: vea-sube; animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes vea-sube { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: var(--o, .3); } 85% { opacity: var(--o, .3); } 100% { transform: translateY(-105vh); opacity: 0; } }
+.vea-pausa .particulas i { animation-play-state: paused; }
+.eq-escena .particulas { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .particulas i { animation: none; opacity: var(--o, .3); }
+  .particulas i:nth-child(odd) { transform: translateY(-40vh); } .particulas i:nth-child(3n) { transform: translateY(-75vh); }
+}
+
+/* ── Esqueletos de carga (Marca.esqueleto) ─────────────────────────────── */
+.esq { display: flex; flex-direction: column; gap: 16px; }
+.esq-b { display: block; background: linear-gradient(90deg, #EFEBE5 0%, #F6F3EE 50%, #EFEBE5 100%); background-size: 200% 100%; border-radius: 8px;
+  animation: esq-brillo 1.4s ease-in-out infinite; }
+@keyframes esq-brillo { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .esq-b { animation: none; } }
+.esq-caja { background: var(--panel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--sombra); }
+.esq-fila4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+.esq-dos { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; }
+.esq-dos.iguales { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.esq-fila5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.esq-chips { display: flex; gap: 8px; overflow: hidden; }
+.esq-renglon { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.esq-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+
+/* ── Encabezado de página con su ceja ──────────────────────────────────── */
+.encabezado-tit { display: flex; flex-direction: column; min-width: 0; }
+.pr-miga { display: none !important; }   /* la ceja la reemplaza */
+
+/* ── Tablet: barra de iconos (76 px), el nombre al pasar o mantener ────── */
+@media (max-width: 1024px) {
+  :root { --lateral: var(--lateral-iconos); }
+  .lat { padding: 14px 10px; align-items: center; }
+  .lat-logo { padding: 2px 0 10px; justify-content: center; }
+  .lat-logo-largo { display: none !important; }
+  .lat-logo .lat-logo-ic { display: block !important; height: 40px; width: 40px; border-radius: 10px; }
+  .lat-360, .lat-grupo-tit, .lat-txt, .lat-punto, .lat-yo > svg { display: none; }
+  .lat-nav { gap: 2px; align-items: center; overflow: visible; }
+  .lat-grupo { align-items: center; padding-top: 6px; }
+  .lat-grupo + .lat-grupo { border-top: 1px solid var(--linea); }
+  .lat-item { width: 52px; height: 48px; padding: 0; justify-content: center; }
+  .lat-item svg { width: 22px; height: 22px; }
+  .lat-item.pronto { opacity: .5; }
+  /* El nombre: un globo a la derecha al pasar el mouse, al enfocar o al mantener el dedo. */
+  .lat-item::after { content: attr(title); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: var(--tinta); color: var(--blanco);
+    font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5; }
+  .lat-item:hover::after, .lat-item:focus-visible::after, .lat-item:active::after { opacity: 1; }
+  .lat-usuario { width: 100%; display: flex; justify-content: center; }
+  .lat-yo { width: auto; padding: 6px; }
+  .lat-usuario .menu { left: 0; right: auto; }
+  .cab-in { padding: 10px 24px; }
+  .pagina { padding: 22px 24px 56px; }
+}
+
+/* ── Celular: sin barra lateral; barra inferior ────────────────────────── */
+@media (max-width: 640px) {
+  :root { --lateral: 0px; --abajo: var(--alto-abajo); }
+  .lat { display: none; }
+  .con-armazon { padding-bottom: calc(var(--alto-abajo) + env(safe-area-inset-bottom, 0px)); }
+  .cab-in { padding: 8px 16px; min-height: 56px; gap: 10px; }
+  .cab-logo { display: block; }
+  .cab-buscar, .cab-campana { display: none; }
+  .cab-nuevo span { display: none; }
+  .cab-nuevo { width: var(--toque); padding: 0; }
+  .pagina { padding: 18px 16px 40px; gap: 18px; }
+  .abajo { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--panel); border-top: 1px solid var(--linea);
+    padding: 4px 4px env(safe-area-inset-bottom, 0px); min-height: var(--alto-abajo); }
+  .abajo-item { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px;
+    border: 0; background: none; color: var(--suave); text-decoration: none; font-size: 13px; font-weight: 500; cursor: pointer; position: relative; border-radius: 12px; }
+  .abajo-item span:not(.cab-numero) { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .abajo-item[aria-current="page"] { color: var(--tinta); font-weight: 600; }
+  .abajo-item[aria-current="page"] svg { color: var(--accion); }
+  .abajo-item .cab-numero { top: 4px; right: calc(50% - 22px); border-color: var(--panel); }
+  .notif { top: auto; bottom: calc(var(--alto-abajo) + 8px + env(safe-area-inset-bottom, 0px)); right: 12px; left: 12px; width: auto; }
+  dialog.bus-dialogo { margin: 12px auto auto; }
+  .bus-pie { display: none; }
+}
+

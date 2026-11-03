@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="vidrio">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -29,7 +29,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=594c2a5232">
+<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
 </head>
 <body>
 <header id="cab"></header>
@@ -61,18 +61,18 @@
       <span class="pr-entrada-ir">Ver organigrama <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
     </a>
   </section>
-  <div id="pantalla" class="pantalla oculto"><h2>Cargando…</h2><p>Leyendo la biblioteca de Vida en Arte.</p></div>
+  <div id="pantalla" class="pantalla oculto"></div>
   <div id="contenido" class="pr-contenido" aria-live="polite"></div>
   <div id="equipo" class="oculto"></div>
 </main>
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=37b691d840"></script>
+<script src="/comun/marca.js?v=ff1b1be99d"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
 <script src="/comun/puestos.js?v=5a4377db79"></script>
 <script src="/comun/verificacion.js?v=afe956c5dd"></script>
-<script src="/comun/organigrama.js?v=7863e51324"></script>
+<script src="/comun/organigrama.js?v=10463ea999"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -241,7 +241,7 @@ window.addEventListener('hashchange', () => { busqueda = ''; $('#buscar').value 
 
 async function cargar() {
   leyendo = true;
-  $('#pantalla').innerHTML = '<h2>Cargando…</h2><p>Leyendo la biblioteca de Vida en Arte.</p>';
+  $('#pantalla').innerHTML = Marca.esqueleto('tarjetas');   // 3-nov: la forma de la página mientras carga
   $('#pantalla').classList.remove('oculto');
   try {
     const j = await Datos.procesos.leer();

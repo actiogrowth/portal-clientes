@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="vidrio">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -28,7 +28,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=594c2a5232">
+<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
 </head>
 <body>
 <header id="cab"></header>
@@ -44,7 +44,7 @@
     <button role="tab" data-vista="lista" aria-selected="true">Mi lista</button>
     <button role="tab" data-vista="revisar" aria-selected="false">Revisar</button>
   </nav>
-  <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo tus puestos.</p></div>
+  <div id="pantalla" class="pantalla"></div>
   <div id="avisos"></div>
   <section id="v-lista" class="oculto columna">
     <div class="ml-puestos" role="group" aria-label="Puesto" id="puestos"></div>
@@ -59,11 +59,12 @@
 </main>
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=37b691d840"></script>
+<script src="/comun/marca.js?v=ff1b1be99d"></script>
 <script src="/comun/puestos.js?v=5a4377db79"></script>
 <script src="/comun/verificacion.js?v=afe956c5dd"></script>
 <script>
 'use strict';
+document.getElementById('pantalla').innerHTML = Marca.esqueleto('tabla');   // 3-nov: la forma de la página mientras carga
 const $ = s => document.querySelector(s);
 const esc = Marca.esc, norm = Marca.normal;
 let D = null, sesion = null, vista = 'lista', puesto = '', revPuesto = '';
@@ -85,7 +86,7 @@ async function cargar() {
     if (e.codigo === 'sesion') { Datos.aLogin(); return; }
     $('#pantalla').innerHTML = '<h2>No se pudo leer tu lista</h2><p>La página no muestra nada hasta poder leer los datos.</p><pre>' + esc(e.message) + '</pre><button class="btn" id="reintentar" type="button">Reintentar</button>';
     $('#pantalla').classList.remove('oculto');
-    $('#reintentar').onclick = () => { $('#pantalla').innerHTML = '<h2>Cargando…</h2>'; cargar(); };
+    $('#reintentar').onclick = () => { $('#pantalla').innerHTML = Marca.esqueleto('tabla'); cargar(); };
     return;
   }
   $('#pantalla').classList.add('oculto');

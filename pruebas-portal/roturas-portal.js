@@ -110,7 +110,7 @@ const ROTURAS = [
   ['pasar-lista respeta el limiteProfesor del navegador', 'pasar-lista/api.php', "$datos['datos']['limiteProfesor'] = $conLimite;", "$datos['datos']['limiteProfesor'] = ($datos['datos']['limiteProfesor'] ?? false) === true;"],
   ['pasar-lista no manda la ventana al script (el Profesor queda solo hoy)', 'pasar-lista/api.php', "$datos['datos']['limiteProfesor'] = $conLimite;\n", ""],
   ['la pantalla no recibe la ventana ni si el día es solo para ver', 'pasar-lista/api.php', "'otroDia', 'desde', 'hasta', 'soloLectura', 'estados'", "'otroDia', 'estados'"],
-  ['el Profesor no ve Inicio ni Procesos en Pasar lista', 'after-school/index.html', "accesos: accesosProfesor(ses)", "accesos: []"],
+  ['el Profesor no tiene la barra común en Pasar lista', 'after-school/index.html', "Marca.cabecera($('#cab'), { sesion: ses, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'After School' }, { texto: 'Pasar lista' }] });", ""],
   ['pasar-lista deja pasar otras acciones', 'pasar-lista/api.php', "if (!in_array($datos['accion'], ACCIONES_LISTA, true)) fallo(", "if (false) fallo("],
   ['pasar-lista no recorta la respuesta', 'pasar-lista/api.php', "if ($res['http'] === 200) $res['cuerpo'] = lista_recortada($res['cuerpo'], $tiempos);", ""],
   ['la lista blanca deja pasar contactos', 'pasar-lista/api.php', "return $toma($n, ['idNino', 'nombre', 'edad', 'presencia', 'idVisita', 'estado', 'nota']);", "return $n;"],
@@ -175,10 +175,11 @@ const ROTURAS = [
   ["las Reglas del juego con filas vacías", "equipo/api.php", "if (!is_array($r) || trim((string) ($r['texto'] ?? '')) === '') continue;", "if (!is_array($r)) continue;"],
   ["el Profesor no abre Equipo", "portal-raiz/permisos.php", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo']", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*']"],
   ["el Profesor abre el Resumen de Dirección", "portal-raiz/permisos.php", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo']", "'area:pasarlista', 'as.lista.ver', 'as.lista.marcar', 'area:procesos', 'procesos.ver:*', 'area:equipo', 'area:resumen']"],
-  ["la portada muestra el Resumen a todos", "portal-raiz/index.html", "return (ve(RESUMEN.area) ?", "return (true ?"],
-  ["After School toma el estilo vidrio", "after-school/index.html", "<html lang=\"es\">", "<html lang=\"es\" class=\"vidrio\">"],
-  ["Procesos pierde el estilo vidrio", "procesos/index.html", "<html lang=\"es\" class=\"vidrio\">", "<html lang=\"es\">"],
-  ["vidrio sin respaldo cuando no hay desenfoque", "comun/vea.css", "@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {", "@supports (display: none) {"],
+  ["Inicio muestra el Resumen a todos", "portal-raiz/index.html", "if (!m && ve('resumen')) html +=", "if (!m) html +="],
+  // 3-nov (rediseño): el vidrio y la foto ya no vuelven
+  ["After School vuelve al estilo vidrio", "after-school/index.html", "<html lang=\"es\">", "<html lang=\"es\" class=\"vidrio\">"],
+  ["Procesos vuelve al estilo vidrio", "procesos/index.html", "<html lang=\"es\">", "<html lang=\"es\" class=\"vidrio\">"],
+  ["vea.css vuelve a poner la foto de fondo", "comun/vea.css", "/* ── Estilo vidrio (26-oct): RETIRADO", ".x { background: url(/comun/fondo-local.jpg); } /* ── Estilo vidrio (26-oct): RETIRADO"],
   ["la foto de fondo pide sesión", "portal-raiz/htaccess.txt", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|jpg|svg|webmanifest)$ - [L]", "RewriteRule ^comun/[a-z0-9-]+\\.(css|js|png|svg|webmanifest)$ - [L]"],
   // 26-oct: puesto reservado de prueba y Ocupación en el Resumen
   ["un puesto reservado de prueba se ve igual que los demás", "equipo/api.php", "fn($p) => $todo || eq_para_mi($p, $usuario, $nombresRol)", "fn($p) => true"],
@@ -220,10 +221,10 @@ const ROTURAS = [
   ["el registro guarda el nombre", "configuracion/api.php", "anotar_evento($d, $yo, 'nombre', $usuario);", "anotar_evento($d, $yo, 'nombre', $usuario, $nombre);"],
   ["la sesión no trae el nombre", "portal-raiz/acceso.php", "'nombre' => trim((string) ($c['nombre'] ?? '')),", "'nombre' => '',"],
   ["Revisar manda el nombre de todas las cuentas", "equipo/api.php", "foreach (array_keys($quienes) as $u) {", "foreach (array_keys((array) (cuentas()['usuarios'] ?? [])) as $u) {"],
-  ["la cabecera no muestra el nombre", "comun/marca.js", "const usuario = nombreDe(sesion);", "const usuario = sesion ? sesion.usuario : '';"],
+  ["la barra lateral no muestra el nombre", "comun/marca.js", "const nom = nombreDe(S) || 'Usuario'", "const nom = (S && S.usuario) || 'Usuario'"],
   ["Procesos vuelve a las pestañas", "procesos/index.html", "<a class=\"pr-entrada vidrio-tarjeta\" href=\"#documentos\">", "<a class=\"pr-vistas\" href=\"#documentos\">"],
-  ["Ocupación sin el total de la semana", "after-school/index.html", "const o = Cifras.ocupacionAS(E);", "const o = null;"],
-  ["la portada muestra Pendientes que el servidor no mandó", "portal-raiz/index.html", "const items = r.items.filter(x => PENDIENTES[x.clave]);", "const items = Object.keys(PENDIENTES).map(clave => ({ clave, n: 0 }));"],
+  ["Ocupación sin la regla del Resumen", "after-school/index.html", "cif = deHoy ? Cifras.ocupacionAS(E) : null;", "cif = null;"],
+  ["las notificaciones muestran avisos que el servidor no mandó", "comun/marca.js", "return (NOTI.items || []).filter(x => NOTIFICACIONES[x.clave] && x.n);", "return Object.keys(NOTIFICACIONES).map(clave => ({ clave, n: 1, url: '/' }));"],
   // htaccess.txt
   ['cuentas.php se puede pedir desde el navegador', 'portal-raiz/htaccess.txt', "auth\\.php|permisos\\.php|cuentas\\.php|", "auth\\.php|permisos\\.php|"],
   ['generar-clave.php sigue abierto sin sesión', 'portal-raiz/htaccess.txt', "login\\.php|logout\\.php|cambiar-clave", "login\\.php|logout\\.php|generar-clave\\.php|cambiar-clave"]

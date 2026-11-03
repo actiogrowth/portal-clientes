@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=594c2a5232">
+<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
 <!--
   After School · Vida en Arte — herramienta provisional de registro.
   Vive en portal.vidaenarte.com/after-school/, detrás del login del portal.
@@ -43,62 +43,77 @@
     <button role="tab" data-vista="revisar" data-permiso="as.completo" aria-selected="false">Por revisar <span class="insignia oculto" id="cuentaRevisar"></span></button>
   </nav>
 
-  <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo la base de After School.</p></div>
+  <!-- 3-nov: mientras carga, el esqueleto de la pantalla (Marca.esqueleto), no una tarjeta de «Cargando…». -->
+  <div id="pantalla" class="pantalla con-esqueleto" aria-busy="true"></div>
   <div id="avisos"></div>
 
-  <!-- VISTA 1 · OCUPACIÓN (22-oct: compacta, una línea por clase) -->
+  <!-- VISTA 1 · OCUPACIÓN (22-oct: compacta; 3-nov, rediseño: cuatro cifras, filtros por
+       disciplina, cada clase con «N libres» o «Lleno» y la columna «Dónde hay más cupos») -->
   <section id="v-ocupacion" class="vista oculto columna oc">
-    <!-- 26-oct: el total de la semana de hoy, con la regla del Resumen del negocio (comun/cifras.js). -->
-    <p class="oc-total" id="ocTotal"></p>
-    <div class="resumen-linea" id="resumen" aria-label="Resumen"></div>
+    <div class="as-cifras" id="ocCifras" aria-label="Cifras de la semana"></div>
+    <!-- Lo que pide atención (clases sin lista, faltas por reponer): lleva a Seguimiento. -->
+    <div class="resumen-linea" id="resumen" aria-label="Para atender"></div>
     <div class="oc-barra">
       <div class="semana-nav">
-        <button class="btn-circulo" id="ocAnt" type="button" aria-label="Semana anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="btn-circulo" id="ocAnt" type="button" aria-label="Semana anterior"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
         <span class="oc-rango-caja">
           <button class="oc-rango" id="ocRango" type="button" aria-label="Elegir otra semana en el calendario"></button>
           <input type="date" id="ocFecha" tabindex="-1" aria-hidden="true">
         </span>
-        <button class="btn-circulo" id="ocSig" type="button" aria-label="Semana siguiente"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="btn-circulo" id="ocSig" type="button" aria-label="Semana siguiente"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
         <button class="btn sec chico" id="ocHoy" type="button">Hoy</button>
       </div>
+      <div class="oc-filtros" id="ocFiltros" role="group" aria-label="Filtrar por disciplina"></div>
       <div class="leyenda" id="leyenda"></div>
     </div>
-    <!-- Computador: la semana en bloques (lunes a viernes y, aparte, el fin de semana). -->
-    <div class="oc-bloques" id="grillas"></div>
-    <!-- Tablet y celular: un día a la vez. -->
-    <div class="oc-dias" id="ocDias" role="group" aria-label="Día de la semana"></div>
-    <div class="oc-dia" id="ocDia"></div>
-    <p class="ayuda">Toca una clase para ver sus niños, la edad y las visitas.</p>
+    <div class="oc-cuerpo">
+      <div>
+        <!-- Computador: la semana en bloques (lunes a viernes y, aparte, el fin de semana). -->
+        <div class="oc-bloques" id="grillas"></div>
+        <!-- Tablet y celular: un día a la vez. -->
+        <div class="oc-dias" id="ocDias" role="group" aria-label="Día de la semana"></div>
+        <div class="oc-dia" id="ocDia"></div>
+        <p class="ayuda" style="margin-top:10px">Toca una clase para ver sus niños, la edad y las visitas.</p>
+      </div>
+      <aside class="tarjeta oc-cupos" aria-labelledby="tCupos">
+        <h2 id="tCupos">Dónde hay más cupos</h2>
+        <p class="ayuda" id="cuposAyuda">Clases para ofrecer en pruebas y campañas.</p>
+        <div class="oc-cupos-lista" id="ocCupos"></div>
+      </aside>
+    </div>
   </section>
 
   <!-- VISTA · PASAR LISTA (21-oct: dentro de After School) -->
   <section id="v-lista" class="vista oculto columna">
     <!-- 23-oct: el día con flechas y «Hoy». Hasta dónde se puede ir lo dice el servidor (desde, hasta). -->
     <div class="pl-dia" id="plDia" role="group" aria-label="Día de la lista">
-      <button class="btn-circulo" id="plAnt" type="button" aria-label="Día anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <span class="pl-dia-fecha" id="plFechaTxt" aria-live="polite"></span>
-      <button class="btn-circulo" id="plSig" type="button" aria-label="Día siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
-      <button class="btn sec chico" id="plHoy" type="button">Hoy</button>
-      <input type="date" id="plFecha" class="oculto" aria-label="Elegir el día">
+      <button class="btn-circulo" id="plAnt" type="button" aria-label="Día anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <span class="pl-dia-centro">
+        <span class="pl-dia-fecha" id="plFechaTxt" aria-live="polite"></span>
+        <span class="pl-dia-abajo"><button class="enlace" id="plHoy" type="button">Ir a hoy</button><input type="date" id="plFecha" class="oculto" aria-label="Elegir el día"></span>
+      </span>
+      <button class="btn-circulo" id="plSig" type="button" aria-label="Día siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
     </div>
     <div id="plAviso"></div>
     <div class="pl-clases" id="plClases" role="group" aria-label="Clases del día"></div>
     <div id="plCuerpo" class="oculto columna">
-      <div class="pl-cab">
-        <div><h2 class="titulo pl-titulo" id="plTitulo"></h2><p class="ayuda" id="plSub"></p></div>
-        <div class="cuenta"><b id="plCuenta">0/0</b><span class="ayuda">marcados</span></div>
+      <div class="tarjeta pl-tarjeta">
+        <div class="pl-cab">
+          <div><h2 class="pl-titulo" id="plTitulo"></h2><p class="ayuda" id="plSub"></p></div>
+          <div class="cuenta"><b id="plCuenta">0/0</b><span class="ayuda">marcados</span></div>
+        </div>
+        <div class="pl-ninos" id="plNinos"></div>
       </div>
-      <div class="pl-ninos" id="plNinos"></div>
       <div class="pl-pie">
         <div class="fila">
-          <button class="btn borde-azul" id="plTodos" type="button">Los que faltan: Presente</button>
-          <button class="btn sec" id="plFueraBtn" type="button">+ Niño que no está en la lista</button>
+          <button class="btn" id="plTodos" type="button">Los que faltan: Presente</button>
+          <button class="btn" id="plFueraBtn" type="button">+ Niño fuera de lista</button>
         </div>
         <div class="pl-fuera oculto" id="plFueraForm">
           <input type="text" id="plFueraNombre" placeholder="Nombre del niño" autocomplete="off" aria-label="Nombre del niño que no está en la lista">
           <button class="btn negro" id="plFueraAgregar" type="button">Agregar</button>
         </div>
-        <button class="btn negro guardar" id="plGuardar" type="button">Guardar lista</button>
+        <button class="btn primario guardar" id="plGuardar" type="button">Guardar lista</button>
       </div>
     </div>
   </section>
@@ -342,7 +357,7 @@
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=37b691d840"></script>
+<script src="/comun/marca.js?v=ff1b1be99d"></script>
 <script src="/comun/cifras.js?v=5f9322ccbb"></script>
 <script>
 'use strict';
@@ -507,9 +522,10 @@ function toast(msg) {
 /* ==========================================================================
    CARGA Y PANTALLAS DE ESTADO
    ========================================================================== */
-function pantalla(html) {
+function pantalla(html, esqueleto) {
   const p = $('#pantalla');
   p.innerHTML = html; p.classList.remove('oculto');
+  p.classList.toggle('con-esqueleto', !!esqueleto);
   document.querySelectorAll('.vista').forEach(v => v.classList.add('oculto'));
   $('#avisos').innerHTML = '';
 }
@@ -525,7 +541,7 @@ function pantallaError(e) {
 }
 
 async function cargar() {
-  pantalla('<h2>Cargando…</h2><p id="cargaTexto">Leyendo la base de After School.</p>');
+  pantalla(Marca.esqueleto(vista === 'lista' ? 'lista' : vista === 'ocupacion' ? 'ocupacion' : 'tabla') + '<p class="ayuda" id="cargaTexto" style="margin-top:12px"></p>', true);
   // Una lectura normal tarda ~5 s. Si pasa de 9, es que se perdió una
   // respuesta y el servidor está reintentando solo (api.php, hasta 2 veces).
   const aviso = setTimeout(() => {
@@ -545,6 +561,7 @@ function aplicar(estado) {
     return;
   }
   E = estado;
+  Marca.datosAS = estado;   // 3-nov: el buscador general lo usa sin volver a leer
   leidoEn = Date.now(); ultimaLectura = JSON.stringify(estado);
   OCUP_EXTRA = {};
   indexar();
@@ -552,6 +569,7 @@ function aplicar(estado) {
   pintarAvisos();
   pintarTodo();
   mostrarVista(vista);
+  if (pedidoHash) atenderHash();
   cargarSeguimiento();   // aparte: no demora la pantalla
 }
 
@@ -770,46 +788,48 @@ function claseServicio(servicio) {
   const n = norm(servicio);
   return n.includes('parkour') ? 'Parkour' : n.includes('telas') ? 'Telas' : n.includes('parkids') ? 'Parkids' : n.includes('baby') ? 'Baby' : 'Otro';
 }
-const COLOR_SERVICIO = { Parkour: '#D71C0E', Telas: '#1974A8', Parkids: '#FFA615', Baby: '#AED7EB', Otro: '#6B6B6B' };
+/* 3-nov: los colores fijos de las disciplinas (los mismos de vea.css: --parkour, --telas, --parkids, --babyme). */
+const COLOR_SERVICIO = { Parkour: '#E0412F', Telas: '#1974A8', Parkids: '#F2A01E', Baby: '#7FB3D5', Otro: '#5B5F68' };
 const MESES_CORTOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const diaMes = iso => +iso.slice(8, 10) + ' de ' + MESES_CORTOS[+iso.slice(5, 7) - 1];
 
-/* Resumen en UNA línea de cifras. Solo se resalta (y lleva a Seguimiento) lo
-   que pide atención y es mayor que 0: clases sin lista y faltas por reponer. */
-function pintarResumen(semana) {
-  const desde = semana[E.dias[0]], hasta = semana[E.dias[6]];
-  const activos = E.ninos.filter(n => n.estado === 'Activo').length;
-  const visitas = (E.pruebas || []).filter(p => p.fecha >= desde && p.fecha <= hasta && p.estado !== 'Cancelada').length;
-  const cifra = (v, et) => '<span class="cifra"><b class="num">' + v + '</b> ' + et + '</span>';
-  const atencion = (v, uno, varios, tono) => {
-    if (!SEG || SEG.error) return '<span class="cifra" data-permiso="as.seguimiento"><b class="num">…</b> ' + varios + '</span>';
-    return v > 0
-      ? '<button type="button" class="cifra alerta ' + tono + '" data-permiso="as.seguimiento" data-ir="seguimiento"><b class="num">' + v + '</b> ' + (v === 1 ? uno : varios) + ' ›</button>'
-      : '<span class="cifra" data-permiso="as.seguimiento"><b class="num">0</b> ' + varios + '</span>';
-  };
-  $('#resumen').innerHTML = cifra(activos, activos === 1 ? 'inscrito activo' : 'inscritos activos') +
-    cifra(visitas, visitas === 1 ? 'visita esta semana' : 'visitas esta semana') +
-    atencion(SEG && !SEG.error ? SEG.clasesSinLista.length : 0, 'clase sin lista', 'clases sin lista', 'rosa') +
-    atencion(SEG && !SEG.error ? SEG.faltasPorReponer.length : 0, 'falta por reponer', 'faltas por reponer', 'arena');
+/* Lo que pide atención, en una línea: clases sin lista y faltas por reponer
+   (solo si son más de 0; llevan a Seguimiento). Las cifras van en las
+   tarjetas de arriba (pintarCifras). */
+function pintarResumen() {
+  const atencion = (v, uno, varios, tono) => v > 0
+    ? '<button type="button" class="cifra alerta ' + tono + '" data-permiso="as.seguimiento" data-ir="seguimiento"><b class="num">' + v + '</b> ' + (v === 1 ? uno : varios) + ' ›</button>' : '';
+  $('#resumen').innerHTML = SEG && !SEG.error ? atencion(SEG.clasesSinLista.length, 'clase sin lista', 'clases sin lista', 'rosa') +
+    atencion(SEG.faltasPorReponer.length, 'falta por reponer', 'faltas por reponer', 'arena') : '';
+  $('#resumen').classList.toggle('oculto', !$('#resumen').innerHTML);
   $('#resumen').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { mostrarVista(b.dataset.ir); refrescar(); });
 }
 
-/* Una clase en UNA línea: «● Parkour 16/20». El fondo se llena con el tinte
-   del servicio según la ocupación (inscritos + visitas que ocupan cupo); desde
-   «casi lleno», borde del color del servicio y número en negrita. La edad, los
-   niños y las visitas salen al tocarla (abrirClase). */
+/* 3-nov: «Lleno» desde el umbral de Config («casi lleno»; sin umbral, al llegar al cupo). */
+const estaLleno = est => est === 'lleno' || est === 'casi';
+const libresDe = (c, o) => Math.max(0, c.cupo - o.t);
+
+/* Una clase: «● Parkour 16/20» y debajo «4 libres» o «Lleno». El fondo se
+   llena con el tinte del servicio según la ocupación (inscritos + visitas
+   que ocupan cupo); llena, borde del color del servicio. La edad, los niños
+   y las visitas salen al tocarla (abrirClase). */
 function claseHtml(c, iso) {
   const o = ocupacion0(c, iso), est = estadoCelda(c, o), cls = claseServicio(c.servicio);
-  const lleno = Math.min(100, Math.round(o.t / c.cupo * 100));
+  const lleno = Math.min(100, Math.round(o.t / c.cupo * 100)), libres = libresDe(c, o);
   const notas = iso <= E.hoy ? (IDX.insClase[c.codigo] || []).filter(i => i.nota && (!i.alta || i.alta <= iso)).length : 0;
   const etiqueta = c.servicio + ' ' + c.hora + ', ' + fecha(iso) + ': ' + o.i + ' inscritos' + (o.p ? ' y ' + textoVisitas(o.p) + ' (' + detalleTipos(o.tipos) + ')' : '') +
-    ', cupo ' + c.cupo + (est === 'lleno' ? ', lleno' : est === 'casi' ? ', casi lleno' : est === 'inactiva' ? ', inactiva' : '') +
+    ', cupo ' + c.cupo + (est === 'inactiva' ? ', inactiva' : estaLleno(est) ? ', lleno' : ', ' + libres + ' libres') +
     (notas ? ', ' + notas + (notas === 1 ? ' nota pendiente' : ' notas pendientes') : '');
   return '<button class="oc-clase ' + cls + ' ' + est + '" style="--lleno:' + (est === 'inactiva' ? 0 : lleno) + '%" data-clase="' + esc(c.codigo) + '" data-fecha="' + iso + '" type="button" aria-label="' + esc(etiqueta) + '">' +
-    '<span class="nom"><span class="punto ' + cls + '"></span><span class="txt">' + esc(c.servicio) + '</span></span>' +
-    '<span class="cifra num">' + (notas ? '<span class="nota" aria-hidden="true">⚑</span>' : '') + (est === 'inactiva' ? 'Inactiva' : o.t + '/' + c.cupo) + '</span></button>';
+    '<span class="fila1"><span class="nom"><span class="punto ' + cls + '"></span><span class="txt">' + esc(c.servicio) + '</span></span>' +
+    '<span class="cifra num">' + (notas ? '<span class="nota" aria-hidden="true">⚑</span>' : '') + (est === 'inactiva' ? 'Inactiva' : o.t + '/' + c.cupo) + '</span></span>' +
+    (est === 'inactiva' ? '' : '<span class="libres">' + (estaLleno(est) ? 'Lleno' : libres + (libres === 1 ? ' libre' : ' libres')) + '</span>') + '</button>';
 }
-function clasesDe(d, hr) { return E.clases.filter(c => c.dia === d && c.hora === hr).sort((a, b) => a.servicio.localeCompare(b.servicio, 'es')); }
+/* 3-nov: filtro por disciplina (todas encendidas al entrar). */
+const FILTRO = new Set();
+let filtroIniciado = false;
+const pasaFiltro = c => FILTRO.has(claseServicio(c.servicio));
+function clasesDe(d, hr) { return E.clases.filter(c => c.dia === d && c.hora === hr && pasaFiltro(c)).sort((a, b) => a.servicio.localeCompare(b.servicio, 'es')); }
 const FIN_DE_SEMANA = ['Sábado', 'Domingo'];
 const corto = d => DIA_CORTO[d] || d.slice(0, 3);
 
@@ -818,12 +838,13 @@ const corto = d => DIA_CORTO[d] || d.slice(0, 3);
    clases en ESE bloque (ninguna fila vacía). Si mañana se agrega un viernes o
    cambia un horario, se acomoda solo. */
 function bloqueHtml(dias, semana) {
-  const horas = [...new Set(E.clases.filter(c => dias.includes(c.dia)).map(c => c.hora))].sort();
+  const horas = [...new Set(E.clases.filter(c => dias.includes(c.dia) && pasaFiltro(c)).map(c => c.hora))].sort();
+  if (!horas.length) return '';
   const titulo = dias.length > 1 ? corto(dias[0]) + '–' + corto(dias[dias.length - 1]) : '';
   return '<div class="oc-bloque' + (dias.some(d => FIN_DE_SEMANA.includes(d)) ? ' finde' : '') + '" style="--dias:' + dias.length + '">' +
     '<div class="oc-esq">' + esc(titulo) + '</div>' +
-    dias.map(d => '<div class="oc-dia-cab' + (semana[d] === E.hoy ? ' hoy' : '') + '"><b>' + esc(d) + '</b> <span class="num">' + fechaCorta(semana[d]) + '</span>' +
-      (semana[d] === E.hoy ? '<span class="sr"> (hoy)</span>' : '') + '</div>').join('') +
+    dias.map(d => '<div class="oc-dia-cab' + (semana[d] === E.hoy ? ' hoy' : '') + '"><b>' + esc(corto(d)) + '</b> <span class="num">' + +semana[d].slice(8, 10) + '</span>' +
+      (semana[d] === E.hoy ? '<span> · hoy</span>' : '') + '</div>').join('') +
     horas.map(hr => '<div class="oc-hora num">' + esc(hr) + '</div>' + dias.map(d => '<div class="oc-celda">' + clasesDe(d, hr).map(c => claseHtml(c, semana[d])).join('') + '</div>').join('')).join('') +
     '</div>';
 }
@@ -834,24 +855,75 @@ function pintarDiaMovil(dias, semana) {
   $('#ocDias').innerHTML = dias.map(d => '<button type="button" class="oc-dia-btn' + (semana[d] === E.hoy ? ' hoy' : '') + '" aria-pressed="' + (d === diaOcup) + '" data-dia="' + esc(d) + '">' +
     '<b>' + esc(corto(d)) + '</b><span class="num">' + +semana[d].slice(8, 10) + '</span></button>').join('');
   $('#ocDias').querySelectorAll('[data-dia]').forEach(b => b.onclick = () => { diaOcup = b.dataset.dia; pintarDiaMovil(dias, semana); });
-  const horas = [...new Set(E.clases.filter(c => c.dia === diaOcup).map(c => c.hora))].sort();
+  const horas = [...new Set(E.clases.filter(c => c.dia === diaOcup && pasaFiltro(c)).map(c => c.hora))].sort();
   $('#ocDia').innerHTML = !diaOcup ? '' : '<h3 class="oc-dia-tit">' + esc(diaOcup) + ' ' + diaMes(semana[diaOcup]) + (semana[diaOcup] === E.hoy ? ' · hoy' : '') + '</h3>' +
-    horas.map(hr => '<div class="oc-dia-hora"><div class="oc-hora num">' + esc(hr) + '</div><div class="oc-celda">' + clasesDe(diaOcup, hr).map(c => claseHtml(c, semana[diaOcup])).join('') + '</div></div>').join('');
+    (horas.length ? horas.map(hr => '<div class="oc-dia-hora"><div class="oc-hora num">' + esc(hr) + '</div><div class="oc-celda">' + clasesDe(diaOcup, hr).map(c => claseHtml(c, semana[diaOcup])).join('') + '</div></div>').join('')
+      : '<p class="ayuda">Sin clases de las disciplinas elegidas este día.</p>');
   $('#ocDia').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase, b.dataset.fecha));
 }
 
-/* 26-oct: «Esta semana: 158 inscritos en 568 cupos · 28 %». Siempre la semana de hoy, como el Resumen (R125). */
-function pintarTotalSemana() {
-  const o = Cifras.ocupacionAS(E);
-  $('#ocTotal').innerHTML = o ? 'Esta semana: <b>' + o.inscritos + '</b> inscritos en <b>' + o.cupos + '</b> cupos · <b>' + Math.round(o.valor * 100) + ' %</b>' : '';
-  $('#ocTotal').classList.toggle('oculto', !o);
+/* Las cuatro cifras de la semana en pantalla (3-nov). La ocupación es la regla
+   del Resumen del negocio (R125: inscritos de cada clase activa en su día ÷
+   cupos); en la semana de hoy es la MISMA cuenta de Cifras.ocupacionAS. Los
+   cupos para vender y las clases llenas cuentan además las visitas que
+   ocupan cupo, como cada clase de la grilla. */
+function pintarCifras(semana, dias) {
+  const activas = E.clases.filter(c => c.activa && c.cupo > 0 && dias.includes(c.dia));
+  let ins = 0, cupos = 0, vender = 0;
+  const llenas = [];
+  activas.forEach(c => {
+    const iso = semana[c.dia], o = ocupacion0(c, iso);
+    ins += o.i; cupos += c.cupo;
+    if (iso >= E.hoy) vender += libresDe(c, o);
+    if (estaLleno(estadoCelda(c, o))) llenas.push(c);
+  });
+  const deHoy = semana[E.dias[0]] === lunesDe(E.hoy), cif = deHoy ? Cifras.ocupacionAS(E) : null;
+  if (cif) { ins = cif.inscritos; cupos = cif.cupos; }
+  const activos = E.ninos.filter(n => n.estado === 'Activo').length;
+  const pasada = semana[E.dias[6]] < E.hoy;
+  const tarjeta = (tit, valor, nota, tono) => '<div class="tarjeta as-cifra"><span>' + esc(tit) + '</span><span class="cifra-grande num' + (tono ? ' ' + tono : '') + '">' + esc(valor) + '</span><small>' + esc(nota) + '</small></div>';
+  llenas.sort((a, b) => ordenClase(a) - ordenClase(b));
+  $('#ocCifras').innerHTML =
+    tarjeta('Ocupación de la semana', cupos ? Math.round(ins / cupos * 100) + ' %' : '—', ins + ' inscritos en ' + cupos + ' cupos') +
+    tarjeta('Cupos para vender', pasada ? '—' : vender, pasada ? 'la semana ya pasó' : deHoy ? 'lo que queda de esta semana' : 'esa semana', pasada ? '' : 'ok') +
+    tarjeta('Inscritos activos', activos, activos === 1 ? 'niño' : 'niños') +
+    tarjeta('Clases llenas', llenas.length, llenas.length ? llenas.slice(0, 2).map(c => c.servicio + ' ' + corto(c.dia).toLowerCase() + ' ' + c.hora).join(' · ') + (llenas.length > 2 ? '…' : '')
+      : E.config.umbral != null ? 'ninguna desde ' + Math.round(E.config.umbral * 100) + ' %' : 'ninguna', llenas.length ? 'peligro' : '');
+}
+
+/* «Dónde hay más cupos»: las 6 clases con más cupos libres de lo que queda de la semana (con el filtro). */
+function pintarCupos(semana) {
+  const l = E.clases.filter(c => c.activa && pasaFiltro(c) && semana[c.dia] && semana[c.dia] >= E.hoy)
+    .map(c => ({ c, iso: semana[c.dia], libres: libresDe(c, ocupacion0(c, semana[c.dia])) })).filter(x => x.libres > 0)
+    .sort((a, b) => b.libres - a.libres || a.iso.localeCompare(b.iso) || a.c.hora.localeCompare(b.c.hora)).slice(0, 6);
+  $('#ocCupos').innerHTML = l.length ? l.map(x => '<button type="button" class="oc-cupo" data-clase="' + esc(x.c.codigo) + '" data-fecha="' + x.iso + '">' +
+    '<span><b><span class="punto ' + claseServicio(x.c.servicio) + '"></span>' + esc(x.c.servicio) + '</b><small>' + esc(corto(x.c.dia)) + ' ' + esc(x.c.hora) + '</small></span>' +
+    '<span class="libres num">' + x.libres + (x.libres === 1 ? ' libre' : ' libres') + '</span></button>').join('')
+    : '<p class="ayuda">' + (semana[E.dias[6]] < E.hoy ? 'Esa semana ya pasó.' : 'No quedan cupos libres esta semana.') + '</p>';
+  $('#ocCupos').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase, b.dataset.fecha));
+}
+
+function pintarFiltros() {
+  const nombres = { Parkour: 'Parkour', Telas: 'Telas', Parkids: 'Parkids', Baby: 'Baby & Me', Otro: 'Otros' };
+  const servicios = [...new Set(E.clases.map(c => claseServicio(c.servicio)))];
+  if (!filtroIniciado) { servicios.forEach(k => FILTRO.add(k)); filtroIniciado = true; }
+  $('#ocFiltros').innerHTML = servicios.map(k => '<button type="button" class="oc-filtro" data-filtro="' + k + '" aria-pressed="' + FILTRO.has(k) + '" style="--c:' + COLOR_SERVICIO[k] + '">' +
+    '<span class="punto ' + k + '"></span>' + nombres[k] + '</button>').join('');
+  $('#ocFiltros').querySelectorAll('[data-filtro]').forEach(b => b.onclick = () => {
+    const k = b.dataset.filtro;
+    // Tocar una disciplina con todas encendidas deja solo esa; tocar la única encendida las vuelve a encender todas.
+    if (FILTRO.size === servicios.length) { FILTRO.clear(); FILTRO.add(k); }
+    else if (FILTRO.has(k)) { FILTRO.delete(k); if (!FILTRO.size) servicios.forEach(x => FILTRO.add(x)); }
+    else FILTRO.add(k);
+    pintarOcupacion();
+  });
+  $('#leyenda').innerHTML = '<span class="ayuda">Barra = ocupación · borde de color = lleno' + (E.config.umbral != null ? ' (desde ' + Math.round(E.config.umbral * 100) + ' %)' : '') + '</span>';
 }
 
 function pintarOcupacion() {
-  pintarTotalSemana();
   const ref = fechaOcup || E.hoy, semana = semanaDe(ref);
   const dias = E.dias.filter(d => E.clases.some(c => c.dia === d));
-  pintarResumen(semana);
+  pintarResumen();
   $('#ocFecha').value = ref;
   const ultimo = dias.length ? semana[dias[dias.length - 1]] : '';
   const mismoMes = dias.length && semana[dias[0]].slice(5, 7) === ultimo.slice(5, 7), d0 = dias.length ? +semana[dias[0]].slice(8, 10) : 0;
@@ -865,14 +937,13 @@ function pintarOcupacion() {
     asegurarSemana(semana[E.dias[0]], semana[E.dias[6]]);
     return;
   }
-  const servicios = [...new Set(E.clases.map(c => claseServicio(c.servicio)))];
-  const nombres = { Parkour: 'Parkour', Telas: 'Telas', Parkids: 'Parkids', Baby: 'Baby & Me', Otro: 'Otros' };
-  $('#leyenda').innerHTML = servicios.map(k => '<span><span class="punto ' + k + '"></span>' + nombres[k] + '</span>').join('') +
-    '<span class="ayuda">· el fondo se llena según la ocupación' + (E.config.umbral != null ? '; borde y negrita desde ' + Math.round(E.config.umbral * 100) + ' %' : '') + '</span>';
+  pintarFiltros();
+  pintarCifras(semana, dias);
   const semanaLab = dias.filter(d => !FIN_DE_SEMANA.includes(d)), finde = dias.filter(d => FIN_DE_SEMANA.includes(d));
   $('#grillas').innerHTML = (semanaLab.length ? bloqueHtml(semanaLab, semana) : '') + (finde.length ? bloqueHtml(finde, semana) : '');
   $('#grillas').querySelectorAll('[data-clase]').forEach(b => b.onclick = () => abrirClase(b.dataset.clase, b.dataset.fecha));
   pintarDiaMovil(dias, semana);
+  pintarCupos(semana);
   podar($('#resumen'));
 }
 function irSemana(f) { fechaOcup = f; pintarOcupacion(); refrescar(); }
@@ -1904,11 +1975,13 @@ function abrirClaseLista(codigo) {
   pintarNinosLista();
 }
 
+/* 3-nov: botones de ancho fijo (no saltan al marcarse); el elegido, con el color del estado y una marca. */
+const CHECK = '<svg class="pl-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
 function botonesLista(clave, estado) {
   const soloVer = !!(LISTA.datos && LISTA.datos.soloLectura);
   return '<div class="pl-botones" role="group" aria-label="Asistencia">' + ESTADOS_PL.map(([e, t]) =>
     '<button type="button" data-k="' + esc(clave) + '" data-e="' + esc(e) + '" aria-pressed="' + (estado === e) + '"' +
-    (estado === e ? ' title="Toca otra vez para quitar la marca"' : '') + (soloVer ? ' disabled' : '') + '>' + t + '</button>').join('') + '</div>';
+    (estado === e ? ' title="Toca otra vez para quitar la marca"' : '') + (soloVer ? ' disabled' : '') + '>' + CHECK + t + '</button>').join('') + '</div>';
 }
 
 function pintarNinosLista() {
@@ -1949,7 +2022,8 @@ function pintarCuentaLista() {
   const q = quitasLista(c), quitas = q.quitar.length + q.quitarFuera.length;
   $('#plCuenta').textContent = hechos + '/' + total;
   $('#plGuardar').disabled = !hechos && !quitas;
-  $('#plGuardar').textContent = c.guardada && !LISTA.cambios ? '✓ Lista guardada' : 'Guardar lista';
+  const faltan = total - hechos;
+  $('#plGuardar').textContent = c.guardada && !LISTA.cambios ? '✓ Lista guardada' : 'Guardar lista' + (faltan > 0 ? ' (' + faltan + ' sin marcar)' : '');
 }
 
 $('#plTodos').onclick = () => {
@@ -1999,35 +2073,61 @@ window.addEventListener('beforeunload', e => { if (LISTA.cambios) { e.preventDef
    INICIO: quién soy, qué veo y en qué pestaña empiezo (la que más usa mi rol).
    El profesor ve solo Pasar lista: sin pestañas ni lectura de After School.
    ========================================================================== */
-$('#irInscribir').onclick = () => { mostrarVista('registrar'); $('#buscar').focus(); Marca.toast('Busca al niño (o «+ Nuevo») y marca sus clases.'); };
-$('#irAgendar').onclick = () => { mostrarVista('pruebas'); $('#formPrueba').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+function irInscribir() { mostrarVista('registrar'); $('#buscar').focus(); Marca.toast('Busca al niño (o «+ Nuevo») y marca sus clases.'); }
+function irAgendar() { mostrarVista('pruebas'); $('#formPrueba').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function irPago() { mostrarVista('pagos'); $('#formPago').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#pNino').focus({ preventScroll: true }); }
+$('#irInscribir').onclick = irInscribir;
+$('#irAgendar').onclick = irAgendar;
 
-/* 23-oct: el Profesor entra directo a Pasar lista; la salida, visible como texto. */
-function accesosProfesor(ses) {
-  const ve = a => ses.areas === '*' || (Array.isArray(ses.areas) && ses.areas.includes(a));
-  return [{ texto: 'Inicio', url: '/' }].concat(ve('procesos') ? [{ texto: 'Procesos', url: '/procesos/' }] : []);
+/* 3-nov: lo que piden el buscador general y el botón «Nuevo» por la dirección:
+     #ficha=<ID>       la ficha de ese niño          #clase=<código>  su detalle en Ocupación
+     #nuevo=inscribir  Inscribir                     #nuevo=visita    Agendar visita
+     #nuevo=pago       Registrar pago                #<pestaña>       esa pestaña
+   Si los datos todavía no llegaron, queda pendiente y se atiende en aplicar(). */
+const NUEVO_AS = { inscribir: ['registrar', irInscribir], visita: ['pruebas', irAgendar], pago: ['pagos', irPago] };
+let pedidoHash = '';
+function atenderHash() {
+  const h = decodeURIComponent((location.hash || '').slice(1));
+  if (!h) return;
+  const [k, v] = h.split('=');
+  if (!v && k !== 'lista' && vistaPermitida(k) && document.getElementById('v-' + k)) { if (E || k === 'lista') mostrarVista(k); return; }
+  if (!v && k === 'lista') { mostrarVista('lista'); return; }
+  if (!E) { pedidoHash = h; return; }
+  pedidoHash = '';
+  let vistaFinal = vista;
+  if (k === 'ficha' && IDX.ninos[v] && puede('as.completo')) { abrirFicha(v); vistaFinal = 'registrar'; }
+  else if (k === 'clase' && IDX.clases[v]) {
+    mostrarVista('ocupacion'); vistaFinal = 'ocupacion';
+    abrirClase(v, semanaDe(fechaOcup || E.hoy)[IDX.clases[v].dia] || E.hoy);
+  } else if (k === 'nuevo' && NUEVO_AS[v] && vistaPermitida(NUEVO_AS[v][0])) { NUEVO_AS[v][1](); vistaFinal = NUEVO_AS[v][0]; }
+  history.replaceState(null, '', location.pathname + location.search + '#' + vistaFinal);
 }
+window.addEventListener('hashchange', atenderHash);
 
 async function iniciar() {
   let ses;
   try { ses = await Datos.sesion(); }
   catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } pantallaError(e); return; }
   fijarPermisos(ses.permisosAS || []);
-  const pedida = (location.hash || '').slice(1);
+  const pedida = (location.hash || '').slice(1).split('=')[0];
   const soloLista = !puede('as.ver') && puede('as.lista.marcar');
-  Marca.cabecera($('#cab'), soloLista ? { sesion: ses, prefijo: 'Pasando lista:', accesos: accesosProfesor(ses) } : { sesion: ses, ruta: Marca.rutaUnidad('afterschool', 'After School') });
-  vista = vistaPermitida(pedida) && pedida ? pedida : (ses.inicioAS || 'ocupacion');
+  // 3-nov: la navegación (también la del Profesor: Inicio, Procesos, Equipo) la da la barra lateral, o la inferior en celular.
+  Marca.cabecera($('#cab'), { sesion: ses, ruta: Marca.rutaUnidad('afterschool', 'After School') });
+  vista = pedida && document.getElementById('v-' + pedida) && vistaPermitida(pedida) ? pedida : (ses.inicioAS || 'ocupacion');
   if (soloLista) vista = 'lista';
   // Llegó con una clase pedida (Seguimiento → Pasar lista, o la dirección vieja /pasar-lista/).
   const q = new URLSearchParams(location.search);
   if (vista === 'lista' && (q.get('fecha') || q.get('clase'))) { LISTA.cargando = true; cargarLista(q.get('fecha') || '', q.get('clase') || ''); }
   if (soloLista) {
     document.body.classList.add('solo-lista');
+    document.querySelector('.encabezado-as h1').textContent = 'Pasar lista';
+    Marca.cabecera($('#cab'), { sesion: ses, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'After School' }, { texto: 'Pasar lista' }] });
     $('#pantalla').classList.add('oculto');
     mostrarVista('lista');
     return;
   }
   if (vista === 'lista') mostrarVista('lista');
+  if (/=/.test(location.hash)) pedidoHash = decodeURIComponent(location.hash.slice(1));
   cargar();
 }
 iniciar();

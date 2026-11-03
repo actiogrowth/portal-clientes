@@ -94,6 +94,11 @@ jobs:
           npm install --no-save --no-audit --no-fund playwright-core@1.47.0
           node pruebas-portal/prueba-clics-organigrama.js
 
+      # 3-nov (rediseño etapa 1): la estructura común por rol (barra lateral, inferior, «Nuevo»,
+      # buscador y notificaciones), Ocupación y Pasar lista, en Chrome real; con sus roturas.
+      - name: Rediseño · estructura común por rol, buscador, Ocupación y Pasar lista (Chrome)
+        run: node pruebas-portal/prueba-rediseno.js
+
       - name: Versión de los archivos de comun/ en cada página (caché del navegador)
         run: node pruebas-portal/prueba-versiones.js
 

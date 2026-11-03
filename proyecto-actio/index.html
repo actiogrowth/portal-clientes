@@ -19,7 +19,7 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=594c2a5232">
+<link rel="stylesheet" href="/comun/vea.css?v=719d25358e">
 </head>
 <body>
 <header id="cab"></header>
@@ -44,7 +44,7 @@
     </label>
   </div>
 
-  <div id="pantalla" class="pantalla"><h2>Cargando…</h2><p>Leyendo lo que Actio Growth le ha entregado a Vida en Arte.</p></div>
+  <div id="pantalla" class="pantalla"></div>
   <div id="avisos"></div>
 
   <section id="v-entregables" class="vista oculto columna"><p class="pa-resumen" id="paResumenE"></p><div id="paEntregables" class="pa-grupos"></div></section>
@@ -57,11 +57,12 @@
 </main>
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=37b691d840"></script>
+<script src="/comun/marca.js?v=ff1b1be99d"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
 <script>
 'use strict';
+document.getElementById('pantalla').innerHTML = Marca.esqueleto('tabla');   // 3-nov: la forma de la página mientras carga
 const $ = s => document.querySelector(s);
 const esc = Marca.esc;
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -112,7 +113,7 @@ async function cargar() {
     if (e.codigo === 'sesion') { Datos.aLogin(); return; }
     pantalla('<h2>No se pudo leer Proyecto Actio</h2><p>La página no muestra nada hasta poder leer los datos, para no dar a entender que no hay entregas.</p><pre>' +
       esc(e.message) + '</pre><button class="btn" id="reintentar" type="button">Reintentar</button>');
-    $('#reintentar').onclick = () => { pantalla('<h2>Cargando…</h2>'); cargar(); };
+    $('#reintentar').onclick = () => { pantalla(Marca.esqueleto('tabla')); cargar(); };
     return;
   }
   if (!D.proyectos.includes(proyecto)) proyecto = D.proyectos[0] || '';

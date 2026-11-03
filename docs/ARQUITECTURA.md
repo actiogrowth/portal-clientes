@@ -129,8 +129,8 @@ pese. Nada de esto se construye sin la aprobación de Marco.
 
 | Pieza | Qué es |
 |---|---|
-| `comun/vea.css` | El **único** archivo de estilos del portal (variables de color, botones en píldora, tarjetas, pestañas, ocupación, Pasar lista, adaptaciones a tablet y celular). Dos temas sobre los mismos componentes: Vida en Arte (por defecto) y **Vida en Arte Kids** (`.tema-kids` en `<html>`: solo cambia variables; lo usa Preschool). |
-| `comun/marca.js` | `window.Marca`: el encabezado (logo —el de Kids con la opción `logo`—, ruta, usuario, «Cambiar mi contraseña», Salir), avisos y formato de fechas. |
+| `comun/vea.css` | (3-nov: con `comun/armazon.css`, la estructura común; ver §2i) El archivo de estilos del portal (variables de color, botones en píldora, tarjetas, pestañas, ocupación, Pasar lista, adaptaciones a tablet y celular). Dos temas sobre los mismos componentes: Vida en Arte (por defecto) y **Vida en Arte Kids** (`.tema-kids` en `<html>`: solo cambia variables; lo usa Preschool). |
+| `comun/marca.js` | `window.Marca`: desde el 3-nov, la estructura común (barra lateral, superior e inferior, notificaciones, buscador, «Nuevo», partículas y esqueletos; §2i), avisos y formato de fechas. |
 | `comun/datos.js` | `window.Datos`: la capa de datos (ver la tabla de capas). Es lo único que habría que reescribir para hablar con otro servidor (Firebase o Supabase). |
 | `comun/logo-vea.png`, `comun/logo-kids.png` | Logos. |
 | `comun/app.webmanifest`, `comun/app-icono-{180,192,512}.png` | **App instalable** (23-oct): el manifiesto (nombre «Vida en Arte 360», corto «VEA 360», empieza en `/`, abarca todo el sitio, pantalla completa sin barra del navegador) y los íconos (el símbolo de las tres bolitas sobre blanco; el de 512 sirve también de «maskable»). Todas las páginas con la marca los enlazan en el `<head>`, así que se instala desde cualquier pantalla: Android/Chrome «Instalar app», iPhone Safari › Compartir › «Agregar a inicio». **Sin service worker**: nada se guarda para usar sin conexión y no hay una caché más que pueda servir una página vieja o una sesión vencida. |
@@ -192,7 +192,7 @@ lista (Profesor). La portada no muestra contadores.
 |---|---|---|---|
 | Preschool (`/kinder/`) | **Desde el 28-oct, la carpeta `kinder/` de este repo** (`index.html`, `config.php`, `csv.php`; antes, la rama `preschool-procesos` con `dashboard-kinder.html`) | Tema Kids, encabezado estándar con el logo Kids | `config.php` → `csv.php` (no pasa por `datos.js`). **Operativo, sin finanzas** (D-083): `csv.php` rehace las tablas sin montos, sin plan y sin responsable (R138) |
 | Base de Datos (`/basededatos/`) | Repo `bdclientesvea`, rama `marca-vea` | `vea.css` en una capa `@layer` (sus reglas mandan), encabezado estándar | Igual que antes: `api.php` directo. **No pasa por `datos.js`**: la lectura mira el texto crudo para distinguir una página de Google de una hoja vacía |
-| Veranito (`/veranito/`) | `veranito/index.html` (hub de enlaces: tarjetas de herramientas y «Copiar link») | `vea.css` en una capa `@layer` y encabezado estándar si existe `/comun/marca.js`; sin la barra lateral (la navegación es la portada). Sin `/comun/` se ve idéntica a antes | Solo `/acceso.php` (formato JS), igual que antes; no llama a ningún puente |
+| Veranito (`/veranito/`) | `veranito/index.html` (hub de enlaces: tarjetas de herramientas y «Copiar link») | `vea.css` en una capa `@layer` y, si existe `/comun/marca.js`, la estructura común (3-nov: con la barra lateral; su barra propia se oculta). Sin `/comun/` se ve idéntica a antes | Solo `/acceso.php` (formato JS), igual que antes; no llama a ningún puente |
 | Sistema Operativo | GitHub Pages (`portal-v2.html`) | Reemplazado por **Proyecto Actio** (`/proyecto-actio/`, abajo). Desde el 23-oct `portal-v2.html` redirige allá (en `main`) | — |
 
 Preschool, Base de Datos y Veranito funcionan igual si `/comun/` no existiera: la página sigue
@@ -413,7 +413,7 @@ procesos-script/Procesos.gs  (Apps Script ligado al Sheet; clave PR_CLAVE_API)
   fuera, en [ACCIONES_API.md › Resumen](ACCIONES_API.md). Finanzas dice
   «Próximamente», sin números.
 
-**Estilo vidrio** (`vea.css`, tema por página: `<html class="vidrio">`): foto
+**Estilo vidrio** (RETIRADO el 3-nov en el rediseño, §2i; queda como historia) (`vea.css`, tema por página: `<html class="vidrio">`): foto
 de fondo `comun/fondo-local.jpg` (1600×1200, 40 KB) con un velo oscuro del
 60 %, tarjetas semitransparentes con desenfoque, borde claro y sombra; los
 títulos sobre la foto en blanco con sombra. Lo llevan la portada (y la página
@@ -585,6 +585,122 @@ mueve ni borra nada.
   hojas), `prueba-clics-organigrama.js` (pestañas y Ampliar con clics y
   toques reales, computador y celular) y `prueba-portal.js` (el puente).
 
+## 2i. Rediseño etapa 1 (3-nov): un solo sistema visual y la estructura común
+
+**Por qué.** Había cuatro estilos (vidrio sobre foto, blanco plano, oscuro en
+Equipo, otro en Veranito), títulos Bebas gigantes con texto de 11–13 px,
+contenido en una columna angosta y ninguna navegación fija. Esta etapa deja un
+sistema único y lo aplica a la base de todas las páginas. Decisiones D-097 a
+D-104.
+
+**Sistema visual** (`comun/vea.css`, `:root`): fondo `--fondo` #FAF8F5,
+paneles `--panel` blancos con borde `--linea` #ECE8E2, radio 18 y sombra
+suave; tinta `--tinta` #16181D, texto suave `--suave` #5B5F68, `--tenue`
+#8A8E96 solo para detalles; botón principal `--accion` #D71C0E. Disciplinas
+con color fijo en toda la app: `--parkour` #E0412F, `--telas` #1974A8,
+`--parkids` #F2A01E, `--babyme` #7FB3D5. Estados `--ok` #2E9D4F, `--alerta`
+#E08A00, `--peligro` #D71C0E (con `*-texto` para letras sobre blanco y
+`*-fondo` para etiquetas). Los colores de las áreas de Equipo siguen solo en
+`comun/puestos.js`. Los nombres de antes (`--rojo`, `--texto`, `--gris`…)
+siguen existiendo y apuntan a los nuevos, para que ninguna página se rompa.
+Bebas Neue solo en el `h1` de cada página y en las cifras grandes
+(`.cifra-grande`, `.titulo` en números); todo lo demás Poppins, texto base
+15 px y nada de texto de trabajo por debajo de 13 px. Botones de 42 px de alto
+(48 px en tablet táctil), pestañas subrayadas, etiquetas `.chip` (`ok`,
+`alerta`, `peligro`, `pronto`). **Sin vidrio ni foto**: `comun/fondo-local.jpg`
+se retiró (también de la escena de Equipo, que conserva su fondo oscuro 3D).
+
+**Estructura común** (`comun/marca.js` › `Marca.cabecera`, estilos en
+`comun/armazon.css`). Toda página que llamaba a `Marca.cabecera` (todas menos
+login y cambiar contraseña) recibe, la primera vez que hay sesión:
+
+| Pieza | Computador | Tablet (≤ 1024 px) | Celular (≤ 640 px) |
+|---|---|---|---|
+| Barra lateral | 248 px: Inicio · Vida en Arte (After School, Veranito, Cumpleaños) · Vida en Arte Kids (Preschool, Baby & Me) · Gestión (Resumen del negocio, Procesos, Equipo) · Administración (Base de datos, Proyecto Actio, Configuración) · el usuario abajo, con «Cambiar mi contraseña» y «Salir» | 76 px, solo iconos; el nombre en un globo al pasar, enfocar o mantener el dedo | oculta |
+| Barra superior | buscador (Ctrl K / ⌘ K), «Nuevo» y campana | igual | logo y «Nuevo» (solo el +) |
+| Barra inferior | — | — | Inicio · la unidad principal del rol · Buscar · Avisos · Más (la lista completa en una hoja) |
+
+- Cada entrada aparece si el rol tiene su área (`sesion.areas`, que sale de
+  `permisos.php`); Equipo pide `procesos` y `equipo`. Cumpleaños y Baby & Me
+  se ven con «Próximamente». El servidor sigue cerrando cada carpeta igual.
+- La ruta de siempre (`ruta`) se muestra como **ceja** sobre el título
+  («Vida en Arte», «Procesos»); los parámetros `prefijo`, `logo` y `accesos`
+  ya no hacen nada (el Profesor navega con la barra).
+- `armazon.css` va aparte y **sin capa** porque Veranito y la Base de Datos
+  cargan `vea.css` dentro de `@layer vea`, debajo de sus propios estilos;
+  `marca.js` lo pide en cuanto carga (con su `?v=`).
+- **Partículas**: 26 puntos de los colores de la marca que suben despacio
+  (solo `transform` y `opacity`), detrás del contenido, sin recibir clics; en
+  pausa con la pestaña oculta y quietas con «reducir movimiento». En la
+  escena oscura de Equipo no se ven.
+- **Esqueletos**: `Marca.esqueleto(tipo)` (`ocupacion`, `lista`, `tabla`,
+  `tarjetas`, `inicio`) reemplaza la tarjeta «Cargando…» en After School,
+  Procesos, Mi lista, Proyecto Actio e Inicio.
+
+**Notificaciones** (la campana; antes «Pendientes de hoy» en la portada).
+Las lee `Datos.pendientes.leer()` (`pendientes/api.php`, los mismos cálculos
+y permisos por rol: R130) 0,7 s después de cargar la página, con copia de 3
+minutos en `sessionStorage`. Solo salen los avisos con número > 0; cada uno
+enlaza a su pantalla. Lo leído se guarda en `localStorage` por usuario
+(`vea360.leidas.<usuario>`) como «día:número»: el aviso vuelve a contar si
+cambia su número o es otro día. «Marcar todo como leído» los marca todos.
+
+**Buscador general** (`Marca.abrirBuscador`). Los datos se piden al abrirlo,
+no en cada página, y siempre por la capa de datos y el puente de cada
+sección, que ya recortan según el rol:
+
+| Grupo | Fuente | Quién |
+|---|---|---|
+| Niños (nombre, ID, unidad, estado) y Clases | After School `leer` (en After School se reutiliza lo ya leído: `Marca.datosAS`) | quien tiene `as.ver`: Administrador, Dirección, Coordinación After School, Recepción, Comercial y Contabilidad |
+| Documentos | Procesos `leer` (todos) y Proyecto Actio `leer` (Administrador y Dirección; Dirección sin lo interno) | todos |
+| Secciones | la barra lateral del rol y las pestañas de After School que su rol ve | todos |
+
+El **Profesor** no busca niños ni clases: su puente solo entrega la lista del
+día y no existe una asignación de profesor a clases que permita limitarlo
+«a sus clases». Coordinación Preschool tampoco (Preschool no tiene ficha de
+niño en el portal todavía). Sin tildes ni mayúsculas; flechas, Enter y Esc.
+Elegir un niño abre `/after-school/#ficha=<ID>`, una clase
+`#clase=<código>` (su detalle en Ocupación, en la semana en pantalla) y un
+documento el visor común (`comun/visor.js` y `visor-pantalla.js`, que se
+cargan la primera vez si la página no los tenía).
+
+**«Nuevo»**: Inscribir niño (`as.completo`), Agendar visita
+(`as.pruebas.agendar`; reposición y eventual siguen pidiendo
+`as.visitas.agendar` dentro del formulario) y Registrar pago
+(`as.pagos.registrar`). Cada una lleva a `/after-school/#nuevo=inscribir|visita|pago`
+y After School abre el formulario de siempre (`atenderHash`). Sin ninguna
+acción, no hay botón.
+
+**Pantallas de esta etapa**
+
+- **Inicio** (`portal-raiz/index.html`): saludo, una tarjeta por marca con sus
+  unidades y un dato real (After School: inscritos activos y la barra de
+  ocupación de la semana, R125; Preschool: niños y ocupación, solo para quien
+  abre el Resumen, que es quien recibe esos datos), accesos rápidos del rol
+  (Pasar lista, Agendar visita, Inscribir y Mi lista si ocupa un puesto
+  abierto; «Mensaje a familias» oculto hasta que exista) y, para Dirección y
+  Administrador, el Resumen en corto con `Cifras.resumenNegocio` (las mismas
+  cuentas que `/resumen/`). «Niños activos» del negocio sigue «Próximamente»
+  (R128) y se muestra por unidad. `?marca=` muestra solo esa tarjeta.
+- **After School › Ocupación**: cuatro cifras de la semana en pantalla
+  (ocupación con la regla R125 —en la semana de hoy, la misma cuenta de
+  `Cifras.ocupacionAS`—, cupos para vender en lo que queda de la semana,
+  inscritos activos y clases llenas), filtros por disciplina, cada clase con
+  «N libres» o «Lleno» y la columna «Dónde hay más cupos» (las 6 clases con
+  más cupos libres en lo que queda de la semana). «Lleno» empieza en el
+  umbral «casi lleno» de Config (no en un número escrito en el código). En
+  celular la ventana de una clase va a pantalla completa y cada niño en un
+  bloque (antes se cortaban los botones).
+- **Pasar lista**: botones de 48 px y ancho fijo (92 px; no saltan al
+  marcarse), con el color del estado y una marca; «Guardar lista (N sin
+  marcar)» grande. El comportamiento no cambió (días, correcciones, niño
+  fuera de lista, reglas del Profesor). El Profesor ve el título «Pasar
+  lista» con la ceja «After School».
+- **Solo la base nueva** (estructura, fondo, tipografía, botones, tarjetas),
+  sin rediseñar su contenido: Preschool, Veranito, Base de Datos, Resumen,
+  Procesos, Equipo, Mi lista, Proyecto Actio y Configuración. En el Resumen,
+  «Próximamente» ya no se parte en celular (etiqueta en Poppins).
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
@@ -633,6 +749,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, altas, bajas y pruebas que se inscriben de After School con su plazo y su período cubierto, altas y bajas del negocio con desglose, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
 | `pruebas-portal/prueba-preschool.js` | El tablero de Preschool (`kinder/index.html`) con un documento de mentira y datos inventados: ningún monto en pantalla aunque la hoja mandara la columna de pagos, globo con nombre y edad, cupos libres por salón, salidas del mes con motivo, pendientes de pago (solo inscritos, solo meses activos, hasta el último mes con pagos) y «Plan por registrar»; con sus roturas. Lo del servidor (`kinder/csv.php`) lo prueba `prueba-portal.js`. |
 | `pruebas-portal/prueba-clics-organigrama.js` | (30-oct) Clics y toques REALES en Chrome (Playwright, `playwright-core` + el Chrome instalado): pasar el mouse, esperar y hacer clic en el centro y en las esquinas de tarjetas de 4 áreas, y tocar en tablet; que se abra su ficha; la manito y el arrastre según la escala; sin errores de JavaScript. Falla con b4d1ff6. 2-nov: en computador y en celular, las pestañas de la ficha y «Ampliar» (pantalla completa, letra de 18 px, Esc / X / «Volver», PDF con subpuntos y Aceptar desde ahí). |
+| `pruebas-portal/prueba-rediseno.js` | (3-nov) Rediseño etapa 1 en Chrome real (Playwright), con los roles leídos de `permisos.php` y After School del `.gs` en el simulador: colores del sistema, ninguna página con vidrio ni foto, partículas; por rol, la barra lateral (1440), la de iconos (820), la inferior (390), «Nuevo» y lo que encuentra el buscador (niños, clases, documentos de Procesos y de Proyecto Actio, secciones); notificaciones (los avisos del servidor, número rojo, leído por usuario); Ocupación (cifras, «N libres», «Lleno», «Dónde hay más cupos», filtro, abrir una clase) y Pasar lista (48 px, ancho fijo, «N sin marcar», lo que se guarda). Con 10 roturas (p. ej. la barra muestra todo, «Nuevo» sin permiso, el buscador distingue tildes). Que un rol no reciba datos de otra sección lo garantiza cada puente y lo prueba `prueba-portal.js`. |
 | `pruebas-portal/prueba-organigrama.js` | El organigrama y la ficha (`comun/organigrama.js`, `comun/puestos.js`; 29-oct: Equipo v2): áreas en columnas en el orden de Puestos, sangría, líneas del color del área, cascada que termina a tiempo, máximo 20 chispas, colores en un solo lugar, la hora de los momentos, la ficha pintada con datos inventados (formato del contrato, cuándo hay Aceptar, Reglas antes de aceptar, hoja diaria, PDF) y, en el código y en vea.css, el diálogo, la pausa, «reducir movimiento», la versión sólida y la hoja de impresión; con sus roturas. 2-nov: también `comun/verificacion.js` (pestañas, contrato como el PDF, subpuntos, Ampliar, la lista con Ejecutado / No ejecutado, quitar, Pendiente / Vencido, por evento, historial, hojas semanales y mensuales, «Asignación temporal», «Por definir»). |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 | `procesos-script/pruebas/prueba-equipo-v3.js` | (2-nov) Procesos.gs v5 contra un Sheet en memoria con el reloj fijo: Ejecutado / No ejecutado con motivo, por evento con nota, una marca por período, desmarcar que AGREGA «Desmarcada» y no borra (solo la propia y en su período), hojas «Cada semana» y «Cada mes», el calendario de 120 días, que no escribe si falta una columna y `actualizarEstructura` (Asignación, Resultado, Nota, Léeme) sin tocar datos; con sus roturas dentro. |
