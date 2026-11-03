@@ -98,10 +98,12 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
     Array.from({ length: 20 }, (_, k) => P('X' + k, 'x', 'Preschool', 'A6')))));
   ok(Math.max(...larga.columnas[5].puestos.map(x => x.d)) <= E_.tope, 'aunque un área tenga 20 puestos, la cascada termina a tiempo');
   // 3-nov (rediseño, ajuste 2): Equipo sobre el fondo claro; sin escena oscura ni una segunda capa de partículas.
-  ok(O._chispas === undefined && !/eq-chispa|eq-brillos|'eq-escena'/.test(FUENTE) && /classList\.toggle\('eq-escena-clara', si\)/.test(FUENTE),
-    'Equipo ya no usa la escena oscura: sin chispas ni brillos propios (las partículas son las de la estructura común)');
-  ok(!/\.eq-escena[ ,.{]|#0E0F11|#141618|eq-chispa|eq-brillos/.test(CSS) && /\.eq-piso \{[^}]*rgba\(22, 24, 29, \.06\)/.test(CSS) && !/\.eq-escena \.particulas/.test(ARM),
-    'vea.css: sin fondo oscuro, sin vidrio oscuro en la barra, piso gris suave y las partículas comunes también en Equipo');
+  // 3-nov (ajuste 3): la escena depende del modo. Las chispas y los brillos existen, pero solo se ven en oscuro.
+  ok(O._chispas > 0 && O._chispas <= 20 && /classList\.toggle\('eq-escena-clara', si\)/.test(FUENTE) && !/'eq-escena'/.test(FUENTE),
+    'la escena de Equipo: chispas (como mucho 20) y brillos que solo se ven en oscuro');
+  ok(/\.eq-brillos, \.eq-chispa \{ display: none; \}/.test(CSS) && /\[data-modo="oscuro"\] \.eq-brillos, \[data-modo="oscuro"\] \.eq-chispa \{ display: block; \}/.test(CSS) &&
+    /\[data-modo="oscuro"\]\.eq-escena-clara \.particulas \{ display: none; \}/.test(CSS) && /\.eq-escena-clara body \{ background-image: var\(--escena-fondo\);/.test(CSS) && !/\.eq-escena[ ,.{]/.test(CSS),
+    'vea.css: en claro, el fondo de la app y las partículas comunes; en oscuro, el degradado, los brillos y las chispas (una sola capa de partículas)');
   // Colores, en un solo lugar.
   ok(Pu.colorArea('Operación').fondo === '#D71C0E' && Pu.colorArea('comercial').fondo === '#2E9D4F' && Pu.colorArea('Dirección').fondo === '#111111' &&
     Pu.colorArea('After School').texto === '#111111' && Pu.colorArea('Veranito').fondo === '#FFA615' && Pu.colorArea('Otra').fondo === '#555555', 'los colores de las áreas (texto negro sobre el naranja; un área desconocida, gris)');
@@ -128,8 +130,9 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
   const barra = f => f.lineas.find(l => l.tipo === 'h');
   ok(dos.filas.slice(0, 2).every(f => barra(f) && barra(f).x === M.tronco) && dos.filas[0].lineas.filter(l => l.tipo === 'v' && l.y === 0).length === 1 && dos.filas[1].lineas.every(l => l.y !== 0),
     'con varias filas, cada barra sale del tronco de la izquierda; Dirección baja solo a la primera');
-  ok(/function ajustar\(\) \{[\s\S]*?vista\.s = Math\.max\(ZOOM_MIN, Math\.min\(1, \(vw - 16\) \/ W\)\);[\s\S]*?lienzo\.style\.height = Math\.ceil\(H \* vista\.s \+ 16\) \+ 'px';/.test(FUENTE),
-    '«Ajustar» encaja al ANCHO (sin pasar de 1) y el lienzo crece hasta mostrar el árbol entero');
+  ok(/function ajustar\(\) \{[\s\S]*?vista\.s = Math\.max\(ZOOM_MIN, Math\.min\(1, \(vw - 16\) \/ W\)\);[\s\S]*?altoLienzo\(\);/.test(FUENTE) &&
+    /function altoLienzo\(\) \{[\s\S]*?getBoundingClientRect\(\)[\s\S]*?lienzo\.style\.height = Math\.ceil\(vista\.y \+ abajo \+ HOLGURA_ABAJO\) \+ 'px';/.test(FUENTE) && /plano\.addEventListener\('animationend', altoLienzo\)/.test(FUENTE),
+    '«Ajustar» encaja al ANCHO (sin pasar de 1) y el lienzo crece hasta mostrar el árbol entero COMO SE VE (inclinado, con sombra), también al terminar la entrada');
   ok(/if \(porFilaPara\(arbol\(D\.puestos\)\.columnas\.length, el\.clientWidth\) !== porFila\) \{ ajustado = false; pintar\(\); \} else ajustar\(\);/.test(FUENTE), 'al girar la tablet se vuelve a ajustar (y a repartir en filas si hace falta)');
   ok(/addEventListener\('wheel', e => \{ if \(!e\.ctrlKey && !e\.metaKey\) return;/.test(FUENTE) && /\.eq-org3d \.eq-lienzo \{[^}]*touch-action: pan-y;/.test(CSS),
     'la rueda y el dedo bajan la página; Ctrl con la rueda, o el pellizco, acercan');
@@ -301,11 +304,12 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
     'versión sólida (reducir transparencia o sin desenfoque): sin piso, tarjetas opacas y sin animación');
   // 3-nov (ajuste 2): sobre claro, las sombras de las losas son grises suaves (no negras) y los textos de la página, los normales.
   const cara = (/\.eq-cara \{([^}]*)\}/.exec(CSS) || [])[1] || '';
-  ok(/rgba\(22, 24, 29, \.1\d\)/.test(cara) && !/rgba\(0, 0, 0, \.[3-9]/.test(cara), 'las tarjetas con grosor: sombras escalonadas grises y sombra difusa suave');
+  ok(/box-shadow: 0 0 0 1px var\(--losa-borde\), var\(--losa-capas\), var\(--losa-sombra\);/.test(cara) && /--losa-sombra: 0 16px 28px rgba\(22, 24, 29, \.12\)/.test(CSS) && /--losa-sombra: 0 18px 30px rgba\(0, 0, 0, \.45\)/.test(CSS),
+    'las tarjetas con grosor: en claro, sombras grises suaves; en oscuro, las de la escena oscura (tokens)');
   ok(/\.eq-acceso \{[^}]*color: var\(--tinta\)/.test(CSS) && /\.eq-leyenda \{ color: var\(--suave\); \}/.test(CSS) && /\.eq-fantasma \{ color: var\(--tinta\); \}/.test(CSS) && /\.eq-fantasma > \.eq-cara \{[^}]*dashed/.test(CSS),
     'Reglas del juego, Horarios, la leyenda y «En construcción» en los colores normales de la app (no blancos)');
-  ok(/\.eq-lin \{[^}]*background: #958F86/.test(CSS) && /\.eq-lin-col \{ background: color-mix\(in srgb, var\(--c\)/.test(CSS) && /\.eq-lin-h::after \{[^}]*var\(--c, var\(--tinta\)\)/.test(CSS),
-    'líneas en gris medio, las de cada área con su color, y la luz del color del área');
+  ok(/\.eq-lin \{[^}]*background: var\(--org-linea\)/.test(CSS) && /--org-linea: #958F86/.test(CSS) && /\.eq-lin-col \{ background: color-mix\(in srgb, var\(--c\)/.test(CSS) && /\.eq-lin-h::after \{[^}]*var\(--c, var\(--tinta\)\)/.test(CSS),
+    'líneas en gris medio (oscuro: blanco tenue), las de cada área con su color, y la luz del color del área');
   ok(/\.eq-plano \{ transform-style: preserve-3d; transform: rotateX\(7deg\)/.test(CSS) && /\.eq-escenario \{ perspective: 1800px/.test(CSS) && /button\.eq-losa:hover > \.eq-cara \{ transform: translateY\(-6px\) translateZ\(40px\)/.test(CSS),
     'el plano inclinado 7° con perspectiva, y la tarjeta (su cara) se levanta al pasar el cursor');
   // 30-oct (ajuste 2): la zona de clic no se transforma; la cara no recibe clics; lo decorativo tampoco.
@@ -335,7 +339,8 @@ const ROTURAS = [
   ['las líneas son todas blancas', 'org', "color: c.color.fondo, d: ENTRADA.lineas + 0.5", "color: '#FFFFFF', d: ENTRADA.lineas + 0.5"],
   // 30-oct
   ['«Ajustar» vuelve a encajar al alto', 'org', "vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W));", "vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W, 600 / H));"],
-  ['el lienzo no crece con el árbol', 'org', "    lienzo.style.height = Math.ceil(H * vista.s + 16) + 'px';\n", ""],
+  ['el lienzo no crece con el árbol', 'org', "    lienzo.style.height = Math.ceil(vista.y + abajo + HOLGURA_ABAJO) + 'px';\n", ""],
+  ['el lienzo vuelve al alto «plano» (corta la última tarjeta)', 'org', "if (plano) plano.addEventListener('animationend', altoLienzo);", ""],
   ['en tablet todas las áreas en una fila (letra diminuta)', 'org', "if ((disponible - 16) / anchoDe(k) >= M.legible) return k;", "return n;"],
   ['la letra legible se baja a la mitad', 'org', "legible: 0.85,", "legible: 0.5,"],
   ['las filas no cuelgan del tronco', 'org', "desde = varias ? M.tronco : centroEn(0);", "desde = centroEn(0);"],
@@ -346,7 +351,7 @@ const ROTURAS = [
   ['los avisos tapan la pantalla', 'org', "return '<details class=\"eq-avisos\"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +", "return '<div class=\"aviso ojo\">En el Sheet faltan: ' + D.faltan.join(' · ') + '<details class=\"eq-avisos\"' + (avisosAbiertos ? ' open' : '') + '><summary>Avisos del Sheet (' + D.faltan.length + ')</summary>' +"],
   ['en la tablet el dedo no deja bajar la página', 'css', "touch-action: pan-y; cursor: default; }", "touch-action: none; cursor: default; }"],
   // 30-oct (ajuste 2)
-  ['el botón de la tarjeta vuelve a transformarse (el clic cae en la columna)', 'css', "color: #111111; font: inherit; text-align: left; }\nbutton.eq-losa", "color: #111111; font: inherit; text-align: left; transform: translateZ(0); }\nbutton.eq-losa"],
+  ['el botón de la tarjeta vuelve a transformarse (el clic cae en la columna)', 'css', "color: var(--tinta); font: inherit; text-align: left; }\nbutton.eq-losa", "color: var(--tinta); font: inherit; text-align: left; transform: translateZ(0); }\nbutton.eq-losa"],
   ['la cara recibe los clics', 'css', "color: inherit; pointer-events: none;", "color: inherit;"],
   ['las líneas reciben clics', 'css', ".eq-lin, .eq-tic, .eq-halo, .eq-bus { pointer-events: none; }", ".eq-tic, .eq-halo { pointer-events: none; }"],
   ['la tarjeta sin cara', 'org', "cara = '<span class=\"eq-cara\">' + interior + '</span>';", "cara = interior;"],
@@ -354,8 +359,8 @@ const ROTURAS = [
   ['la manito siempre', 'css', ".eq-org3d .eq-lienzo.puede-arrastrar { cursor: grab; }", ".eq-org3d .eq-lienzo { cursor: grab; }"],
   ['la cascada no termina', 'org', "d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto)", "d: ENTRADA.puestos + i * ENTRADA.paso + j * 0.3"],
   ['vuelve la escena oscura', 'org', "classList.toggle('eq-escena-clara', si);", "classList.toggle('eq-escena-clara', si); document.documentElement.classList.toggle('eq-escena', si);"],
-  ['vuelven las chispas propias', 'org', "f.innerHTML = '<div class=\"eq-piso\"></div>';", "f.innerHTML = '<div class=\"eq-piso\"></div><span class=\"eq-chispa\"></span>';"],
-  ['las sombras de las losas vuelven a negro', 'css', "0 5px 0 #CCC5B9, 0 16px 28px rgba(22, 24, 29, .12);", "0 5px 0 #CCC5B9, 0 18px 30px rgba(0, 0, 0, .45);"],
+  ['las chispas se ven también en claro (dos capas de partículas)', 'css', ".eq-brillos, .eq-chispa { display: none; }", ".eq-brillos { display: none; }"],
+  ['las sombras de las losas vuelven a negro en claro', 'css', "--losa-sombra: 0 16px 28px rgba(22, 24, 29, .12);", "--losa-sombra: 0 18px 30px rgba(0, 0, 0, .45);"],
   ['«En construcción» vuelve al vidrio blanco sobre oscuro', 'css', ".eq-fantasma { color: var(--tinta); }", ".eq-fantasma { color: #FFFFFF; }"],
   ['Operación sin su rojo', 'puestos', "'operacion':      { fondo: '#D71C0E'", "'operacion':      { fondo: '#555555'"],
   ['el naranja de las líneas no se ve sobre blanco', 'puestos', "'after school':   { fondo: '#FFA615', texto: '#111111', linea: '#B86E00' }", "'after school':   { fondo: '#FFA615', texto: '#111111', linea: '#FFA615' }"],
@@ -402,7 +407,7 @@ const ROTURAS = [
   ['el celular ve el árbol', 'org', "CELULAR = '(max-width: 640px)'", "CELULAR = '(max-width: 1px)'"],
   ['no se pausa con la pestaña oculta', 'org', "document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('eq-pausa', document.hidden));", ""],
   ['una animación mueve otra cosa (el piso)', 'css', "@keyframes eq-crece-v { from { transform: scaleY(0); } to { transform: scaleY(1); } }", "@keyframes eq-crece-v { from { height: 0; } to { height: 100%; } }"],
-  ['«reducir movimiento» ya no detiene todo', 'css', "  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }\n  .eq-plano", "  .eq-plano"],
+  ['«reducir movimiento» ya no detiene todo', 'css', "  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }\n", ""],
   ['la versión sólida conserva el piso', 'css', "@media (prefers-reduced-transparency: reduce) {\n  .eq-fondo { display: none; }", "@media (prefers-reduced-transparency: reduce) {"],
   ['el PDF imprime toda la página', 'css', "  html.eq-imprimiendo body > *:not(#eq-impresion) { display: none !important; }\n", ""]
 ];

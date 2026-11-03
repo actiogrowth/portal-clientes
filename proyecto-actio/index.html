@@ -19,7 +19,9 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=7d8c93a44d">
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=90ae127559"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=dd6763889e">
 </head>
 <body>
 <header id="cab"></header>
@@ -39,7 +41,7 @@
       <button role="tab" data-vista="atencion" aria-selected="false">Acompañamiento</button>
     </nav>
     <label class="pa-buscar" id="paBuscarCaja">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555555" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
       <input type="search" id="paBuscar" placeholder="Buscar" aria-label="Buscar" autocomplete="off">
     </label>
   </div>
@@ -57,9 +59,9 @@
 </main>
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=31eca3718b"></script>
+<script src="/comun/marca.js?v=263d94440e"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
-<script src="/comun/visor-pantalla.js?v=091ac5add1"></script>
+<script src="/comun/visor-pantalla.js?v=5a17db4017"></script>
 <script>
 'use strict';
 document.getElementById('pantalla').innerHTML = Marca.esqueleto('tabla');   // 3-nov: la forma de la página mientras carga

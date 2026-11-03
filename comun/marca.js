@@ -32,7 +32,7 @@
      piden en cuanto carga este archivo: cuando llega la sesión ya están. */
   if (!document.querySelector('link[data-armazon]')) {
     const l = document.createElement('link');
-    l.rel = 'stylesheet'; l.href = '/comun/armazon.css?v=35b1012ee7'; l.setAttribute('data-armazon', '');
+    l.rel = 'stylesheet'; l.href = '/comun/armazon.css?v=116fea6736'; l.setAttribute('data-armazon', '');
     document.head.appendChild(l);
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -76,7 +76,8 @@
     nino: '<circle cx="12" cy="7" r="3"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/>',
     reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     seccion: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 20V9"/>',
-    cerrar: '<path d="M6 6l12 12M18 6L6 18"/>'
+    cerrar: '<path d="M6 6l12 12M18 6L6 18"/>',
+    luna: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
   };
   const icono = (k, tam) => '<svg width="' + (tam || 20) + '" height="' + (tam || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONOS[k] || '') + '</svg>';
 
@@ -143,10 +144,22 @@
   /** Pinta (o pone al día) la estructura común. `el` es la barra superior. */
   function cabecera(el, { sesion, ruta } = {}) {
     if (sesion) S = sesion;
+    if (S && window.Apariencia) Apariencia.deUsuario(S.usuario);   // la de esta persona (antes de saberlo, la del último que entró)
     if (!S) return;   // sin sesión todavía (Veranito pinta antes de tenerla): se arma cuando llegue
     if (!armada) armar(el);
     marcarActivo();
     ponerCeja(ruta);
+  }
+
+  /* El logo de Vida en Arte tiene las letras negras: sobre fondo oscuro no se lee. En oscuro se muestra
+     su versión clara (letras y barras blancas, entregada por Vida en Arte el 3-nov). Sin ella, iría
+     sobre una placa clara (.logo-placa). (No se invierte con un filtro: dañaría los colores del ícono.) */
+  const LOGO_VEA_OSCURO = '/comun/logo-vea-oscuro.png?v=df4114ef00';
+  function logoVea(clase) {
+    const c = (clase ? clase + ' ' : '');
+    return LOGO_VEA_OSCURO
+      ? '<img class="' + c + 'logo-solo-claro" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte"><img class="' + c + 'logo-solo-oscuro" src="' + LOGO_VEA_OSCURO + '" alt="Vida en Arte">'
+      : '<img class="' + c + 'logo-placa" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte">';
   }
 
   function armar(el) {
@@ -155,13 +168,13 @@
     // 1. Barra lateral.
     const lat = document.createElement('aside');
     lat.className = 'lat'; lat.id = 'lateral'; lat.setAttribute('aria-label', 'Secciones del portal');
-    lat.innerHTML = '<a class="lat-logo" href="/" aria-label="Inicio · Vida en Arte 360"><img class="lat-logo-largo" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte"><img class="lat-logo-ic" src="/comun/app-icono-192.png?v=ce63fbd4f4" alt="Vida en Arte"><span class="lat-360">360</span></a>' +
+    lat.innerHTML = '<a class="lat-logo" href="/" aria-label="Inicio · Vida en Arte 360">' + logoVea('lat-logo-largo') + '<img class="lat-logo-ic" src="/comun/app-icono-192.png?v=ce63fbd4f4" alt="Vida en Arte"><span class="lat-360">360</span></a>' +
       '<nav class="lat-nav">' + navHtml('lat') + '</nav>' + usuarioHtml();
     document.body.insertBefore(lat, document.body.firstChild);
     // 2. Barra superior.
     el.className = 'cab';
     el.innerHTML = '<div class="cab-in">' +
-      '<a class="cab-logo" href="/" aria-label="Inicio"><img src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte"></a>' +
+      '<a class="cab-logo" href="/" aria-label="Inicio">' + logoVea('') + '</a>' +
       '<button class="cab-buscar" type="button" data-abrir-buscador aria-haspopup="dialog">' + icono('buscar', 18) +
         '<span class="cab-buscar-txt">' + esc(textoBuscador()) + '</span><kbd>' + (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl') + ' K</kbd></button>' +
       '<div class="cab-acciones">' + nuevoHtml() +
@@ -204,6 +217,13 @@
     }).join('');
   }
 
+  /* 3-nov (ajuste 3): la apariencia, en el menú del usuario. La aplica y la guarda comun/tema.js. */
+  const APARIENCIAS = [['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Automático']];
+  const aparienciaActual = () => window.Apariencia ? Apariencia.actual() : 'auto';
+  function marcarApariencia() {
+    document.querySelectorAll('button[data-apariencia]').forEach(b => b.setAttribute('aria-pressed', b.dataset.apariencia === aparienciaActual() ? 'true' : 'false'));
+  }
+
   function usuarioHtml(donde) {
     const nom = nombreDe(S) || 'Usuario', rol = S && S.roles && S.roles.length ? S.roles.map(r => r.nombre).join(' · ') : '';
     const id = donde ? 'usuMenu' + donde : 'usuMenu';
@@ -213,6 +233,8 @@
         '<span class="lat-txt"><b>' + esc(nom) + '</b>' + (rol ? '<small>' + esc(rol) + '</small>' : '') + '</span>' + icono('arriba', 16) + '</button>' +
       '<div class="menu oculto" id="' + id + '" role="menu">' +
         '<a role="menuitem" href="/cambiar-clave.html?r=' + encodeURIComponent(location.pathname) + '">' + icono('llave', 18) + 'Cambiar mi contraseña</a>' +
+        '<div class="menu-apariencia" role="group" aria-label="Apariencia"><span class="menu-apariencia-tit">' + icono('luna', 18) + 'Apariencia</span>' +
+          '<div class="menu-apariencia-ops">' + APARIENCIAS.map(([v, t]) => '<button type="button" data-apariencia="' + v + '" aria-pressed="' + (aparienciaActual() === v) + '">' + t + '</button>').join('') + '</div></div>' +
         '<a role="menuitem" href="/logout.php">' + icono('salir', 18) + 'Salir</a></div></div>';
   }
 
@@ -299,6 +321,8 @@
     document.addEventListener('click', ev => {
       const t = ev.target;
       if (t.closest('[data-abrir-buscador]')) { ev.preventDefault(); cerrarPaneles(); abrirBuscador(); return; }
+      const ap = t.closest('button[data-apariencia]');   // solo los botones del menú: <html> también lleva data-apariencia
+      if (ap && window.Apariencia) { Apariencia.elegir(ap.dataset.apariencia, S && S.usuario); marcarApariencia(); return; }
       const yo = t.closest('.lat-yo');
       if (yo) { alternar(document.getElementById(yo.getAttribute('aria-controls')), yo); return; }
       if (t.closest('#nuevo')) { alternar($('#nuevoMenu'), $('#nuevo')); return; }
@@ -550,7 +574,7 @@
     else location.href = url;
   }
   /* Un documento se abre en el visor, aquí mismo (los guiones del visor se cargan la primera vez). */
-  const GUIONES_VISOR = ['/comun/visor.js?v=3de76954cc', '/comun/visor-pantalla.js?v=091ac5add1'];
+  const GUIONES_VISOR = ['/comun/visor.js?v=3de76954cc', '/comun/visor-pantalla.js?v=5a17db4017'];
   function cargarGuion(src) {
     return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => mal(new Error('No se pudo cargar el visor.')); document.head.appendChild(s); });
   }
@@ -622,5 +646,5 @@
   }
 
   window.Marca = { esc, cabecera, saludo, nombreDe, toast, fechaLarga, MARCAS, marcaDe, rutaUnidad, unidadDoc, normal,
-    UNIDADES, icono, esqueleto, abrirBuscador, accionesNuevo, urlNuevo, NOTIFICACIONES, datosAS: null };
+    UNIDADES, icono, esqueleto, logoVea, abrirBuscador, accionesNuevo, urlNuevo, NOTIFICACIONES, datosAS: null };
 })();

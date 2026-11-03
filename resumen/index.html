@@ -22,7 +22,9 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=7d8c93a44d">
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=90ae127559"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=dd6763889e">
 </head>
 <body>
 <header id="cab"></header>
@@ -45,7 +47,7 @@
   <section class="rs-seccion vidrio-tarjeta" aria-labelledby="tFin">
     <div class="rs-seccion-cab"><h2 class="titulo" id="tFin">Rentabilidad y facturación</h2><p class="ayuda" id="finSub"></p></div>
     <div class="rs-kpis" id="finKpis"></div>
-    <div class="rs-grafico-cab"><b>Últimos 12 meses</b><span class="rs-leyenda"><span><i style="background:#1974A8"></i>Facturación</span><span><i style="background:#E0951A"></i>Costos + gastos</span><span><i class="linea" style="background:#278746"></i>Utilidad neta</span></span></div>
+    <div class="rs-grafico-cab"><b>Últimos 12 meses</b><span class="rs-leyenda"><span><i style="background:var(--serie-1)"></i>Facturación</span><span><i style="background:var(--serie-2)"></i>Costos + gastos</span><span><i class="linea" style="background:var(--serie-3)"></i>Utilidad neta</span></span></div>
     <div class="rs-grafico" id="finGrafico"></div>
     <p class="ayuda" id="finNota"></p>
   </section>
@@ -72,12 +74,12 @@
 
 <script src="/comun/datos.js?v=d44db5caef"></script>
 <script src="/comun/cifras.js?v=5f9322ccbb"></script>
-<script src="/comun/marca.js?v=31eca3718b"></script>
+<script src="/comun/marca.js?v=263d94440e"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = Marca.esc;
-const COLOR = { 'Preschool': '#7E53A2', 'After School': '#FFA615', 'Veranito': '#FCCC14', 'Baby & Me': '#68A8C9', 'Cumpleaños': '#D53B2C' };
+const COLOR = { 'Preschool': 'var(--unidad-preschool)', 'After School': 'var(--unidad-afterschool)', 'Veranito': 'var(--unidad-veranito)', 'Baby & Me': 'var(--unidad-babyme)', 'Cumpleaños': 'var(--unidad-cumpleanos)' };   // en los tokens de vea.css
 const MESES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const PRONTO = 'Próximamente';
 let R = null, AS = null, sesion = null, modo = 'mes', periodo = '', hoy = '';
@@ -121,12 +123,12 @@ function pintarFinanzas(N) {
   const max = con.length ? Math.max(1, ...con.map(x => Math.max(x.facturacion, x.costosYGastos))) : 1;
   const y = v => base - (v / max) * (base - top);
   const barras = con.map(x => { const i = S.indexOf(x), x0 = i * ancho + ancho * 0.18, b = ancho * 0.3;
-    return '<rect x="' + x0.toFixed(1) + '" y="' + y(x.facturacion).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.facturacion)).toFixed(1) + '" rx="3" fill="#1974A8"/>' +
-      '<rect x="' + (x0 + b + 2).toFixed(1) + '" y="' + y(x.costosYGastos).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.costosYGastos)).toFixed(1) + '" rx="3" fill="#E0951A"/>'; }).join('');
-  const linea = con.length > 1 ? '<path d="' + con.map((x, k) => (k ? 'L' : 'M') + (S.indexOf(x) * ancho + ancho / 2).toFixed(1) + ' ' + y(Math.max(0, x.utilidad)).toFixed(1)).join(' ') + '" fill="none" stroke="#278746" stroke-width="2.5"/>' : '';
+    return '<rect x="' + x0.toFixed(1) + '" y="' + y(x.facturacion).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.facturacion)).toFixed(1) + '" rx="3" style="fill:var(--serie-1)"/>' +
+      '<rect x="' + (x0 + b + 2).toFixed(1) + '" y="' + y(x.costosYGastos).toFixed(1) + '" width="' + b.toFixed(1) + '" height="' + (base - y(x.costosYGastos)).toFixed(1) + '" rx="3" style="fill:var(--serie-2)"/>'; }).join('');
+  const linea = con.length > 1 ? '<path d="' + con.map((x, k) => (k ? 'L' : 'M') + (S.indexOf(x) * ancho + ancho / 2).toFixed(1) + ' ' + y(Math.max(0, x.utilidad)).toFixed(1)).join(' ') + '" fill="none" style="stroke:var(--serie-3)" stroke-width="2.5"/>' : '';
   const ejes = S.map((x, i) => '<text x="' + (i * ancho + ancho / 2).toFixed(1) + '" y="194" text-anchor="middle">' + MESES_C[+x.mes.slice(5, 7) - 1] + '</text>').join('');
   $('#finGrafico').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + (con.length ? 'Facturación, costos y gastos y utilidad neta de los últimos 12 meses' : 'Gráfico de los últimos 12 meses: próximamente') + '">' +
-    '<line x1="0" y1="' + base + '" x2="' + W + '" y2="' + base + '" stroke="#D8D8D8"/>' + barras + linea + ejes + '</svg>' +
+    '<line x1="0" y1="' + base + '" x2="' + W + '" y2="' + base + '" style="stroke:var(--eje)"/>' + barras + linea + ejes + '</svg>' +
     (con.length ? '' : '<span class="rs-grafico-pronto">' + PRONTO + '</span>');
   $('#finNota').textContent = d ? '' : 'Se llena cuando Finanzas tenga facturación, costos y gastos. Hoy no hay fuente: ningún número de esta sección es inventado.';
 }
@@ -173,7 +175,7 @@ function pintarMirar(N) {
   const texto = a => a.tipo === 'ocupacion' ? [a.unidad + ' con ocupación bajo la meta', pct(a.valor) + ' frente a ' + (a.meta.tentativa ? 'meta tentativa' : 'meta') + ' de ' + pct(a.meta.valor)]
     : a.tipo === 'bajas' ? ['Bajas por encima de lo normal', num(a.valor) + ' bajas en ' + a.unidad + ' frente a un tope ' + (a.meta.tentativa ? 'tentativo ' : '') + 'de ' + num(a.meta.valor)]
     : ['Margen neto bajo la meta', pct(a.valor) + ' frente a ' + (a.meta.tentativa ? 'meta tentativa' : 'meta') + ' de ' + pct(a.meta.valor)];
-  const color = { ocupacion: '#8A4B0F', bajas: '#B3261E', margen: '#111111' };
+  const color = { ocupacion: 'var(--alerta)', bajas: 'var(--peligro)', margen: 'var(--tinta)' };
   $('#mirar').innerHTML = N.alertas.length ? N.alertas.map(a => { const [t, d] = texto(a);
     return '<div class="rs-item"><span class="rs-punto" style="background:' + color[a.tipo] + '" aria-hidden="true"></span><span class="rs-item-txt"><b>' + esc(t) + '</b><span class="ayuda">' + esc(d) + (a.aviso ? ' · ' + esc(a.aviso) : '') + '</span></span></div>'; }).join('')
     : '<p class="ayuda">Nada se sale de lo normal' + (R.metas.length ? '' : ': todavía no hay metas en la pestaña «Metas»') + '.</p>';

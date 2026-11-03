@@ -215,6 +215,31 @@ let base = '';
       ok(!errores.length, 'sin errores de JavaScript (' + errores.join(' | ') + ')');
       await ctx.close();
     }
+    /* 3-nov (rediseño, ajuste 3): el árbol COMPLETO en el lienzo (la última tarjeta de la columna más larga
+       se cortaba), en claro y en oscuro, en varios anchos. El modo sale del dispositivo (Automático), así que
+       esto prueba también que Automático lo sigue; y que Equipo cambia de escena según el modo. */
+    for (const modo of ['claro', 'oscuro']) {
+      console.log('· el árbol completo y la escena, en ' + modo + ' (Automático, el dispositivo en ' + modo + ')');
+      for (const [w, h] of [[1440, 900], [1366, 768], [1100, 800], [820, 1180]]) {
+        const { ctx, page, errores } = await preparar(navegador, { viewport: { width: w, height: h }, colorScheme: modo === 'oscuro' ? 'dark' : 'light' });
+        await page.waitForTimeout(900);   // la segunda medida, al terminar la entrada
+        const r = await page.evaluate(() => {
+          const l = document.querySelector('.eq-lienzo').getBoundingClientRect();
+          const fuera = [...document.querySelectorAll('.eq-cara')].map(c => ({ c, r: c.getBoundingClientRect() }))
+            .filter(x => x.r.bottom > l.bottom + 0.5 || x.r.top < l.top - 0.5 || x.r.right > l.right + 0.5 || x.r.left < l.left - 0.5).map(x => x.c.textContent.trim().slice(0, 30));
+          const ver = s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; };
+          return { fuera, modo: document.documentElement.dataset.modo, chispas: ver('.eq-chispa'), particulas: ver('.particulas'),
+            degradado: /gradient/.test(getComputedStyle(document.body).backgroundImage), cara: getComputedStyle(document.querySelector('.eq-losa-puesto:not(.eq-fantasma) .eq-cara')).backgroundImage };
+        });
+        ok(!r.fuera.length, modo + ' ' + w + ' px: todas las tarjetas dentro del lienzo' + (r.fuera.length ? ' (cortadas: ' + r.fuera.join(' · ') + ')' : ''));
+        ok(r.modo === modo, modo + ' ' + w + ' px: Automático sigue al dispositivo (data-modo=' + r.modo + ')');
+        if (w === 1440) ok(modo === 'oscuro' ? (r.chispas && !r.particulas && r.degradado) : (!r.chispas && !r.degradado),
+          modo + ': la escena de Equipo es la ' + (modo === 'oscuro' ? 'oscura (degradado y chispas; sin las partículas comunes)' : 'clara (sin degradado ni chispas)'));
+        if (w === 1440) ok(/255, 255, 255/.test(r.cara), modo + ': las tarjetas son blancas también en oscuro (' + r.cara.slice(0, 60) + ')');
+        ok(!errores.length, modo + ' ' + w + ' px: sin errores de JavaScript (' + errores.join(' | ') + ')');
+        await ctx.close();
+      }
+    }
   } finally {
     await navegador.close();
     srv.close();

@@ -705,6 +705,18 @@ acción, no hay botón.
   Procesos, Equipo, Mi lista, Proyecto Actio y Configuración. En el Resumen,
   «Próximamente» ya no se parte en celular (etiqueta en Poppins).
 
+### Ajuste 3 (3-nov): apariencia clara, oscura o automática
+
+- **Dónde se elige**: menú del usuario (abajo de la barra lateral; en celular, en «Más») › Apariencia: Claro · Oscuro · Automático. Por defecto, Automático (sigue `prefers-color-scheme` y cambia solo si el dispositivo cambia).
+- **Sin parpadeo**: `comun/tema.js` va en el `<head>` de cada página ANTES de los estilos y pone `<html data-modo="claro|oscuro" data-apariencia="…">` antes de pintar. La elección se guarda por usuario en el navegador (`localStorage` `vea360.apariencia.<usuario>`) y la del último que entró (`…ultimo`) sirve para pintar antes de que llegue la sesión; al llegar, `Marca.cabecera` aplica la de esa persona. La pantalla de entrada usa la última (Automático si no hay).
+- **Todo color sale de los tokens** de `comun/vea.css`: el juego claro en `:root` y el oscuro en `:root[data-modo="oscuro"]`. Ninguna regla ni página escribe un color suelto (lo comprueba `prueba-rediseno.js`); los nombres nuevos: `--activo` / `--sobre-activo` (lo elegido: oscuro en claro, claro en oscuro), `--panel-2`, `--borde-fuerte`, `--borde-campo`, `--deshabilitado`, `--tinte-*` de las disciplinas, `--serie-*` de los gráficos, `--unidad-*` del Resumen, `--estado-validado/abierto`, `--losa-*`, `--escena-*`, `--papel-*`. `--blanco` queda solo para letra sobre un color de marca o de estado.
+- **Islas claras**: las tarjetas del organigrama y la hoja del contrato vuelven a declarar el juego claro (son blancas también en oscuro). El PDF y la impresión pasan a claro (`beforeprint` / `afterprint` en `tema.js`).
+- **Equipo**: en claro, la escena del ajuste 2; en oscuro, la escena oscura de antes (degradado, brillos del color de las áreas y chispas, sin las partículas comunes). Lo decide solo CSS (`[data-modo="oscuro"]`).
+- **Logos**: en oscuro, el logo de Vida en Arte es su versión clara, `comun/logo-vea-oscuro.png` (letras y barras blancas; la entregó Vida en Arte el 3-nov), que `Marca.logoVea` y la pantalla de entrada muestran con `.logo-solo-claro` / `.logo-solo-oscuro`. El de Kids va sobre una placa clara (`.logo-placa`). Nada se invierte con un filtro.
+- **Páginas con paleta propia**: Preschool declara sus tonos como variables (con su versión oscura); Veranito y la Base de Datos (fuera del portal se ven como siempre) tienen, dentro del portal, su juego oscuro en `.portal[data-modo="oscuro"]`.
+- **Lienzo del organigrama**: su alto se mide con el árbol COMO SE VE (inclinado, con perspectiva, grosor y sombra) y se vuelve a medir al terminar la entrada; antes cortaba la última tarjeta de la columna más larga. Lo prueba `prueba-clics-organigrama.js` en claro y oscuro, a 1440, 1366, 1100 y 820 px.
+- **Contraste**: `pruebas-portal/contraste.js` mide todo el texto visible contra su fondo real (4,5:1; 3:1 el texto grande); lo usan `prueba-rediseno.js` (Inicio, Ocupación, Pasar lista, Pagos, Procesos y Resumen, en los dos modos) y las capturas.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |

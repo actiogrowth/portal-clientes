@@ -33,7 +33,7 @@
           '<a class="btn sec chico" id="visorDescargar" target="_blank" rel="noopener">Descargar</a>' +
           '<button class="btn sec chico" id="visorCompleta" type="button">Pantalla completa</button>' +
           '<button class="btn-circulo" id="visorCerrar" type="button" aria-label="Cerrar el documento">' +
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
         '</div>' +
       '</div>' +
       '<div class="pestanas pa-versiones" id="visorVersiones" role="tablist" aria-label="Versiones"></div>' +

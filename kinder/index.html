@@ -7,7 +7,9 @@
 <!-- 22-oct: marca Vida en Arte Kids. Tipografía, colores, encabezado y
      tarjetas salen de /comun/vea.css (tema .tema-kids, en <html>); aquí
      queda solo lo propio de este tablero. -->
-<link rel="stylesheet" href="/comun/vea.css?v=7d8c93a44d">
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=90ae127559"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=dd6763889e">
 <style>
 /* ==========================================================================
    TIPOGRAFIA
@@ -39,15 +41,20 @@
      nuevo). Redefinirlos aquí como var(--texto) / var(--gris) hacía un círculo (en vea.css esos
      apuntan a --tinta y --linea) y el color quedaba vacío: la barra lateral perdía su activo. */
   --tinta2:var(--texto-2); --tinta3:var(--texto-3);
-  --papel:var(--blanco); --vacio:#DDE4E7;
+  --papel:var(--panel); --vacio:#DDE4E7;
   --azul-tenue:#CFE0F0; --rojo-tenue:var(--rosa);
+  /* 3-nov (ajuste 3): los colores propios del tablero, aquí y no sueltos en las reglas. */
+  --k-baja-texto:#7C241B;       /* sobre --rojo-tenue (claro en los dos modos) */
+  --k-salon-borde-cerrado:var(--linea);
 }
+/* 3-nov (ajuste 3): el tablero en oscuro. Los cupos vacíos y los tonos tenues, oscurecidos. */
+:root[data-modo="oscuro"]{--vacio:#2E333B;--azul-tenue:#1D3550;--k-baja-texto:#FFB4AB}
 body{font-size:13.5px;line-height:1.55}
 .num{letter-spacing:-.02em}
 /* Mismo ancho y mismo borde que el encabezado del portal (.cab-in en vea.css). */
 .wrap{max-width:1200px;margin:0 auto;padding:22px 20px 70px}
 
-#aviso{background:var(--amarillo);color:#4A3B00;font-size:11.5px;font-weight:600;
+#aviso{background:var(--amarillo);color:var(--negro);font-size:11.5px;font-weight:600;
   padding:9px 20px;text-align:center}
 
 /* ---------- Título de la página (el encabezado lo pinta marca.js) ---------- */
@@ -74,11 +81,11 @@ body{font-size:13.5px;line-height:1.55}
    tenue como para que la vista siga buscando primero los colores de los
    salones, que es lo que el mapa existe para mostrar. */
 .salon{border:1px solid var(--linea);border-radius:12px;padding:13px 13px 11px;
-  background:#FCFDFD}
+  background:var(--panel)}
 /* Y el cerrado, mas tenue que antes. Al ganar relleno el cupo libre, un
    contorno marcado aqui competiria con los salones que si tienen niños. Un
    salon sin abrir no debe pesar lo mismo que uno lleno. */
-.salon.cerrado{background:#F8FAFB;border-style:dashed;border-color:#E6ECEE}
+.salon.cerrado{background:var(--panel-2);border-style:dashed;border-color:var(--k-salon-borde-cerrado)}
 .s-cab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
   margin-bottom:10px}
 .s-nom{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
@@ -100,7 +107,7 @@ body{font-size:13.5px;line-height:1.55}
 /* El de un salon sin abrir es ahora lo contrario: contorno sin cuerpo. Es el
    elemento mas parecido al cupo libre de toda la pantalla, y por eso su
    filete va deliberadamente por debajo del relleno de aquel. */
-.salon.cerrado .cupo{background:transparent;box-shadow:inset 0 0 0 1px #E4EAEC}
+.salon.cerrado .cupo{background:transparent;box-shadow:inset 0 0 0 1px var(--linea)}
 .cupo.ocupado{cursor:pointer;transition:transform .12s}
 .cupo.ocupado:hover,.cupo.ocupado:focus-visible{transform:scale(1.2);
   outline:2px solid var(--tinta);outline-offset:1px}
@@ -148,13 +155,13 @@ body{font-size:13.5px;line-height:1.55}
 .mat-alta,.mat-baja{position:relative;display:flex;align-items:center;
   justify-content:center;font-size:10.5px;font-weight:600;
   font-variant-numeric:tabular-nums}
-.mat-alta{background:var(--azul);border-radius:5px 5px 0 0;color:#fff}
-.mat-baja{background:var(--rojo-tenue);border-radius:0 0 5px 5px;color:#7C241B}
+.mat-alta{background:var(--azul);border-radius:5px 5px 0 0;color:var(--blanco)}
+.mat-baja{background:var(--rojo-tenue);border-radius:0 0 5px 5px;color:var(--k-baja-texto)}
 .mat-alta.mini,.mat-baja.mini{color:transparent}
 .mat-alta.mini::after{content:attr(data-v);position:absolute;top:-15px;
   color:var(--azul);font-size:10.5px;font-weight:600}
 .mat-baja.mini::after{content:attr(data-v);position:absolute;bottom:-15px;
-  color:#A85348;font-size:10.5px;font-weight:600}
+  color:var(--rojo-texto);font-size:10.5px;font-weight:600}
 .mat-cero{position:absolute;left:0;right:0;height:1px;background:var(--linea);z-index:1}
 .mat-ejex{display:grid;gap:8px;margin-top:24px;padding-top:10px;
   border-top:1px solid var(--linea)}
@@ -168,12 +175,12 @@ body{font-size:13.5px;line-height:1.55}
   font-size:12px;color:var(--tinta2);line-height:1.6}
 .cierre b{color:var(--tinta);font-weight:600}
 
-#globo{position:fixed;z-index:120;background:var(--tinta);color:#fff;
+#globo{position:fixed;z-index:120;background:var(--activo);color:var(--sobre-activo);
   border-radius:9px;padding:8px 11px;pointer-events:none;opacity:0;
-  transition:opacity .12s;box-shadow:0 6px 18px rgba(27,36,48,.24);max-width:220px}
+  transition:opacity .12s;box-shadow:0 6px 18px rgba(22,24,29,.24);max-width:220px}
 #globo.ver{opacity:1}
 #globo b{display:block;font-size:12.5px;font-weight:600;line-height:1.35}
-#globo span{display:block;font-size:11px;color:#B7C4CB;margin-top:2px}
+#globo span{display:block;font-size:11px;color:color-mix(in srgb,var(--sobre-activo) 78%,transparent);margin-top:2px}
 
 footer{font-size:11px;color:var(--tinta3);line-height:1.65;
   border-top:1px solid var(--linea);padding-top:16px}
@@ -210,16 +217,16 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
      ========================================================================== -->
 <style>
 #aviso[hidden]{display:none}
-#fecha.viejo{color:#a3170c}
+#fecha.viejo{color:var(--peligro-texto)}
 
-.sin-dato{background:#FFF8E6;border:1px solid #F3E3B4;border-radius:10px;
-  padding:14px 16px;color:#5A4A16;font-size:12.5px;line-height:1.6}
-.sin-dato b{color:#4A3B00}
+.sin-dato{background:var(--alerta-fondo);border:1px solid var(--borde-fuerte);border-radius:10px;
+  padding:14px 16px;color:var(--cafe);font-size:12.5px;line-height:1.6}
+.sin-dato b{color:var(--cafe)}
 .sin-dato .porque{display:block;margin-top:6px;color:var(--tinta2);font-size:12px}
 
-.nota-aviso{margin-top:14px;background:#FFF8E6;border:1px solid #F3E3B4;
-  border-radius:10px;padding:11px 14px;color:#5A4A16;font-size:12.5px;line-height:1.6}
-.nota-aviso b{color:#4A3B00}
+.nota-aviso{margin-top:14px;background:var(--alerta-fondo);border:1px solid var(--borde-fuerte);
+  border-radius:10px;padding:11px 14px;color:var(--cafe);font-size:12.5px;line-height:1.6}
+.nota-aviso b{color:var(--cafe)}
 
 .ritmo-falta{color:var(--tinta2);font-weight:500}
 
@@ -244,7 +251,7 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
    pantalla es peor que no tenerla. */
 .lg-cupo{border-radius:3px}
 .lg-libre{background:var(--vacio);box-shadow:none}
-.lg-cerrado{background:transparent;box-shadow:inset 0 0 0 1px #E4EAEC}
+.lg-cerrado{background:transparent;box-shadow:inset 0 0 0 1px var(--linea)}
 
 /* LAS OBSERVACIONES, UNA POR BLOQUE.
    Antes iban todas dentro del mismo recuadro amarillo separadas por <br>, y
@@ -256,8 +263,8 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
    leer la frase entera, que es lo que hace que se miren cuando son varias.
    Hoy son tres porque los datos están sanos; un mes mal cargado enciende
    cinco o seis, y ahí es donde esto se paga. */
-.obs + .obs{margin-top:12px;padding-top:12px;border-top:1px solid #F0E2B8}
-.obs-t{font-weight:600;color:#4A3B00;font-size:11px;letter-spacing:.04em;
+.obs + .obs{margin-top:12px;padding-top:12px;border-top:1px solid var(--linea)}
+.obs-t{font-weight:600;color:var(--cafe);font-size:11px;letter-spacing:.04em;
   text-transform:uppercase;margin-bottom:3px}
 
 /* El identificador va detrás del nombre y más apagado: sirve para buscar en
@@ -284,8 +291,8 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
 .vacio-ok{font-size:12.5px;color:var(--tinta2)}
 /* «Plan por registrar»: una marca, no un dato. Texto oscuro sobre amarillo
    claro (contraste 9:1); el amarillo de la paleta nunca va como texto. */
-.marca-pend{display:inline-block;font-size:11px;font-weight:600;color:#4A3B00;
-  background:#FFF1C2;border-radius:20px;padding:2px 9px;white-space:nowrap}
+.marca-pend{display:inline-block;font-size:11px;font-weight:600;color:var(--cafe);
+  background:var(--alerta-fondo);border-radius:20px;padding:2px 9px;white-space:nowrap}
 @media (max-width:560px){ .l-det{text-align:left} }
 </style>
 
@@ -408,7 +415,7 @@ footer{font-size:11px;color:var(--tinta3);line-height:1.65;
      Tiene que cargar ANTES del script principal. -->
 <script src="config.php"></script>
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=31eca3718b"></script>
+<script src="/comun/marca.js?v=263d94440e"></script>
 <script>
 /* El encabezado del portal. Si /comun/ no estuviera (otro servidor), la
    página sigue igual, sin encabezado: el tablero no depende de él. */

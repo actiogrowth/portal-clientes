@@ -13,7 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=7d8c93a44d">
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=90ae127559"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=dd6763889e">
 </head>
 <body>
 <!-- Página fija: no depende de PHP. Habla con cambiar-clave.php por JSON a
@@ -21,7 +23,7 @@
      página manda al login. -->
 <main class="acceso">
   <div class="acceso-caja">
-    <img class="logo" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte">
+    <img class="logo logo-solo-claro" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte"><img class="logo logo-solo-oscuro" src="/comun/logo-vea-oscuro.png?v=df4114ef00" alt="Vida en Arte">
     <h1 id="titulo">Cambiar mi contraseña</h1>
     <p class="ayuda" id="sub"></p>
     <form id="form" novalidate class="oculto">

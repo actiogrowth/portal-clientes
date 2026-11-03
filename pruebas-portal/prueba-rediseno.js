@@ -26,6 +26,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright-core');
+const { medir: medirContraste } = require('./contraste.js');
 
 const RAIZ = path.resolve(process.argv[2] || path.join(__dirname, '..'));
 const sim = require(path.join(RAIZ, 'after-school-script', 'pruebas', 'simulador.js'));
@@ -118,7 +119,7 @@ function servidor() {
         const j = asPost(p.accion, Object.assign({}, p.datos, { soloHoy: false, limiteProfesor: false }), 'profesor-prueba');
         delete j.estado; j.permisos = { puedeOtroDia: true }; return json(j);
       }
-      const PAG = { '/': 'portal-raiz/index.html' };
+      const PAG = { '/': 'portal-raiz/index.html', '/login.html': 'portal-raiz/login.html' };
       const carpeta = /^\/([a-z-]+)\/$/.exec(url);
       if (carpeta) PAG[url] = carpeta[1] + '/index.html';
       const rel = PAG[url] || (url.startsWith('/comun/') ? url.slice(1) : null);
@@ -145,6 +146,9 @@ const ESPERADO = {
 };
 
 /* ── La prueba ─────────────────────────────────────────────────────────── */
+/* Un archivo como lo entrega el servidor de la prueba (con la rotura puesta, si la hay): así las
+   comprobaciones sobre el texto de los archivos también ven las roturas. */
+const leerComoSirve = f => { let t = fs.readFileSync(path.join(RAIZ, f), 'utf8'); for (const [a, b] of mutaciones[f] || []) t = t.replace(a, b); return t; };
 async function correr(nav, base, log) {
   let fallos = 0, total = 0;
   const ok = (c, que) => { total++; if (!c) fallos++; if (log || !c) console.log((c ? '  ✓ ' : '  ✗ ') + que); };
@@ -153,13 +157,13 @@ async function correr(nav, base, log) {
 
   if (log) console.log('· sistema visual');
   {
-    const css = fs.readFileSync(path.join(RAIZ, 'comun', 'vea.css'), 'utf8'), raiz = /:root \{([\s\S]*?)\n\}/.exec(css)[1];
+    const css = fs.readFileSync(path.join(RAIZ, 'comun', 'vea.css'), 'utf8'), raiz = /:root,\n[^{]*\{([\s\S]*?)\n\}/.exec(css)[1];   // el juego claro
     const COLORES = { fondo: '#FAF8F5', panel: '#FFFFFF', linea: '#ECE8E2', tinta: '#16181D', suave: '#5B5F68', tenue: '#8A8E96', accion: '#D71C0E',
       parkour: '#E0412F', telas: '#1974A8', parkids: '#F2A01E', babyme: '#7FB3D5', ok: '#278746', alerta: '#E08A00', peligro: '#D71C0E' };
     ok(Object.entries(COLORES).every(([k, v]) => new RegExp('--' + k + ': ' + v + '[;\\s]').test(raiz)), 'vea.css: los colores del sistema (fondo, panel, línea, tinta, disciplinas y estados)');
     const paginas = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
       'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html'];
-    const malas = paginas.filter(f => { const t = fs.readFileSync(path.join(RAIZ, f), 'utf8'); return !/\/comun\/vea\.css\?v=/.test(t) || /class="vidrio"|fondo-local/.test(t); });
+    const malas = paginas.filter(f => { const t = leerComoSirve(f); return !/\/comun\/vea\.css\?v=/.test(t) || /class="vidrio"|fondo-local/.test(t); });
     ok(!malas.length, 'todas las páginas usan vea.css y ninguna lleva el vidrio ni la foto vieja' + (malas.length ? ' (' + malas.join(', ') + ')' : ''));
     ok(!/fondo-local|\.vidrio body/.test(css + fs.readFileSync(path.join(RAIZ, 'comun', 'organigrama.js'), 'utf8')), 'vea.css y el organigrama sin la foto de fondo');
     const arm = fs.readFileSync(path.join(RAIZ, 'comun', 'armazon.css'), 'utf8');
@@ -189,6 +193,106 @@ async function correr(nav, base, log) {
     }
   }
 
+  if (log) console.log('· apariencia: claro, oscuro y automático (ajuste 3)');
+  {
+    rol = 'administrador';
+    // Cada página carga comun/tema.js en el <head>, ANTES de los estilos (sin parpadeo).
+    const PAGS = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
+      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html'];
+    const sinTema = PAGS.filter(f => { const t = leerComoSirve(f); const i = t.indexOf('/comun/tema.js?v='), j = t.indexOf('/comun/vea.css?v=');
+      return i < 0 || j < 0 || i > j || !/<script src="\/comun\/tema\.js\?v=[0-9a-f]{10}"><\/script>/.test(t) || t.indexOf('</head>') < i; });
+    ok(!sinTema.length, 'todas las páginas aplican la apariencia en el <head>, antes de los estilos' + (sinTema.length ? ' (faltan: ' + sinTema.join(', ') + ')' : ''));
+    // Sin parpadeo: con «oscuro» guardado, la página ya está en oscuro en su PRIMER pintado.
+    let [ctx, p] = await nueva(1440);
+    await p.addInitScript(() => { try { localStorage.setItem('vea360.apariencia.ultimo', 'oscuro'); localStorage.setItem('vea360.apariencia.usuario-administrador', 'oscuro'); } catch (e) { }
+      new MutationObserver((m, o) => { if (document.body) { window.__primerModo = document.documentElement.dataset.modo; window.__primerFondo = getComputedStyle(document.body).backgroundColor; o.disconnect(); } })
+        .observe(document, { childList: true, subtree: true }); });
+    await p.goto(base + '/');
+    const primero = await p.evaluate(() => ({ modo: window.__primerModo, fondo: window.__primerFondo }));
+    // El modo ya está puesto cuando aparece el cuerpo; los estilos (que bloquean el primer pintado) lo leen desde el principio.
+    const fondoFinal = await p.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    ok(primero.modo === 'oscuro' && fondoFinal === 'rgb(17, 19, 23)', 'sin parpadeo: el modo oscuro ya está puesto cuando aparece el cuerpo de la página (' + primero.modo + ', fondo ' + fondoFinal + ')');
+    await ctx.close();
+    // La elección en el menú del usuario: se guarda POR USUARIO y se aplica al volver.
+    [ctx, p] = await nueva(1440, 900);
+    await p.goto(base + '/'); await p.waitForSelector('.lat-yo');
+    await p.click('.lat .lat-yo'); await p.waitForTimeout(200);
+    const ops = await p.$$eval('#usuMenu [data-apariencia]', l => l.map(b => b.textContent));
+    ok(JSON.stringify(ops) === '["Claro","Oscuro","Automático"]' && await p.$eval('#usuMenu [data-apariencia="auto"]', b => b.getAttribute('aria-pressed')) === 'true',
+      'menú del usuario › Apariencia: Claro, Oscuro y Automático; por defecto, Automático');
+    await p.click('#usuMenu [data-apariencia="oscuro"]'); await p.waitForTimeout(100);
+    const g1 = await p.evaluate(() => ({ modo: document.documentElement.dataset.modo, mio: localStorage.getItem('vea360.apariencia.usuario-administrador') }));
+    await p.reload(); await p.waitForSelector('.lat-yo'); await p.waitForTimeout(300);
+    const g2 = await p.evaluate(() => document.documentElement.dataset.modo);
+    ok(g1.modo === 'oscuro' && g1.mio === 'oscuro' && g2 === 'oscuro', 'elegir «Oscuro» lo aplica al instante, lo guarda para ese usuario y sigue al volver a entrar');
+    rol = 'recepcion';
+    await p.reload(); await p.waitForSelector('.lat-yo'); await p.waitForTimeout(400);
+    ok(await p.evaluate(() => document.documentElement.dataset.apariencia) === 'auto', 'otro usuario en el mismo navegador tiene la suya (Automático, si no eligió)');
+    rol = 'administrador';
+    await ctx.close();
+    // Automático sigue al dispositivo, y cambia solo si el dispositivo cambia.
+    [ctx, p] = await nueva(1440);
+    await p.emulateMedia({ colorScheme: 'dark' });
+    await p.goto(base + '/'); await p.waitForSelector('.lat-yo');
+    const a1 = await p.evaluate(() => document.documentElement.dataset.modo);
+    // En oscuro, el logo de Vida en Arte es su versión clara (la de letras negras, oculta).
+    const logos = await p.evaluate(() => [...document.querySelectorAll('.lat-logo img, .ini-marca-cab img')].filter(i => getComputedStyle(i).display !== 'none').map(i => i.getAttribute('src').split('?')[0]));
+    ok(logos.includes('/comun/logo-vea-oscuro.png') && !logos.includes('/comun/logo-vea.png'), 'en oscuro se ve el logo claro de Vida en Arte, no el de letras negras (' + logos.join(', ') + ')');
+    await p.emulateMedia({ colorScheme: 'light' }); await p.waitForTimeout(150);
+    const a2 = await p.evaluate(() => document.documentElement.dataset.modo);
+    ok(a1 === 'oscuro' && a2 === 'claro', 'Automático: oscuro si el dispositivo está en oscuro, y cambia solo cuando el dispositivo cambia (' + a1 + ' → ' + a2 + ')');
+    // El PDF y la impresión, siempre en claro.
+    await p.emulateMedia({ colorScheme: 'dark' }); await p.waitForTimeout(100);
+    const imp = await p.evaluate(() => { window.dispatchEvent(new Event('beforeprint')); const d = document.documentElement.dataset.modo; window.dispatchEvent(new Event('afterprint')); return [d, document.documentElement.dataset.modo]; });
+    ok(imp[0] === 'claro' && imp[1] === 'oscuro', 'al imprimir (el PDF del contrato o Ctrl P) la página pasa a claro, y vuelve después (' + imp.join(' → ') + ')');
+    await ctx.close();
+    // La pantalla de entrada también respeta Automático.
+    [ctx, p] = await nueva(1440);
+    await p.emulateMedia({ colorScheme: 'dark' });
+    await p.goto(base + '/login.html').catch(() => {});
+    ok(await p.evaluate(() => document.documentElement.dataset.modo) === 'oscuro', 'la pantalla de entrada respeta Automático');
+    await ctx.close();
+  }
+
+  if (log) console.log('· colores solo en los tokens (ajuste 3)');
+  {
+    const sinComentarios = t => t.replace(/\/\*[\s\S]*?\*\//g, '');
+    const fuera = (texto, nombre) => {
+      const malos = []; let enPrint = false, nivel = 0;
+      for (const l of sinComentarios(texto).split('\n')) {
+        if (/@media print/.test(l)) { enPrint = true; nivel = 0; }
+        if (enPrint) { nivel += (l.match(/\{/g) || []).length - (l.match(/\}/g) || []).length; if (nivel <= 0 && /\}/.test(l)) enPrint = false; continue; }
+        if (/eq-imprimiendo|#eq-impresion|theme-color/.test(l)) continue;
+        // Un color escrito vale SOLO en la declaración de un token (--nombre: valor).
+        // (y lo que es un selector, no un color: $('#cab'), querySelector('#ocCupos'), un id en una regla)
+        const sinTokens = l.replace(/--[a-z0-9-]+\s*:[^;{}]*;?/gi, '').replace(/(\$|querySelector(All)?|getElementById|closest|matches)\(\s*['"][^'"]*['"]/g, '').replace(/^\s*[^{:]*#[\w-]+[^{]*\{/, '{');
+        if (/#[0-9a-f]{3,8}\b|rgba?\((?!\s*(0, 0, 0|22, 24, 29|20, 26, 30|0,0,0|22,24,29)\b|"\s*\+)/i.test(sinTokens)) malos.push(nombre + ': ' + l.trim().slice(0, 90));   // (un rgb( armado con números calculados no es un color escrito)
+      }
+      return malos;
+    };
+    const archivos = ['comun/vea.css', 'comun/armazon.css', 'portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html',
+      'configuracion/index.html', 'procesos/index.html', 'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'kinder/index.html', 'comun/organigrama.js', 'comun/verificacion.js', 'comun/visor-pantalla.js'];
+    const malos = archivos.flatMap(f => fuera(leerComoSirve(f), f));
+    // Un comentario sin cerrar «se come» las reglas que siguen, sin ningún error a la vista (pasó en el ajuste 3).
+    const abiertos = ['comun/vea.css', 'comun/armazon.css'].filter(f => { let d = false, mal = false;
+      for (const m of leerComoSirve(f).matchAll(/\/\*|\*\//g)) { if (m[0] === '/*') { if (d) mal = true; d = true; } else d = false; } return mal || d; });
+    ok(!abiertos.length, 'los estilos no tienen comentarios sin cerrar' + (abiertos.length ? ' (' + abiertos.join(', ') + ')' : ''));
+    ok(!malos.length, 'ningún color fuera de los tokens en los estilos ni en las páginas' + (malos.length ? ' (' + malos.length + ': ' + malos.slice(0, 4).join(' | ') + ')' : ''));
+  }
+
+  if (log) console.log('· contraste en los dos modos, en las pantallas principales (ajuste 3)');
+  for (const modo of ['claro', 'oscuro']) {
+    rol = 'administrador';
+    for (const [ruta, nombre] of [['/', 'Inicio'], ['/after-school/#ocupacion', 'Ocupación'], ['/after-school/#lista', 'Pasar lista'], ['/after-school/#pagos', 'Pagos'], ['/procesos/#documentos', 'Procesos'], ['/resumen/', 'Resumen']]) {
+      const [ctx, p] = await nueva(1440);
+      await p.emulateMedia({ colorScheme: modo === 'oscuro' ? 'dark' : 'light' });
+      await p.goto(base + ruta); await p.waitForTimeout(1600);
+      const c = await p.evaluate(medirContraste);
+      ok(c.medidos > 10 && !c.fallan.length, modo + ' · ' + nombre + ': todo el texto a 4,5:1 o más (' + c.medidos + ' medidos' + (c.fallan.length ? '; fallan ' + c.fallan.length + ': ' + c.fallan.slice(0, 3).map(f => '«' + f.texto + '» ' + f.razon + ':1').join(' · ') : '') + ')');
+      await ctx.close();
+    }
+  }
+
   if (log) console.log('· Equipo en claro (ajuste 2)');
   {
     rol = 'administrador';
@@ -196,7 +300,7 @@ async function correr(nav, base, log) {
     await p.goto(base + '/procesos/#equipo'); await p.waitForSelector('.eq-acceso', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(500);
     const e = await p.evaluate(() => ({
       oscura: document.documentElement.classList.contains('eq-escena'), clara: document.documentElement.classList.contains('eq-escena-clara'),
-      fondo: getComputedStyle(document.body).backgroundColor, chispas: document.querySelectorAll('.eq-chispa, .eq-brillos').length,
+      fondo: getComputedStyle(document.body).backgroundColor, chispas: [...document.querySelectorAll('.eq-chispa, .eq-brillos')].filter(x => getComputedStyle(x).display !== 'none').length,
       particulas: (x => !!x && getComputedStyle(x).display !== 'none')(document.querySelector('.particulas')),
       titulo: getComputedStyle(document.querySelector('main h1')).color, acceso: (x => x && getComputedStyle(x).color)(document.querySelector('.eq-acceso')),
       barra: getComputedStyle(document.querySelector('.cab')).backgroundColor }));
@@ -373,7 +477,15 @@ const ROTURAS = [
   ['los botones de Pasar lista cambian de ancho', 'comun/vea.css', ".pl-botones button[aria-pressed=\"true\"] .pl-check { display: inline-block; }", ".pl-botones button[aria-pressed=\"true\"] .pl-check { display: inline-block; } .pl-botones button[aria-pressed=\"true\"] { width: 130px; }"],
   ['Preschool vuelve a redefinir --tinta en círculo', 'kinder/index.html', "  --tinta2:var(--texto-2);", "  --tinta:var(--texto); --linea:var(--gris); --tinta2:var(--texto-2);"],
   ['Equipo vuelve al fondo oscuro', 'comun/organigrama.js', "classList.toggle('eq-escena-clara', si);", "classList.toggle('eq-escena-clara', si); document.documentElement.classList.toggle('eq-escena', si); document.body.style.background = '#0E0F11';"],
-  ['la barra inferior no aparece en celular', 'comun/armazon.css', "  .abajo { display: flex;", "  .abajo { display: none;"]
+  ['la barra inferior no aparece en celular', 'comun/armazon.css', "  .abajo { display: flex;", "  .abajo { display: none;"],
+  // 3-nov (ajuste 3): la apariencia
+  ['Automático no sigue al dispositivo cuando cambia', 'comun/tema.js', "if (actual === 'auto') aplicar('auto');", ""],
+  ['la elección no es por usuario (vale la del último)', 'comun/tema.js', "deUsuario: function (usuario) { if (!usuario) return;", "deUsuario: function (usuario) { return;"],
+  ['al imprimir sigue en oscuro', 'comun/tema.js', "window.addEventListener('beforeprint', function () { imprimiendo = true; raiz.setAttribute('data-modo', 'claro'); });", ""],
+  ['los menús se cortan: cualquier clic «elige» una apariencia', 'comun/marca.js', "t.closest('button[data-apariencia]')", "t.closest('[data-apariencia]')"],
+  ['un color escrito fuera de los tokens', 'comun/vea.css', ".btn:hover { background: var(--fondo-suave);", ".btn:hover { background: #F4F1EC;"],
+  ['en oscuro, las etiquetas rosadas quedan claras sobre claro', 'comun/vea.css', "  --rosa: #4A1F1B; --arena: #45351A;", ""],
+  ['un comentario sin cerrar se come las reglas que siguen', 'comun/vea.css', 'el gris suave no llegaba a 4,5 */', 'el gris suave no llegaba a 4,5']
 ];
 
 (async () => {

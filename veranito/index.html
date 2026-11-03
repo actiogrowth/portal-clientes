@@ -19,7 +19,9 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<style>@import url("/comun/vea.css?v=7d8c93a44d") layer(vea);</style>
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=90ae127559"></script>
+<style>@import url("/comun/vea.css?v=dd6763889e") layer(vea);</style>
 <style>
   :root {
     --negro:#000; --texto:#1c1c1c; --gris:#6b6f76; --linea:#e3e5ea; --fondo:#f5f6f8; --blanco:#fff;
@@ -159,6 +161,14 @@
      vuelven a las de la marca (--gris de vea.css es el de los bordes). */
   .portal{--gris:#ECE8E2;--linea:#ECE8E2;--fondo:#FAF8F5;--azul:#1974A8;--rojo:#D71C0E;--naranja:#FFA615;--negro:#16181D;--texto:#16181D}
   /* 3-nov (rediseño etapa 1): el fondo claro de toda la app, la barra lateral común y los paneles blancos. */
+  /* 3-nov (ajuste 3): en oscuro, los mismos nombres de esta página con los valores oscuros del sistema
+     (esta página declara sus propias variables y le ganan a las de vea.css). --blanco es aquí el fondo
+     de las tarjetas; --negro, la letra fuerte y el botón «Copiar link». */
+  .portal[data-modo="oscuro"]{--gris:#2A2E35;--linea:#2A2E35;--fondo:#111317;--negro:#F2F1EE;--texto:#F2F1EE}
+  .portal[data-modo="oscuro"] .card,.portal[data-modo="oscuro"] .caja{background:var(--panel)}
+  .portal[data-modo="oscuro"] .copiar{background:var(--activo);color:var(--sobre-activo)}
+  .portal .status{background:var(--ok);color:#FFFFFF}
+  .portal .copiar.ok{background:var(--ok);color:#FFFFFF}
   .portal body{display:block;background:var(--fondo)}
   .portal .sidebar,.portal .topbar,.portal .volver{display:none}
   .portal .main{margin-left:0}
@@ -244,7 +254,7 @@
 <script src="/acceso.php"></script>
 <!-- Encabezado del portal (si /comun/ existe). La lógica de abajo no cambia. -->
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=31eca3718b"></script>
+<script src="/comun/marca.js?v=263d94440e"></script>
 <script>
   (function () {
     if (!window.Marca) return;

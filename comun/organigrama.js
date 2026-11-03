@@ -68,6 +68,7 @@
   // tronco = dónde baja la línea que une las filas (a la izquierda de la primera columna).
   const M = { col: 210, sep: 16, margen: 24, bus: 56, sangria: 16, legible: 0.85, tronco: -12 };
   const ENTRADA = { dir: 0.15, lineas: 0.6, areas: 1.25, paso: 0.09, puestos: 1.7, puesto: 0.07, tope: 2.4, total: 2.6 };
+  const CHISPAS = 16;   // máximo 20 (solo en oscuro)
   const ZOOM_MIN = 0.3, ZOOM_MAX = 1.6, CELULAR = '(max-width: 640px)';
 
   let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '', porFila = 0;
@@ -135,8 +136,8 @@
       const areas = f.columnas.filter(c => !c.suelta).length;
       if (!areas) return;
       const ultimo = centroEn(areas - 1), desde = varias ? M.tronco : centroEn(0);
-      if (r === 0) f.lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: y, color: '#5B5F68', d: ENTRADA.lineas });
-      if (areas > 1 || varias) f.lineas.push({ tipo: 'h', x: desde, y, largo: ultimo - desde, color: '#5B5F68', d: ENTRADA.lineas + 0.25 });
+      if (r === 0) f.lineas.push({ tipo: 'v', x: ancho / 2, y: 0, largo: y, color: 'var(--suave)', d: ENTRADA.lineas });
+      if (areas > 1 || varias) f.lineas.push({ tipo: 'h', x: desde, y, largo: ultimo - desde, color: 'var(--suave)', d: ENTRADA.lineas + 0.25 });
       f.columnas.forEach((c, j) => { if (!c.suelta) f.lineas.push({ tipo: 'v', x: centroEn(j), y, largo: M.bus / 2 + 2, color: c.color.fondo, d: ENTRADA.lineas + 0.5 + (f.desde + j) * 0.05 }); });
     });
     return { ancho, porFila: k, filas, varias, centros: filas.length ? filas[0].columnas.map((c, j) => centroEn(j)) : [], lineas: filas.flatMap(f => f.lineas), columnas };
@@ -252,17 +253,30 @@
   }
   document.addEventListener('toggle', ev => { if (ev.target.matches && ev.target.matches('.eq-avisos')) avisosAbiertos = ev.target.open; }, true);
 
-  /* La escena de Equipo (3-nov, ajuste 2: sobre el fondo claro de la app). Solo agrega el piso en
-     perspectiva, en gris suave; sin degradado oscuro, sin brillos de color y sin chispas propias (las
-     partículas son las de la estructura común). <html class="eq-escena-clara"> ensancha la página. */
+  /* La escena de Equipo. <html class="eq-escena-clara"> ensancha la página y pone el fondo de la
+     escena; lo que se VE depende del modo (comun/vea.css, sin código aparte):
+     · claro (ajuste 2): el fondo claro de la app, el piso en gris y las partículas comunes;
+     · oscuro (ajuste 3): la escena oscura de antes, con el degradado, los brillos del color de las
+       áreas y las chispas (y sin las partículas comunes: una sola capa). */
   function escenaClara(si) {
     document.documentElement.classList.toggle('eq-escena-clara', si);
     let f = document.getElementById('eqFondo');
     if (si && !f) {
       f = document.createElement('div');
       f.id = 'eqFondo'; f.className = 'eq-fondo'; f.setAttribute('aria-hidden', 'true');
-      f.innerHTML = '<div class="eq-piso"></div>';
+      // Chispas en lugares fijos (no al azar: la página se ve igual cada vez). Solo se ven en oscuro.
+      let sem = 7, chispas = '';
+      const azar = () => (sem = (sem * 9301 + 49297) % 233280) / 233280;
+      for (let i = 0; i < Math.min(CHISPAS, 20); i++)
+        chispas += '<span class="eq-chispa" style="left:' + (4 + azar() * 92).toFixed(1) + '%;top:' + (60 + azar() * 38).toFixed(1) + '%;animation-delay:' + (ENTRADA.total + azar() * 9).toFixed(1) + 's"></span>';
+      f.innerHTML = '<div class="eq-brillos"></div><div class="eq-piso"></div>' + chispas;
       document.body.insertBefore(f, document.body.firstChild);
+    }
+    if (si && D) {
+      // Los brillos (solo en oscuro), de los colores de las áreas que hay: izquierda, centro y derecha.
+      const cols = arbol(D.puestos).columnas.filter(c => !c.suelta).map(c => colorArea(c.cab.area).fondo);
+      const b = f.querySelector('.eq-brillos'), en = (i, x, y) => cols.length ? 'radial-gradient(700px 420px at ' + x + ' ' + y + ', ' + cols[Math.min(cols.length - 1, i)] + '38, transparent 70%)' : '';
+      if (b) b.style.backgroundImage = [en(0, '8%', '70%'), en(Math.floor(cols.length / 2), '50%', '95%'), en(cols.length - 1, '92%', '65%')].filter(Boolean).join(',');
     }
     if (f) f.hidden = !si;
   }
@@ -287,7 +301,7 @@
     const linea = l => '<i class="eq-lin eq-lin-' + l.tipo + ' eq-crece-' + l.tipo + '" style="--c:' + l.color + ';--d:' + l.d.toFixed(2) + 's;left:' + l.x + 'px;top:' + l.y + 'px;' +
       (l.tipo === 'v' ? 'height:' + l.largo + 'px' : 'width:' + l.largo + 'px') + '"></i>';
     // Con varias filas, el tronco que las une baja por la izquierda; su alto lo pone medirTronco() al pintar.
-    const tronco = E.varias ? '<i class="eq-lin eq-lin-v eq-crece-v eq-tronco" style="--c:#5B5F68;--d:' + (ENTRADA.lineas + 0.2).toFixed(2) + 's;left:' + M.tronco + 'px;top:' + (M.bus / 2 - 2) + 'px;height:0"></i>' : '';
+    const tronco = E.varias ? '<i class="eq-lin eq-lin-v eq-crece-v eq-tronco" style="--c:var(--suave);--d:' + (ENTRADA.lineas + 0.2).toFixed(2) + 's;left:' + M.tronco + 'px;top:' + (M.bus / 2 - 2) + 'px;height:0"></i>' : '';
     const columna = c => {
       const col = c.color, cab = c.cab, fantasma = enConstruccion(cab);
       const cabeza = losa(cab, 'eq-losa-cab eq-entra' + (fantasma ? ' eq-tenue' : ''), '--d:' + c.d.toFixed(2) + 's',
@@ -321,7 +335,7 @@
       return '<li class="eq-area" style="--eq-color:' + col.linea + '">' +
         '<button type="button" class="eq-area-cab" data-eq-area="' + esc(c.cab.id) + '" aria-expanded="' + abierta + '" aria-controls="' + id + '">' +
           '<i class="eq-punto" style="background:' + col.fondo + '" aria-hidden="true"></i><span class="eq-area-txt"><b>' + esc(c.cab.area || c.cab.puesto) + '</b><small>' + esc(conteo(todos)) + '</small></span>' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="' + (abierta ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6') + '"/></svg></button>' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="' + (abierta ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6') + '"/></svg></button>' +
         '<div class="eq-area-cuerpo' + (abierta ? '' : ' oculto') + '" id="' + id + '">' +
           [{ p: c.cab, nivel: -1 }].concat(c.puestos).map(x => tarjeta(x.p, 'puesto', c.cab.area, 'margin-left:' + (x.nivel + 1) * 14 + 'px')).join('') + '</div></li>';
     }).join('');
@@ -366,12 +380,25 @@
      scroll de siempre. */
   function ajustar() {
     if (!lienzo) return;
-    const { vw, W, H } = medidas();
+    const { vw, W } = medidas();
     vista.s = Math.max(ZOOM_MIN, Math.min(1, (vw - 16) / W));
     escalaAjuste = vista.s;
-    lienzo.style.height = Math.ceil(H * vista.s + 16) + 'px';
     vista.x = (vw - W * vista.s) / 2; vista.y = 8;
     aplicar();
+    altoLienzo();
+  }
+  /* 3-nov (ajuste 3): el alto del lienzo con el árbol COMO SE VE. El plano va inclinado con perspectiva
+     (la parte de abajo se ve más grande y más abajo) y las tarjetas tienen grosor, sombra y se levantan:
+     el alto «plano» (offsetHeight) cortaba la última tarjeta de la columna más larga. Se mide el borde de
+     abajo de cada tarjeta ya transformada y se suma el espacio de la sombra y del levantar. Se repite al
+     terminar la entrada en cascada (mientras entra, el plano todavía está inclinado de más). */
+  const HOLGURA_ABAJO = 56;   // px: sombra difusa (hasta ~44 px al levantarse) + grosor + el levantar
+  function altoLienzo() {
+    if (!lienzo || !mundo) return;
+    const arriba = mundo.getBoundingClientRect().top;
+    let abajo = mundo.offsetHeight * vista.s;
+    mundo.querySelectorAll('.eq-cara, .eq-lin').forEach(x => { const r = x.getBoundingClientRect(); if (r.height) abajo = Math.max(abajo, r.bottom - arriba); });
+    lienzo.style.height = Math.ceil(vista.y + abajo + HOLGURA_ABAJO) + 'px';
   }
   /* El tronco que une las filas: de la barra de la primera fila a la de la última (alturas reales, antes del zoom). */
   function medirTronco() {
@@ -390,7 +417,11 @@
     lienzo = el.querySelector('.eq-lienzo'); mundo = el.querySelector('.eq-mundo');
     // Oculto (la vista todavía no se muestra) no tiene medidas: se ajusta al mostrarlo.
     if (!lienzo.clientWidth) return;
-    if (!ajustado) { ajustar(); ajustado = true; } else { lienzo.style.height = Math.ceil(mundo.offsetHeight * vista.s + 16) + 'px'; limitar(); aplicar(); }
+    if (!ajustado) { ajustar(); ajustado = true; } else { limitar(); aplicar(); altoLienzo(); }
+    // Al terminar la entrada (el plano llega a su inclinación final y caen las últimas tarjetas), se vuelve a medir.
+    const plano = el.querySelector('.eq-plano');
+    if (plano) plano.addEventListener('animationend', altoLienzo);
+    setTimeout(altoLienzo, (ENTRADA.total + 0.9) * 1000);
     const punteros = new Map();
     let inicio = null, pellizco = null, movido = false;
     const local = e => { const r = lienzo.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
@@ -572,7 +603,7 @@
         (x.enlace && window.Visor && Visor.vista(x.enlace).modo !== 'nada' ? '<button type="button" class="pa-boton" data-eq-proceso="' + i + '">Abrir</button>' : '') + '</li>').join('') + '</ul></section>' : '';
     const estado = '<span class="eq-pill oscuro">' + esc(estadoVisible(p.estado)) + (f.version !== null && f.version !== undefined ? ' · versión ' + esc(f.version) : '') + '</span>';
     const pdf = f.pdf ? '<button type="button" class="btn sec chico" data-eq-pdf>Descargar PDF</button>' : '';
-    const cerrar = (attr, etq) => '<button type="button" class="btn-circulo" ' + attr + ' aria-label="' + etq + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+    const cerrar = (attr, etq) => '<button type="button" class="btn-circulo" ' + attr + ' aria-label="' + etq + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
     // 2-nov: el contrato ampliado ocupa toda la pantalla; la X, Esc o «Volver» regresan a la ficha.
     if (ampliado && paso !== 'reglas') {
       return '<div class="eq-amplio"><div class="eq-amplio-barra"><button type="button" class="btn sec chico" data-eq-reducir>← Volver</button>' +
@@ -795,7 +826,7 @@
     }
   }
 
-  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _hora12: hora12,
+  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
     // Para la prueba (pruebas-portal/prueba-organigrama.js): pintar la ficha con datos inventados, sin navegador.
     // 2-nov: ficha(id, paso, pestaña, ampliado); papel(id) = la hoja del PDF.
     _probar: { datos(d) { D = d; }, ficha(id, p, t, a) { paso = p || 'contrato'; pestana = t || 'contrato'; ampliado = !!a; sel = id; return fichaHtml(id); },

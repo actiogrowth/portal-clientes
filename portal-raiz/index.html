@@ -13,7 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="VEA 360">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/comun/vea.css?v=7d8c93a44d">
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=90ae127559"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=dd6763889e">
 </head>
 <body>
 <!-- Inicio (21-oct; 23-oct, por marca; 3-nov, rediseño etapa 1). Página fija:
@@ -47,7 +49,7 @@
   <footer class="ayuda">© 2026 Vida en Arte · Hecho por Actio Growth</footer>
 </main>
 <script src="/comun/datos.js?v=d44db5caef"></script>
-<script src="/comun/marca.js?v=31eca3718b"></script>
+<script src="/comun/marca.js?v=263d94440e"></script>
 <script src="/comun/cifras.js?v=5f9322ccbb"></script>
 <script>
 'use strict';
@@ -56,13 +58,10 @@ const $ = s => document.querySelector(s);
 $('#esqueleto').innerHTML = Marca.esqueleto('inicio');
 
 /* La franja de color de cada marca (arriba de su tarjeta). */
-const FRANJA = {
-  vea: 'linear-gradient(90deg, #E0412F 0 33%, #1974A8 33% 66%, #F2A01E 66%)',
-  kids: 'linear-gradient(90deg, #D53B2C, #EC893E, #FCCC14, #9DCC4C, #68A8C9, #1E63AB, #7E53A2)'
-};
+const FRANJA = { vea: 'var(--franja-vea)', kids: 'var(--franja-kids)' };   // los colores, en los tokens de vea.css
 /* Accesos rápidos: solo los que el rol puede hacer. «Mensaje a familias» queda fuera hasta que exista esa sección. */
 const ACCESOS = [
-  { texto: 'Pasar lista', desc: 'Clases de hoy', url: '/after-school/#lista', icono: 'pasarLista', fondo: 'var(--tinta)', permiso: 'as.lista.marcar' },
+  { texto: 'Pasar lista', desc: 'Clases de hoy', url: '/after-school/#lista', icono: 'pasarLista', fondo: 'var(--activo)', letra: 'var(--sobre-activo)', permiso: 'as.lista.marcar' },
   { texto: 'Agendar visita', desc: 'Prueba, reposición o eventual', url: Marca.urlNuevo('visita'), icono: 'calendario', fondo: 'var(--accion)', permiso: 'as.pruebas.agendar' },
   { texto: 'Inscribir', desc: 'Niño nuevo', url: Marca.urlNuevo('inscribir'), icono: 'mas', fondo: 'var(--ok)', permiso: 'as.completo' }
 ];
@@ -77,7 +76,7 @@ let S = null, ve = () => false, permAS = () => false;
 /* Una unidad dentro de su marca. Sin página: «Próximamente», atenuada y sin enlace. */
 function unidad(area) {
   const u = Marca.UNIDADES[area];
-  const ic = '<span class="ini-ic" style="background:color-mix(in srgb, ' + u.color + ' 14%, white);color:' + u.color + '">' + icono(u.icono, 22) + '</span>';
+  const ic = '<span class="ini-ic" style="background:color-mix(in srgb, ' + u.color + ' 14%, var(--panel));color:' + u.color + '">' + icono(u.icono, 22) + '</span>';
   if (!u.url) return '<div class="ini-unidad inactiva" aria-disabled="true">' + ic + '<span class="ini-unidad-txt"><b>' + esc(u.nombre) + '</b><span>' + esc(u.desc) + '</span></span>' +
     '<span class="chip pronto">' + PRONTO + '</span></div>';
   return '<a class="ini-unidad" href="' + esc(u.url) + '" data-unidad="' + area + '">' + ic +
@@ -87,11 +86,11 @@ function tarjetaMarca(m) {
   const us = m.areas.filter(ve);
   if (!us.length) return '';
   return '<section class="tarjeta ini-marca" style="--franja:' + FRANJA[m.id] + '" aria-label="' + esc(m.nombre) + '">' +
-    '<div class="ini-marca-cab"><a href="' + esc(m.url) + '" aria-label="' + esc(m.nombre) + ': solo sus unidades"><img src="' + esc(m.logo.src) + '" alt="' + esc(m.logo.alt) + '"' + (m.kids ? ' class="kids"' : '') + '></a>' +
+    '<div class="ini-marca-cab"><a href="' + esc(m.url) + '" aria-label="' + esc(m.nombre) + ': solo sus unidades">' + (m.kids ? '<img src="' + esc(m.logo.src) + '" alt="' + esc(m.logo.alt) + '" class="kids logo-placa">' : Marca.logoVea('')) + '</a>' +
     '<span class="ayuda">' + plural(us.length, 'unidad', 'unidades') + '</span></div>' + us.map(unidad).join('') + '</section>';
 }
 function acceso(a) {
-  return '<a class="tarjeta ini-acceso" href="' + esc(a.url) + '"><span class="ini-ic" style="background:' + a.fondo + '">' + icono(a.icono, 22) + '</span>' +
+  return '<a class="tarjeta ini-acceso" href="' + esc(a.url) + '"><span class="ini-ic" style="background:' + a.fondo + (a.letra ? ';color:' + a.letra : '') + '">' + icono(a.icono, 22) + '</span>' +
     '<span><b>' + esc(a.texto) + '</b><small>' + esc(a.desc) + '</small></span></a>';
 }
 
