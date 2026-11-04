@@ -143,6 +143,12 @@ function servidor() {
   });
 }
 
+/* 3-nov: Pasar lista se mide siempre en el último lunes y en su clase con niños (LUN-1630-PARKOUR). Sin esto,
+   de noche (abre la clase de las 19:00, vacía) o de viernes a domingo no había niños y la prueba de contraste
+   no veía las etiquetas rosadas: la rotura «etiquetas rosadas» pasaba sin detectarse según la hora. */
+const LISTA_FIJA = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const dos = n => String(n).padStart(2, '0');
+  return '/after-school/?fecha=' + d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()) + '&clase=LUN-1630-PARKOUR#lista'; })();
+
 /* ── Lo esperado por rol ────────────────────────────────────────────────── */
 const TODO = ['inicio', 'afterschool', 'veranito', 'cumpleanos', 'kinder', 'babyandme', 'resumen', 'mensajes', 'procesos', 'equipo', 'basededatos', 'proyecto-actio', 'configuracion'];
 const ESPERADO = {
@@ -294,7 +300,7 @@ async function correr(nav, base, log) {
   if (log) console.log('· contraste en los dos modos, en las pantallas principales (ajuste 3)');
   for (const modo of ['claro', 'oscuro']) {
     rol = 'administrador';
-    for (const [ruta, nombre] of [['/', 'Inicio'], ['/after-school/#ocupacion', 'Ocupación'], ['/after-school/#lista', 'Pasar lista'], ['/after-school/#pagos', 'Pagos'], ['/procesos/#documentos', 'Procesos'], ['/resumen/', 'Resumen'], ['/mensajes/', 'Mensajes']]) {
+    for (const [ruta, nombre] of [['/', 'Inicio'], ['/after-school/#ocupacion', 'Ocupación'], [LISTA_FIJA, 'Pasar lista'], ['/after-school/#seguimiento', 'Seguimiento'], ['/after-school/#pagos', 'Pagos'], ['/procesos/#documentos', 'Procesos'], ['/resumen/', 'Resumen'], ['/mensajes/', 'Mensajes']]) {
       const [ctx, p] = await nueva(1440);
       await p.emulateMedia({ colorScheme: modo === 'oscuro' ? 'dark' : 'light' });
       await p.goto(base + ruta); await p.waitForTimeout(1600);
@@ -302,6 +308,29 @@ async function correr(nav, base, log) {
       ok(c.medidos > 10 && !c.fallan.length, modo + ' · ' + nombre + ': todo el texto a 4,5:1 o más (' + c.medidos + ' medidos' + (c.fallan.length ? '; fallan ' + c.fallan.length + ': ' + c.fallan.slice(0, 3).map(f => '«' + f.texto + '» ' + f.razon + ':1').join(' · ') : '') + ')');
       await ctx.close();
     }
+  }
+  /* 3-nov: comprobaciones FIJAS (antes dependían de lo que hubiera en pantalla según la hora: «1 clase sin lista»
+     solo existe a ciertas horas y Preschool no se medía en oscuro). */
+  {
+    rol = 'administrador';
+    const [ctx, p] = await nueva(1440);
+    await p.emulateMedia({ colorScheme: 'dark' });
+    await p.goto(base + '/after-school/#ocupacion'); await p.waitForTimeout(1600);
+    const et = await p.evaluate(() => {
+      const lum = c => { const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+      const razon = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      const caja = document.createElement('div'); caja.innerHTML = '<span class="chip sinpago">Sin pago</span><div class="cifra alerta rosa">1 clase sin lista</div>';
+      document.querySelector('main').appendChild(caja);
+      return [...caja.children].map(e => Math.round(razon(getComputedStyle(e).color, getComputedStyle(e).backgroundColor) * 10) / 10);
+    });
+    ok(et.every(r => r >= 4.5), 'oscuro · las etiquetas rosadas («Sin pago», «clases sin lista») a 4,5:1 o más (' + et.join(', ') + ')');
+    for (const [modo, letra] of [['oscuro', 'rgb(242, 241, 238)'], ['claro', 'rgb(22, 24, 29)']]) {
+      await p.emulateMedia({ colorScheme: modo === 'oscuro' ? 'dark' : 'light' });
+      await p.goto(base + '/kinder/'); await p.waitForTimeout(1600);
+      const k = await p.evaluate(() => ({ modo: document.documentElement.dataset.modo, letra: getComputedStyle(document.body).color, tinta: getComputedStyle(document.documentElement).getPropertyValue('--tinta').trim() }));
+      ok(k.modo === modo && k.letra === letra && k.tinta !== '', modo + ' · Preschool: el texto toma --tinta del sistema (sin un círculo que lo deje vacío) (' + k.letra + ', --tinta «' + k.tinta + '»)');
+    }
+    await ctx.close();
   }
 
   if (log) console.log('· Equipo en claro (ajuste 2)');
