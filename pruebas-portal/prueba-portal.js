@@ -1445,6 +1445,26 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
       // Quién tiene bd.editar (preparado: quitárselo a un rol lo deja en solo lectura del servidor).
       const solo = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_permiten(["coordinacion_preescolar"], "bd.editar"), roles_permiten(["coordinacion_afterschool"], "bd.editar"), roles_permiten(["comercial"], "bd.editar"), roles_permiten(["recepcion"], "bd.editar"), roles_permiten(["profesor"], "bd.editar"), roles_permiten(["contabilidad"], "bd.editar"), roles_permiten(["direccion"], "bd.editar")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
       ok(solo.stdout.trim() === '[true,true,true,false,false,false,true]', 'bd.editar: lo tienen quienes abren la Base de Datos (Dirección y Administrador por *), no Recepción, Profesor ni Contabilidad (' + (solo.stdout + solo.stderr).slice(0, 200) + ')');
+      // Hoy todos los que abren la Base de Datos pueden guardar, así que ningún rol real
+      // prueba el candado de bd.editar. Por un momento se le quita a Comercial (solo en
+      // la copia de la prueba): tiene que poder leer y NO guardar.
+      {
+        const archPerm = path.join(web, 'permisos.php');
+        const permOrig = fs.readFileSync(archPerm, 'utf8');
+        const sinEditar = permOrig.replace(/('area:mensajes', 'mensajes\.enviar'),\r?\n\s*'bd\.editar'\],(\s*\/\/[^\r\n]*)?/, "$1],");
+        ok(sinEditar !== permOrig, 'la prueba encuentra la línea de bd.editar de Comercial en permisos.php');
+        fs.writeFileSync(archPerm, sinEditar);
+        try {
+          const r = await leer('prueba-comercial');
+          ok(r.status === 200 && r.j && r.j.ok, 'Comercial sin bd.editar: sigue leyendo la Base de Datos (' + r.status + ')');
+          const sello = await selloDe('prueba-comercial');
+          for (const cuerpo of [GUARDAR, { accion: 'eliminarNino', id: 'VEA-901' }]) {
+            const antes = google.llamadas.length;
+            const w = await escribir('prueba-comercial', cuerpo, sello);
+            ok(w.status === 403 && w.j && w.j.codigo === 'sin_permiso' && google.llamadas.length === antes, 'Comercial sin bd.editar: ' + cuerpo.accion + ' con su sello → 403 «sin_permiso», no llega a Google (dio ' + w.status + ')');
+          }
+        } finally { fs.writeFileSync(archPerm, permOrig); }
+      }
       const fuenteBd = fs.readFileSync(path.join(web, 'basededatos', 'api.php'), 'utf8');
       ok(fuenteBd.indexOf('session_write_close();') > 0 && fuenteBd.indexOf('session_write_close();') < fuenteBd.indexOf('curl_init('), 'basededatos/api.php suelta la sesión antes de esperar a Google (D-068)');
     }
