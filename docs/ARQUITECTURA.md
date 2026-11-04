@@ -752,7 +752,7 @@ acción, no hay botón.
   versión 18). Dónde está el puente de la Base de Datos: proyecto «Vida en
   Arte» del Sheet `VEA_BaseDatos_Clientes` (Extensiones › Apps Script), cuenta
   `crececon@actiogrowth.com`. Tiene **una sola** implementación activa, tipo App
-  web. Para reimplantar: Implementar › Gestionar implementaciones › haz clic en la ACTIVA (la de arriba) y confirma que su ID empieza por `AKfycbyiAv7t`; las archivadas muestran «Biblioteca» sin /exec; en esa, lápiz › «Nueva versión».
+  web. Para reimplantar: Implementar › Gestionar implementaciones › haz clic en la ACTIVA (la de arriba) y confirma que su ID es el de la dirección `exec` de `portal_config.php` (el ID no se escribe en GitHub); las archivadas muestran «Biblioteca» sin /exec; en esa, lápiz › «Nueva versión».
 - **Pendiente para un ajuste** (PENDIENTES.md): reintento automático del
   registro cuando responde «otro guardado en curso»; «Cuenta de Gmail para
   mensajes» editable desde Configuración; aviso si el asunto o el cuerpo
