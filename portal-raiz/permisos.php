@@ -15,9 +15,12 @@
  *                        cualquier estado (Dirección y Administrador, por '*').
  *   equipo.ficha:<ID>    preparado: ver la ficha de ese puesto aunque no lo ocupe ni
  *                        sea su jefe (hoy no lo tiene ningún rol).
- *   mensajes.enviar      Mensajes a familias (3-nov): abrir la pantalla y pedir los
- *                        correos de las familias activas (Dirección, Administrador
- *                        y Comercial). Junto con area:mensajes.
+ *   mensajes.enviar      Mensajes a familias: enviar el correo (el servidor lo manda
+ *                        desde el buzón del hosting), «Enviarme una prueba» y ver o
+ *                        copiar los correos (5-nov: solo Dirección y Administrador,
+ *                        por '*'). Con area:mensajes, sin este permiso, se abre la
+ *                        pantalla, se arma el grupo y se ven las cifras y la vista
+ *                        previa, pero el servidor no da los correos ni envía (Comercial).
  *   mensajes.plantillas  crear y editar las plantillas de mensajes (Dirección y
  *                        Administrador, por '*').
  *   procesos.ver:<…>     Procesos (23-oct): qué documentos recibe. '*' todos;
@@ -73,11 +76,12 @@ const ROLES = [
     'comercial' => [
         'inicio_as' => 'pruebas',
         'nombre' => 'Comercial',
-        'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool, Base de Datos VEA y Mensajes a familias.',
+        'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool, Base de Datos VEA y Mensajes a familias (armar y revisar, sin enviar).',
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
                        'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo',
-                       // 3-nov: Mensajes a familias (enviar; las plantillas solo Dirección y Administrador).
-                       'area:mensajes', 'mensajes.enviar',
+                       // 3-nov: Mensajes a familias. 5-nov: arma el grupo y ve la vista previa, pero
+                       // NO envía ni ve los correos (sin mensajes.enviar; envían Dirección y Administrador).
+                       'area:mensajes',
                        'bd.editar'],   // 4-nov: guarda en la Base de Datos (D-123)
     ],
     'contabilidad' => [

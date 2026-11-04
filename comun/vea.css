@@ -1512,6 +1512,21 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 .ms-pl-item .ms-pltxt small { color: var(--suave); overflow-wrap: anywhere; }
 .ms textarea.ms-cuerpo-campo { min-height: 260px; line-height: 1.5; font-size: 15px; }
 .ms .ms-pie-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-top: 8px; }
+/* 5-nov: envía el servidor. En «Enviar» la barra deja de flotar (en la reunión del 4-nov tapaba las tandas
+   y el cuadro se veía cortado): queda al final, después de todo, en computador, tablet y celular. */
+.ms.ms-en-envio .ms-barra { position: static; box-shadow: none; }
+.ms-prueba { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 16px; margin-bottom: 14px;
+  border: 1px dashed var(--borde-fuerte); border-radius: 14px; background: var(--panel-2); }
+.ms-prueba > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 260px; }
+.ms-prueba .ayuda { overflow-wrap: anywhere; }
+.ms-prueba .ms-estado { flex-basis: 100%; margin: 0; }
+.ms-avance { width: 100%; height: 8px; accent-color: var(--ok); }
+.ms-fallas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.ms-fallas li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: var(--peligro-fondo); color: var(--texto); overflow-wrap: anywhere; }
+.ms-fallas small { color: var(--texto-2); }
+.ms-correo .ms-logo-correo { display: block; width: 180px; max-width: 60%; height: auto; margin: 0 auto 16px; padding: 8px 12px; border-radius: 10px; background: #FFFFFF; }   /* como en el correo: sobre blanco */
+.ms-env .ms-mal { color: var(--peligro-texto); }
+.ms-env .ms-enum small { color: var(--suave); font-size: 12px; }
 @media (max-width: 640px) {
   .ms .ms-titulo h1.titulo { font-size: 32px; }
   .ms-pasos li { padding: 4px 10px 4px 4px; font-size: 13px; }

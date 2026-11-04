@@ -717,19 +717,21 @@ acción, no hay botón.
 - **Lienzo del organigrama**: su alto se mide con el árbol COMO SE VE (inclinado, con perspectiva, grosor y sombra) y se vuelve a medir al terminar la entrada; antes cortaba la última tarjeta de la columna más larga. Lo prueba `prueba-clics-organigrama.js` en claro y oscuro, a 1440, 1366, 1100 y 820 px.
 - **Contraste**: `pruebas-portal/contraste.js` mide todo el texto visible contra su fondo real (4,5:1; 3:1 el texto grande); lo usan `prueba-rediseno.js` (Inicio, Ocupación, Pasar lista, Pagos, Procesos y Resumen, en los dos modos) y las capturas.
 
-## 2j. Mensajes a familias (3-nov)
+## 2j. Mensajes a familias (3-nov; 5-nov: envía el servidor)
 
 ```
- /mensajes/index.html  ── comun/mensajes.js (grupos, unión, un correo por familia, exclusión,
-        │                 inválidos, «Sin correo», tandas, Gmail: Mensajes.enviar)
-        │  datos.js: Datos.mensajes.leer / guardarPlantilla / registrar
+ /mensajes/index.html  ── comun/mensajes.js (grupos, unión, un correo por familia por huella,
+        │                 «Sin correo», tandas de huellas; Mensajes.enviar → el servidor)
+        │  datos.js: Datos.mensajes.leer / guardarPlantilla / enviar / prueba / avance (X-CSRF)
         ▼
- mensajes/api.php      requerir_sesion (área mensajes: Ad, Di, Comercial) + mensajes.enviar
-        │              solo activos y solo 6 campos (R161); usuario y rol de la sesión
+ mensajes/api.php      requerir_sesion (área mensajes: Ad, Di, Comercial); enviar/prueba/avance
+        │              con mensajes.enviar (Ad, Di) + CSRF; clasifica correos (ms_clasificar)
+        │              y da el correo solo a quien envía
         ├─▶ AfterSchool.gs › leer             (VEA_AfterSchool_BD; sin cambios)
-        └─▶ apps-script-vea.gs › mensajes*   (VEA_BaseDatos_Clientes; clave + MSJ_CLAVE_API)
-                 lee «👦 Base de Datos» y «🧸 Kínder»; escribe solo en
-                 «Plantillas de mensajes», «Mensajes enviados» y «Config mensajes»
+        ├─▶ apps-script-vea.gs › mensajes*   (VEA_BaseDatos_Clientes; clave + MSJ_CLAVE_API)
+        └─▶ mensajes/correo.php  (no es puente: solo lo incluye api.php)
+              SMTP SSL 465 al buzón del hosting · un correo por familia · HTML con logo + texto
+              portal_mensajes/ (junto a portal_config.php): envio-<id>.json (huellas), hora.json, candado
 ```
 
 - **Pantalla** en cuatro pasos (Grupos · Mensaje · Revisar · Enviar), con
@@ -739,10 +741,16 @@ acción, no hay botón.
   «Nuevo» › «Mensaje a familias», el acceso rápido de Inicio y el buscador
   (sección «Mensajes»): todo sale del área `mensajes` de la sesión, y el puente
   la vuelve a exigir.
-- **Envío v1**: Gmail web en CCO, tandas de «Destinatarios por tanda»
-  (50), aviso desde «Aviso de familias por día» (450), cuenta de
-  «Cuenta de Gmail para mensajes» o aviso «Revisa que estés en la cuenta de
-  Vida en Arte». Resend y WhatsApp van en encargos aparte.
+- **Envío (5-nov, D-124 a D-128)**: el servidor del portal, desde el buzón del
+  hosting (`smtp_*` en `portal_config.php`), un correo por familia, en tandas de
+  «Destinatarios por tanda» (50) y nunca más de «Máximo de correos por hora»
+  (100). La pantalla manda las huellas de cada tanda y muestra el avance
+  (`avance` cada 1,5 s), el resultado y «Reintentar». «Enviarme una prueba» va
+  al «Correo de prueba». Comercial arma el grupo y ve la vista previa, sin
+  correos ni botones de envío. En «Enviar» la barra de abajo deja de flotar
+  (`.ms-en-envio`): tapaba las tandas (reunión del 4-nov). Ya no hay Gmail ni
+  «Cuenta de Gmail para mensajes». Resend y WhatsApp van en encargos aparte.
+  (Hasta el 5-nov: Gmail web en CCO, ver D-120.)
 - **Instalar** (una vez): pegar `apps-script-vea.gs` en el proyecto de la Base
   de Datos, agregar la propiedad del script `MSJ_CLAVE_API` (32 caracteres o
   más) y publicar **Nueva versión** en la implementación existente; en
@@ -753,10 +761,9 @@ acción, no hay botón.
   Arte» del Sheet `VEA_BaseDatos_Clientes` (Extensiones › Apps Script), cuenta
   `crececon@actiogrowth.com`. Tiene **una sola** implementación activa, tipo App
   web. Para reimplantar: Implementar › Gestionar implementaciones › haz clic en la ACTIVA (la de arriba) y confirma que su ID es el de la dirección `exec` de `portal_config.php` (el ID no se escribe en GitHub); las archivadas muestran «Biblioteca» sin /exec; en esa, lápiz › «Nueva versión».
-- **Pendiente para un ajuste** (PENDIENTES.md): reintento automático del
-  registro cuando responde «otro guardado en curso»; «Cuenta de Gmail para
-  mensajes» editable desde Configuración; aviso si el asunto o el cuerpo
-  conservan corchetes de la plantilla.
+- **Pendiente para un ajuste** (PENDIENTES.md): aviso si el asunto o el
+  cuerpo conservan corchetes de la plantilla. (El reintento del registro quedó
+  resuelto el 5-nov: lo hace el servidor; la cuenta de Gmail ya no existe.)
 
 ## 3. Dónde vive cada cosa
 

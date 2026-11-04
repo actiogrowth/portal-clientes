@@ -28,6 +28,7 @@ const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
+const { smtpDeMentira } = require('./smtp-de-mentira');   // 5-nov: el correo de Mensajes (no sale nada)
 
 const PHP = process.env.PHP || 'php';
 const REPO = path.join(__dirname, '..');
@@ -64,7 +65,7 @@ const HEREDADOS = {
 
 function phpLiteral(v) { return "'" + String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"; }
 
-function escribirConfig(home, iniciales, puertoGoogle) {
+function escribirConfig(home, iniciales, puertoGoogle, puertoSmtp) {
   const roles = Object.entries(iniciales).map(([u, r]) => '    ' + phpLiteral(u) + ' => [' + r.map(phpLiteral).join(', ') + '],').join('\n');
   fs.writeFileSync(path.join(home, 'portal_config.php'), `<?php
 return [
@@ -82,6 +83,11 @@ return [
   'exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
   'clave' => 'clave-bd-de-prueba',
   'msj_clave' => 'clave-msj-de-prueba',
+  'smtp_host' => '127.0.0.1',
+  'smtp_puerto' => ${puertoSmtp || 1},
+  'smtp_seguridad' => 'ninguna',
+  'smtp_usuario' => 'buzon@vea-prueba.test',
+  'smtp_clave' => 'clave-buzon-de-prueba',
   'csv' => ['analisis' => 'http://127.0.0.1:${puertoGoogle}/csv/analisis', 'config' => 'http://127.0.0.1:${puertoGoogle}/csv/config'],
   'roles_iniciales' => [
 ${roles}
@@ -179,6 +185,7 @@ function areasDeMentira(web) {
    campos. El script de la Base de Datos (clave-bd-de-prueba) contesta las
    acciones de mensajes SOLO con la clave de mensajes buena. */
 const MSJ = { as: false, falla: false };
+let SMTP = null;   // 5-nov: el servidor de correo de mentira (pruebas-portal/smtp-de-mentira.js)
 const MSJ_AS = () => ({ hoy: '2026-11-03', config: {}, pruebas: [], pagosMes: [{ id: 'PG-9', idNino: 'AS-0101', monto: 99 }],
   clases: [{ codigo: 'LUN-1630-PARKOUR', servicio: 'Parkour', dia: 'Lunes', hora: '16:30', cupo: 20 }, { codigo: 'MAR-1630-TELAS', servicio: 'Telas', dia: 'Martes', hora: '16:30', cupo: 12 },
            { codigo: 'JUE-1630-BABYYME', servicio: 'Baby & Me', dia: 'Jueves', hora: '16:30', cupo: 8 }],
@@ -197,7 +204,8 @@ const MSJ_BD = () => ({ hoy: '2026-11-03', familiasHoy: 40,
   preschool: [{ id: 'VEA-501', nombre: 'Kiki', apellidos: 'Inventada', telefono: '6000-0501', correo: 'familia.a@ejemplo.test', estado: 'Activo' },
               { id: 'VEA-502', nombre: 'Salio', apellidos: 'Inventado', telefono: '6000-0502', correo: 'salio@ejemplo.test', estado: 'Inactivo' }],
   plantillas: [{ nombre: 'Aviso de evento', asunto: 'A', cuerpo: 'B', activa: true }, { nombre: 'Borrador interno', asunto: 'C', cuerpo: 'D', activa: false }],
-  config: [{ parametro: 'Servicio fuera de Mensajes', valor: 'Baby & Me' }, { parametro: 'Correo excluido', valor: 'oficina@ejemplo.test' }],
+  config: [{ parametro: 'Servicio fuera de Mensajes', valor: 'Baby & Me' }, { parametro: 'Correo excluido', valor: 'oficina@ejemplo.test' },
+           { parametro: 'Máximo de correos por hora', valor: '100' }, { parametro: 'Correo de prueba', valor: 'pruebas@vea-prueba.test' }],
   enviados: [{ fecha: '2026-11-03 09:00', usuario: 'x', rol: 'Comercial', grupos: 'Todo Vida en Arte', familias: 40, sinCorreo: 2, plantilla: '', asunto: 'Hola', tandas: '1 de 1', secreto: 'NO-SALE' }] });
 
 const NINOS = () => [
@@ -481,7 +489,8 @@ async function correr(fuente) {
   const puertoG = google.s.address().port;
   // Primero, roles_iniciales INCOMPLETO: a cuenta-general le falta el rol.
   const incompleto = Object.assign({}, HEREDADOS); delete incompleto['cuenta-general'];
-  escribirConfig(home, incompleto, puertoG);
+  SMTP = await smtpDeMentira({ usuario: 'buzon@vea-prueba.test', clave: 'clave-buzon-de-prueba' });
+  escribirConfig(home, incompleto, puertoG, SMTP.puerto);
 
   const puerto = 20000 + Math.floor(Math.random() * 20000);
   let salidaPhp = '';
@@ -519,7 +528,7 @@ async function correr(fuente) {
     }
 
     seccion('migración: con roles_iniciales completo, los usuarios de siempre entran con su contraseña y su rol');
-    escribirConfig(home, HEREDADOS, puertoG);
+    escribirConfig(home, HEREDADOS, puertoG, SMTP.puerto);
     const nav = {};
     for (const u of Object.keys(HEREDADOS)) {
       nav[u] = new Nav(base);
@@ -1325,65 +1334,106 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
       ok(nota.stdout.trim() === '["Datos en revisión","","Otra nota"]', 'R140 la nota sale de portal_config.php › preschool_nota: sin la clave, «Datos en revisión»; vacía, ninguna (' + (nota.stdout + nota.stderr).slice(0, 200) + ')');
     }
 
-    seccion('Mensajes a familias (3-nov): solo Administrador, Dirección y Comercial; el rol se valida en el servidor y solo salen los activos');
+    seccion('Mensajes a familias (3-nov; 5-nov: envía el servidor): abren Administrador, Dirección y Comercial; envían solo Dirección y Administrador; solo salen los activos');
     {
-      const ms = (u, accion, datos) => n[u].post('/mensajes/api.php', { json: { accion, datos: datos || {} } });
+      const ms = (u, accion, datos, headers) => n[u].post('/mensajes/api.php', { json: { accion, datos: datos || {} }, headers: headers || {} });
+      const ACCIONES = ['leer', 'enviar', 'prueba', 'avance', 'guardarPlantilla'];
       MSJ.as = true;
       try {
         for (const u of ['prueba-profesor-1', 'prueba-coord-as', 'prueba-coord-pre', 'prueba-recepcion', 'prueba-contabilidad']) {
-          for (const a of ['leer', 'registrar', 'guardarPlantilla']) {
-            const antes = google.llamadas.length, r = await ms(u, a, { idEnvio: 'envio-de-prueba-1', tanda: 1, tandas: 1, nombre: 'x' });
-            ok(r.status === 403 && r.j && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes && !/@/.test(r.texto),
-              u + ' ' + a + ': 403 sin_permiso, no llega a ningún Apps Script ni sale ningún correo (dio ' + r.status + ')');
+          for (const a of ACCIONES) {
+            const antes = google.llamadas.length, correos = SMTP.correos.length, r = await ms(u, a, { idEnvio: 'envio-de-prueba-1', tanda: 1, tandas: 1, nombre: 'x', claves: ['0'.repeat(32)], asunto: 'a', cuerpo: 'b' });
+            ok(r.status === 403 && r.j && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes && SMTP.correos.length === correos && !/@/.test(r.texto),
+              u + ' ' + a + ': 403 sin_permiso, no llega a ningún Apps Script, no sale ningún correo (dio ' + r.status + ')');
           }
           ok((await n[u].get('/mensajes/')).status === 403, u + ': la pantalla /mensajes/ tampoco abre');
         }
+        const perm = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_permiten(["comercial"], "area:mensajes"), roles_permiten(["comercial"], "mensajes.enviar"), roles_permiten(["direccion"], "mensajes.enviar"), roles_permiten(["administrador"], "mensajes.enviar")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
+        ok(perm.stdout.trim() === '[true,false,true,true]', '5-nov: Comercial abre Mensajes pero NO tiene mensajes.enviar; Dirección y Administrador sí (' + (perm.stdout + perm.stderr).slice(0, 200) + ')');
+
+        // Comercial: arma el grupo y ve cifras y vista previa, sin un solo correo.
         let antes = google.llamadas.length;
         const r = await ms('prueba-comercial', 'leer'), R = r.j && r.j.resultado;
         ok(r.status === 200 && R, 'Comercial lee Mensajes (' + r.status + ' ' + r.texto.slice(0, 160) + ')');
         if (R) {
           const ll = google.llamadas.slice(antes);
           ok(ll.some(l => l.key === 'clave-bd-de-prueba' && l.accion === 'mensajesLeer' && l.claveMensajes === 'clave-msj-de-prueba'), 'pide a la Base de Datos con su clave y la de mensajes (el navegador no las ve)');
-          ok(!/clave-msj-de-prueba|clave-bd-de-prueba/.test(r.texto), 'ninguna clave en la respuesta');
+          ok(!/clave-msj-de-prueba|clave-bd-de-prueba|clave-buzon-de-prueba/.test(r.texto), 'ninguna clave en la respuesta');
           const ids = R.familias.map(f => f.unidad + ':' + f.id).sort().join();
           ok(ids === 'After School:AS-0101,After School:AS-0105,Preschool:VEA-501', 'solo inscritos activos: ni retirados, ni interesados, ni quien solo tiene Baby & Me, ni Preschool inactivo (' + ids + ')');
-          ok(!/RESPONSABLE-SECRETO|NOTA-SECRETA|2018-01-01|retirado@|interesado@|solobebe@|salio@|"monto"|pagosMes|NO-SALE/.test(r.texto), 'nada de responsable, nacimiento, notas, pagos ni correos de quien no recibe');
-          const zoe = R.familias.find(f => f.id === 'AS-0101');
-          ok(zoe && JSON.stringify(Object.keys(zoe).sort()) === '["clases","correo","id","nino","telefono","unidad"]' && zoe.correo === 'familia.a@ejemplo.test' && zoe.clases.join() === 'LUN-1630-PARKOUR',
-            'cada familia: unidad, ID, nombre, teléfono, correo y sus clases (sin la de Baby & Me)');
+          ok(!/RESPONSABLE-SECRETO|NOTA-SECRETA|2018-01-01|"monto"|pagosMes|NO-SALE/.test(r.texto), 'nada de responsable, nacimiento, notas ni pagos');
+          ok(!/@/.test(r.texto), '5-nov: a Comercial no le llega NINGÚN correo (ni de familias, ni la lista de exclusión, ni el correo de prueba)');
+          const zoe = R.familias.find(f => f.id === 'AS-0101'), kiki = R.familias.find(f => f.id === 'VEA-501'), sin = R.familias.find(f => f.id === 'AS-0105');
+          ok(zoe && JSON.stringify(Object.keys(zoe).sort()) === '["clases","clave","estadoCorreo","id","nino","telefono","unidad"]' && zoe.clases.join() === 'LUN-1630-PARKOUR',
+            'cada familia: unidad, ID, nombre, teléfono, sus clases (sin Baby & Me), el estado y la huella del correo; sin el correo', JSON.stringify(zoe));
+          ok(zoe && kiki && zoe.estadoCorreo === 'ok' && /^[0-9a-f]{32}$/.test(zoe.clave) && zoe.clave === kiki.clave && sin && sin.estadoCorreo === 'vacio' && sin.clave === '',
+            'la misma familia en las dos unidades tiene la misma huella (un correo por familia); sin correo, sin huella');
           ok(R.clases.map(c => c.codigo).sort().join() === 'LUN-1630-PARKOUR,MAR-1630-TELAS', 'las clases: solo las que tienen niños que reciben, sin Baby & Me');
-          ok(R.puedePlantillas === false && R.plantillas.map(p => p.nombre).join() === 'Aviso de evento', 'Comercial: sin editar plantillas y solo las activas');
+          ok(R.puedePlantillas === false && R.puedeEnviar === false && !('csrf' in R) && !('envio' in R) && R.plantillas.map(p => p.nombre).join() === 'Aviso de evento',
+            'Comercial: sin plantillas para editar, sin enviar, sin sello ni datos del buzón');
           ok(R.familiasHoy === 40 && R.enviados.length === 1 && !('secreto' in R.enviados[0]), 'los envíos, con la lista blanca de campos');
           ok(R.rol === 'Comercial' && R.usuario === 'prueba-comercial', 'usuario y rol de la sesión');
         }
-        const di = await ms('prueba-direccion', 'leer');
-        ok(di.status === 200 && di.j.resultado.puedePlantillas === true && di.j.resultado.plantillas.length === 2, 'Dirección: también las plantillas inactivas, para editarlas');
+        for (const a of ['enviar', 'prueba', 'avance']) {
+          antes = google.llamadas.length; const c0 = SMTP.correos.length;
+          const x = await ms('prueba-comercial', a, { idEnvio: 'envio-comercial-1', tanda: 1, tandas: 1, claves: [R && R.familias[0].clave || '0'.repeat(32)], asunto: 'a', cuerpo: 'b' });
+          ok(x.status === 403 && x.j.codigo === 'sin_permiso' && google.llamadas.length === antes && SMTP.correos.length === c0, '5-nov: Comercial ' + a + ' → 403, no llega a Google ni sale ningún correo (dio ' + x.status + ')');
+        }
+        ok((await ms('prueba-comercial', 'registrar', { idEnvio: 'envio-de-prueba-1', tanda: 1, tandas: 1 })).status === 403, 'la acción vieja «registrar» ya no existe (el registro lo escribe el servidor)');
+
+        // Dirección: ve los correos, recibe el sello y envía.
+        const di = await ms('prueba-direccion', 'leer'), DI = di.j && di.j.resultado;
+        ok(di.status === 200 && DI.puedePlantillas === true && DI.plantillas.length === 2 && DI.puedeEnviar === true, 'Dirección: también las plantillas inactivas y puede enviar');
+        ok(DI && DI.familias.find(f => f.id === 'AS-0101').correo === 'familia.a@ejemplo.test' && /^[0-9a-f]{64}$/.test(DI.csrf || ''), 'Dirección recibe los correos (para «Copiar correos») y el sello para enviar');
+        ok(DI && DI.envio && DI.envio.listo === true && DI.envio.remitente === 'Vida en Arte <buzon@vea-prueba.test>' && DI.envio.destinoPrueba === 'pruebas@vea-prueba.test' && DI.envio.maxHora === 100 && DI.envio.porTanda === 50,
+          'con el remitente, el destino de la prueba y los números de Config mensajes (' + JSON.stringify(DI && DI.envio) + ')');
+        ok(DI && !/oficina@|clave-buzon/.test(di.texto) && !DI.config.some(c => /@/.test(c.valor)), 'ni a Dirección le llega la lista de exclusión ni la clave del buzón');
         ok((await ms('admin-uno', 'leer')).status === 200, 'Administrador también');
+        const zoeD = DI.familias.find(f => f.id === 'AS-0101');
+        const PEDIDO = { idEnvio: 'envio-portal-0001', tanda: 1, tandas: 1, claves: [zoeD.clave, 'f'.repeat(32)], asunto: 'Función de prueba', cuerpo: 'Hola, familia', plantilla: 'Aviso de evento',
+          grupos: 'Todo Vida en Arte', familias: 1, sinCorreo: 1, usuario: 'impostor', rol: 'Administrador' };
         antes = google.llamadas.length;
-        const g1 = await ms('prueba-comercial', 'guardarPlantilla', { nombre: 'Nueva', asunto: 'a', cuerpo: 'b' });
-        ok(g1.status === 403 && g1.j.codigo === 'sin_permiso' && google.llamadas.length === antes, 'Comercial no guarda plantillas (403, no llega al script)');
-        antes = google.llamadas.length;
-        const g2 = await ms('prueba-direccion', 'guardarPlantilla', { nombre: '  Nueva  ', asunto: 'a', cuerpo: 'b\nc', activa: false, otro: 'x' });
-        const lg = google.llamadas.slice(antes).find(l => l.accion === 'mensajesGuardarPlantilla');
-        ok(g2.status === 200 && lg && JSON.stringify(Object.keys(lg.datos).sort()) === '["activa","asunto","cuerpo","nombre","nombreAnterior"]' && lg.datos.nombre === 'Nueva' && lg.datos.activa === false && lg.datos.cuerpo === 'b\nc',
-          'Dirección guarda una plantilla: al script le llega solo la lista blanca (' + (lg ? JSON.stringify(lg.datos) : g2.texto.slice(0, 120)) + ')');
-        antes = google.llamadas.length;
-        const e1 = await ms('prueba-comercial', 'registrar', { idEnvio: 'envio-de-prueba-1', grupos: 'Todo Vida en Arte', familias: 2, sinCorreo: 1, plantilla: 'Aviso de evento',
-          asunto: 'Escribir a otra@ejemplo.test', tanda: 1, tandas: 2, usuario: 'impostor', rol: 'Administrador', correos: ['familia.a@ejemplo.test'] });
-        const le = google.llamadas.slice(antes).find(l => l.accion === 'mensajesRegistrar');
-        ok(e1.status === 200 && e1.j.resultado.tandas === '1 de 2', 'Comercial registra la apertura de una tanda (' + e1.status + ')');
-        ok(le && le.datos.usuario === 'prueba-comercial' && le.datos.rol === 'Comercial', 'usuario y rol del registro salen de la sesión, no del navegador');
-        ok(le && !('correos' in le.datos) && !/@/.test(JSON.stringify(le.datos)), 'el registro no lleva ningún correo (tampoco el que venía en el asunto)');
-        antes = google.llamadas.length;
-        ok((await ms('prueba-comercial', 'registrar', { idEnvio: 'x', tanda: 1, tandas: 1 })).status === 400 && google.llamadas.length === antes, 'sin un ID de envío válido no se registra');
-        ok((await ms('prueba-comercial', 'registrar', { idEnvio: 'envio-de-prueba-2', tanda: 3, tandas: 2 })).status === 400, 'ni una tanda fuera de rango');
+        let e1 = await ms('prueba-direccion', 'enviar', PEDIDO);
+        ok(e1.status === 403 && e1.j.codigo === 'csrf' && SMTP.correos.length === 0, 'sin el sello, no envía (403 csrf)');
+        e1 = await ms('prueba-direccion', 'enviar', PEDIDO, { 'X-CSRF': 'falso' });
+        ok(e1.status === 403 && e1.j.codigo === 'csrf' && SMTP.correos.length === 0, 'con un sello falso, tampoco');
+        e1 = await ms('prueba-direccion', 'enviar', PEDIDO, { 'X-CSRF': DI.csrf });
+        const E1 = e1.j && e1.j.resultado;
+        ok(e1.status === 200 && E1 && E1.estado === 'completa' && E1.enviadas.length === 1 && E1.fallidas.length === 1 && E1.fallidas[0].clave === 'f'.repeat(32),
+          'Dirección envía: 1 enviada; una huella que no es de una familia activa no sale (' + e1.status + ' ' + e1.texto.slice(0, 300) + ')');
+        ok(SMTP.correos.length === 1 && SMTP.correos[0].para.join() === 'familia.a@ejemplo.test' && SMTP.correos[0].encabezados.from === 'Vida en Arte <buzon@vea-prueba.test>' && SMTP.correos[0].asunto === 'Función de prueba',
+          'al servidor de correo de mentira le llega UN correo, a la familia, desde «Vida en Arte <buzón>»', JSON.stringify(SMTP.correos.map(m => m.para)));
+        const reg = google.llamadas.slice(antes).filter(l => l.accion === 'mensajesRegistrar');
+        ok(reg.length === 1 && reg[0].datos.usuario === 'prueba-direccion' && reg[0].datos.rol === 'Dirección' && reg[0].datos.enviadas === 1 && reg[0].datos.fallidas === 1 && reg[0].claveMensajes === 'clave-msj-de-prueba',
+          'el servidor anota en «Mensajes enviados» lo que pasó, con usuario y rol de la sesión (' + JSON.stringify(reg.map(l => l.datos)) + ')');
+        ok(reg.length === 1 && !/@/.test(JSON.stringify(reg[0].datos)) && E1 && E1.registro && E1.registro.ok === true, 'el registro no lleva ningún correo');
+        const e2 = await ms('prueba-direccion', 'enviar', PEDIDO, { 'X-CSRF': DI.csrf });
+        ok(e2.status === 200 && e2.j.resultado.yaEstaban.length === 1 && SMTP.correos.length === 1, 'repetir la tanda (doble clic, reintento) no manda el correo otra vez');
+        const av = await ms('prueba-direccion', 'avance', { idEnvio: 'envio-portal-0001' });
+        ok(av.status === 200 && av.j.resultado.avance && av.j.resultado.avance.hechos === 1 && av.j.resultado.avance.enCurso === false, 'el avance de la tanda se puede preguntar');
+        const archivos = fs.existsSync(path.join(home, 'portal_mensajes')) ? fs.readdirSync(path.join(home, 'portal_mensajes')) : [];
+        const archivoEnvio = path.join(home, 'portal_mensajes', 'envio-envio-portal-0001.json');
+        ok(archivos.includes('envio-envio-portal-0001.json') && !fs.existsSync(path.join(web, 'portal_mensajes')), 'lo enviado se guarda junto a portal_config.php, fuera de la carpeta pública (' + archivos.join(', ') + ')');
+        ok(fs.existsSync(archivoEnvio) && !/@/.test(fs.readFileSync(archivoEnvio, 'utf8')), 'y sin correos: solo huellas');
+        const regAntes = google.llamadas.filter(l => l.accion === 'mensajesRegistrar').length;
+        const pr = await ms('prueba-direccion', 'prueba', { asunto: 'Asunto', cuerpo: 'Cuerpo' }, { 'X-CSRF': DI.csrf });
+        ok(pr.status === 200 && pr.j.resultado.estado === 'completa' && pr.j.resultado.para === 'pruebas@vea-prueba.test' && SMTP.correos.length === 2 && SMTP.correos[1].para.join() === 'pruebas@vea-prueba.test' && SMTP.correos[1].asunto === '[Prueba] Asunto',
+          '«Enviarme una prueba» va SOLO al «Correo de prueba» de Config mensajes, con «[Prueba]» en el asunto (' + pr.texto.slice(0, 200) + ')');
+        ok(google.llamadas.filter(l => l.accion === 'mensajesRegistrar').length === regAntes, 'la prueba no se anota en «Mensajes enviados»');
+        ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'x' }), { 'X-CSRF': DI.csrf })).status === 400, 'sin un ID de envío válido no se envía');
+        ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0002', tanda: 3, tandas: 2 }), { 'X-CSRF': DI.csrf })).status === 400, 'ni una tanda fuera de rango');
+        ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0003', claves: ['familia.a@ejemplo.test'] }), { 'X-CSRF': DI.csrf })).status === 400 && SMTP.correos.length === 2, 'un correo escrito en vez de una huella no se acepta: el servidor no envía a direcciones que mande el navegador');
         ok((await ms('prueba-comercial', 'otra')).status === 403, 'una acción que no existe se rechaza');
         ok((await new Nav(base).post('/mensajes/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');
+        ok((await n['prueba-comercial'].get('/mensajes/correo.php')).status === 404 && (await new Nav(base).get('/mensajes/correo.php')).status !== 200, 'mensajes/correo.php no se ejecuta ni se entrega desde el navegador');
         MSJ.falla = true;
-        const f = await ms('prueba-comercial', 'leer');
+        const f = await ms('prueba-direccion', 'leer');
         ok(f.status === 502 && !/familia\.a@/.test(f.texto), 'si la Base de Datos no responde, no hay lista a medias (502)');
+        const c0 = SMTP.correos.length;
+        const f2 = await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0004' }), { 'X-CSRF': DI.csrf });
+        ok(f2.status === 502 && SMTP.correos.length === c0, 'ni se envía sin poder volver a leer las familias');
         MSJ.falla = false;
-        ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'mensajes', 'api.php'), 'utf8')), 'mensajes/api.php suelta la sesión antes de esperar a Google');
+        ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'mensajes', 'api.php'), 'utf8')), 'mensajes/api.php suelta la sesión antes de esperar a Google o al correo');
         const pag = await n['prueba-comercial'].get('/mensajes/');
         ok(pag.status === 200 && /<title>Mensajes a familias/.test(pag.texto), 'Comercial abre la pantalla');
       } finally { MSJ.as = false; MSJ.falla = false; }
@@ -1451,7 +1501,7 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
       {
         const archPerm = path.join(web, 'permisos.php');
         const permOrig = fs.readFileSync(archPerm, 'utf8');
-        const sinEditar = permOrig.replace(/('area:mensajes', 'mensajes\.enviar'),\r?\n\s*'bd\.editar'\],(\s*\/\/[^\r\n]*)?/, "$1],");
+        const sinEditar = permOrig.replace(/('area:mensajes'),\r?\n\s*'bd\.editar'\],(\s*\/\/[^\r\n]*)?/, "$1],");
         ok(sinEditar !== permOrig, 'la prueba encuentra la línea de bd.editar de Comercial en permisos.php');
         // El servidor de pruebas guarda los PHP compilados (opcache) y mira la fecha del
         // archivo como mucho cada 2 s: se cambia la fecha a mano y se espera a que la vea.
@@ -1816,6 +1866,7 @@ echo implode(',', $r);
     srv.kill();
     srv2.kill();
     google.s.close();
+    if (SMTP) await SMTP.cerrar();
   }
   console.log('\n' + (fallos ? '✗ ' + fallos + ' de ' + total + ' comprobaciones fallaron' : '✓ ' + total + ' comprobaciones pasan'));
   return fallos === 0;

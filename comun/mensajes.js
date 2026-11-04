@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Vida en Arte · MENSAJES A FAMILIAS (3-nov-2026): las cuentas
+   Vida en Arte · MENSAJES A FAMILIAS (3-nov-2026; 5-nov: envía el servidor): las cuentas
 
    Todo lo que decide a quién le llega un mensaje, en un solo lugar y sin
    tocar la pantalla (la pantalla es mensajes/index.html; la prueba,
@@ -21,16 +21,25 @@
      · Los correos de la lista de exclusión (Config › «Correo excluido») nunca
        reciben: el niño pasa a «Sin correo».
      · Un correo con formato inválido se aparta y se avisa.
-     · Tandas de «Destinatarios por tanda» (50 si falta), en copia oculta.
+     · Tandas de «Destinatarios por tanda» (50 si falta), nunca más grandes que
+       «Máximo de correos por hora» (100 si falta).
+
+   5-nov: el servidor ya clasifica cada correo (mensajes/api.php ›
+   ms_clasificar, el único que ve la lista de exclusión) y manda cada familia
+   con «estadoCorreo» (ok | vacio | excluido | invalido) y «clave», la huella del
+   correo. Los hermanos tienen la misma huella: «un correo por familia» se
+   cuenta por huella. Quien no puede enviar (Comercial) recibe las familias SIN
+   el correo: las cifras y los grupos salen igual. Las tandas son listas de
+   huellas; el servidor las vuelve a buscar y envía. Si una familia llega sin
+   «estadoCorreo» (datos de antes), se clasifica aquí como en v1.
    ========================================================================== */
 (function (raiz) {
   'use strict';
 
   const TODO = 'todo';
-  const POR_DEFECTO = { porTanda: 50, avisoDia: 450, codigoPais: '507' };
-  /* Un correo razonable: algo@algo.dominio, sin espacios ni comas (la coma separa la lista de Gmail). */
+  const POR_DEFECTO = { porTanda: 50, avisoDia: 450, codigoPais: '507', maxHora: 100 };
+  /* Un correo razonable: algo@algo.dominio, sin espacios ni comas. El mismo de mensajes/correo.php (MSJ_FORMATO). */
   const FORMATO = /^[^\s@,;<>()"']+@[^\s@,;<>()"']+\.[a-z]{2,}$/i;
-  const LARGO_GMAIL = 8000;   // más allá, Gmail puede no abrir el enlace: se avisa y queda «Copiar»
 
   const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const limpiarCorreo = c => String(c == null ? '' : c).replace(/\s+/g, '').toLowerCase();
@@ -38,17 +47,17 @@
 
   /** La pestaña «Config mensajes» en un objeto. Las filas que se repiten (exclusión, servicios fuera) se juntan. */
   function config(filas) {
-    const c = { cuenta: '', porTanda: POR_DEFECTO.porTanda, avisoDia: POR_DEFECTO.avisoDia, codigoPais: POR_DEFECTO.codigoPais, excluidos: [], serviciosFuera: [] };
+    const c = { porTanda: POR_DEFECTO.porTanda, avisoDia: POR_DEFECTO.avisoDia, codigoPais: POR_DEFECTO.codigoPais, maxHora: POR_DEFECTO.maxHora, excluidos: [], serviciosFuera: [] };
     (filas || []).forEach(f => {
       const p = norm(f.parametro), v = String(f.valor == null ? '' : f.valor).trim();
-      if (p === norm('Cuenta de Gmail para mensajes')) c.cuenta = limpiarCorreo(v);
-      else if (p === norm('Destinatarios por tanda')) { const n = parseInt(v, 10); if (n >= 1 && n <= 500) c.porTanda = n; }
+      if (p === norm('Destinatarios por tanda')) { const n = parseInt(v, 10); if (n >= 1 && n <= 500) c.porTanda = n; }
+      else if (p === norm('Máximo de correos por hora')) { const n = parseInt(v.replace(/\D/g, ''), 10); if (n >= 1) c.maxHora = n; }
       else if (p === norm('Aviso de familias por día')) { const n = parseInt(v, 10); if (n >= 1) c.avisoDia = n; }
       else if (p === norm('Código de país para WhatsApp')) { const d = v.replace(/\D/g, ''); if (d) c.codigoPais = d; }
       else if (p === norm('Correo excluido')) { const e = limpiarCorreo(v); if (e && !c.excluidos.includes(e)) c.excluidos.push(e); }
       else if (p === norm('Servicio fuera de Mensajes')) { if (v) c.serviciosFuera.push(v); }
     });
-    if (c.cuenta && !correoValido(c.cuenta)) c.cuenta = '';
+    c.porTanda = Math.min(c.porTanda, c.maxHora);   // una tanda que no cabe en una hora no podría salir nunca
     return c;
   }
 
@@ -86,10 +95,23 @@
     return out;
   }
 
+  /** El estado del correo de una familia: el que mandó el servidor o, en datos de antes, calculado aquí. */
+  function estadoDe(f, excl) {
+    if (f.estadoCorreo) return { estado: f.estadoCorreo, clave: f.clave || '', correo: f.correo == null ? '' : String(f.correo) };
+    const c = limpiarCorreo(f.correo);
+    if (!c) return { estado: 'vacio', clave: '', correo: '' };
+    if (excl.has(c)) return { estado: 'excluido', clave: '', correo: c };
+    if (!correoValido(c)) return { estado: 'invalido', clave: '', correo: String(f.correo) };
+    return { estado: 'ok', clave: c, correo: c };
+  }
+
   /**
    * La lista para enviar a los grupos elegidos (ids de grupos()).
-   *   correos       los correos únicos, en orden alfabético
-   *   familias      cuántos (= correos.length)
+   *   destinos      [{ clave, correo }] uno por familia, por orden de clave
+   *                 (el correo viene vacío para quien no puede enviar)
+   *   claves        las huellas (lo que se manda al servidor, por tandas)
+   *   correos       los correos únicos que se conocen (para «Copiar correos»)
+   *   familias      cuántos (= destinos.length)
    *   sinCorreo     [{ nino, unidad, grupo, telefono, whatsapp, motivo: 'vacio'|'excluido' }]
    *   invalidos     [{ nino, unidad, grupo, correo, telefono, whatsapp }]
    *   repetidos     cuántos niños compartían el correo de otro (se quitaron)
@@ -106,7 +128,7 @@
     const union = new Set();
     elegidas.forEach(g => g.ninos.forEach(k => union.add(k)));
     const excl = new Set(cfg.excluidos);
-    const vistos = new Set(), sinCorreo = [], invalidos = [], exclVistos = new Set();
+    const vistos = new Map(), sinCorreo = [], invalidos = [], exclVistos = new Set();
     let repetidos = 0, excluidos = 0, ninos = 0;
     fam.forEach(f => {
       const k = f.unidad + '|' + f.id;
@@ -115,17 +137,17 @@
       const grupo = (elegidas.find(g => g.tipo === 'clase' && g.ninos.has(k)) || elegidas.find(g => g.tipo === 'disciplina' && g.ninos.has(k)) || {}).nombre || f.unidad;
       const tel = String(f.telefono || '').trim();
       const fila = { nino: f.nino, unidad: f.unidad, grupo, telefono: tel, whatsapp: enlaceWhatsapp(tel, cfg.codigoPais) };
-      const c = limpiarCorreo(f.correo);
-      if (!c) { sinCorreo.push(Object.assign(fila, { motivo: 'vacio' })); return; }
-      if (excl.has(c)) { excluidos++; exclVistos.add(c); sinCorreo.push(Object.assign(fila, { motivo: 'excluido' })); return; }
-      if (!correoValido(c)) { invalidos.push(Object.assign(fila, { correo: String(f.correo) })); return; }
-      if (vistos.has(c)) { repetidos++; return; }
-      vistos.add(c);
+      const e = estadoDe(f, excl);
+      if (e.estado === 'vacio') { sinCorreo.push(Object.assign(fila, { motivo: 'vacio' })); return; }
+      if (e.estado === 'excluido') { excluidos++; if (e.correo) exclVistos.add(e.correo); sinCorreo.push(Object.assign(fila, { motivo: 'excluido' })); return; }
+      if (e.estado !== 'ok' || !e.clave) { invalidos.push(Object.assign(fila, { correo: e.correo })); return; }
+      if (vistos.has(e.clave)) { repetidos++; return; }
+      vistos.set(e.clave, e.correo);
     });
     const orden = (a, b) => a.nino.localeCompare(b.nino, 'es');
-    const correos = [...vistos].sort();
-    return { correos, familias: correos.length, sinCorreo: sinCorreo.sort(orden), invalidos: invalidos.sort(orden),
-             repetidos, excluidos, excluidosCorreos: [...exclVistos].sort(), ninos };
+    const destinos = [...vistos.keys()].sort().map(clave => ({ clave, correo: vistos.get(clave) }));
+    return { destinos, claves: destinos.map(d => d.clave), correos: destinos.map(d => d.correo).filter(Boolean).sort(), familias: destinos.length,
+             sinCorreo: sinCorreo.sort(orden), invalidos: invalidos.sort(orden), repetidos, excluidos, excluidosCorreos: [...exclVistos].sort(), ninos };
   }
 
   /** Cuántas familias (correos únicos y válidos) tiene cada grupo por sí solo: { id: n }. */
@@ -136,10 +158,10 @@
     return r;
   }
 
-  /** Divide los correos en tandas de `max`. */
-  function tandas(correos, max) {
+  /** Divide una lista (las familias de armar().destinos) en tandas de `max`. */
+  function tandas(lista, max) {
     const n = Math.max(1, parseInt(max, 10) || POR_DEFECTO.porTanda), out = [];
-    for (let i = 0; i < (correos || []).length; i += n) out.push(correos.slice(i, i + n));
+    for (let i = 0; i < (lista || []).length; i += n) out.push(lista.slice(i, i + n));
     return out;
   }
 
@@ -152,31 +174,28 @@
     return 'https://wa.me/' + d;
   }
 
-  /** La redacción de Gmail web con todo en copia oculta («Para» vacío). Con cuenta, abre esa (authuser). */
-  function enlaceGmail({ cuenta, asunto, cuerpo, cco }) {
-    const p = [];
-    if (cuenta) p.push('authuser=' + encodeURIComponent(cuenta));
-    p.push('view=cm', 'fs=1', 'tf=1', 'bcc=' + encodeURIComponent((cco || []).join(',')),
-           'su=' + encodeURIComponent(asunto || ''), 'body=' + encodeURIComponent(cuerpo || ''));
-    return 'https://mail.google.com/mail/?' + p.join('&');
+  /**
+   * EL ENVÍO, detrás de una sola función (5-nov: lo hace el SERVIDOR, desde el
+   * buzón del hosting). Para cambiar de canal (Resend…) se cambia el servidor;
+   * la pantalla sigue llamando a Mensajes.enviar y leyendo lo mismo.
+   *   pedido: { idEnvio, tanda, tandas, claves, asunto, cuerpo, plantilla, grupos, familias, sinCorreo }
+   *           (claves: las huellas de ESA tanda; los correos los pone el servidor)
+   *   transporte: opcional (por defecto Datos.mensajes.enviar; las pruebas pasan otro)
+   * Devuelve la promesa del «resultado» del servidor:
+   *   { estado: completa | detenida | limite | ocupado | cambiado, enviadas[], yaEstaban[], fallidas[{clave, motivo}],
+   *     inciertas[], pendientes[], total: {enviadas, fallidas}, hora: {usados, max, libreA}, motivo, registro }
+   */
+  function enviar(pedido, transporte) {
+    const t = transporte || (raiz.Datos && raiz.Datos.mensajes && raiz.Datos.mensajes.enviar);
+    if (!t) return Promise.reject(new Error('No hay con qué enviar.'));
+    const p = Object.assign({}, pedido, { claves: (pedido.claves || []).slice() });
+    return Promise.resolve(t(p)).then(j => (j && j.resultado) || j);
   }
 
-  /**
-   * EL ENVÍO, detrás de una sola función (v1: Gmail). Para pasar a otro canal
-   * (Resend) se cambia SOLO esto: la pantalla llama a Mensajes.enviar y lee
-   * { canal, abierto, largo, demasiadoLargo }.
-   *   tanda:   la lista de correos de esa tanda
-   *   mensaje: { asunto, cuerpo }
-   *   cfg:     config() (la cuenta de Gmail)
-   *   abrir:   opcional, cómo abrir el enlace (por defecto window.open; las pruebas pasan otra)
-   */
-  function enviar(tanda, mensaje, cfg, abrir) {
-    const url = enlaceGmail({ cuenta: (cfg && cfg.cuenta) || '', asunto: mensaje.asunto, cuerpo: mensaje.cuerpo, cco: tanda });
-    /* Sin «noopener» en window.open: con él devuelve siempre null y no se sabría si el navegador lo bloqueó.
-       Se corta el vínculo a mano. Tiene que llamarse dentro del clic (si no, el navegador lo bloquea). */
-    const ab = abrir || (u => { const w = raiz.open ? raiz.open(u, '_blank') : null; if (w) { try { w.opener = null; } catch (e) { } } return !!w; });
-    const abierto = ab(url) !== false;
-    return { canal: 'gmail', url, abierto, largo: url.length, demasiadoLargo: url.length > LARGO_GMAIL };
+  /** «15:42»: la hora (en la zona del que mira) de una marca de tiempo en segundos. */
+  function horaDe(segundos) {
+    const d = new Date(Number(segundos) * 1000);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
   /** Un ID para el envío (lo usa el registro para sumar las tandas a la misma fila). */
@@ -185,7 +204,7 @@
     return (c && c.randomUUID) ? c.randomUUID() : 'env-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
 
-  const api = { TODO, LARGO_GMAIL, norm, limpiarCorreo, correoValido, config, grupos, armar, conteos, tandas, enlaceWhatsapp, enlaceGmail, enviar, idEnvio };
+  const api = { TODO, norm, limpiarCorreo, correoValido, config, grupos, armar, conteos, tandas, enlaceWhatsapp, enviar, horaDe, idEnvio };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   raiz.Mensajes = api;
 })(typeof window !== 'undefined' ? window : globalThis);

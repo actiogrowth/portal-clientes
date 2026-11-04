@@ -5,9 +5,11 @@
  * Datos INVENTADOS (regla del repo). Comprueba: los grupos salen de los
  * datos (unidad, disciplina, clase), la unión de varios grupos, un correo por
  * familia (mayúsculas y espacios), la lista de exclusión, los correos con
- * formato inválido, «Sin correo» con su enlace de WhatsApp, las tandas, el
- * enlace de Gmail (todo en CCO, «Para» vacío, cuenta con authuser) y que el
- * envío pasa por una sola función. Al final rompe comun/mensajes.js de varias
+ * formato inválido, «Sin correo» con su enlace de WhatsApp, las tandas y que
+ * el envío pasa por una sola función. 5-nov: con las familias ya clasificadas
+ * por el servidor (huella y estado del correo; sin correo para quien no envía)
+ * salen las mismas cifras; las tandas son de huellas y nunca más grandes que el
+ * máximo por hora; ya no hay Gmail. Al final rompe comun/mensajes.js de varias
  * formas y exige que esta prueba falle con cada rotura.
  */
 const fs = require('fs');
@@ -54,10 +56,12 @@ const D = {
 const CFG = M.config(D.config);
 
 console.log('· configuración (pestaña «Config mensajes»)');
-ok(CFG.cuenta === '' && CFG.porTanda === 2 && CFG.avisoDia === 450 && CFG.codigoPais === '507', 'cuenta, tamaño de tanda, aviso diario y código de país salen del Sheet');
+ok(CFG.porTanda === 2 && CFG.avisoDia === 450 && CFG.codigoPais === '507', 'tamaño de tanda, aviso diario y código de país salen del Sheet');
 ok(CFG.excluidos.join() === 'oficina@escuela.test,nadie@escuela.test', 'la lista de exclusión junta las filas, sin mayúsculas ni espacios', CFG.excluidos.join());
-ok(M.config([]).porTanda === 50 && M.config([]).avisoDia === 450, 'sin configuración: tandas de 50 y aviso desde 450');
-ok(M.config([{ parametro: 'Cuenta de Gmail para mensajes', valor: 'no es un correo' }]).cuenta === '', 'una cuenta que no es un correo se ignora (se abre la de la sesión)');
+ok(M.config([]).porTanda === 50 && M.config([]).avisoDia === 450 && M.config([]).maxHora === 100, 'sin configuración: tandas de 50, aviso desde 450 y 100 correos por hora');
+ok(!('cuenta' in CFG), '5-nov: ya no hay «Cuenta de Gmail para mensajes»');
+ok(M.config([{ parametro: 'Máximo de correos por hora', valor: '80' }]).maxHora === 80, '5-nov: el máximo por hora sale del Sheet');
+ok(M.config([{ parametro: 'Destinatarios por tanda', valor: '50' }, { parametro: 'Máximo de correos por hora', valor: '30' }]).porTanda === 30, 'una tanda nunca es más grande que el máximo por hora');
 ok(M.config([{ parametro: 'Destinatarios por tanda', valor: '0' }]).porTanda === 50, 'una tanda de 0 no vale');
 
 console.log('· grupos (salen de los datos)');
@@ -103,46 +107,69 @@ ok(M.enlaceWhatsapp('+1 305 555 0102', '507') === 'https://wa.me/13055550102', '
 ok(M.enlaceWhatsapp('', '507') === '' && M.enlaceWhatsapp('123', '507') === '', 'sin número, sin enlace');
 ok(M.armar(D, ['todo'], CFG).sinCorreo.find(x => x.nino === 'Juan Ocho').whatsapp === 'https://wa.me/50766000008', '«Sin correo» trae su enlace');
 
-console.log('· tandas y Gmail');
+console.log('· tandas');
 L = M.armar(D, ['todo'], CFG);
-const T = M.tandas(L.correos, CFG.porTanda);
+const T = M.tandas(L.destinos, CFG.porTanda);
 ok(T.length === 2 && T[0].length === 2 && T[1].length === 2, 'tandas del tamaño de la configuración (2 + 2)');
 ok(M.tandas(Array.from({ length: 120 }, (_, i) => i + '@e.test'), 50).map(t => t.length).join() === '50,50,20', 'con 50: 120 familias son 3 tandas (50, 50, 20)');
-let u = new URL(M.enlaceGmail({ cuenta: '', asunto: 'Día sin clase', cuerpo: 'Hola,\nfamilia & más', cco: T[0] }));
-ok(u.origin === 'https://mail.google.com' && u.searchParams.get('view') === 'cm', 'abre la redacción de Gmail web');
-ok(u.searchParams.get('bcc') === T[0].join(',') && !u.searchParams.has('to'), 'todos en copia oculta y el «Para» vacío');
-ok(u.searchParams.get('su') === 'Día sin clase' && u.searchParams.get('body') === 'Hola,\nfamilia & más', 'asunto y cuerpo bien escritos (tildes, saltos y &)');
-ok(!u.searchParams.has('authuser'), 'sin cuenta configurada, la de la sesión');
-u = new URL(M.enlaceGmail({ cuenta: 'mensajes@escuela.test', asunto: 'a', cuerpo: 'b', cco: ['x@e.test'] }));
-ok(u.searchParams.get('authuser') === 'mensajes@escuela.test', 'con cuenta configurada, esa (authuser)');
+ok(L.claves.length === 4 && L.destinos.every(d => d.clave && d.correo), 'cada familia con su clave (lo que se manda al servidor)');
 
-console.log('· el envío, detrás de una sola función');
-let abierta = '';
-let r = M.enviar(T[1], { asunto: 'A', cuerpo: 'B' }, CFG, url => { abierta = url; return true; });
-ok(r.canal === 'gmail' && r.abierto && abierta === r.url && new URL(abierta).searchParams.get('bcc') === T[1].join(','), 'Mensajes.enviar abre Gmail con esa tanda');
-r = M.enviar(T[1], { asunto: 'A', cuerpo: 'B' }, CFG, () => false);
-ok(r.abierto === false, 'si el navegador bloquea la ventana, lo dice');
-r = M.enviar(T[1], { asunto: 'A', cuerpo: 'x'.repeat(9000) }, CFG, () => true);
-ok(r.demasiadoLargo === true, 'avisa si el enlace es demasiado largo para Gmail');
-const pagina = fs.readFileSync(path.join(__dirname, '..', 'mensajes', 'index.html'), 'utf8');
-ok(!/mail\.google\.com|resend/i.test(pagina) && /Mensajes\.enviar\(/.test(pagina), 'la pantalla no arma enlaces de correo: solo llama a Mensajes.enviar');
-ok(!/fetch\(|\.php/.test(pagina.replace(/<!--[\s\S]*?-->/g, '')), 'la pantalla no llama a ningún .php: pide todo a Datos');
-ok(/Registrado como abierto en Gmail/.test(pagina) && /Revisa que estés en la cuenta de Vida en Arte/.test(pagina), 'la pantalla dice «Registrado como abierto en Gmail» y el aviso de la cuenta');
-ok(/Tanda ' \+ \(i \+ 1\) \+ ' de ' \+ n/.test(pagina) && /Copiar correos/.test(pagina) && /Copiar mensaje/.test(pagina), '«Tanda N de M», «Copiar correos» y «Copiar mensaje»');
+console.log('· 5-nov: las familias ya clasificadas por el servidor');
+/* Como las manda mensajes/api.php › ms_clasificar: huella y estado; a quien no envía, sin el correo. */
+const huella = c => 'h' + require('crypto').createHash('sha256').update(c).digest('hex').slice(0, 31);
+const clasificar = (fams, conCorreo) => fams.map(f => {
+  const c = M.limpiarCorreo(f.correo);
+  const estado = !c ? 'vacio' : CFG.excluidos.includes(c) ? 'excluido' : M.correoValido(c) ? 'ok' : 'invalido';
+  const g = Object.assign({}, f, { estadoCorreo: estado, clave: estado === 'ok' ? huella(c) : '', correo: estado === 'ok' ? c : estado === 'invalido' ? f.correo : '' });
+  if (!conCorreo) delete g.correo;
+  return g;
+});
+const DS = Object.assign({}, D, { familias: clasificar(D.familias, true), config: D.config.filter(x => x.parametro !== 'Correo excluido') });
+const DC = Object.assign({}, D, { familias: clasificar(D.familias, false), config: DS.config });
+const LS = M.armar(DS, ['todo'], M.config(DS.config)), LC = M.armar(DC, ['todo'], M.config(DC.config)), LV = M.armar(D, ['todo'], CFG);
+ok(LS.familias === LV.familias && LS.repetidos === LV.repetidos && LS.sinCorreo.length === LV.sinCorreo.length && LS.invalidos.length === LV.invalidos.length && LS.excluidos === LV.excluidos,
+  'las mismas cifras que calculando aquí (familias, repetidos, sin correo, inválidos, excluidos), sin que el navegador vea la lista de exclusión', JSON.stringify([LS.familias, LS.repetidos, LS.excluidos]));
+ok(LS.correos.join() === LV.correos.join() && LS.claves.every(k => /^h/.test(k)), 'quien envía: los mismos correos (para «Copiar correos») y las tandas son de huellas');
+ok(LC.familias === LV.familias && LC.correos.length === 0 && LC.claves.length === 4 && !/@/.test(JSON.stringify(LC.destinos)), 'quien NO envía (Comercial): las mismas cifras, ningún correo', JSON.stringify(LC.destinos));
+ok(JSON.stringify(M.conteos(DC, M.config(DC.config))) === JSON.stringify(M.conteos(D, CFG)), 'y el número junto a cada grupo es el mismo');
+ok(LC.invalidos.length === 1 && LC.invalidos[0].correo === '', 'el inválido se avisa, sin mostrar el correo a quien no envía');
 
+console.log('· el envío, detrás de una sola función (lo hace el servidor)');
+(async () => {
+  let pedido = null;
+  const r = await M.enviar({ idEnvio: 'envio-1', tanda: 2, tandas: 2, claves: T[1].map(d => d.clave), asunto: 'A', cuerpo: 'B' }, p => { pedido = p; return { ok: true, resultado: { estado: 'completa', enviadas: p.claves } }; });
+  ok(pedido && pedido.tanda === 2 && pedido.claves.join() === T[1].map(d => d.clave).join() && r.estado === 'completa', 'Mensajes.enviar manda al servidor las claves de ESA tanda y devuelve su resultado');
+  ok(pedido && !('correos' in pedido) && !/@/.test(JSON.stringify(pedido.claves.filter(k => /^h/.test(k)))), 'no manda una lista de correos: el servidor los busca por su cuenta');
+  let error = '';
+  try { await M.enviar({ claves: [] }, () => { throw new Error('sin permiso'); }); } catch (e) { error = e.message; }
+  ok(error === 'sin permiso', 'si el servidor dice que no, la pantalla se entera');
+  ok(M.horaDe(0) === new Date(0).getHours().toString().padStart(2, '0') + ':' + new Date(0).getMinutes().toString().padStart(2, '0'), 'la hora para «se puede seguir a las…», en la zona del que mira');
+  ok(!('enlaceGmail' in M) && !/mail\.google\.com|authuser|bcc=/.test(fs.readFileSync(ARCHIVO, 'utf8')), 'ya no se arma ningún enlace de Gmail');
+
+  const pagina = fs.readFileSync(path.join(__dirname, '..', 'mensajes', 'index.html'), 'utf8');
+  const sinComentarios = pagina.replace(/<!--[\s\S]*?-->/g, '');
+  ok(!/mail\.google\.com|resend|Abrir en Gmail/i.test(sinComentarios) && /Mensajes\.enviar\(/.test(pagina), 'la pantalla no abre Gmail: solo llama a Mensajes.enviar');
+  ok(!/fetch\(|\.php/.test(sinComentarios), 'la pantalla no llama a ningún .php: pide todo a Datos');
+  ok(/Enviarme una prueba/.test(pagina) && /Reintentar/.test(pagina) && /Copiar correos/.test(pagina) && /Copiar mensaje/.test(pagina), '«Enviarme una prueba», «Reintentar», «Copiar correos» y «Copiar mensaje»');
+  ok(/D\.puedeEnviar/.test(pagina), 'lo de enviar y copiar depende de si el servidor dice que puede enviar');
+  ok(/e\.canal/.test(pagina) && /enviado por el servidor/.test(pagina) && pagina.includes('Registrado como abierto en Gmail (antes del 5-nov)'), '«Enviados» dice lo que de verdad salió; las filas de antes, como abiertas en Gmail');
+  fin();
+})();
+function fin() {
 /* ── Roturas ─────────────────────────────────────────────────────────── */
 if (!callado) {
   console.log('\n' + (fallos ? fallos + ' de ' + total + ' FALLAN' : 'Las ' + total + ' comprobaciones pasan') + '\n\nRoturas (cada una tiene que hacer fallar esta prueba):');
   const src = fs.readFileSync(ARCHIVO, 'utf8');
   const ROTURAS = [
-    ['no quita repetidos', '      if (vistos.has(c)) { repetidos++; return; }', ''],
+    ['no quita repetidos', '      if (vistos.has(e.clave)) { repetidos++; return; }', ''],
     ['distingue mayúsculas', "  const limpiarCorreo = c => String(c == null ? '' : c).replace(/\\s+/g, '').toLowerCase();", "  const limpiarCorreo = c => String(c == null ? '' : c).trim();"],
-    ['no excluye', "      if (excl.has(c)) { excluidos++; exclVistos.add(c); sinCorreo.push(Object.assign(fila, { motivo: 'excluido' })); return; }", ''],
-    ['deja pasar inválidos', '      if (!correoValido(c)) { invalidos.push(Object.assign(fila, { correo: String(f.correo) })); return; }', ''],
+    ['no excluye', "    if (excl.has(c)) return { estado: 'excluido', clave: '', correo: c };", ''],
+    ['deja pasar inválidos', "    if (!correoValido(c)) return { estado: 'invalido', clave: '', correo: String(f.correo) };", ''],
     ['la unión toma solo el primer grupo', '    elegidas.forEach(g => g.ninos.forEach(k => union.add(k)));', '    elegidas.slice(0, 1).forEach(g => g.ninos.forEach(k => union.add(k)));'],
-    ['en «Para» y no en copia oculta', "'bcc=' + encodeURIComponent((cco || []).join(','))", "'to=' + encodeURIComponent((cco || []).join(','))"],
     ['tandas de tamaño fijo', "    const n = Math.max(1, parseInt(max, 10) || POR_DEFECTO.porTanda), out = [];", '    const n = 50, out = [];'],
-    ['sin authuser', "    if (cuenta) p.push('authuser=' + encodeURIComponent(cuenta));", ''],
+    ['la tanda pasa del máximo por hora', '    c.porTanda = Math.min(c.porTanda, c.maxHora);', ''],
+    ['no usa el estado que manda el servidor', '    if (f.estadoCorreo) return', '    if (false) return'],
+    ['el envío manda los correos y no las claves', "    const p = Object.assign({}, pedido, { claves: (pedido.claves || []).slice() });", "    const p = Object.assign({}, pedido, { correos: (pedido.claves || []).slice() });"],
     ['WhatsApp sin código de país', "    if (!t.startsWith('+') && (d.length === 7 || d.length === 8)) d = String(codigoPais || POR_DEFECTO.codigoPais).replace(/\\D/g, '') + d;", ''],
     ['disciplinas escritas a mano', "    clases.forEach(c => { if (c.servicio && !servicios.includes(c.servicio)) servicios.push(c.servicio); });", "    ['Parkour', 'Telas', 'Parkids'].forEach(s => servicios.push(s));"]
   ];
@@ -160,3 +187,4 @@ if (!callado) {
   console.log(sin ? '\n' + sin + ' roturas sin detectar' : '\nLas ' + ROTURAS.length + ' roturas se detectan');
   if (fallos || sin) process.exit(1);
 } else if (fallos) process.exit(1);
+}

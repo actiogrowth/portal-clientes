@@ -652,27 +652,38 @@ regla de la pestaña Ocupación, la de la tabla.)
 
 ## Mensajes a familias (`/mensajes/` y `mensajes/api.php`) — 3-nov
 
-Quién: área `mensajes` (Administrador, Dirección y Comercial) y además
-`mensajes.enviar`; `guardarPlantilla` pide `mensajes.plantillas` (Dirección y
-Administrador). Cualquier otro rol recibe **403 `sin_permiso`** y el pedido no
-llega a ningún Apps Script. Todo es `POST` JSON `{accion, datos}`.
+Quién (5-nov): `leer` con el área `mensajes` (Administrador, Dirección y
+Comercial); `enviar`, `prueba` y `avance` piden además **`mensajes.enviar`**
+(solo Dirección y Administrador, por `*`; Comercial ya no lo tiene, D-124), y
+`enviar` y `prueba` el sello CSRF de la sesión (cabecera `X-CSRF`, que da
+`leer` en `resultado.csrf`); `guardarPlantilla` pide `mensajes.plantillas`
+(Dirección y Administrador). Cualquier otro rol recibe **403 `sin_permiso`** y
+el pedido no llega a ningún Apps Script ni al correo. Todo es `POST` JSON
+`{accion, datos}`.
 
 | Acción | Qué hace | A quién le pregunta |
 |---|---|---|
-| `leer` | Familias que pueden recibir, clases, plantillas, configuración y los últimos 20 envíos | After School `leer` (AfterSchool.gs, sin cambios) y Base de Datos `mensajesLeer` |
+| `leer` | Familias que pueden recibir (con la huella de su correo; el correo solo a quien envía), clases, plantillas, configuración sin correos y los últimos 20 envíos | After School `leer` (AfterSchool.gs, sin cambios) y Base de Datos `mensajesLeer` |
 | `guardarPlantilla` | Crea o edita una plantilla (por nombre; `nombreAnterior` para renombrar) | Base de Datos `mensajesGuardarPlantilla` |
-| `registrar` | Anota que se abrió una tanda en Gmail | Base de Datos `mensajesRegistrar` |
+| `enviar` | 5-nov: el servidor envía UNA tanda por SMTP, un correo por familia, y anota el resultado | las dos lecturas de `leer` (otra vez), el buzón del hosting y Base de Datos `mensajesRegistrar` |
+| `prueba` | 5-nov: «Enviarme una prueba»: el mismo correo, solo al «Correo de prueba» | `mensajesLeer` (la configuración) y el buzón |
+| `avance` | 5-nov: cuántos lleva la tanda que se está enviando | el archivo del envío, en el servidor |
+| ~~`registrar`~~ | Quitada el 5-nov: el registro lo escribe el servidor al enviar | — |
 
 ### `leer` → `resultado`
 
 ```
 { hoy, familiasHoy,                  // familias registradas hoy (para el aviso de 450)
-  familias: [{ unidad: 'After School' | 'Preschool', id, nino, telefono, correo, clases: [código] }],
+  familias: [{ unidad: 'After School' | 'Preschool', id, nino, telefono, clases: [código],
+              estadoCorreo: 'ok' | 'vacio' | 'excluido' | 'invalido',   // 5-nov: lo decide el servidor
+              clave,            // la huella del correo (HMAC); la misma para hermanos; '' si no es 'ok'
+              correo }],        // SOLO con mensajes.enviar (Dirección y Administrador)
   clases:   [{ codigo, servicio, dia, hora }],   // solo las que tienen niños que reciben
-  config:   [{ parametro, valor }],              // pestaña «Config mensajes»
+  config:   [{ parametro, valor }],              // «Config mensajes» SIN «Correo excluido», «Correo de prueba» ni ningún valor con @
   plantillas: [{ nombre, asunto, cuerpo, activa }],   // Comercial: solo las activas
-  enviados: [{ fecha, usuario, rol, grupos, familias, sinCorreo, plantilla, asunto, tandas }],
-  puedePlantillas, usuario, rol }
+  enviados: [{ fecha, usuario, rol, grupos, familias, sinCorreo, plantilla, asunto, tandas, enviadas, fallidas, canal }],
+  puedePlantillas, puedeEnviar, usuario, rol,
+  csrf, envio: { listo, remitente, destinoPrueba, porTanda, maxHora, usadosHora } }   // csrf y envio: solo quien envía
 ```
 
 **Quién sale en `familias` (lo decide el puente, R161):**
@@ -693,28 +704,78 @@ El puente manda solo esos cinco campos (recortados: 80 / 200 / 20.000
 caracteres). El script no deja que un renombre pise otra plantilla y guarda
 todo como texto (nada que empiece con `= + - @` queda como fórmula).
 
-### `registrar`
+### `enviar` (5-nov; antes `registrar`)
 
-`datos: {idEnvio, grupos, familias, sinCorreo, plantilla, asunto, tanda, tandas}`
-→ `resultado: {idEnvio, tandas}` (p. ej. «1, 2 de 3»). **Usuario y rol salen
-de la sesión**, nunca del navegador. Ningún correo entra al registro (un correo
-escrito en el asunto o en los grupos se cambia por «[correo]»). Una fila por
-envío (`idEnvio`); cada tanda abierta se suma; repetir la misma no cambia nada.
-La app no sabe si el correo salió: la pantalla dice «Registrado como abierto
-en Gmail».
+`datos: {idEnvio, tanda, tandas, claves: [huella], asunto, cuerpo, plantilla, grupos, familias, sinCorreo}`
+(cabecera `X-CSRF`). El navegador manda **huellas, no correos**: el servidor
+vuelve a leer las familias (si una fuente no responde, 502 y no envía) y solo
+envía a una huella que hoy es de una familia activa con correo válido y fuera
+de la lista de exclusión. Más huellas que «Destinatarios por tanda», o algo que
+no sea una huella, 400.
+
+→ `resultado`:
+```
+{ estado: 'completa' | 'detenida' | 'limite' | 'ocupado' | 'cambiado',
+  enviadas: [huella], yaEstaban: [huella], fallidas: [{clave, motivo}], inciertas: [huella], pendientes: [huella],
+  total: { enviadas, fallidas },            // de TODO el envío (lo que se anota)
+  hora: { usados, max, libreA },             // libreA: marca de tiempo desde la que cabe la tanda (0 = ya cabe)
+  motivo, registro: { ok, tandas | error } }
+```
+- **Un correo por familia**, ella sola en «Para» (sin Cc ni Bcc), From
+  «Vida en Arte <buzón>», Reply-To el buzón; HTML simple con el logo arriba y
+  versión de solo texto; sin píxeles de seguimiento.
+- **Nunca dos veces la misma huella en un envío**: el archivo
+  `portal_mensajes/envio-<idEnvio>.json` (junto a `portal_config.php`, fuera de
+  la carpeta pública) guarda por huella `enviado` | `fallido` | `incierto`.
+  Lo `enviado` no se repite; lo `incierto` (se mandó el mensaje y no llegó la
+  respuesta) tampoco: pudo salir. El mismo `idEnvio` con otro asunto o cuerpo:
+  `cambiado`, no envía.
+- **Máximo por hora** («Máximo de correos por hora», 100 si falta): si la tanda
+  no cabe, `limite` sin enviar nada, con `libreA`. Cuentan los enviados, los
+  inciertos y las pruebas de la última hora (`portal_mensajes/hora.json`).
+- **Corte**: ante cualquier rechazo o corte del servidor de correo la tanda se
+  detiene (`detenida`); lo que no salió queda `fallido` o `pendiente` y otro
+  `enviar` con la misma tanda («Reintentar») manda primero lo nunca intentado
+  y después lo fallido.
+- **Uno a la vez** en todo el portal (candado de archivo): si hay otro,
+  `ocupado` sin enviar.
+- **Registro**: tras `completa` o `detenida`, el servidor llama a
+  `mensajesRegistrar` con usuario y rol de la SESIÓN y los totales del envío;
+  si el Sheet está ocupado reintenta 3 veces con 2 s de espera. Ningún correo
+  entra al registro (un correo en el asunto o los grupos se cambia por «[correo]»).
+
+### `prueba` y `avance` (5-nov)
+
+`prueba`: `datos: {asunto, cuerpo}` (`X-CSRF`) → el mismo `resultado` que una
+tanda de una sola familia, más `para`. Va a «Correo de prueba» (Config
+mensajes); si está vacío, al usuario de la sesión si es un correo; si no, al
+buzón que envía. Asunto con «[Prueba] » delante. Cuenta para el máximo por
+hora y no se anota en «Mensajes enviados».
+
+`avance`: `datos: {idEnvio}` → `resultado: {avance: {tanda, hechos, total, enCurso} | null}`.
+
+### Configuración del buzón (`portal_config.php`, fuera de la carpeta pública)
+
+`smtp_host`, `smtp_puerto` (465), `smtp_usuario` (el buzón, que también es el
+remitente) y `smtp_clave` (la contraseña; nunca en el repositorio ni en el
+navegador). Opcionales: `smtp_nombre` («Vida en Arte»), `msj_logo` (dirección
+del logo), `msj_carpeta`. La conexión va siempre cifrada (SSL directo);
+`smtp_seguridad => 'ninguna'` solo vale contra 127.0.0.1 (las pruebas).
 
 ### Apps Script de la Base de Datos (`bdclientesvea/apps-script-vea.gs`)
 
 Tres acciones nuevas en `doPost`: `mensajesLeer`, `mensajesGuardarPlantilla`,
-`mensajesRegistrar`. Además de la clave general (`key`; desde el 4-nov la
+`mensajesRegistrar` (5-nov: recibe además `enviadas` y `fallidas`, el total
+del envío, y los escribe en las columnas «Enviadas», «Fallidas» y «Canal» =
+«Servidor», que agrega solas al final si faltan). Además de la clave general (`key`; desde el 4-nov la
 propiedad `BD_CLAVE_API`, ver «Base de Datos VEA») piden **`claveMensajes`** igual a la
 propiedad del script **`MSJ_CLAVE_API`** (`msj_clave` en `portal_config.php`).
 Sin esa propiedad, las tres responden error. Escriben solo en «Plantillas de
 mensajes», «Mensajes enviados» y «Config mensajes», y las crean si faltan.
 
-### El envío (v1)
+### El envío (v1, hasta el 5-nov; ver `enviar`)
 
-Lo hace **una sola función**, `Mensajes.enviar` (`comun/mensajes.js`): abre la
+Lo hacía **una sola función**, `Mensajes.enviar` (`comun/mensajes.js`): abre la
 redacción de Gmail web con el asunto, el cuerpo y la tanda en **CCO** («Para»
 vacío), con `authuser` si «Cuenta de Gmail para mensajes» tiene valor. Para
 pasar a Resend se cambia esa función (y se agrega su acción aquí); la pantalla

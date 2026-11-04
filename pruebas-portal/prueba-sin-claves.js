@@ -10,7 +10,8 @@
  * Busca: direcciones /exec de Apps Script con su ID, IDs de implementación
  * (AKfycb…), hojas publicadas en la web (…/spreadsheets/d/e/2PACX-…), claves en
  * una dirección (key=…), la clave vieja de la Base de Datos y cualquier clave
- * escrita como valor (APPS_KEY, CLAVE_API, 'clave' => …, 'as_clave' => …).
+ * escrita como valor (APPS_KEY, CLAVE_API, 'clave' => …, 'as_clave' => …,
+ * 5-nov: 'smtp_clave' => …, la contraseña del buzón que envía).
  * Los LEEME y REPORTE de una entrega no se revisan: viven en el computador de
  * Marco y no se suben (el LEEME lleva la clave nueva a propósito).
  *
@@ -34,7 +35,7 @@ const PATRONES = [
   ['clave en una dirección', /[?&](key|clave)=[A-Za-z0-9_.~-]{12,}/],
   ['la clave vieja de la Base de Datos', new RegExp(VIEJA)],
   ['clave escrita en el código', /\b(APPS_KEY|CLAVE_API|API_KEY)\s*[:=]\s*['"][^'"\s]{6,}['"]/],
-  ['clave o /exec escrita como valor de configuración', /['"](clave|as_clave|pa_clave|pr_clave|msj_clave|exec|as_exec|pa_exec|pr_exec)['"]\s*=>\s*['"][^'"\s…]{12,}['"]/]
+  ['clave o /exec escrita como valor de configuración', /['"](clave|as_clave|pa_clave|pr_clave|msj_clave|smtp_clave|exec|as_exec|pa_exec|pr_exec)['"]\s*=>\s*['"][^'"\s…]{12,}['"]/]
 ];
 
 function hallazgos(texto) {
@@ -50,10 +51,12 @@ const PLANTADOS = [
   "var CLAVE_API = '" + VIEJA + "';",
   'const APPS_KEY = "otra-clave-inventada";',
   "  'clave' => 'clave-inventada-0123456789',",
-  "  'msj_clave' => 'Abc123Inventada456Xyz',"
+  "  'msj_clave' => 'Abc123Inventada456Xyz',",
+  "  'smtp_clave' => 'ClaveDelBuzonInventada99',"
 ];
 const BUENOS = [
   " *     'msj_clave' => 'la misma que MSJ_CLAVE_API en el script de la Base de Datos',",
+  " *     'smtp_clave'   => 'la contraseña de ese buzón (la escribe Marco a mano)',",
   " *     'pr_exec'      => 'https://script.google.com/macros/s/…/exec',",
   "var PROP_CLAVE_API = 'BD_CLAVE_API';",
   'const APPS_SCRIPT_URL = "api.php";',

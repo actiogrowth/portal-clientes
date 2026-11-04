@@ -5,13 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Mensajes a familias · Vida en Arte 360</title>
-<!-- Mensajes a familias (3-nov). Dirección, Administrador y Comercial (área
-  «mensajes»; el puente vuelve a exigirlo). Lee por la capa de datos:
-  Datos.mensajes.leer() (solo niños inscritos y activos, ya filtrados en el
-  servidor). Quién recibe lo decide comun/mensajes.js (grupos, unión, un
-  correo por familia, exclusión, inválidos, «Sin correo», tandas). El envío
-  pasa por UNA función, Mensajes.enviar (v1: abre Gmail con todo en copia
-  oculta). Contrato en docs/ACCIONES_API.md › Mensajes a familias. -->
+<!-- Mensajes a familias (3-nov; 5-nov: envía el servidor). Abren Dirección,
+  Administrador y Comercial (área «mensajes»; el puente vuelve a exigirlo).
+  Lee por la capa de datos: Datos.mensajes.leer() (solo niños inscritos y
+  activos, ya filtrados y clasificados en el servidor). Quién recibe lo decide
+  comun/mensajes.js (grupos, unión, un correo por familia, «Sin correo»,
+  tandas). El envío pasa por UNA función, Mensajes.enviar: el servidor manda
+  un correo por familia desde el buzón del hosting. Envían solo Dirección y
+  Administrador (D.puedeEnviar, que decide el servidor); Comercial arma el
+  grupo y ve las cifras y la vista previa, sin correos. Contrato en
+  docs/ACCIONES_API.md › Mensajes a familias. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
@@ -20,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script src="/comun/tema.js?v=90ae127559"></script>
-<link rel="stylesheet" href="/comun/vea.css?v=ff2f7b5e3b">
+<link rel="stylesheet" href="/comun/vea.css?v=05f3c0ea45">
 </head>
 <body>
 <header id="cab"></header>
@@ -94,7 +97,7 @@
   <section id="vista-enviados" role="tabpanel" aria-labelledby="tab-enviados" class="oculto">
     <div class="tarjeta">
       <h2>Enviados</h2>
-      <p class="ayuda" style="margin-bottom:14px">Los últimos 20 registros. Cada tanda queda «Registrado como abierto en Gmail»: la app no puede saber si el correo se envió de verdad.</p>
+      <p class="ayuda" style="margin-bottom:14px">Los últimos 20 envíos, con las familias a las que de verdad les salió el correo y las que fallaron. Los de antes del 5-nov se abrieron en Gmail: de esos solo se sabe que se abrieron.</p>
       <div id="enviados"></div>
     </div>
   </section>
@@ -110,8 +113,8 @@
   </section>
 </main>
 
-<script src="/comun/datos.js?v=0ce54c0f1a"></script>
-<script src="/comun/mensajes.js?v=43d48ae538"></script>
+<script src="/comun/datos.js?v=62fa2e69ae"></script>
+<script src="/comun/mensajes.js?v=98a7b5916c"></script>
 <script src="/comun/marca.js?v=9f094af087"></script>
 <script>
 'use strict';
@@ -122,7 +125,7 @@ $('#esqueleto').innerHTML = Marca.esqueleto('tarjetas');
 
 /* Estado de la pantalla. */
 let D = null, CFG = null, G = [], CONTEOS = {};
-const E = { paso: 1, elegidos: new Set(), plantilla: '', asunto: '', cuerpo: '', lista: null, tandas: [], abiertas: {}, id: '' };
+const E = { paso: 1, elegidos: new Set(), plantilla: '', asunto: '', cuerpo: '', lista: null, tandas: [], res: {}, id: '', enviando: 0, prueba: null };
 const COLOR = { 'After School': 'var(--unidad-afterschool)', 'Preschool': 'var(--unidad-preschool)', Parkour: 'var(--parkour)', Telas: 'var(--telas)', Parkids: 'var(--parkids)' };
 
 /* Los nombres llegan en mayúsculas desde After School: se muestran con mayúscula inicial. */
@@ -202,20 +205,23 @@ function filaSin(x) {
     (x.telefono ? '<span class="ms-tel">' + esc(x.telefono) + '</span>' : '<span class="ms-tel">Sin teléfono</span>') +
     (x.whatsapp ? '<a class="btn sec chico" href="' + esc(x.whatsapp) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') + '</li>';
 }
+const ENV = () => D.envio || {};
 function pintarRevisar() {
   const L = E.lista;
-  const hoy = (D.familiasHoy || 0) + L.familias;
   let html = '<div class="tarjeta"><h2>Revisa antes de enviar</h2><div class="ms-cifras">' +
     cifra('Familias que recibirán', L.familias, true) + cifra('Niños en los grupos', L.ninos) + cifra('Correos repetidos quitados', L.repetidos) +
     cifra('Sin correo', L.sinCorreo.length) + (L.invalidos.length ? cifra('Correos con formato inválido', L.invalidos.length) : '') + '</div>';
   html += '<p class="ayuda" style="margin-top:12px">Grupos: ' + esc(nombresElegidos().join(', ')) + '.</p>';
-  html += CFG.cuenta ? '<div class="aviso info" style="margin-top:12px">Gmail se abrirá con la cuenta <b>' + esc(CFG.cuenta) + '</b>.</div>'
-    : '<div class="aviso ojo" style="margin-top:12px"><b>Revisa que estés en la cuenta de Vida en Arte.</b> Gmail se abrirá con la cuenta que tengas abierta en este navegador.</div>';
-  if (hoy > CFG.avisoDia) html += '<div class="aviso ojo" style="margin-top:10px">Con este envío, hoy se habrán escrito a ' + hoy + ' familias: pasa de ' + CFG.avisoDia + '. Gmail puede frenar los envíos por el límite diario; si quieres, deja una parte para mañana.</div>';
+  if (L.familias > CFG.maxHora) {
+    const horas = Math.ceil(L.familias / CFG.maxHora);
+    html += '<div class="aviso info" style="margin-top:12px">Se pueden enviar hasta ' + CFG.maxHora + ' correos por hora: este envío toma unas ' + horas + ' horas. La pantalla te dirá a qué hora puedes seguir con cada tanda.</div>';
+  }
   html += '</div>';
-  html += '<div class="tarjeta"><h2>Vista previa</h2><div class="ms-correo"><dl><dt>Para</dt><dd>(vacío)</dd><dt>CCO</dt><dd>' + plural(L.familias, 'familia', 'familias') +
+  html += '<div class="tarjeta"><h2>Vista previa</h2><div class="ms-correo"><dl>' +
+    (D.puedeEnviar && ENV().remitente ? '<dt>De</dt><dd>' + esc(ENV().remitente) + '</dd>' : '<dt>De</dt><dd>Vida en Arte</dd>') +
+    '<dt>Para</dt><dd>Cada familia por separado: ' + plural(L.familias, 'correo', 'correos') + ', cada uno con su familia como único destinatario' +
     (E.tandas.length > 1 ? ', en ' + E.tandas.length + ' tandas de hasta ' + CFG.porTanda : '') + '</dd><dt>Asunto</dt><dd>' + esc(E.asunto) + '</dd></dl>' +
-    '<div class="ms-cuerpo">' + esc(E.cuerpo) + '</div></div></div>';
+    '<div class="ms-cuerpo"><img class="ms-logo-correo" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte" width="180" height="37">' + esc(E.cuerpo) + '</div></div></div>';
   html += '<div class="tarjeta"><h2>Sin correo (' + L.sinCorreo.length + ')</h2>' + (L.sinCorreo.length
     ? '<p class="ayuda" style="margin-bottom:12px">No les llegará este correo: escríbeles por otro lado.</p><ul class="ms-lista">' + L.sinCorreo.map(filaSin).join('') + '</ul>'
     : '<p class="ayuda">Todas las familias de estos grupos tienen correo.</p>') + '</div>';
@@ -223,23 +229,62 @@ function pintarRevisar() {
   $('#revisar').innerHTML = html;
 }
 
-/* ── Paso 4: enviar (tandas) ──────────────────────────────────────────── */
+/* ── Paso 4: enviar (el servidor, por tandas) ─────────────────────────── */
+const correoDe = clave => ((E.lista.destinos || []).find(d => d.clave === clave) || {}).correo || '';
+const listaCorreos = claves => claves.map(correoDe).filter(Boolean);
+/* Lo que dice cada tanda según el último resultado del servidor. */
+function estadoTanda(i) {
+  const r = E.res[i];
+  if (E.enviando === i) return { clase: '', texto: r && r.avance ? 'Enviando… ' + r.avance.hechos + ' de ' + r.avance.total : 'Enviando…', listo: false };
+  if (!r) return { clase: '', texto: '', listo: false };
+  if (r.error) return { clase: ' mal', texto: r.error, listo: false };
+  const ok = (r.enviadas || []).length + (r.yaEstaban || []).length, fal = (r.fallidas || []).length, inc = (r.inciertas || []).length, pen = (r.pendientes || []).length;
+  let t = plural(ok, 'familia enviada', 'familias enviadas') + (fal ? ' · ' + plural(fal, 'fallida', 'fallidas') : '') + (inc ? ' · ' + inc + ' sin confirmar' : '') + (pen ? ' · ' + pen + ' sin enviar' : '') + '.';
+  if (r.estado === 'limite') t = (r.motivo || 'Se llegó al máximo de correos por hora.') + (r.hora && r.hora.libreA ? ' Puedes seguir a las ' + Mensajes.horaDe(r.hora.libreA) + '.' : '');
+  else if (r.estado === 'ocupado' || r.estado === 'cambiado') t = r.motivo;
+  else if (r.estado === 'detenida') t += ' Se detuvo: ' + (r.motivo || 'el servidor de correo no respondió.');
+  if (r.registro && r.registro.ok === false) t += ' (No se pudo anotar en «Mensajes enviados»: se anotará con la próxima tanda o el reintento.)';
+  const listo = r.estado === 'completa' && !fal && !pen;
+  return { clase: listo ? ' ok' : ' mal', texto: t, listo };
+}
+function detalleTanda(i) {
+  const r = E.res[i];
+  if (!r || E.enviando === i) return '';
+  const filas = [];
+  (r.fallidas || []).forEach(f => filas.push('<li><b>' + esc(correoDe(f.clave) || 'Familia') + '</b><small>No salió: ' + esc(f.motivo || '') + '</small></li>'));
+  (r.inciertas || []).forEach(k => filas.push('<li><b>' + esc(correoDe(k) || 'Familia') + '</b><small>Sin confirmar: se cortó la conexión justo al enviarlo; pudo haber salido. No se reenvía solo para no mandarlo dos veces.</small></li>'));
+  return filas.length ? '<ul class="ms-fallas">' + filas.join('') + '</ul>' : '';
+}
 function pintarEnviar() {
-  const n = E.tandas.length;
-  let html = '<div class="tarjeta"><h2>' + (n > 1 ? 'Envía las ' + n + ' tandas' : 'Envía el correo') + '</h2>' +
-    '<p class="ayuda" style="margin-bottom:14px">Cada botón abre Gmail con el asunto, el mensaje y ' + (n > 1 ? 'los correos de esa tanda' : 'todos los correos') + ' en copia oculta (CCO). Revisa y pulsa <b>Enviar</b> en Gmail.' +
-    (n > 1 ? ' Abre una tanda, envíala y luego la siguiente.' : '') + '</p>' +
-    (CFG.cuenta ? '' : '<div class="aviso ojo" style="margin-bottom:14px">Revisa que estés en la cuenta de Vida en Arte.</div>') +
-    '<div class="ms-tandas">' + E.tandas.map((t, i) => {
-      const ab = E.abiertas[i + 1];
-      return '<div class="ms-tanda' + (ab && ab.ok ? ' abierta' : '') + '" data-tanda="' + (i + 1) + '"><h3>' + (n > 1 ? 'Tanda ' + (i + 1) + ' de ' + n : 'Tanda única') + '</h3>' +
-        '<span class="ayuda">' + plural(t.length, 'familia', 'familias') + '</span>' +
-        '<div class="ms-tbotones"><button type="button" class="btn primario" data-abrir="' + (i + 1) + '">Abrir en Gmail</button>' +
-        '<button type="button" class="btn sec" data-copiar-correos="' + (i + 1) + '">Copiar correos</button></div>' +
-        '<p class="ms-estado' + (ab ? (ab.ok ? ' ok' : ' mal') : '') + '" data-estado="' + (i + 1) + '">' + esc(ab ? ab.texto : '') + '</p></div>';
-    }).join('') + '</div>' +
+  const n = E.tandas.length, env = ENV();
+  if (!D.puedeEnviar) {
+    $('#enviar').innerHTML = '<div class="tarjeta"><h2>Listo para enviar</h2><p class="ayuda">El mensaje está armado: ' + plural(E.lista.familias, 'familia', 'familias') +
+      (n > 1 ? ' en ' + n + ' tandas' : '') + '. Tu rol puede preparar y revisar el mensaje, pero el envío lo hacen Dirección o Administración. Pídeles que lo envíen desde Mensajes.</p></div>';
+    return;
+  }
+  const ocupado = E.enviando > 0;
+  let html = '<div class="tarjeta"><h2>' + (n > 1 ? 'Envía las ' + n + ' tandas' : 'Envía el correo') + '</h2>';
+  if (!env.listo) html += '<div class="aviso mal" style="margin-bottom:14px">Falta configurar el buzón que envía en la configuración del servidor del portal. Hasta entonces no se puede enviar.</div>';
+  html += '<p class="ayuda" style="margin-bottom:14px">El correo sale desde <b>' + esc(env.remitente || 'el buzón de Vida en Arte') + '</b>: uno por familia, cada uno con su familia como único destinatario. ' +
+    (n > 1 ? 'Envía una tanda, espera el resultado y luego la siguiente. ' : '') + 'Máximo ' + CFG.maxHora + ' correos por hora.</p>';
+  // Prueba
+  const pr = E.prueba;
+  html += '<div class="ms-prueba"><div><b>Antes del envío real, mándate una prueba.</b><span class="ayuda">Llega solo a ' + esc(env.destinoPrueba || 'tu correo') + ', con «[Prueba]» en el asunto.</span></div>' +
+    '<button type="button" class="btn sec" id="enviarPrueba"' + (ocupado || !env.listo || (pr && pr.enCurso) ? ' disabled' : '') + '>' + (pr && pr.enCurso ? 'Enviando prueba…' : 'Enviarme una prueba') + '</button>' +
+    (pr && !pr.enCurso ? '<p class="ms-estado' + (pr.ok ? ' ok' : ' mal') + '" aria-live="polite">' + esc(pr.texto) + '</p>' : '') + '</div>';
+  html += '<div class="ms-tandas">' + E.tandas.map((t, idx) => {
+    const i = idx + 1, est = estadoTanda(i), r = E.res[i];
+    const empezada = r && !r.error && ((r.enviadas || []).length || (r.yaEstaban || []).length || (r.fallidas || []).length || (r.inciertas || []).length || r.estado === 'limite' || r.estado === 'ocupado');
+    const boton = est.listo ? '' : '<button type="button" class="btn primario" data-enviar="' + i + '"' + (ocupado || !env.listo ? ' disabled' : '') + '>' +
+      (E.enviando === i ? 'Enviando…' : empezada ? 'Reintentar' : (n > 1 ? 'Enviar tanda ' + i : 'Enviar')) + '</button>';
+    const avance = E.enviando === i && r && r.avance && r.avance.total ? '<progress class="ms-avance" max="' + r.avance.total + '" value="' + r.avance.hechos + '"></progress>' : (E.enviando === i ? '<progress class="ms-avance"></progress>' : '');
+    return '<div class="ms-tanda' + (est.listo ? ' abierta' : '') + '" data-tanda="' + i + '"><h3>' + (n > 1 ? 'Tanda ' + i + ' de ' + n : 'Tanda única') + '</h3>' +
+      '<span class="ayuda">' + plural(t.length, 'familia', 'familias') + '</span>' + avance +
+      '<div class="ms-tbotones">' + boton + '<button type="button" class="btn sec" data-copiar-correos="' + i + '">Copiar correos</button></div>' +
+      '<p class="ms-estado' + est.clase + '" data-estado="' + i + '" aria-live="polite">' + esc(est.texto) + '</p>' + detalleTanda(i) + '</div>';
+  }).join('') + '</div>' +
     '<div class="ms-pie-form"><button type="button" class="btn sec" id="copiarMensaje">Copiar mensaje</button>' +
-    '<span class="ayuda">Si Gmail no se abre: «Copiar correos» y pégalos en CCO; «Copiar mensaje» y pégalo en el correo.</span></div></div>';
+    '<span class="ayuda">Respaldo: si el servidor no pudiera enviar, «Copiar correos» y «Copiar mensaje» para enviarlo a mano.</span></div></div>';
   $('#enviar').innerHTML = html;
 }
 async function copiar(txt, boton, listo) {
@@ -252,41 +297,66 @@ async function copiar(txt, boton, listo) {
   setTimeout(() => { boton.textContent = antes; }, 2200);
 }
 $('#enviar').addEventListener('click', ev => {
-  const a = ev.target.closest('[data-abrir]'), c = ev.target.closest('[data-copiar-correos]');
-  if (c) { copiar(E.tandas[c.dataset.copiarCorreos - 1].join(', '), c, 'Correos copiados'); return; }
+  const b = ev.target.closest('[data-enviar]'), c = ev.target.closest('[data-copiar-correos]');
+  if (c) { copiar(listaCorreos(E.tandas[c.dataset.copiarCorreos - 1].map(d => d.clave)).join(', '), c, 'Correos copiados'); return; }
   if (ev.target.closest('#copiarMensaje')) { copiar(E.asunto + '\n\n' + E.cuerpo, ev.target.closest('#copiarMensaje'), 'Mensaje copiado'); return; }
-  if (!a) return;
-  const n = Number(a.dataset.abrir);
-  // Dentro del clic: si no, el navegador bloquea la ventana nueva.
-  const r = Mensajes.enviar(E.tandas[n - 1], { asunto: E.asunto, cuerpo: E.cuerpo }, CFG);
-  if (!r.abierto) { E.abiertas[n] = { ok: false, texto: 'El navegador no dejó abrir Gmail. Permite las ventanas emergentes o usa «Copiar correos» y «Copiar mensaje».' }; pintarEnviar(); return; }
-  E.abiertas[n] = { ok: false, texto: (r.demasiadoLargo ? 'El enlace es muy largo: si Gmail no muestra todo, usa «Copiar». ' : '') + 'Registrando…' };
-  pintarEnviar();
-  registrar(n, r.demasiadoLargo);
+  if (ev.target.closest('#enviarPrueba')) { enviarPrueba(); return; }
+  if (b) enviarTanda(Number(b.dataset.enviar));
 });
-async function registrar(n, largo) {
-  const extra = largo ? 'El enlace es muy largo: si Gmail no muestra todo, usa «Copiar». ' : '';
+async function enviarPrueba() {
+  E.prueba = { enCurso: true }; pintarEnviar();
   try {
-    const j = await Datos.mensajes.registrar({ idEnvio: E.id, grupos: nombresElegidos().join(', '), familias: E.lista.familias, sinCorreo: E.lista.sinCorreo.length + E.lista.invalidos.length,
-      plantilla: E.plantilla, asunto: E.asunto, tanda: n, tandas: E.tandas.length });
-    E.abiertas[n] = { ok: true, texto: extra + 'Registrado como abierto en Gmail.' };
-    anotarLocal(j.resultado && j.resultado.tandas);
+    const r = (await Datos.mensajes.prueba({ asunto: E.asunto, cuerpo: E.cuerpo })).resultado;
+    const ok = r.estado === 'completa' && (r.enviadas || []).length === 1;
+    E.prueba = { ok, texto: ok ? 'Prueba enviada a ' + r.para + '. Revisa ese buzón (y la carpeta de spam) antes del envío real.'
+      : r.estado === 'limite' ? (r.motivo || 'Se llegó al máximo de correos por hora.') + (r.hora && r.hora.libreA ? ' Puedes seguir a las ' + Mensajes.horaDe(r.hora.libreA) + '.' : '')
+      : 'La prueba no salió: ' + (r.motivo || ((r.fallidas || [])[0] || {}).motivo || 'sin respuesta del servidor de correo') };
   } catch (e) {
     if (e.codigo === 'sesion') { Datos.aLogin(); return; }
-    E.abiertas[n] = { ok: false, texto: extra + 'Gmail se abrió, pero no se pudo registrar: ' + e.message };
+    E.prueba = { ok: false, texto: 'La prueba no salió: ' + e.message };
   }
   pintarEnviar();
 }
-/* El registro recién escrito, para que «Enviados» lo muestre sin volver a leer todo. */
-function anotarLocal(tandas) {
-  const ya = D.enviados.find(x => x._id === E.id);
-  if (ya) { ya.tandas = tandas || ya.tandas; return; }
+async function enviarTanda(i) {
+  if (E.enviando) return;
+  const t = E.tandas[i - 1], previo = E.res[i];
+  const primera = !Object.keys(E.res).some(k => E.res[k] && !E.res[k].error && E.res[k].estado !== 'limite' && E.res[k].estado !== 'ocupado');
+  if (primera && !confirm('Se enviará el correo «' + E.asunto + '» a ' + plural(t.length, 'familia', 'familias') + ' (tanda ' + i + ' de ' + E.tandas.length + ') desde ' + (ENV().remitente || 'el buzón de Vida en Arte') + '. ¿Enviar?')) return;
+  E.enviando = i;
+  E.res[i] = Object.assign({}, previo && !previo.error ? previo : {}, { avance: null });
+  pintarEnviar(); pintarBarra();
+  // Mientras el servidor envía, se pregunta cada poco cuántos lleva.
+  const reloj = setInterval(async () => {
+    try { const a = (await Datos.mensajes.avance(E.id)).resultado.avance; if (E.enviando === i && a && a.tanda === i) { E.res[i].avance = a; pintarEnviar(); } } catch (e) { }
+  }, 1500);
+  try {
+    const r = await Mensajes.enviar({ idEnvio: E.id, tanda: i, tandas: E.tandas.length, claves: t.map(d => d.clave), asunto: E.asunto, cuerpo: E.cuerpo,
+      plantilla: E.plantilla, grupos: nombresElegidos().join(', '), familias: E.lista.familias, sinCorreo: E.lista.sinCorreo.length + E.lista.invalidos.length });
+    E.res[i] = r;
+    if (r.total && (r.estado === 'completa' || r.estado === 'detenida')) anotarLocal(r);
+  } catch (e) {
+    if (e.codigo === 'sesion') { clearInterval(reloj); Datos.aLogin(); return; }
+    E.res[i] = { error: (e.codigo === 'incierto' || e.codigo === 'red' ? 'No llegó la respuesta del servidor: puede que parte de la tanda haya salido. Pulsa «Reintentar»: lo que ya salió no se repite. ' : 'No se envió: ') + e.message };
+  } finally {
+    clearInterval(reloj);
+    E.enviando = 0;
+  }
+  pintarEnviar(); pintarBarra();
+}
+/* El registro recién escrito por el servidor, para que «Enviados» lo muestre sin volver a leer todo. */
+function anotarLocal(r) {
+  let ya = D.enviados.find(x => x._id === E.id);
   const d = new Date(), dos = n => String(n).padStart(2, '0');
-  D.enviados.unshift({ _id: E.id, fecha: d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()) + ' ' + dos(d.getHours()) + ':' + dos(d.getMinutes()),
-    usuario: D.usuario, rol: D.rol, grupos: nombresElegidos().join(', '), familias: E.lista.familias, sinCorreo: E.lista.sinCorreo.length + E.lista.invalidos.length,
-    plantilla: E.plantilla, asunto: E.asunto, tandas: tandas || '' });
-  D.familiasHoy = (D.familiasHoy || 0) + E.lista.familias;
-  D.enviados = D.enviados.slice(0, 20);
+  if (!ya) {
+    ya = { _id: E.id, fecha: d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()) + ' ' + dos(d.getHours()) + ':' + dos(d.getMinutes()),
+      usuario: D.usuario, rol: D.rol, grupos: nombresElegidos().join(', '), familias: E.lista.familias, sinCorreo: E.lista.sinCorreo.length + E.lista.invalidos.length,
+      plantilla: E.plantilla, asunto: E.asunto, tandas: '', enviadas: 0, fallidas: 0, canal: 'Servidor' };
+    D.enviados.unshift(ya);
+    D.enviados = D.enviados.slice(0, 20);
+  }
+  D.familiasHoy = (D.familiasHoy || 0) + (r.total.enviadas - (ya.enviadas || 0));
+  ya.enviadas = r.total.enviadas; ya.fallidas = r.total.fallidas;
+  if (r.registro && r.registro.tandas) ya.tandas = r.registro.tandas;
 }
 
 /* ── Navegación entre pasos ───────────────────────────────────────────── */
@@ -306,6 +376,9 @@ function pintarBarra() {
   s.textContent = E.paso === 3 ? 'Ir a enviar' : 'Siguiente';
   s.disabled = !puedeSeguir();
   $('#atras').textContent = E.paso === 4 ? 'Cambiar algo' : 'Atrás';
+  $('#atras').disabled = E.enviando > 0;
+  // 5-nov: en «Enviar» la barra deja de flotar: así nunca tapa las tandas (en la reunión del 4-nov el cuadro se cortaba).
+  document.querySelector('main.ms').classList.toggle('ms-en-envio', E.paso === 4);
   document.querySelectorAll('#pasos li').forEach(li => {
     const p = Number(li.dataset.paso);
     if (p === E.paso) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
@@ -314,7 +387,7 @@ function pintarBarra() {
 }
 function irA(p) {
   E.paso = p;
-  if (p >= 3) { recalcular(); E.tandas = Mensajes.tandas(E.lista.correos, CFG.porTanda); }
+  if (p >= 3) { recalcular(); E.tandas = Mensajes.tandas(E.lista.destinos, CFG.porTanda); }
   if (p === 3) pintarRevisar();
   if (p === 4) { if (!E.id) E.id = Mensajes.idEnvio(); pintarEnviar(); }
   for (let i = 1; i <= 4; i++) $('#paso-' + i).classList.toggle('oculto', i !== p);
@@ -324,13 +397,15 @@ function irA(p) {
 }
 $('#siguiente').addEventListener('click', () => { if (puedeSeguir() && E.paso < 4) irA(E.paso + 1); });
 $('#atras').addEventListener('click', () => {
-  if (E.paso === 4 && Object.keys(E.abiertas).length && !confirm('Ya abriste tandas en Gmail. Si cambias algo, lo que vuelvas a abrir se registra como un envío nuevo. ¿Seguir?')) return;
-  if (E.paso === 4) { E.id = ''; E.abiertas = {}; }
+  if (E.enviando) return;
+  const empezado = Object.keys(E.res).some(k => E.res[k] && ((E.res[k].enviadas || []).length || (E.res[k].yaEstaban || []).length));
+  if (E.paso === 4 && empezado && !confirm('Ya salieron correos de este envío. Si cambias algo, lo que envíes después es un envío NUEVO: las familias que ya lo recibieron lo recibirán otra vez. ¿Seguir?')) return;
+  if (E.paso === 4) { E.id = ''; E.res = {}; E.prueba = null; }
   if (E.paso > 1) irA(E.paso - 1);
 });
 function reiniciar() {
   if (!D) return;
-  Object.assign(E, { paso: 1, elegidos: new Set(), plantilla: '', asunto: '', cuerpo: '', tandas: [], abiertas: {}, id: '' });
+  Object.assign(E, { paso: 1, elegidos: new Set(), plantilla: '', asunto: '', cuerpo: '', tandas: [], res: {}, id: '', enviando: 0, prueba: null });
   $('#asunto').value = ''; $('#cuerpo').value = '';
   recalcular(); pintarGrupos(); pintarPlantillasSelect(); irA(1);
 }
@@ -340,10 +415,12 @@ function pintarEnviados() {
   if (!D) return;
   const l = D.enviados;
   $('#enviados').innerHTML = !l.length ? '<p class="ayuda">Todavía no hay envíos registrados.</p>' : '<ul class="ms-env">' + l.map(e =>
-    '<li><span class="ms-easunto">' + esc(e.asunto || '(sin asunto)') + '</span><span class="ms-enum"><b>' + (e.familias == null ? '—' : e.familias) + '</b> familias</span>' +
+    '<li><span class="ms-easunto">' + esc(e.asunto || '(sin asunto)') + '</span>' + (e.canal
+      ? '<span class="ms-enum"><b>' + (e.enviadas == null ? '—' : e.enviadas) + '</b> enviadas' + (e.fallidas ? ' · <b class="ms-mal">' + e.fallidas + '</b> fallidas' : '') + '<br><small>de ' + (e.familias == null ? '—' : e.familias) + ' familias</small></span>'
+      : '<span class="ms-enum"><b>' + (e.familias == null ? '—' : e.familias) + '</b> familias</span>') +
     '<span class="ms-emeta">' + esc(e.fecha) + ' · ' + esc(e.usuario) + (e.rol ? ' (' + esc(e.rol) + ')' : '') + ' · ' + esc(e.grupos) +
-    (e.plantilla ? ' · plantilla «' + esc(e.plantilla) + '»' : ' · texto libre') + ' · ' + (e.sinCorreo == null ? '—' : e.sinCorreo) + ' sin correo · tandas abiertas: ' + esc(e.tandas || '—') +
-    ' · Registrado como abierto en Gmail</span></li>').join('') + '</ul>';
+    (e.plantilla ? ' · plantilla «' + esc(e.plantilla) + '»' : ' · texto libre') + ' · ' + (e.sinCorreo == null ? '—' : e.sinCorreo) + ' sin correo' +
+    (e.canal ? ' · tandas enviadas: ' + esc(e.tandas || '—') + ' · enviado por el servidor' : ' · tandas abiertas: ' + esc(e.tandas || '—') + ' · Registrado como abierto en Gmail (antes del 5-nov)') + '</span></li>').join('') + '</ul>';
 }
 
 /* ── Plantillas (Dirección y Administrador) ───────────────────────────── */
@@ -409,6 +486,7 @@ async function cargar() {
   reiniciar();
   atenderHash();
 }
+window.addEventListener('beforeunload', ev => { if (E.enviando) { ev.preventDefault(); ev.returnValue = ''; } });
 cargar();
 </script>
 </body>

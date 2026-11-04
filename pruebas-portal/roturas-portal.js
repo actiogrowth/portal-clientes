@@ -17,6 +17,14 @@ const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista',
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
+  // 5-nov: Mensajes, envío por el servidor
+  ['Mensajes: Comercial puede enviar', 'portal-raiz/permisos.php', "                       'area:mensajes',\n", "                       'area:mensajes', 'mensajes.enviar',\n"],
+  ['Mensajes: envía sin mensajes.enviar', 'mensajes/api.php', "if (in_array($accion, MS_ENVIAN, true) && !$puedeEnviar) fallo(", "if (false) fallo("],
+  ['Mensajes: envía sin el sello CSRF', 'mensajes/api.php', "if (in_array($accion, ['enviar', 'prueba'], true) && !csrf_valido($_SERVER['HTTP_X_CSRF'] ?? '')) fallo(", "if (false) fallo("],
+  ['Mensajes: los correos le llegan a quien no envía', 'mensajes/api.php', "if (!$puedeEnviar) unset($f['correo']); return $f;", "return $f;"],
+  ['Mensajes: el registro usa el usuario del navegador', 'mensajes/api.php', "    $reg = ['idEnvio' => $id, 'usuario' => $usuario, 'rol' => $rol,", "    $reg = ['idEnvio' => $id, 'usuario' => (string) ($d['usuario'] ?? $usuario), 'rol' => (string) ($d['rol'] ?? $rol),"],
+  ['Mensajes: la prueba va a cualquier dirección', 'mensajes/api.php', "    $para = ms_destino_prueba($L['config'], $usuario, $smtp['usuario']);", "    $para = (string) ($d['para'] ?? 'otra@ejemplo.test');"],
+  ['Mensajes: lo enviado se guarda en la carpeta pública', 'mensajes/correo.php', "dirname(__DIR__, 2) . '/portal_mensajes'", "dirname(__DIR__) . '/portal_mensajes'"],
   // 4-nov (D-123): el puente de la Base de Datos
   ['Base de Datos: guarda sin bd.editar', 'basededatos/api.php', "    if (!puede('bd.editar')) bd_fallo(", "    if (false) bd_fallo("],
   ['Base de Datos: guarda sin el sello CSRF', 'basededatos/api.php', "    if (!csrf_valido($_SERVER['HTTP_X_CSRF'] ?? null)) bd_fallo(", "    if (false) bd_fallo("],
@@ -26,7 +34,7 @@ const ROTURAS = [
   ['Base de Datos: manda a Google todo lo que llega', 'basededatos/api.php', "    foreach (BD_CAMPOS[$accion] ?? [] as $c) if (array_key_exists($c, $datos)) $envio[$c] = $datos[$c];", "    $envio = $datos + $envio;"],
   ['Base de Datos: no pide sesión ni rol', 'basededatos/api.php', "\nrequerir_sesion();\n", "\n"],
   ['Base de Datos: la lectura no da el sello', 'basededatos/api.php', "    header('X-CSRF: ' . csrf_token());", "    csrf_token();"],
-  ['Base de Datos: Comercial sin bd.editar (ya no podría guardar)', 'portal-raiz/permisos.php', "'area:mensajes', 'mensajes.enviar',\n                       'bd.editar'],", "'area:mensajes', 'mensajes.enviar'],"],
+  ['Base de Datos: Comercial sin bd.editar (ya no podría guardar)', 'portal-raiz/permisos.php', "'area:mensajes',\n                       'bd.editar'],", "'area:mensajes'],"],
   // 23-oct: Procesos, biblioteca y portada por marca
   ['Procesos manda lo que no es para el cliente (recorte de Administrador)', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], roles_permiten(roles_actuales(), 'pa.internos'),"],
   ['Procesos manda lo interno a todos', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], true,"],
