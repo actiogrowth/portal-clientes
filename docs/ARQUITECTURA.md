@@ -748,6 +748,15 @@ acción, no hay botón.
   más) y publicar **Nueva versión** en la implementación existente; en
   `portal_config.php`, `'msj_clave' => '…'` (la misma). Usa `exec` y `clave`
   (los de la Base de Datos) y `as_exec` y `as_clave` (After School).
+- **Publicado y verificado el 4-nov-2026** (Apps Script de la Base de Datos en
+  versión 18). Dónde está el puente de la Base de Datos: proyecto «Vida en
+  Arte» del Sheet `VEA_BaseDatos_Clientes` (Extensiones › Apps Script), cuenta
+  `crececon@actiogrowth.com`. Tiene **una sola** implementación activa, tipo App
+  web. Para reimplantar: Implementar › Gestionar implementaciones › haz clic en la ACTIVA (la de arriba) y confirma que su ID empieza por `AKfycbyiAv7t`; las archivadas muestran «Biblioteca» sin /exec; en esa, lápiz › «Nueva versión».
+- **Pendiente para un ajuste** (PENDIENTES.md): reintento automático del
+  registro cuando responde «otro guardado en curso»; «Cuenta de Gmail para
+  mensajes» editable desde Configuración; aviso si el asunto o el cuerpo
+  conservan corchetes de la plantilla.
 
 ## 3. Dónde vive cada cosa
 
@@ -757,7 +766,7 @@ acción, no hay botón.
 | Estilos, capa de datos y logos | `comun/` → `/comun/` en el servidor (pública, sin datos) | Su `htaccess.txt` se sube renombrado a `.htaccess` **dentro** de `comun/` |
 | Maquetas de referencia del diseño | `docs/diseno/` (ignorada por git: traen nombres de ejemplo) | Solo en el equipo; no entran al repo ni se publican |
 | Raíz del portal en el servidor | `/home/…/portal.vidaenarte.com/` | Se sube desde `portal-raiz/` (el `.htaccess` es `htaccess.txt` renombrado) |
-| `portal_config.php` | `/home/…/` (una carpeta arriba, fuera de la web) | A mano en el cPanel. Lleva `as_exec`, `as_clave` y la configuración de los tableros. **No está en el repo.** |
+| `portal_config.php` | `/home/…/` (una carpeta arriba, fuera de la web) | A mano en el cPanel. Lleva `as_exec`, `as_clave` y la configuración de los tableros. **No está en el repo.** **Una línea mal escrita deja todo el portal sin datos** (pasó el 4-nov): ver la advertencia de `docs/PLANTILLA_LEEME.md` |
 | Cuentas del portal | `/home/…/portal_usuarios.json` (fuera de la web) | Solo desde Configuración › Usuarios |
 | Sesiones | `/home/…/portal_sesiones/` | Las crea PHP |
 | Apps Script | Proyecto ligado al Sheet `VEA_AfterSchool_BD` | Copiar `after-school-script/AfterSchool.gs`, pegar, **Nueva versión** de la implementación |
