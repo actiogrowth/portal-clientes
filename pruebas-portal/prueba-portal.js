@@ -1453,7 +1453,17 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         const permOrig = fs.readFileSync(archPerm, 'utf8');
         const sinEditar = permOrig.replace(/('area:mensajes', 'mensajes\.enviar'),\r?\n\s*'bd\.editar'\],(\s*\/\/[^\r\n]*)?/, "$1],");
         ok(sinEditar !== permOrig, 'la prueba encuentra la línea de bd.editar de Comercial en permisos.php');
-        fs.writeFileSync(archPerm, sinEditar);
+        // El servidor de pruebas guarda los PHP compilados (opcache) y mira la fecha del
+        // archivo como mucho cada 2 s: se cambia la fecha a mano y se espera a que la vea.
+        let corrimiento = 0;
+        const cambiarYEsperar = async texto => {
+          fs.writeFileSync(archPerm, texto);
+          corrimiento += 30000;   // cada cambio, una fecha distinta y posterior
+          const t = new Date(Date.now() + corrimiento);
+          fs.utimesSync(archPerm, t, t);
+          await new Promise(r => setTimeout(r, 3500));
+        };
+        await cambiarYEsperar(sinEditar);
         try {
           const r = await leer('prueba-comercial');
           ok(r.status === 200 && r.j && r.j.ok, 'Comercial sin bd.editar: sigue leyendo la Base de Datos (' + r.status + ')');
@@ -1463,7 +1473,14 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
             const w = await escribir('prueba-comercial', cuerpo, sello);
             ok(w.status === 403 && w.j && w.j.codigo === 'sin_permiso' && google.llamadas.length === antes, 'Comercial sin bd.editar: ' + cuerpo.accion + ' con su sello → 403 «sin_permiso», no llega a Google (dio ' + w.status + ')');
           }
-        } finally { fs.writeFileSync(archPerm, permOrig); }
+        } finally { await cambiarYEsperar(permOrig); }
+        // Y de vuelta: con el permiso restituido, Comercial guarda otra vez (el servidor ya ve el original).
+        {
+          const sello = await selloDe('prueba-comercial');
+          const antes = google.llamadas.length;
+          const w = await escribir('prueba-comercial', GUARDAR, sello);
+          ok(w.status === 200 && google.llamadas.length === antes + 1, 'Comercial con bd.editar otra vez: guarda (dio ' + w.status + ')');
+        }
       }
       const fuenteBd = fs.readFileSync(path.join(web, 'basededatos', 'api.php'), 'utf8');
       ok(fuenteBd.indexOf('session_write_close();') > 0 && fuenteBd.indexOf('session_write_close();') < fuenteBd.indexOf('curl_init('), 'basededatos/api.php suelta la sesión antes de esperar a Google (D-068)');
