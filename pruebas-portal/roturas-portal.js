@@ -253,7 +253,7 @@ function copiar(de, a) {
   let detectadas = 0, inexistentes = 0;
   for (const [nombre, archivo, de, a] of ROTURAS) {
     const original = fs.readFileSync(path.join(REPO, archivo), 'utf8').replace(/\r\n/g, '\n');
-    if (original.split(de).length !== 2) { inexistentes++; log('  ? ' + nombre + ': el texto a romper no aparece una sola vez en ' + archivo + ' (actualizar roturas-portal.js)'); continue; }
+    if (original.split(de).length !== 2) { inexistentes++; if (process.env.GITHUB_ACTIONS) log('::error title=Rotura sin texto::' + nombre + ' (' + archivo + ')'); log('  ? ' + nombre + ': el texto a romper no aparece una sola vez en ' + archivo + ' (actualizar roturas-portal.js)'); continue; }
     const fuente = fs.mkdtempSync(path.join(os.tmpdir(), 'portal-rotura-'));
     for (const c of CARPETAS) copiar(path.join(REPO, c), path.join(fuente, c));
     fs.writeFileSync(path.join(fuente, archivo), original.replace(de, a));
@@ -264,6 +264,8 @@ function copiar(de, a) {
     console.log = log;
     if (!paso) detectadas++;
     log((paso ? '  ✗ NO DETECTADA: ' : '  ✓ ') + nombre);
+    // En GitHub, además, como aviso de la tanda: los avisos se leen sin iniciar sesión.
+    if (paso && process.env.GITHUB_ACTIONS) log('::error title=Rotura no detectada::' + nombre + ' (' + archivo + ')');
   }
   log('');
   log(detectadas + ' de ' + ROTURAS.length + ' roturas detectadas' + (inexistentes ? ' (' + inexistentes + ' sin texto)' : ''));
