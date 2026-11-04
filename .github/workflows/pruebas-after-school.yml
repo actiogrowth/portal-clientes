@@ -59,7 +59,7 @@ jobs:
           node-version: '20'
 
       - name: Sintaxis de los PHP
-        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php resumen/*.php pendientes/*.php kinder/*.php mensajes/*.php; do php -l "$f" || exit 1; done
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php resumen/*.php pendientes/*.php kinder/*.php mensajes/*.php basededatos/*.php; do php -l "$f" || exit 1; done
 
       - name: Proyecto Actio · Apps Script (lectura por títulos, nada interno)
         run: node proyecto-actio-script/pruebas/prueba-proyecto-actio.js
@@ -109,6 +109,9 @@ jobs:
 
       - name: Sintaxis de comun/ (capa de datos y marca)
         run: for f in comun/*.js; do node --check "$f" || exit 1; done
+
+      - name: Ninguna clave, /exec ni hoja publicada en lo que se sube al cPanel
+        run: node pruebas-portal/prueba-sin-claves.js
 
       - name: Roles y usuarios, de punta a punta
         env:

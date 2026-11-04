@@ -13,10 +13,20 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes', 'kinder', 'mensajes'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes', 'kinder', 'mensajes', 'basededatos'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [
+  // 4-nov (D-123): el puente de la Base de Datos
+  ['Base de Datos: guarda sin bd.editar', 'basededatos/api.php', "    if (!puede('bd.editar')) bd_fallo(", "    if (false) bd_fallo("],
+  ['Base de Datos: guarda sin el sello CSRF', 'basededatos/api.php', "    if (!csrf_valido($_SERVER['HTTP_X_CSRF'] ?? null)) bd_fallo(", "    if (false) bd_fallo("],
+  ['Base de Datos: deja pasar cualquier acción por POST (login, Mensajes)', 'basededatos/api.php', "    if (!in_array($accion, BD_ESCRIBIR, true)) bd_fallo(", "    if (false) bd_fallo("],
+  ['Base de Datos: deja pasar cualquier acción por GET', 'basededatos/api.php', "    if (!in_array($accion, BD_LEER, true)) bd_fallo(", "    if (false) bd_fallo("],
+  ['Base de Datos: usa la clave que manda el navegador', 'basededatos/api.php', "    $envio['key'] = $clave;", "    $envio['key'] = $datos['key'] ?? $clave;"],
+  ['Base de Datos: manda a Google todo lo que llega', 'basededatos/api.php', "    foreach (BD_CAMPOS[$accion] ?? [] as $c) if (array_key_exists($c, $datos)) $envio[$c] = $datos[$c];", "    $envio = $datos + $envio;"],
+  ['Base de Datos: no pide sesión ni rol', 'basededatos/api.php', "\nrequerir_sesion();\n", "\n"],
+  ['Base de Datos: la lectura no da el sello', 'basededatos/api.php', "    header('X-CSRF: ' . csrf_token());", "    csrf_token();"],
+  ['Base de Datos: Comercial sin bd.editar (ya no podría guardar)', 'portal-raiz/permisos.php', "'area:mensajes', 'mensajes.enviar',\n                       'bd.editar'],", "'area:mensajes', 'mensajes.enviar'],"],
   // 23-oct: Procesos, biblioteca y portada por marca
   ['Procesos manda lo que no es para el cliente (recorte de Administrador)', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], roles_permiten(roles_actuales(), 'pa.internos'),"],
   ['Procesos manda lo interno a todos', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], true,"],
@@ -51,7 +61,7 @@ const ROTURAS = [
   // permisos.php
   ['Dirección puede tocar cuentas de Administrador (sin «excepto»)', 'portal-raiz/permisos.php', "'excepto' => ['usuarios.admin', 'pa.internos'],", "'excepto' => ['pa.internos'],"],
   ['las carpetas sin asignar quedan abiertas', 'portal-raiz/permisos.php', "    return CARPETAS_AREA[$carpeta] ?? '*';", "    return CARPETAS_AREA[$carpeta] ?? null;"],
-  ['Comercial con After School completo', 'portal-raiz/permisos.php', "'area:basededatos', 'as.ver', 'as.pruebas.ver',\n                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],", "'area:basededatos', 'as.ver', 'as.pruebas.ver', 'as.completo',\n                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],"],
+  ['Comercial con After School completo', 'portal-raiz/permisos.php', "'area:basededatos', 'as.ver', 'as.pruebas.ver',\n                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo',", "'area:basededatos', 'as.ver', 'as.pruebas.ver', 'as.completo',\n                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo',"],
   ['Contabilidad recibe contactos', 'portal-raiz/permisos.php', "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'area:procesos', 'procesos.ver:*', 'area:equipo'],", "'as.pagos.registrar', 'as.pruebas.ver', 'as.pruebas.pago', 'as.contactos.todos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],"],
   ['una acción sin permiso propio solo pide as.ver', 'portal-raiz/permisos.php', "    return PERMISO_ACCION_AS[$accion] ?? 'as.completo';", "    return PERMISO_ACCION_AS[$accion] ?? 'as.ver';"],
   ['Comercial ve contactos de cualquier niño', 'portal-raiz/permisos.php', "if ($esNino && !($politica === 'prospectos' && ($valor->estado ?? '') === 'Prospecto')) {", "if ($esNino && $politica !== 'prospectos') {"],

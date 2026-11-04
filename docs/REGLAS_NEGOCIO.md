@@ -10,6 +10,7 @@ prueba tiene que detectar. Archivos:
 - **PO** = `pruebas-portal/prueba-portal.js` · roturas en `roturas-portal.js`
 - **PR** = `procesos-script/pruebas/prueba-procesos.js` · roturas en `procesos-script/pruebas/roturas.js`
 - **CI** = `pruebas-portal/prueba-cifras.js` (con sus roturas dentro)
+- **SC** = `pruebas-portal/prueba-sin-claves.js` · **BC** = `bdclientesvea/pruebas/prueba-clave.js` (con sus roturas dentro)
 - **MS** = `pruebas-portal/prueba-mensajes.js` (con sus roturas dentro) · **BM** = `bdclientesvea/pruebas/prueba-mensajes.js` (con sus roturas dentro)
 - **PS** = `pruebas-portal/prueba-preschool.js` (tablero de Preschool, con sus roturas dentro)
 - **OR** = `pruebas-portal/prueba-organigrama.js` (con sus roturas dentro)
@@ -210,3 +211,5 @@ Una regla sin prueba se marca **SIN PRUEBA**.
 | R168 | «Sin correo» lleva el teléfono con su enlace de WhatsApp (código de país de Config a los números de 7 u 8 dígitos). | `comun/mensajes.js` (`enlaceWhatsapp`) | MS «WhatsApp sin código de país» |
 | R169 | Registro: una fila por envío en «Mensajes enviados», con usuario y rol de la sesión; cada tanda abierta se suma; nunca correos ni nombres de niños; nada se guarda como fórmula. | `mensajes/api.php`, `apps-script-vea.gs` (`mensajesRegistrar_`) | PO § Mensajes a familias · BM «cada tanda abre una fila nueva», «el registro guarda los correos», «se guardan fórmulas» |
 | R170 | Las pestañas de mensajes se crean si faltan y nunca se pisan; la Base de Datos y las unidades no se tocan. | `apps-script-vea.gs` (`hojaMensajes_`) | BM «crea la pestaña aunque ya exista» |
+| R171 | (4-nov) La Base de Datos la leen solo los roles con el área; guardar y eliminar piden además `bd.editar` y el sello CSRF; solo pasan `leer`, `guardarTodo` y `eliminarNino`, con su lista de campos y la clave del servidor. | `basededatos/api.php`, `permisos.php` | PO § Base de Datos VEA; roturas «Base de Datos: …» |
+| R172 | (4-nov) Ninguna clave en el navegador ni en el código: el script de la Base de Datos solo acepta la propiedad `BD_CLAVE_API` (sin ella, nadie); nada que se sube al cPanel trae claves, /exec ni hojas publicadas. | `apps-script-vea.gs` (`claveValida_`), todo lo del cPanel | BC (6 roturas); SC (se prueba a sí misma) |

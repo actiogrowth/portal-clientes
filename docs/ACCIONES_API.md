@@ -706,8 +706,8 @@ en Gmail».
 ### Apps Script de la Base de Datos (`bdclientesvea/apps-script-vea.gs`)
 
 Tres acciones nuevas en `doPost`: `mensajesLeer`, `mensajesGuardarPlantilla`,
-`mensajesRegistrar`. Además de la clave de siempre (`key`, que está en el
-`index.html` público de la Base de Datos) piden **`claveMensajes`** igual a la
+`mensajesRegistrar`. Además de la clave general (`key`; desde el 4-nov la
+propiedad `BD_CLAVE_API`, ver «Base de Datos VEA») piden **`claveMensajes`** igual a la
 propiedad del script **`MSJ_CLAVE_API`** (`msj_clave` en `portal_config.php`).
 Sin esa propiedad, las tres responden error. Escriben solo en «Plantillas de
 mensajes», «Mensajes enviados» y «Config mensajes», y las crean si faltan.
@@ -719,3 +719,29 @@ redacción de Gmail web con el asunto, el cuerpo y la tanda en **CCO** («Para»
 vacío), con `authuser` si «Cuenta de Gmail para mensajes» tiene valor. Para
 pasar a Resend se cambia esa función (y se agrega su acción aquí); la pantalla
 no cambia.
+
+## Base de Datos VEA (`/basededatos/` y `basededatos/api.php`) — 4-nov (D-123)
+
+La página (`index.html`) vive en el repositorio `bdclientesvea`; el puente,
+aquí. La página no tiene ninguna clave.
+
+| Pedido | Quién | Al script |
+|---|---|---|
+| `GET api.php?accion=leer` | Sesión con `area:basededatos` (Administrador, Dirección, Coordinación After School, Comercial, Coordinación Preschool) | `GET exec?accion=leer&key=<clave>`: solo esos dos parámetros |
+| `POST api.php` `{accion: 'guardarTodo', baseDatos, unidades}` + cabecera `X-CSRF` | Además `bd.editar` | `{accion, baseDatos, unidades, key}` |
+| `POST api.php` `{accion: 'eliminarNino', id}` + cabecera `X-CSRF` | Además `bd.editar` | `{accion, id, key}` |
+
+- La lectura devuelve en la cabecera de respuesta **`X-CSRF`** el sello de la
+  sesión; la página lo manda en cada escritura. Sin él (o con otro): 403
+  `{codigo: 'csrf'}` y la página dice «La página caducó: recárgala…».
+- Sin sesión: redirige al login. Sin el área: 403 `sin_permiso`. Escribir sin
+  `bd.editar`: 403 `sin_permiso`. Cualquier otra acción (`login`, las de
+  Mensajes, otras): 403, no llega al script.
+- La respuesta es la del script tal cual (`{ok, archivo, data, informe}`). Si
+  Google no responde: 502 `{ok: false, error}`.
+- `portal_config.php`: `'exec'` y `'clave'` (= propiedad `BD_CLAVE_API` del
+  script; 24 caracteres o más). Mensajes usa las mismas dos, más `'msj_clave'`.
+- El script (`doGet`/`doPost`) compara `key` con `BD_CLAVE_API`; sin la
+  propiedad, o si es corta, responde «clave invalida» a todo. La acción
+  `login` del aplicativo viejo sigue en el script, detrás de esa clave, pero el
+  puente no la deja pasar.

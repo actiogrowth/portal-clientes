@@ -24,6 +24,12 @@
  *                        '<unidad>' toda la unidad; '<unidad>:<proceso>' uno
  *                        solo (ver procesos_permite). Hoy todos los roles
  *                        tienen 'procesos.ver:*'.
+ *   bd.editar            Base de Datos VEA (4-nov, D-123): guardar y eliminar
+ *                        por basededatos/api.php. Leer basta con
+ *                        area:basededatos. Hoy lo tienen todos los roles que
+ *                        abren la Base de Datos (como hasta ahora: todos
+ *                        editaban); quitarlo de un rol lo deja en solo lectura
+ *                        del lado del servidor.
  * '*' concede todo; 'excepto' lo recorta para ese rol.
  * 'inactividad_max' (segundos): la sesión se cierra tras ese tiempo sin uso
  * (con varios roles manda el más corto).
@@ -53,7 +59,8 @@ const ROLES = [
         'descripcion' => 'After School completo, Pasar lista (también otros días), seguimiento de asistencia y la Base de Datos VEA.',
         'permisos' => ['area:afterschool', 'area:basededatos', 'area:pasarlista', 'as.ver', 'as.completo', 'as.pruebas.ver', 'as.pruebas.agendar',
                        'as.pruebas.pago', 'as.pagos.ver', 'as.pagos.registrar', 'as.contactos.todos', 'as.visitas.agendar',
-                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
+                       'as.lista.ver', 'as.lista.marcar', 'as.lista.corregir', 'as.seguimiento', 'area:procesos', 'procesos.ver:*', 'area:equipo',
+                       'bd.editar'],   // 4-nov: guarda en la Base de Datos (D-123)
     ],
     'recepcion' => [
         'inicio_as' => 'pruebas',
@@ -70,7 +77,8 @@ const ROLES = [
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
                        'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo',
                        // 3-nov: Mensajes a familias (enviar; las plantillas solo Dirección y Administrador).
-                       'area:mensajes', 'mensajes.enviar'],
+                       'area:mensajes', 'mensajes.enviar',
+                       'bd.editar'],   // 4-nov: guarda en la Base de Datos (D-123)
     ],
     'contabilidad' => [
         'inicio_as' => 'pagos',
@@ -81,7 +89,8 @@ const ROLES = [
     'coordinacion_preescolar' => [
         'nombre' => 'Coordinación Preschool',
         'descripcion' => 'Tablero de Preschool y Base de Datos VEA.',
-        'permisos' => ['area:kinder', 'area:basededatos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
+        'permisos' => ['area:kinder', 'area:basededatos', 'area:procesos', 'procesos.ver:*', 'area:equipo',
+                       'bd.editar'],   // 4-nov: guarda en la Base de Datos (D-123)
     ],
     'profesor' => [
         'inicio_as' => 'lista',

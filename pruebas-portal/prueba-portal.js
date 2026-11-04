@@ -191,6 +191,8 @@ const MSJ_AS = () => ({ hoy: '2026-11-03', config: {}, pruebas: [], pagosMes: [{
   inscripciones: [{ idNino: 'AS-0101', codigo: 'LUN-1630-PARKOUR' }, { idNino: 'AS-0101', codigo: 'JUE-1630-BABYYME' }, { idNino: 'AS-0104', codigo: 'JUE-1630-BABYYME' },
                   { idNino: 'AS-0105', codigo: 'MAR-1630-TELAS' }, { idNino: 'AS-0102', codigo: 'MAR-1630-TELAS' }],
   inscripcionesCerradas: [] });
+/* 4-nov (D-123): lo que lee la Base de Datos (inventado). */
+const BD_DATOS = () => ({ baseDatos: [{ id: 'VEA-901', nombre: 'Inventado', apellidos: 'Prueba', responsable: 'R', telefono: '6000-0901' }], unidades: { 'Kínder': {} }, gruposKinder: { grupos: [] } });
 const MSJ_BD = () => ({ hoy: '2026-11-03', familiasHoy: 40,
   preschool: [{ id: 'VEA-501', nombre: 'Kiki', apellidos: 'Inventada', telefono: '6000-0501', correo: 'familia.a@ejemplo.test', estado: 'Activo' },
               { id: 'VEA-502', nombre: 'Salio', apellidos: 'Inventado', telefono: '6000-0502', correo: 'salio@ejemplo.test', estado: 'Inactivo' }],
@@ -327,16 +329,25 @@ function googleFalso() {
     let cuerpo = '';
     req.on('data', d => { cuerpo += d; });
     req.on('end', () => {
+      // 4-nov (D-123): la Base de Datos lee por GET (?accion=leer&key=…).
+      if (req.method === 'GET' && req.url.startsWith('/exec?')) {
+        const q = new URL(req.url, 'http://x').searchParams;
+        llamadas.push({ metodo: 'GET', accion: q.get('accion'), key: q.get('key'), params: [...q.keys()], datos: {}, t: Date.now() });
+        const rr = q.get('key') !== 'clave-bd-de-prueba' ? { ok: false, error: 'clave invalida' }
+          : q.get('accion') === 'leer' ? { ok: true, archivo: 'prueba', data: BD_DATOS() } : { ok: false, error: 'accion no reconocida' };
+        res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(rr)); return;
+      }
       // 26-oct: los CSV publicados de Preschool (GET).
       if (req.method === 'GET' && /^\/csv\/(analisis|config)/.test(req.url)) {
         llamadas.push({ accion: 'csv:' + req.url.slice(5), key: '', datos: {}, t: Date.now() });
         res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' }); res.end(req.url.startsWith('/csv/analisis') ? CSV_ANALISIS() : CSV_CONFIG()); return;
       }
       let j = {}; try { j = JSON.parse(cuerpo); } catch (e) { }
-      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {}, claveMensajes: j.claveMensajes, t: Date.now() });
+      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {}, claveMensajes: j.claveMensajes, cuerpo: j, t: Date.now() });
       let r;
       if (j.key === 'clave-bd-de-prueba') {
-        if (j.claveMensajes !== 'clave-msj-de-prueba') r = { ok: false, error: 'clave de mensajes invalida' };
+        if (j.accion === 'guardarTodo' || j.accion === 'eliminarNino') r = { ok: true, archivo: 'prueba', data: BD_DATOS(), informe: { verificacion: {} } };
+        else if (j.claveMensajes !== 'clave-msj-de-prueba') r = { ok: false, error: 'clave de mensajes invalida' };
         else if (MSJ.falla) { res.writeHead(500, { 'Content-Type': 'text/html' }); res.end('<html>error</html>'); return; }
         else if (j.accion === 'mensajesLeer') r = { ok: true, resultado: MSJ_BD() };
         else if (j.accion === 'mensajesGuardarPlantilla') r = { ok: true, resultado: { plantillas: MSJ_BD().plantillas.concat([{ nombre: (j.datos || {}).nombre, asunto: '', cuerpo: '', activa: true }]) } };
@@ -450,6 +461,8 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'mensajes'), path.join(web, 'mensajes'));   // 3-nov: Mensajes a familias
   copiar(path.join(fuente, 'biblioteca'), path.join(web, 'biblioteca'));
   areasDeMentira(web);
+  // 4-nov (D-123): el puente de verdad de la Base de Datos (la página sigue siendo de mentira).
+  fs.copyFileSync(path.join(fuente, 'basededatos', 'api.php'), path.join(web, 'basededatos', 'api.php'));
   copiar(path.join(fuente, 'kinder'), path.join(web, 'kinder'));   // 28-oct: Preschool de verdad (csv.php sin montos)
   fs.writeFileSync(path.join(tmp, 'enrutador.php'), ENRUTADOR);
   // El enrutador lee este archivo en cada petición: se puede cambiar de .htaccess en plena prueba.
@@ -658,7 +671,7 @@ async function correr(fuente) {
         'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1, eq: 1 },
         'prueba-profesor-1':   { as: 1, pl: 1, proc: 1, eq: 1 }
       };
-      const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php?tabla=config'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
+      const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php?tabla=config'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php?accion=leer'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
         pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], res: ['/resumen/'], msj: ['/mensajes/'] };
       for (const [u, puede] of Object.entries(R)) {
@@ -1374,6 +1387,66 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         const pag = await n['prueba-comercial'].get('/mensajes/');
         ok(pag.status === 200 && /<title>Mensajes a familias/.test(pag.texto), 'Comercial abre la pantalla');
       } finally { MSJ.as = false; MSJ.falla = false; }
+    }
+
+    seccion('Base de Datos VEA (4-nov, D-123): sin clave en el navegador; leer con el área, escribir con bd.editar y CSRF');
+    {
+      const LEEN = ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-comercial', 'prueba-coord-pre'];
+      const NO = ['prueba-recepcion', 'prueba-contabilidad', 'prueba-profesor-1'];
+      const leer = (u, extra) => n[u].get('/basededatos/api.php?accion=leer' + (extra || ''));
+      const escribir = (u, cuerpo, csrf) => n[u].post('/basededatos/api.php', { json: cuerpo, headers: csrf === undefined ? {} : { 'X-CSRF': csrf } });
+      const GUARDAR = { accion: 'guardarTodo', baseDatos: [{ id: 'VEA-901', nombre: 'Inventado' }], unidades: { 'Kínder': {}, 'After School': {} } };
+      for (const u of NO) {
+        let antes = google.llamadas.length;
+        const r = await leer(u);
+        ok(r.status === 403 && r.j && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes && !/VEA-901/.test(r.texto), u + ': leer la Base de Datos → 403, sin llegar a Google (dio ' + r.status + ')');
+        antes = google.llamadas.length;
+        const w = await escribir(u, GUARDAR, 'cualquiera');
+        ok(w.status === 403 && google.llamadas.length === antes, u + ': guardar → 403, sin llegar a Google');
+      }
+      // El sello sale en la cabecera X-CSRF de la lectura.
+      const selloDe = async u => { const h = await fetch(base + '/basededatos/api.php?accion=leer', { headers: { Cookie: Object.entries(n[u].cookies).map(([k, v]) => k + '=' + v).join('; ') } }); return h.headers.get('x-csrf') || ''; };
+      for (const u of LEEN) {
+        let antes = google.llamadas.length;
+        const r = await leer(u, '&key=clave-del-navegador&otra=x');
+        const ll = google.llamadas.slice(antes);
+        ok(r.status === 200 && r.j && r.j.ok && r.j.data.baseDatos[0].id === 'VEA-901', u + ': lee la Base de Datos (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
+        ok(ll.length === 1 && ll[0].metodo === 'GET' && ll[0].key === 'clave-bd-de-prueba' && ll[0].params.sort().join() === 'accion,key', u + ': a Google llega la clave del servidor y nada más (la del navegador se descarta)');
+        ok(!/clave-bd-de-prueba|clave-msj-de-prueba/.test(r.texto), u + ': ninguna clave en la respuesta');
+        const sello = await selloDe(u);
+        ok(/^[0-9a-f]{64}$/.test(sello), u + ': la lectura trae el sello CSRF en la cabecera X-CSRF');
+        antes = google.llamadas.length;
+        const sin = await escribir(u, GUARDAR);
+        ok(sin.status === 403 && sin.j && sin.j.codigo === 'csrf' && google.llamadas.length === antes, u + ': guardar sin sello → 403 «csrf», no llega a Google');
+        const malo = await escribir(u, GUARDAR, 'f'.repeat(64));
+        ok(malo.status === 403 && malo.j && malo.j.codigo === 'csrf' && google.llamadas.length === antes, u + ': con un sello falso, tampoco');
+        antes = google.llamadas.length;
+        const g = await escribir(u, Object.assign({ key: 'clave-del-navegador', claveMensajes: 'x', extra: 'x' }, GUARDAR), sello);
+        const lg = google.llamadas.slice(antes);
+        ok(g.status === 200 && g.j && g.j.ok, u + ': guarda con su sello (' + g.status + ' ' + g.texto.slice(0, 120) + ')');
+        ok(lg.length === 1 && lg[0].key === 'clave-bd-de-prueba' && JSON.stringify(Object.keys(lg[0].cuerpo).sort()) === '["accion","baseDatos","key","unidades"]',
+          u + ': a Google llega solo accion, baseDatos, unidades y la clave del servidor (' + (lg[0] ? JSON.stringify(Object.keys(lg[0].cuerpo)) : '') + ')');
+        ok(lg[0] && !Array.isArray(lg[0].cuerpo.unidades) && typeof lg[0].cuerpo.unidades['Kínder'] === 'object' && !Array.isArray(lg[0].cuerpo.unidades['Kínder']), u + ': los objetos vacíos siguen siendo objetos (no listas)');
+        antes = google.llamadas.length;
+        const e = await escribir(u, { accion: 'eliminarNino', id: 'VEA-901', baseDatos: [] }, sello);
+        const le = google.llamadas.slice(antes);
+        ok(e.status === 200 && le.length === 1 && JSON.stringify(Object.keys(le[0].cuerpo).sort()) === '["accion","id","key"]', u + ': elimina con su sello, con solo accion, id y la clave');
+        for (const a of ['login', 'mensajesLeer', 'mensajesRegistrar', 'mensajesGuardarPlantilla', 'otra']) {
+          antes = google.llamadas.length;
+          const x = await escribir(u, { accion: a, user: 'x', pass: 'y' }, sello);
+          ok(x.status === 403 && google.llamadas.length === antes, u + ': ' + a + ' por este puente → 403, no llega a Google');
+        }
+        antes = google.llamadas.length;
+        const lo = await n[u].get('/basededatos/api.php?accion=login&user=x&pass=y');
+        ok(lo.status === 403 && google.llamadas.length === antes, u + ': por GET solo «leer» (login → 403, no llega a Google)');
+      }
+      ok((await new Nav(base).get('/basededatos/api.php?accion=leer')).status === 302, 'sin sesión, leer manda al login');
+      ok((await new Nav(base).post('/basededatos/api.php', { json: GUARDAR })).status === 302, 'sin sesión, guardar tampoco');
+      // Quién tiene bd.editar (preparado: quitárselo a un rol lo deja en solo lectura del servidor).
+      const solo = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_permiten(["coordinacion_preescolar"], "bd.editar"), roles_permiten(["coordinacion_afterschool"], "bd.editar"), roles_permiten(["comercial"], "bd.editar"), roles_permiten(["recepcion"], "bd.editar"), roles_permiten(["profesor"], "bd.editar"), roles_permiten(["contabilidad"], "bd.editar"), roles_permiten(["direccion"], "bd.editar")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
+      ok(solo.stdout.trim() === '[true,true,true,false,false,false,true]', 'bd.editar: lo tienen quienes abren la Base de Datos (Dirección y Administrador por *), no Recepción, Profesor ni Contabilidad (' + (solo.stdout + solo.stderr).slice(0, 200) + ')');
+      const fuenteBd = fs.readFileSync(path.join(web, 'basededatos', 'api.php'), 'utf8');
+      ok(fuenteBd.indexOf('session_write_close();') > 0 && fuenteBd.indexOf('session_write_close();') < fuenteBd.indexOf('curl_init('), 'basededatos/api.php suelta la sesión antes de esperar a Google (D-068)');
     }
 
     seccion('Pendientes de hoy (26-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');
