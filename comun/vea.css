@@ -1524,7 +1524,7 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 .ms-fallas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .ms-fallas li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: var(--peligro-fondo); color: var(--texto); overflow-wrap: anywhere; }
 .ms-fallas small { color: var(--texto-2); }
-.ms-correo .ms-logo-correo { display: block; width: 180px; max-width: 60%; height: auto; margin: 0 auto 16px; padding: 8px 12px; border-radius: 10px; background: #FFFFFF; }   /* como en el correo: sobre blanco */
+.ms-correo .ms-logo-correo { display: block; width: 180px; max-width: 60%; height: auto; margin: 0 auto 16px; padding: 8px 12px; border-radius: 10px; background: var(--blanco); }   /* como en el correo: sobre blanco */
 .ms-env .ms-mal { color: var(--peligro-texto); }
 .ms-env .ms-enum small { color: var(--suave); font-size: 12px; }
 @media (max-width: 640px) {
