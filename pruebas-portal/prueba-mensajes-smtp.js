@@ -116,7 +116,7 @@ const CLAVES = Object.keys(DEST);
     r = await tanda({ huellaMensaje: 'h2' });
     ok(r.estado === 'cambiado' && S.correos.length === 5, 'el mismo ID con otro mensaje: no envía y pide un envío nuevo', JSON.stringify(r));
     const archivo = path.join(carpeta, 'envio-envio-prueba-0001.json');
-    ok(fs.existsSync(archivo) && !archivo.startsWith(web), 'lo que salió se guarda FUERA de la carpeta pública');
+    ok(fs.existsSync(archivo) && !archivo.startsWith(web + path.sep), 'lo que salió se guarda FUERA de la carpeta pública');
     const contenido = fs.existsSync(archivo) ? fs.readFileSync(archivo, 'utf8') : '';
     ok(contenido && !/@/.test(contenido) && CLAVES.every(k => contenido.includes(k)), 'como huellas: el archivo no tiene ningún correo', contenido.slice(0, 300));
 
@@ -186,11 +186,11 @@ const CLAVES = Object.keys(DEST);
     const co = await php({ op: 'config', filas: [{ parametro: 'Destinatarios por tanda', valor: '50' }, { parametro: 'Correo excluido', valor: 'oficina@escuela.test' }, { parametro: 'Correo de prueba', valor: 'yo@vea.test' },
       { parametro: 'Cuenta de Gmail para mensajes', valor: 'x@gmail.test' }, { parametro: 'Otro', valor: 'algo@raro.test' }, { parametro: 'Máximo de correos por hora', valor: '100' }] });
     ok(JSON.stringify(co) === JSON.stringify([{ parametro: 'Destinatarios por tanda', valor: '50' }, { parametro: 'Máximo de correos por hora', valor: '100' }]), 'la configuración que va al navegador no lleva ningún correo', JSON.stringify(co));
-    ok(await php({ op: 'destino', config: [{ parametro: 'Correo de prueba', valor: ' Yo@VEA.test' }], usuario: 'otra@vea.test' })[0] === 'yo@vea.test', '«Enviarme una prueba»: primero el «Correo de prueba» de Config mensajes');
-    ok(await php({ op: 'destino', config: [], usuario: 'Direccion@vea.test' })[0] === 'direccion@vea.test', 'si no hay, el usuario de la sesión si es un correo');
-    ok(await php({ op: 'destino', config: [], usuario: 'direccion-uno' })[0] === 'buzon@vea-prueba.test', 'si no, el buzón que envía');
-    ok(await php({ op: 'numero', filas: [{ parametro: 'Máximo de correos por hora', valor: '100' }], parametro: 'Máximo de correos por hora' })[0] === 100 &&
-       await php({ op: 'numero', filas: [], parametro: 'Máximo de correos por hora' })[0] === 50, 'los números salen de Config mensajes (y si faltan, el valor prudente)');
+    ok((await php({ op: 'destino', config: [{ parametro: 'Correo de prueba', valor: ' Yo@VEA.test' }], usuario: 'otra@vea.test' }))[0] === 'yo@vea.test', '«Enviarme una prueba»: primero el «Correo de prueba» de Config mensajes');
+    ok((await php({ op: 'destino', config: [], usuario: 'Direccion@vea.test' }))[0] === 'direccion@vea.test', 'si no hay, el usuario de la sesión si es un correo');
+    ok((await php({ op: 'destino', config: [], usuario: 'direccion-uno' }))[0] === 'buzon@vea-prueba.test', 'si no, el buzón que envía');
+    ok((await php({ op: 'numero', filas: [{ parametro: 'Máximo de correos por hora', valor: '100' }], parametro: 'Máximo de correos por hora' }))[0] === 100 &&
+       (await php({ op: 'numero', filas: [], parametro: 'Máximo de correos por hora' }))[0] === 50, 'los números salen de Config mensajes (y si faltan, el valor prudente)');
     const ar = await php({ op: 'armar', m: { de: BUZON, nombre: 'Vida en Arte', para: 'x@familia.test', asunto: 'Hola\r\nBcc: otro@malo.test', cuerpo: '.línea con punto', logo: '', dominio: 'vea-prueba.test' } });
     const dd = decodificar(ar.datos || '');
     ok(!('bcc' in dd.encabezados) && /^Subject: Hola Bcc: otro@malo\.test\r?$/m.test(ar.datos || ''), 'un salto de línea en el asunto no mete otro encabezado', (ar.datos || '').slice(0, 400));
