@@ -135,7 +135,7 @@
 :root[data-modo="oscuro"] {
   --fondo: #111317; --panel: #1A1D22; --panel-2: #1F2228; --linea: #2A2E35; --borde-fuerte: #3A3F47; --borde-campo: #4A505A;
   --tinta: #F2F1EE; --suave: #B4B8BF; --tenue: #8D929A;
-  --accion-hover: #E8382A;
+  --accion-hover: #B81709;   /* 3-nov (Mensajes): más oscuro al pasar, no más claro: el blanco encima daba 4,2:1 */
   --activo: #F2F1EE; --sobre-activo: #111317; --activo-hover: #D9D7D2;
   --deshabilitado: #2A2E35;
   --parkour: #F0705F; --telas: #4FA6DA; --parkids: #F5B54A; --babyme: #9BCBE8; --babyme-borde: #9BCBE8;
@@ -217,7 +217,7 @@ h2.titulo, h3.titulo { font-family: var(--fuente); font-weight: 600; font-size: 
 .btn.primario { background: var(--accion); border-color: var(--accion); color: var(--blanco); }
 .btn.primario:hover { background: var(--accion-hover); border-color: var(--accion-hover); color: var(--blanco); }
 .btn.negro { background: var(--activo); border-color: var(--activo); color: var(--sobre-activo); }
-.btn.negro:hover { background: var(--activo-hover); color: var(--blanco); }
+.btn.negro:hover { background: var(--activo-hover); color: var(--sobre-activo); }   /* 3-nov: en oscuro el activo es claro: letra oscura también al pasar */
 .btn.azul { background: var(--azul); border-color: var(--azul); color: var(--blanco); }
 .btn.sec { border-color: var(--linea); }
 .btn.peligro { border-color: var(--peligro-borde); color: var(--peligro-texto); }
@@ -1433,7 +1433,7 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 
 /* ── Logos en oscuro ─────────────────────────────────────────────────────
    Las letras del logo de Vida en Arte son negras: en oscuro se muestra su
-   versión clara (comun/logo-vea-oscuro.png, de Vida en Arte). El de Kids va
+   versión clara (comun/logo-vea-oscuro.png, hecha por Actio a partir del logo oficial). El de Kids va
    sobre una placa clara redondeada (no se invierte: se dañarían sus colores).
    Aquí y no en armazon.css: la pantalla de entrada también los usa. */
 .logo-placa { border-radius: 10px; background: var(--placa-logo); }
@@ -1441,3 +1441,88 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 .logo-solo-oscuro { display: none !important; }
 [data-modo="oscuro"] .logo-solo-claro { display: none !important; }
 [data-modo="oscuro"] .logo-solo-oscuro { display: block !important; }
+
+/* ── Mensajes a familias (3-nov) ─────────────────────────────────────────
+   mensajes/index.html. Solo tokens: se ve igual de bien en claro y oscuro. */
+.ms .ms-titulo h1.titulo { font-size: 40px; line-height: 1; }
+.ms #avisos:empty, .ms #esqueleto:empty { display: none; }   /* vacíos no dejan hueco entre las pestañas y los pasos */
+.ms-pasos { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; counter-reset: paso; flex-wrap: wrap; }
+.ms-pasos li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--suave); padding: 6px 12px 6px 6px; border-radius: 999px; border: 1px solid var(--linea); background: var(--panel); }
+.ms-pasos li::before { counter-increment: paso; content: counter(paso); display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); color: var(--texto-2); font-weight: 600; font-size: 13px; }
+.ms-pasos li[aria-current="step"] { color: var(--tinta); font-weight: 600; border-color: var(--borde-fuerte); }
+.ms-pasos li[aria-current="step"]::before { background: var(--activo); color: var(--sobre-activo); }
+.ms-pasos li.hecho::before { background: var(--ok); color: var(--blanco); content: '✓'; }
+.ms-bloque + .ms-bloque { margin-top: 20px; }
+.ms-bloque h3 { margin-top: 0; }
+.ms-grupos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.ms-grupo { display: flex; align-items: center; gap: 12px; margin: 0; min-height: 56px; padding: 10px 14px; border: 1px solid var(--linea); border-radius: 14px;
+  background: var(--panel); color: var(--texto); font-size: 15px; font-weight: 500; cursor: pointer; }
+.ms-grupo:hover { border-color: var(--borde-fuerte); }
+.ms-grupo:has(input:checked) { border-color: var(--activo); box-shadow: inset 0 0 0 1px var(--activo); background: var(--panel-2); }
+.ms-grupo:has(input:focus-visible) { outline: 3px solid color-mix(in srgb, var(--azul) 45%, transparent); outline-offset: 2px; }
+.ms-grupo input { width: 20px; height: 20px; accent-color: var(--activo); flex-shrink: 0; }
+.ms-grupo .ms-gtxt { display: flex; flex-direction: column; min-width: 0; }
+.ms-grupo .ms-gtxt b { font-weight: 600; overflow-wrap: anywhere; }
+.ms-grupo small { color: var(--suave); font-size: 13px; }
+.ms-grupo.todo { min-height: 64px; }
+.ms-punto { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--c, var(--tenue)); }
+.ms-barra { position: sticky; bottom: 12px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border: 1px solid var(--linea); border-radius: 16px; background: var(--panel); box-shadow: var(--sombra-alta); margin-top: 20px; }
+.ms-barra .ms-cuenta { font-size: 15px; color: var(--texto); }
+.ms-barra .ms-cuenta b { font-size: 20px; }
+.ms-barra .ms-botones { display: flex; gap: 10px; flex-wrap: wrap; }
+.ms-cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.ms-cifra { border: 1px solid var(--linea); border-radius: 14px; padding: 14px 16px; background: var(--panel); }
+.ms-cifra span { display: block; font-size: 13px; color: var(--texto-2); }
+.ms-cifra .cifra-grande { display: block; margin-top: 6px; font-size: 36px; }
+.ms-cifra.principal { border-color: var(--activo); }
+.ms-correo { border: 1px solid var(--linea); border-radius: 14px; overflow: hidden; background: var(--panel); }
+.ms-correo dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; }
+.ms-correo dt, .ms-correo dd { margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--linea); font-size: 14px; }
+.ms-correo dt { color: var(--texto-2); font-weight: 600; background: var(--panel-2); }
+.ms-correo dd { overflow-wrap: anywhere; }
+.ms-correo .ms-cuerpo { padding: 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.55; color: var(--texto); }
+.ms-lista { list-style: none; margin: 0; padding: 0; border: 1px solid var(--linea); border-radius: 14px; overflow: hidden; }
+.ms-lista li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 14px; border-bottom: 1px solid var(--linea); background: var(--panel); font-size: 14px; }
+.ms-lista li:last-child { border-bottom: 0; }
+.ms-lista .ms-nino { flex: 1 1 200px; min-width: 0; }
+.ms-lista .ms-nino b { display: block; font-weight: 600; }
+.ms-lista .ms-nino small { color: var(--suave); }
+.ms-lista .ms-tel { color: var(--texto-2); font-variant-numeric: tabular-nums; }
+.ms-lista .btn { min-height: 36px; }
+.ms-tandas { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ms-tanda { border: 1px solid var(--linea); border-radius: 16px; padding: 16px; background: var(--panel); display: flex; flex-direction: column; gap: 10px; }
+.ms-tanda h3 { margin: 0; font-size: 16px; text-transform: none; letter-spacing: 0; color: var(--tinta); }
+.ms-tanda .ms-tbotones { display: flex; flex-wrap: wrap; gap: 8px; }
+.ms-tanda .ms-tbotones .btn { flex: 1 1 auto; }
+.ms-tanda.abierta { border-color: var(--ok-borde); }
+.ms-estado { font-size: 13px; color: var(--suave); min-height: 18px; }
+.ms-estado.ok { color: var(--ok-texto); font-weight: 600; }
+.ms-estado.mal { color: var(--peligro-texto); font-weight: 600; }
+.ms-env { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ms-env li { border: 1px solid var(--linea); border-radius: 14px; padding: 12px 16px; background: var(--panel); display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; }
+.ms-env .ms-easunto { font-weight: 600; color: var(--tinta); overflow-wrap: anywhere; }
+.ms-env .ms-emeta { grid-column: 1 / -1; font-size: 13px; color: var(--suave); overflow-wrap: anywhere; }
+.ms-env .ms-enum { text-align: right; font-size: 14px; color: var(--texto-2); white-space: nowrap; }
+.ms-env .ms-enum b { color: var(--tinta); font-size: 18px; }
+.ms-pl { display: flex; flex-direction: column; gap: 10px; }
+.ms-pl-item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; border: 1px solid var(--linea); border-radius: 14px; padding: 12px 16px; background: var(--panel); }
+.ms-pl-item .ms-pltxt { flex: 1 1 240px; min-width: 0; }
+.ms-pl-item .ms-pltxt b { display: block; color: var(--tinta); }
+.ms-pl-item .ms-pltxt small { color: var(--suave); overflow-wrap: anywhere; }
+.ms textarea.ms-cuerpo-campo { min-height: 260px; line-height: 1.5; font-size: 15px; }
+.ms .ms-pie-form { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-top: 8px; }
+@media (max-width: 640px) {
+  .ms .ms-titulo h1.titulo { font-size: 32px; }
+  .ms-pasos li { padding: 4px 10px 4px 4px; font-size: 13px; }
+  .ms-pasos li:not([aria-current="step"]) span { display: none; }
+  .ms-grupos { grid-template-columns: 1fr; }
+  .ms-barra { bottom: calc(var(--alto-abajo, 64px) + 8px); padding: 10px 12px; }
+  .ms-barra .ms-botones, .ms-barra .ms-botones .btn { width: 100%; }
+  .ms-barra .ms-botones { display: grid; grid-template-columns: 1fr 1fr; }
+  .ms-barra .ms-botones .btn.oculto + .btn { grid-column: 1 / -1; }   /* sin «Atrás», «Siguiente» ocupa toda la barra */
+  .ms-correo dl { grid-template-columns: 1fr; }
+  .ms-correo dt { border-bottom: 0; padding-bottom: 2px; }
+  .ms-cifra .cifra-grande { font-size: 30px; }
+  .ms textarea.ms-cuerpo-campo { min-height: 220px; }
+}

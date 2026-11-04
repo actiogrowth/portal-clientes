@@ -678,7 +678,7 @@ acción, no hay botón.
   ocupación de la semana, R125; Preschool: niños y ocupación, solo para quien
   abre el Resumen, que es quien recibe esos datos), accesos rápidos del rol
   (Pasar lista, Agendar visita, Inscribir y Mi lista si ocupa un puesto
-  abierto; «Mensaje a familias» oculto hasta que exista) y, para Dirección y
+  abierto; «Mensaje a familias» desde el 3-nov, para quien abre Mensajes) y, para Dirección y
   Administrador, el Resumen en corto con `Cifras.resumenNegocio` (las mismas
   cuentas que `/resumen/`). «Niños activos» del negocio sigue «Próximamente»
   (R128) y se muestra por unidad. `?marca=` muestra solo esa tarjeta.
@@ -712,10 +712,42 @@ acción, no hay botón.
 - **Todo color sale de los tokens** de `comun/vea.css`: el juego claro en `:root` y el oscuro en `:root[data-modo="oscuro"]`. Ninguna regla ni página escribe un color suelto (lo comprueba `prueba-rediseno.js`); los nombres nuevos: `--activo` / `--sobre-activo` (lo elegido: oscuro en claro, claro en oscuro), `--panel-2`, `--borde-fuerte`, `--borde-campo`, `--deshabilitado`, `--tinte-*` de las disciplinas, `--serie-*` de los gráficos, `--unidad-*` del Resumen, `--estado-validado/abierto`, `--losa-*`, `--escena-*`, `--papel-*`. `--blanco` queda solo para letra sobre un color de marca o de estado.
 - **Islas claras**: las tarjetas del organigrama y la hoja del contrato vuelven a declarar el juego claro (son blancas también en oscuro). El PDF y la impresión pasan a claro (`beforeprint` / `afterprint` en `tema.js`).
 - **Equipo**: en claro, la escena del ajuste 2; en oscuro, la escena oscura de antes (degradado, brillos del color de las áreas y chispas, sin las partículas comunes). Lo decide solo CSS (`[data-modo="oscuro"]`).
-- **Logos**: en oscuro, el logo de Vida en Arte es su versión clara, `comun/logo-vea-oscuro.png` (letras y barras blancas; la entregó Vida en Arte el 3-nov), que `Marca.logoVea` y la pantalla de entrada muestran con `.logo-solo-claro` / `.logo-solo-oscuro`. El de Kids va sobre una placa clara (`.logo-placa`). Nada se invierte con un filtro.
+- **Logos**: en oscuro, el logo de Vida en Arte es su versión clara, `comun/logo-vea-oscuro.png` (letras y barras blancas; versión clara hecha por Actio a partir del logo oficial, cambiando el negro por blanco; pendiente de que Vida en Arte la apruebe o entregue la suya), que `Marca.logoVea` y la pantalla de entrada muestran con `.logo-solo-claro` / `.logo-solo-oscuro`. El de Kids va sobre una placa clara (`.logo-placa`). Nada se invierte con un filtro.
 - **Páginas con paleta propia**: Preschool declara sus tonos como variables (con su versión oscura); Veranito y la Base de Datos (fuera del portal se ven como siempre) tienen, dentro del portal, su juego oscuro en `.portal[data-modo="oscuro"]`.
 - **Lienzo del organigrama**: su alto se mide con el árbol COMO SE VE (inclinado, con perspectiva, grosor y sombra) y se vuelve a medir al terminar la entrada; antes cortaba la última tarjeta de la columna más larga. Lo prueba `prueba-clics-organigrama.js` en claro y oscuro, a 1440, 1366, 1100 y 820 px.
 - **Contraste**: `pruebas-portal/contraste.js` mide todo el texto visible contra su fondo real (4,5:1; 3:1 el texto grande); lo usan `prueba-rediseno.js` (Inicio, Ocupación, Pasar lista, Pagos, Procesos y Resumen, en los dos modos) y las capturas.
+
+## 2j. Mensajes a familias (3-nov)
+
+```
+ /mensajes/index.html  ── comun/mensajes.js (grupos, unión, un correo por familia, exclusión,
+        │                 inválidos, «Sin correo», tandas, Gmail: Mensajes.enviar)
+        │  datos.js: Datos.mensajes.leer / guardarPlantilla / registrar
+        ▼
+ mensajes/api.php      requerir_sesion (área mensajes: Ad, Di, Comercial) + mensajes.enviar
+        │              solo activos y solo 6 campos (R161); usuario y rol de la sesión
+        ├─▶ AfterSchool.gs › leer             (VEA_AfterSchool_BD; sin cambios)
+        └─▶ apps-script-vea.gs › mensajes*   (VEA_BaseDatos_Clientes; clave + MSJ_CLAVE_API)
+                 lee «👦 Base de Datos» y «🧸 Kínder»; escribe solo en
+                 «Plantillas de mensajes», «Mensajes enviados» y «Config mensajes»
+```
+
+- **Pantalla** en cuatro pasos (Grupos · Mensaje · Revisar · Enviar), con
+  «Enviados» (los últimos 20) y, para Dirección y Administrador,
+  «Plantillas». Rutas: `#nuevo=mensaje`, `#enviados`, `#plantillas`.
+- **Acceso**: barra lateral (Gestión › Mensajes; en celular, en «Más»),
+  «Nuevo» › «Mensaje a familias», el acceso rápido de Inicio y el buscador
+  (sección «Mensajes»): todo sale del área `mensajes` de la sesión, y el puente
+  la vuelve a exigir.
+- **Envío v1**: Gmail web en CCO, tandas de «Destinatarios por tanda»
+  (50), aviso desde «Aviso de familias por día» (450), cuenta de
+  «Cuenta de Gmail para mensajes» o aviso «Revisa que estés en la cuenta de
+  Vida en Arte». Resend y WhatsApp van en encargos aparte.
+- **Instalar** (una vez): pegar `apps-script-vea.gs` en el proyecto de la Base
+  de Datos, agregar la propiedad del script `MSJ_CLAVE_API` (32 caracteres o
+  más) y publicar **Nueva versión** en la implementación existente; en
+  `portal_config.php`, `'msj_clave' => '…'` (la misma). Usa `exec` y `clave`
+  (los de la Base de Datos) y `as_exec` y `as_clave` (After School).
 
 ## 3. Dónde vive cada cosa
 
@@ -766,6 +798,8 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `pruebas-portal/prueba-preschool.js` | El tablero de Preschool (`kinder/index.html`) con un documento de mentira y datos inventados: ningún monto en pantalla aunque la hoja mandara la columna de pagos, globo con nombre y edad, cupos libres por salón, salidas del mes con motivo, pendientes de pago (solo inscritos, solo meses activos, hasta el último mes con pagos) y «Plan por registrar»; con sus roturas. Lo del servidor (`kinder/csv.php`) lo prueba `prueba-portal.js`. |
 | `pruebas-portal/prueba-clics-organigrama.js` | (30-oct) Clics y toques REALES en Chrome (Playwright, `playwright-core` + el Chrome instalado): pasar el mouse, esperar y hacer clic en el centro y en las esquinas de tarjetas de 4 áreas, y tocar en tablet; que se abra su ficha; la manito y el arrastre según la escala; sin errores de JavaScript. Falla con b4d1ff6. 2-nov: en computador y en celular, las pestañas de la ficha y «Ampliar» (pantalla completa, letra de 18 px, Esc / X / «Volver», PDF con subpuntos y Aceptar desde ahí). |
 | `pruebas-portal/prueba-rediseno.js` | (3-nov) Rediseño etapa 1 en Chrome real (Playwright), con los roles leídos de `permisos.php` y After School del `.gs` en el simulador: colores del sistema, ninguna página con vidrio ni foto, partículas; por rol, la barra lateral (1440), la de iconos (820), la inferior (390), «Nuevo» y lo que encuentra el buscador (niños, clases, documentos de Procesos y de Proyecto Actio, secciones); notificaciones (los avisos del servidor, número rojo, leído por usuario); Ocupación (cifras, «N libres», «Lleno», «Dónde hay más cupos», filtro, abrir una clase) y Pasar lista (48 px, ancho fijo, «N sin marcar», lo que se guarda). Con 10 roturas (p. ej. la barra muestra todo, «Nuevo» sin permiso, el buscador distingue tildes). Que un rol no reciba datos de otra sección lo garantiza cada puente y lo prueba `prueba-portal.js`. Ajuste 2: Equipo en Chrome real, fondo claro, partículas comunes y textos normales. |
+| `pruebas-portal/prueba-mensajes.js` | (3-nov) Las cuentas de Mensajes (`comun/mensajes.js`) con datos inventados: grupos desde los datos, unión, un correo por familia, exclusión, inválidos, «Sin correo» con WhatsApp, tandas, Gmail en CCO con `authuser`, una sola función de envío; y que la pantalla no arma enlaces ni llama a PHP. Con 10 roturas. |
+| `bdclientesvea/pruebas/prueba-mensajes.js` | (3-nov, otro repositorio) Las tres acciones de mensajes de `apps-script-vea.gs` contra un Sheet en memoria: cerrojo propio, Preschool por casilla y estado, pestañas que se crean sin pisar, plantillas, registro por tandas sin correos, sin fórmulas, y la Base de Datos intacta. Con 10 roturas. |
 | `pruebas-portal/prueba-organigrama.js` | El organigrama y la ficha (`comun/organigrama.js`, `comun/puestos.js`; 29-oct: Equipo v2): áreas en columnas en el orden de Puestos, sangría, líneas del color del área, cascada que termina a tiempo, máximo 20 chispas, colores en un solo lugar, la hora de los momentos, la ficha pintada con datos inventados (formato del contrato, cuándo hay Aceptar, Reglas antes de aceptar, hoja diaria, PDF) y, en el código y en vea.css, el diálogo, la pausa, «reducir movimiento», la versión sólida y la hoja de impresión; con sus roturas. 2-nov: también `comun/verificacion.js` (pestañas, contrato como el PDF, subpuntos, Ampliar, la lista con Ejecutado / No ejecutado, quitar, Pendiente / Vencido, por evento, historial, hojas semanales y mensuales, «Asignación temporal», «Por definir»). 3-nov (ajuste 2): Equipo sin escena oscura (sin chispas, brillos ni fondo oscuro), sombras grises suaves, textos en colores normales, líneas gris medio y del color del área; con sus roturas. |
 | `procesos-script/pruebas/prueba-procesos.js` | El Apps Script de Equipo en un simulador: lectura por título, períodos, aceptar, marcar y revisar, y que solo escribe en Aceptaciones, Marcas y Revisiones. Roturas en `procesos-script/pruebas/roturas.js`. |
 | `procesos-script/pruebas/prueba-equipo-v3.js` | (2-nov) Procesos.gs v5 contra un Sheet en memoria con el reloj fijo: Ejecutado / No ejecutado con motivo, por evento con nota, una marca por período, desmarcar que AGREGA «Desmarcada» y no borra (solo la propia y en su período), hojas «Cada semana» y «Cada mes», el calendario de 120 días, que no escribe si falta una columna y `actualizarEstructura` (Asignación, Resultado, Nota, Léeme) sin tocar datos; con sus roturas dentro. |

@@ -5,7 +5,7 @@ name: Pruebas After School
 
 on:
   push:
-    branches: [after-school-registro, roles-usuarios, rediseno-etapa1]
+    branches: [after-school-registro, roles-usuarios, rediseno-etapa1, mensajes-v1]
 
 permissions:
   contents: read
@@ -59,7 +59,7 @@ jobs:
           node-version: '20'
 
       - name: Sintaxis de los PHP
-        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php resumen/*.php pendientes/*.php kinder/*.php; do php -l "$f" || exit 1; done
+        run: for f in portal-raiz/*.php configuracion/*.php after-school/*.php pasar-lista/*.php proyecto-actio/*.php procesos/*.php equipo/*.php resumen/*.php pendientes/*.php kinder/*.php mensajes/*.php; do php -l "$f" || exit 1; done
 
       - name: Proyecto Actio · Apps Script (lectura por títulos, nada interno)
         run: node proyecto-actio-script/pruebas/prueba-proyecto-actio.js
@@ -78,6 +78,9 @@ jobs:
 
       - name: Proyecto Actio · visor por tipo de enlace
         run: node pruebas-portal/prueba-visor.js
+
+      - name: Mensajes a familias · grupos, un correo por familia, exclusión, tandas y Gmail (comun/mensajes.js) y sus roturas
+        run: node pruebas-portal/prueba-mensajes.js
 
       - name: Resumen del negocio · cifras (comun/cifras.js) y sus roturas
         run: node pruebas-portal/prueba-cifras.js

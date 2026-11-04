@@ -79,6 +79,9 @@ return [
   'procesos_general' => ['Gerencia'],
   'pr_exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
   'pr_clave' => 'clave-pr-de-prueba',
+  'exec' => 'http://127.0.0.1:${puertoGoogle}/exec',
+  'clave' => 'clave-bd-de-prueba',
+  'msj_clave' => 'clave-msj-de-prueba',
   'csv' => ['analisis' => 'http://127.0.0.1:${puertoGoogle}/csv/analisis', 'config' => 'http://127.0.0.1:${puertoGoogle}/csv/config'],
   'roles_iniciales' => [
 ${roles}
@@ -168,6 +171,32 @@ function areasDeMentira(web) {
 }
 
 /* ── Apps Script falso ───────────────────────────────────────────────────── */
+
+/* 3-nov: Mensajes a familias. Mientras MSJ.as está encendido, After School
+   «leer» contesta con estos niños (inventados), que traen de más a propósito
+   (responsable, nacimiento, notas, retirados, un niño solo de Baby & Me);
+   mensajes/api.php tiene que dejar salir solo a los activos y solo sus
+   campos. El script de la Base de Datos (clave-bd-de-prueba) contesta las
+   acciones de mensajes SOLO con la clave de mensajes buena. */
+const MSJ = { as: false, falla: false };
+const MSJ_AS = () => ({ hoy: '2026-11-03', config: {}, pruebas: [], pagosMes: [{ id: 'PG-9', idNino: 'AS-0101', monto: 99 }],
+  clases: [{ codigo: 'LUN-1630-PARKOUR', servicio: 'Parkour', dia: 'Lunes', hora: '16:30', cupo: 20 }, { codigo: 'MAR-1630-TELAS', servicio: 'Telas', dia: 'Martes', hora: '16:30', cupo: 12 },
+           { codigo: 'JUE-1630-BABYYME', servicio: 'Baby & Me', dia: 'Jueves', hora: '16:30', cupo: 8 }],
+  ninos: [
+    { id: 'AS-0101', estado: 'Activo', nombre: 'ZOE', apellidos: 'INVENTADA', responsable: 'RESPONSABLE-SECRETO', nacimiento: '2018-01-01', notas: 'NOTA-SECRETA', telefono: '6000-0101', correo: 'familia.a@ejemplo.test' },
+    { id: 'AS-0102', estado: 'Retirado', nombre: 'RETIRADO', apellidos: 'INVENTADO', telefono: '6000-0102', correo: 'retirado@ejemplo.test' },
+    { id: 'AS-0103', estado: 'Prospecto', nombre: 'INTERESADO', apellidos: 'INVENTADO', telefono: '6000-0103', correo: 'interesado@ejemplo.test' },
+    { id: 'AS-0104', estado: 'Activo', nombre: 'SOLO', apellidos: 'BEBE', telefono: '6000-0104', correo: 'solobebe@ejemplo.test' },
+    { id: 'AS-0105', estado: 'Activo', nombre: 'SIN', apellidos: 'CORREO', telefono: '6000-0105', correo: '' }],
+  inscripciones: [{ idNino: 'AS-0101', codigo: 'LUN-1630-PARKOUR' }, { idNino: 'AS-0101', codigo: 'JUE-1630-BABYYME' }, { idNino: 'AS-0104', codigo: 'JUE-1630-BABYYME' },
+                  { idNino: 'AS-0105', codigo: 'MAR-1630-TELAS' }, { idNino: 'AS-0102', codigo: 'MAR-1630-TELAS' }],
+  inscripcionesCerradas: [] });
+const MSJ_BD = () => ({ hoy: '2026-11-03', familiasHoy: 40,
+  preschool: [{ id: 'VEA-501', nombre: 'Kiki', apellidos: 'Inventada', telefono: '6000-0501', correo: 'familia.a@ejemplo.test', estado: 'Activo' },
+              { id: 'VEA-502', nombre: 'Salio', apellidos: 'Inventado', telefono: '6000-0502', correo: 'salio@ejemplo.test', estado: 'Inactivo' }],
+  plantillas: [{ nombre: 'Aviso de evento', asunto: 'A', cuerpo: 'B', activa: true }, { nombre: 'Borrador interno', asunto: 'C', cuerpo: 'D', activa: false }],
+  config: [{ parametro: 'Servicio fuera de Mensajes', valor: 'Baby & Me' }, { parametro: 'Correo excluido', valor: 'oficina@ejemplo.test' }],
+  enviados: [{ fecha: '2026-11-03 09:00', usuario: 'x', rol: 'Comercial', grupos: 'Todo Vida en Arte', familias: 40, sinCorreo: 2, plantilla: '', asunto: 'Hola', tandas: '1 de 1', secreto: 'NO-SALE' }] });
 
 const NINOS = () => [
   { id: 'AS-0001', estado: 'Activo', nombre: 'Inventado', apellidos: 'Uno', responsable: 'Responsable Uno', telefono: '555-0101',
@@ -304,9 +333,18 @@ function googleFalso() {
         res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' }); res.end(req.url.startsWith('/csv/analisis') ? CSV_ANALISIS() : CSV_CONFIG()); return;
       }
       let j = {}; try { j = JSON.parse(cuerpo); } catch (e) { }
-      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {}, t: Date.now() });
+      llamadas.push({ accion: j.accion, usuario: j.usuario, key: j.key, datos: j.datos || {}, claveMensajes: j.claveMensajes, t: Date.now() });
       let r;
-      if (j.key === 'clave-pa-de-prueba') {
+      if (j.key === 'clave-bd-de-prueba') {
+        if (j.claveMensajes !== 'clave-msj-de-prueba') r = { ok: false, error: 'clave de mensajes invalida' };
+        else if (MSJ.falla) { res.writeHead(500, { 'Content-Type': 'text/html' }); res.end('<html>error</html>'); return; }
+        else if (j.accion === 'mensajesLeer') r = { ok: true, resultado: MSJ_BD() };
+        else if (j.accion === 'mensajesGuardarPlantilla') r = { ok: true, resultado: { plantillas: MSJ_BD().plantillas.concat([{ nombre: (j.datos || {}).nombre, asunto: '', cuerpo: '', activa: true }]) } };
+        else if (j.accion === 'mensajesRegistrar') r = { ok: true, resultado: { idEnvio: (j.datos || {}).idEnvio, tandas: (j.datos || {}).tanda + ' de ' + (j.datos || {}).tandas } };
+        else r = { ok: false, error: 'accion no reconocida' };
+      }
+      else if (j.key === 'clave-de-prueba' && j.accion === 'leer' && MSJ.as) r = { ok: true, resultado: MSJ_AS() };
+      else if (j.key === 'clave-pa-de-prueba') {
         PA.llamadas++;
         r = PA.falla ? null : (j.accion === 'leer' ? { ok: true, resultado: PA_DATOS() } : { ok: false, error: 'acción desconocida' });
         if (!r) { res.writeHead(500, { 'Content-Type': 'text/html' }); res.end('<html>error</html>'); return; }
@@ -409,6 +447,7 @@ async function correr(fuente) {
   copiar(path.join(fuente, 'equipo'), path.join(web, 'equipo'));
   copiar(path.join(fuente, 'resumen'), path.join(web, 'resumen'));
   copiar(path.join(fuente, 'pendientes'), path.join(web, 'pendientes'));
+  copiar(path.join(fuente, 'mensajes'), path.join(web, 'mensajes'));   // 3-nov: Mensajes a familias
   copiar(path.join(fuente, 'biblioteca'), path.join(web, 'biblioteca'));
   areasDeMentira(web);
   copiar(path.join(fuente, 'kinder'), path.join(web, 'kinder'));   // 28-oct: Preschool de verdad (csv.php sin montos)
@@ -610,18 +649,18 @@ async function correr(fuente) {
     seccion('áreas: cada rol abre solo lo suyo (y la URL directa responde sin permiso)');
     {
       const R = {
-        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1 },
-        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1 },
+        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1, msj: 1 },
+        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1, msj: 1 },
         'prueba-coord-as':     { as: 1, bd: 1, pl: 1, proc: 1, eq: 1 },
         'prueba-recepcion':    { as: 1, proc: 1, eq: 1 },
-        'prueba-comercial':    { kinder: 1, as: 1, bd: 1, proc: 1, eq: 1 },
+        'prueba-comercial':    { kinder: 1, as: 1, bd: 1, proc: 1, eq: 1, msj: 1 },
         'prueba-contabilidad': { as: 1, proc: 1, eq: 1 },
         'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1, eq: 1 },
         'prueba-profesor-1':   { as: 1, pl: 1, proc: 1, eq: 1 }
       };
       const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php?tabla=config'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
-        pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], res: ['/resumen/'] };
+        pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], res: ['/resumen/'], msj: ['/mensajes/'] };
       for (const [u, puede] of Object.entries(R)) {
         for (const [k, rutas] of Object.entries(RUTAS)) for (const ruta of rutas) {
           const r = await n[u].get(ruta);
@@ -634,7 +673,7 @@ async function correr(fuente) {
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
       ok(/window\.ACCESO = \["afterschool","procesos","equipo"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School, Procesos y Equipo (entra directo a Pasar lista)');
       const co = await n['prueba-comercial'].get('/acceso.php');
-      ok(/window\.ACCESO = \["kinder","afterschool","basededatos","procesos","equipo"\]/.test(co.texto), 'Comercial: Preschool, After School, Base de Datos, Procesos y Equipo');
+      ok(/window\.ACCESO = \["kinder","afterschool","basededatos","procesos","equipo","mensajes"\]/.test(co.texto), 'Comercial: Preschool, After School, Base de Datos, Procesos, Equipo y (3-nov) Mensajes');
       const di = await n['prueba-direccion'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(di.texto), 'Dirección: todas las tarjetas, Configuración incluida');
     }
@@ -1271,6 +1310,70 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
 `);
       const nota = spawnSync(PHP, [script], { encoding: 'utf8' });
       ok(nota.stdout.trim() === '["Datos en revisión","","Otra nota"]', 'R140 la nota sale de portal_config.php › preschool_nota: sin la clave, «Datos en revisión»; vacía, ninguna (' + (nota.stdout + nota.stderr).slice(0, 200) + ')');
+    }
+
+    seccion('Mensajes a familias (3-nov): solo Administrador, Dirección y Comercial; el rol se valida en el servidor y solo salen los activos');
+    {
+      const ms = (u, accion, datos) => n[u].post('/mensajes/api.php', { json: { accion, datos: datos || {} } });
+      MSJ.as = true;
+      try {
+        for (const u of ['prueba-profesor-1', 'prueba-coord-as', 'prueba-coord-pre', 'prueba-recepcion', 'prueba-contabilidad']) {
+          for (const a of ['leer', 'registrar', 'guardarPlantilla']) {
+            const antes = google.llamadas.length, r = await ms(u, a, { idEnvio: 'envio-de-prueba-1', tanda: 1, tandas: 1, nombre: 'x' });
+            ok(r.status === 403 && r.j && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes && !/@/.test(r.texto),
+              u + ' ' + a + ': 403 sin_permiso, no llega a ningún Apps Script ni sale ningún correo (dio ' + r.status + ')');
+          }
+          ok((await n[u].get('/mensajes/')).status === 403, u + ': la pantalla /mensajes/ tampoco abre');
+        }
+        let antes = google.llamadas.length;
+        const r = await ms('prueba-comercial', 'leer'), R = r.j && r.j.resultado;
+        ok(r.status === 200 && R, 'Comercial lee Mensajes (' + r.status + ' ' + r.texto.slice(0, 160) + ')');
+        if (R) {
+          const ll = google.llamadas.slice(antes);
+          ok(ll.some(l => l.key === 'clave-bd-de-prueba' && l.accion === 'mensajesLeer' && l.claveMensajes === 'clave-msj-de-prueba'), 'pide a la Base de Datos con su clave y la de mensajes (el navegador no las ve)');
+          ok(!/clave-msj-de-prueba|clave-bd-de-prueba/.test(r.texto), 'ninguna clave en la respuesta');
+          const ids = R.familias.map(f => f.unidad + ':' + f.id).sort().join();
+          ok(ids === 'After School:AS-0101,After School:AS-0105,Preschool:VEA-501', 'solo inscritos activos: ni retirados, ni interesados, ni quien solo tiene Baby & Me, ni Preschool inactivo (' + ids + ')');
+          ok(!/RESPONSABLE-SECRETO|NOTA-SECRETA|2018-01-01|retirado@|interesado@|solobebe@|salio@|"monto"|pagosMes|NO-SALE/.test(r.texto), 'nada de responsable, nacimiento, notas, pagos ni correos de quien no recibe');
+          const zoe = R.familias.find(f => f.id === 'AS-0101');
+          ok(zoe && JSON.stringify(Object.keys(zoe).sort()) === '["clases","correo","id","nino","telefono","unidad"]' && zoe.correo === 'familia.a@ejemplo.test' && zoe.clases.join() === 'LUN-1630-PARKOUR',
+            'cada familia: unidad, ID, nombre, teléfono, correo y sus clases (sin la de Baby & Me)');
+          ok(R.clases.map(c => c.codigo).sort().join() === 'LUN-1630-PARKOUR,MAR-1630-TELAS', 'las clases: solo las que tienen niños que reciben, sin Baby & Me');
+          ok(R.puedePlantillas === false && R.plantillas.map(p => p.nombre).join() === 'Aviso de evento', 'Comercial: sin editar plantillas y solo las activas');
+          ok(R.familiasHoy === 40 && R.enviados.length === 1 && !('secreto' in R.enviados[0]), 'los envíos, con la lista blanca de campos');
+          ok(R.rol === 'Comercial' && R.usuario === 'prueba-comercial', 'usuario y rol de la sesión');
+        }
+        const di = await ms('prueba-direccion', 'leer');
+        ok(di.status === 200 && di.j.resultado.puedePlantillas === true && di.j.resultado.plantillas.length === 2, 'Dirección: también las plantillas inactivas, para editarlas');
+        ok((await ms('admin-uno', 'leer')).status === 200, 'Administrador también');
+        antes = google.llamadas.length;
+        const g1 = await ms('prueba-comercial', 'guardarPlantilla', { nombre: 'Nueva', asunto: 'a', cuerpo: 'b' });
+        ok(g1.status === 403 && g1.j.codigo === 'sin_permiso' && google.llamadas.length === antes, 'Comercial no guarda plantillas (403, no llega al script)');
+        antes = google.llamadas.length;
+        const g2 = await ms('prueba-direccion', 'guardarPlantilla', { nombre: '  Nueva  ', asunto: 'a', cuerpo: 'b\nc', activa: false, otro: 'x' });
+        const lg = google.llamadas.slice(antes).find(l => l.accion === 'mensajesGuardarPlantilla');
+        ok(g2.status === 200 && lg && JSON.stringify(Object.keys(lg.datos).sort()) === '["activa","asunto","cuerpo","nombre","nombreAnterior"]' && lg.datos.nombre === 'Nueva' && lg.datos.activa === false && lg.datos.cuerpo === 'b\nc',
+          'Dirección guarda una plantilla: al script le llega solo la lista blanca (' + (lg ? JSON.stringify(lg.datos) : g2.texto.slice(0, 120)) + ')');
+        antes = google.llamadas.length;
+        const e1 = await ms('prueba-comercial', 'registrar', { idEnvio: 'envio-de-prueba-1', grupos: 'Todo Vida en Arte', familias: 2, sinCorreo: 1, plantilla: 'Aviso de evento',
+          asunto: 'Escribir a otra@ejemplo.test', tanda: 1, tandas: 2, usuario: 'impostor', rol: 'Administrador', correos: ['familia.a@ejemplo.test'] });
+        const le = google.llamadas.slice(antes).find(l => l.accion === 'mensajesRegistrar');
+        ok(e1.status === 200 && e1.j.resultado.tandas === '1 de 2', 'Comercial registra la apertura de una tanda (' + e1.status + ')');
+        ok(le && le.datos.usuario === 'prueba-comercial' && le.datos.rol === 'Comercial', 'usuario y rol del registro salen de la sesión, no del navegador');
+        ok(le && !('correos' in le.datos) && !/@/.test(JSON.stringify(le.datos)), 'el registro no lleva ningún correo (tampoco el que venía en el asunto)');
+        antes = google.llamadas.length;
+        ok((await ms('prueba-comercial', 'registrar', { idEnvio: 'x', tanda: 1, tandas: 1 })).status === 400 && google.llamadas.length === antes, 'sin un ID de envío válido no se registra');
+        ok((await ms('prueba-comercial', 'registrar', { idEnvio: 'envio-de-prueba-2', tanda: 3, tandas: 2 })).status === 400, 'ni una tanda fuera de rango');
+        ok((await ms('prueba-comercial', 'otra')).status === 403, 'una acción que no existe se rechaza');
+        ok((await new Nav(base).post('/mensajes/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');
+        MSJ.falla = true;
+        const f = await ms('prueba-comercial', 'leer');
+        ok(f.status === 502 && !/familia\.a@/.test(f.texto), 'si la Base de Datos no responde, no hay lista a medias (502)');
+        MSJ.falla = false;
+        ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'mensajes', 'api.php'), 'utf8')), 'mensajes/api.php suelta la sesión antes de esperar a Google');
+        const pag = await n['prueba-comercial'].get('/mensajes/');
+        ok(pag.status === 200 && /<title>Mensajes a familias/.test(pag.texto), 'Comercial abre la pantalla');
+      } finally { MSJ.as = false; MSJ.falla = false; }
     }
 
     seccion('Pendientes de hoy (26-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');

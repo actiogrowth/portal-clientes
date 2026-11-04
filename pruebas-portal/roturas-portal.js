@@ -13,7 +13,7 @@ const path = require('path');
 const { correr } = require('./prueba-portal');
 
 const REPO = path.join(__dirname, '..');
-const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes', 'kinder'];
+const CARPETAS = ['portal-raiz', 'after-school', 'configuracion', 'pasar-lista', 'comun', 'proyecto-actio', 'procesos', 'biblioteca', 'equipo', 'resumen', 'pendientes', 'kinder', 'mensajes'];
 
 // [nombre, archivo, texto de hoy, texto roto]
 const ROTURAS = [

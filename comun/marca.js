@@ -77,7 +77,8 @@
     reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     seccion: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 20V9"/>',
     cerrar: '<path d="M6 6l12 12M18 6L6 18"/>',
-    luna: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+    luna: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    sobre: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'
   };
   const icono = (k, tam) => '<svg width="' + (tam || 20) + '" height="' + (tam || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONOS[k] || '') + '</svg>';
 
@@ -111,6 +112,7 @@
     { grupo: 'Vida en Arte Kids', items: ['kinder', 'babyandme'].map(a => ({ id: a, texto: UNIDADES[a].nombre, url: UNIDADES[a].url, icono: UNIDADES[a].icono, color: UNIDADES[a].color, areas: [a] })) },
     { grupo: 'Gestión', items: [
       { id: 'resumen', texto: 'Resumen del negocio', url: '/resumen/', icono: 'resumen', areas: ['resumen'] },
+      { id: 'mensajes', texto: 'Mensajes', url: '/mensajes/', icono: 'sobre', areas: ['mensajes'] },   // 3-nov: Mensajes a familias
       { id: 'procesos', texto: 'Procesos', url: '/procesos/#documentos', icono: 'documento', areas: ['procesos'] },
       { id: 'equipo', texto: 'Equipo', url: '/procesos/#equipo', icono: 'organigrama', areas: ['procesos', 'equipo'] }] },
     { grupo: 'Administración', items: [
@@ -130,7 +132,7 @@
     if (p.startsWith('/equipo/')) return 'equipo';
     if (p.startsWith('/procesos/')) return VISTAS_EQUIPO.test(h) ? 'equipo' : 'procesos';
     const m = /^\/([a-z-]+)\//.exec(p);
-    return m ? ({ kinder: 'kinder', veranito: 'veranito', resumen: 'resumen', basededatos: 'basededatos', 'proyecto-actio': 'proyecto-actio', configuracion: 'configuracion' })[m[1]] || '' : '';
+    return m ? ({ kinder: 'kinder', veranito: 'veranito', resumen: 'resumen', mensajes: 'mensajes', basededatos: 'basededatos', 'proyecto-actio': 'proyecto-actio', configuracion: 'configuracion' })[m[1]] || '' : '';
   }
 
   /* ── Estado de la estructura ───────────────────────────────────────────── */
@@ -152,7 +154,7 @@
   }
 
   /* El logo de Vida en Arte tiene las letras negras: sobre fondo oscuro no se lee. En oscuro se muestra
-     su versión clara (letras y barras blancas, entregada por Vida en Arte el 3-nov). Sin ella, iría
+     su versión clara (letras y barras blancas, hecha por Actio a partir del logo oficial; pendiente de que Vida en Arte la apruebe o entregue la suya). Sin ella, iría
      sobre una placa clara (.logo-placa). (No se invierte con un filtro: dañaría los colores del ícono.) */
   const LOGO_VEA_OSCURO = '/comun/logo-vea-oscuro.png?v=df4114ef00';
   function logoVea(clase) {
@@ -286,8 +288,10 @@
     { id: 'visita', texto: 'Agendar visita', desc: 'Prueba, reposición o eventual', icono: 'calendario', permiso: 'as.pruebas.agendar' },
     { id: 'pago', texto: 'Registrar pago', desc: 'Mensualidad u otro concepto', icono: 'pago', permiso: 'as.pagos.registrar' }
   ];
-  const accionesNuevo = () => ve('afterschool') ? NUEVO.filter(a => permAS(a.permiso)) : [];
-  const urlNuevo = id => '/after-school/#nuevo=' + id;
+  /* 3-nov: «Mensaje a familias» va en «Nuevo» para quien abre Mensajes (el puente vuelve a exigir el permiso). */
+  const MENSAJE = { id: 'mensaje', texto: 'Mensaje a familias', desc: 'Correo a uno o varios grupos', icono: 'sobre', area: 'mensajes' };
+  const accionesNuevo = () => (ve('afterschool') ? NUEVO.filter(a => permAS(a.permiso)) : []).concat(ve(MENSAJE.area) ? [MENSAJE] : []);
+  const urlNuevo = id => id === MENSAJE.id ? '/mensajes/#nuevo=' + id : '/after-school/#nuevo=' + id;
   function nuevoHtml() {
     const acc = accionesNuevo();
     if (!acc.length) return '';

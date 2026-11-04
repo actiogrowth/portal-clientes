@@ -295,6 +295,37 @@ columna «Motivo de salida»; si VEAKids lo registra en otra pestaña y no llega
 ahí, sale «Motivo no registrado». En la base unificada: `motivo_baja` en la
 inscripción de Preschool (como en After School).
 
+## Mensajes a familias (VEA_BaseDatos_Clientes) — 3-nov
+
+**Se leen, sin escribir nunca:** «👦 Base de Datos» › ID, Nombre del niño,
+Apellidos del niño, Teléfono, **Correo** (columna X) y la casilla **Kínder**;
+«🧸 Kínder» › ID y **Estado actual** (lo calcula la hoja con sus fechas).
+After School sale de `VEA_AfterSchool_BD` › Niños (Estado, Teléfono,
+**Correo**, columna K), Inscripciones (abiertas) y Clases (Servicio, Día, Hora
+inicio), por `AfterSchool.gs › leer`.
+
+**Pestañas nuevas** (las crea `apps-script-vea.gs` si faltan, al final del
+libro, con los títulos en la **fila 1**; o el menú Actio › «Preparar las
+pestañas de mensajes»). Se leen por título.
+
+| Pestaña | Columnas | Quién escribe |
+|---|---|---|
+| Plantillas de mensajes | Nombre · Asunto · Cuerpo · Activa (Sí/No) | El portal (Dirección y Administrador) o a mano. Arranca con tres borradores |
+| Mensajes enviados | Fecha y hora · Usuario · Rol · Grupos · Familias · Sin correo · Plantilla · Asunto · Tandas abiertas · ID envío | Solo el portal (una fila por envío). **Sin correos ni nombres de niños** |
+| Config mensajes | Parámetro · Valor · Nota | A mano |
+
+Parámetros de «Config mensajes» (una fila cada uno; los dos últimos, una fila
+por valor):
+
+| Parámetro | Al crearla | Para qué |
+|---|---|---|
+| Cuenta de Gmail para mensajes | (vacío) | Con valor, Gmail abre esa cuenta (`authuser`); vacía, la de la sesión y la pantalla avisa |
+| Destinatarios por tanda | 50 | Correos por tanda (CCO) |
+| Aviso de familias por día | 450 | Desde cuántas familias en el día se avisa |
+| Código de país para WhatsApp | 507 | Se antepone a teléfonos de 7 u 8 dígitos |
+| Servicio fuera de Mensajes | Baby & Me | Servicios de After School que no reciben |
+| Correo excluido | (vacío en el script; se llena en el Sheet) | Correos de Vida en Arte: nunca reciben. Los correos van solo en el Sheet: este repositorio es público |
+
 ## Equivalente propuesto en Postgres / Supabase
 
 Principios: IDs actuales se conservan como columna `codigo` única (los

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Mensajes a familias · Vida en Arte 360</title>
+<!-- Mensajes a familias (3-nov). Dirección, Administrador y Comercial (área
+  «mensajes»; el puente vuelve a exigirlo). Lee por la capa de datos:
+  Datos.mensajes.leer() (solo niños inscritos y activos, ya filtrados en el
+  servidor). Quién recibe lo decide comun/mensajes.js (grupos, unión, un
+  correo por familia, exclusión, inválidos, «Sin correo», tandas). El envío
+  pasa por UNA función, Mensajes.enviar (v1: abre Gmail con todo en copia
+  oculta). Contrato en docs/ACCIONES_API.md › Mensajes a familias. -->
+<link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
+<link rel="apple-touch-icon" href="/comun/app-icono-180.png?v=56fff6a358">
+<meta name="apple-mobile-web-app-title" content="VEA 360">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="/comun/tema.js?v=90ae127559"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=ff2f7b5e3b">
+</head>
+<body>
+<header id="cab"></header>
+<main class="pagina ms">
+  <section class="encabezado ms-titulo">
+    <div>
+      <h1 class="titulo">Mensajes a familias</h1>
+      <p class="ayuda">Un correo a las familias inscritas y activas de los grupos que elijas.</p>
+    </div>
+  </section>
+  <nav class="pestanas" role="tablist" aria-label="Mensajes" id="pestanas">
+    <button type="button" role="tab" id="tab-nuevo" aria-controls="vista-nuevo" aria-selected="true" data-vista="nuevo">Nuevo mensaje</button>
+    <button type="button" role="tab" id="tab-enviados" aria-controls="vista-enviados" aria-selected="false" data-vista="enviados">Enviados</button>
+    <button type="button" role="tab" id="tab-plantillas" aria-controls="vista-plantillas" aria-selected="false" data-vista="plantillas" class="oculto">Plantillas</button>
+  </nav>
+  <div id="avisos" aria-live="polite"></div>
+  <div id="esqueleto"></div>
+
+  <section id="vista-nuevo" role="tabpanel" aria-labelledby="tab-nuevo" class="oculto">
+    <ol class="ms-pasos" id="pasos" aria-label="Pasos">
+      <li data-paso="1"><span>Grupos</span></li>
+      <li data-paso="2"><span>Mensaje</span></li>
+      <li data-paso="3"><span>Revisar</span></li>
+      <li data-paso="4"><span>Enviar</span></li>
+    </ol>
+
+    <div id="paso-1" class="ms-paso">
+      <div class="tarjeta">
+        <h2>¿A quién le escribes?</h2>
+        <p class="ayuda" style="margin-bottom:14px">Puedes elegir varios grupos: cada familia recibe un solo correo, aunque tenga varios hijos o esté en las dos unidades.</p>
+        <div id="grupos"></div>
+      </div>
+    </div>
+
+    <div id="paso-2" class="ms-paso oculto">
+      <div class="tarjeta">
+        <h2>Escribe el mensaje</h2>
+        <div class="campo">
+          <label for="plantilla">Plantilla</label>
+          <select id="plantilla"></select>
+          <p class="ayuda" style="margin-top:6px">Al elegir una plantilla su texto se copia abajo: puedes cambiar todo antes de enviar.</p>
+        </div>
+        <div class="campo">
+          <label for="asunto">Asunto</label>
+          <input type="text" id="asunto" maxlength="200" autocomplete="off">
+        </div>
+        <div class="campo">
+          <label for="cuerpo">Mensaje</label>
+          <textarea id="cuerpo" class="ms-cuerpo-campo" maxlength="20000"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="paso-3" class="ms-paso oculto">
+      <div id="revisar"></div>
+    </div>
+
+    <div id="paso-4" class="ms-paso oculto">
+      <div id="enviar"></div>
+    </div>
+
+    <div class="ms-barra" id="barra">
+      <div class="ms-cuenta" id="cuenta" aria-live="polite"></div>
+      <div class="ms-botones">
+        <button type="button" class="btn sec" id="atras">Atrás</button>
+        <button type="button" class="btn negro" id="siguiente">Siguiente</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="vista-enviados" role="tabpanel" aria-labelledby="tab-enviados" class="oculto">
+    <div class="tarjeta">
+      <h2>Enviados</h2>
+      <p class="ayuda" style="margin-bottom:14px">Los últimos 20 registros. Cada tanda queda «Registrado como abierto en Gmail»: la app no puede saber si el correo se envió de verdad.</p>
+      <div id="enviados"></div>
+    </div>
+  </section>
+
+  <section id="vista-plantillas" role="tabpanel" aria-labelledby="tab-plantillas" class="oculto">
+    <div class="tarjeta">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px"><h2 style="margin:0">Plantillas</h2>
+        <button type="button" class="btn sec chico" id="plNueva">Nueva plantilla</button></div>
+      <p class="ayuda" style="margin-bottom:14px">Se guardan en el Sheet (pestaña «Plantillas de mensajes»). Solo las activas aparecen al escribir un mensaje.</p>
+      <div id="plForm" class="oculto"></div>
+      <div id="plantillas" class="ms-pl"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/comun/datos.js?v=0ce54c0f1a"></script>
+<script src="/comun/mensajes.js?v=43d48ae538"></script>
+<script src="/comun/marca.js?v=9f094af087"></script>
+<script>
+'use strict';
+const esc = Marca.esc;
+const $ = s => document.querySelector(s);
+const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
+$('#esqueleto').innerHTML = Marca.esqueleto('tarjetas');
+
+/* Estado de la pantalla. */
+let D = null, CFG = null, G = [], CONTEOS = {};
+const E = { paso: 1, elegidos: new Set(), plantilla: '', asunto: '', cuerpo: '', lista: null, tandas: [], abiertas: {}, id: '' };
+const COLOR = { 'After School': 'var(--unidad-afterschool)', 'Preschool': 'var(--unidad-preschool)', Parkour: 'var(--parkour)', Telas: 'var(--telas)', Parkids: 'var(--parkids)' };
+
+/* Los nombres llegan en mayúsculas desde After School: se muestran con mayúscula inicial. */
+const bonito = t => String(t || '').toLocaleLowerCase('es').replace(/(^|[\s'-])(\p{L})/gu, (m, a, b) => a + b.toLocaleUpperCase('es'));
+
+function avisar(html, tipo) { $('#avisos').innerHTML = html ? '<div class="aviso ' + (tipo || 'info') + '">' + html + '</div>' : ''; }
+
+/* ── Pestañas y rutas (#nuevo=mensaje, #enviados, #plantillas) ─────────── */
+function vista(v, sinHash) {
+  if (v === 'plantillas' && !(D && D.puedePlantillas)) v = 'nuevo';
+  document.querySelectorAll('#pestanas [data-vista]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.vista === v)));
+  ['nuevo', 'enviados', 'plantillas'].forEach(x => $('#vista-' + x).classList.toggle('oculto', x !== v));
+  if (!sinHash) history.replaceState(null, '', v === 'nuevo' ? location.pathname : '#' + v);
+  if (v === 'enviados') pintarEnviados();
+  if (v === 'plantillas') pintarPlantillas();
+}
+function atenderHash() {
+  const h = location.hash.replace(/^#/, '');
+  if (h.startsWith('nuevo')) { reiniciar(); vista('nuevo', true); return; }
+  vista(h === 'enviados' || h === 'plantillas' ? h : 'nuevo', true);
+}
+$('#pestanas').addEventListener('click', ev => { const b = ev.target.closest('[data-vista]'); if (b) vista(b.dataset.vista); });
+$('#pestanas').addEventListener('keydown', ev => {
+  if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+  const bs = [...document.querySelectorAll('#pestanas [data-vista]')].filter(b => !b.classList.contains('oculto'));
+  const i = bs.indexOf(document.activeElement); if (i < 0) return;
+  const s = bs[(i + (ev.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length]; s.focus(); vista(s.dataset.vista);
+});
+window.addEventListener('hashchange', atenderHash);
+
+/* ── Paso 1: grupos ───────────────────────────────────────────────────── */
+const TITULOS = { todo: '', unidad: 'Por unidad', disciplina: 'Por disciplina de After School', clase: 'Por clase u horario' };
+function grupoHtml(g) {
+  const n = CONTEOS[g.id] || 0;
+  const c = g.tipo === 'clase' ? COLOR[(g.nombre.split(' · ')[1] || '')] : COLOR[g.nombre];
+  return '<label class="ms-grupo' + (g.tipo === 'todo' ? ' todo' : '') + '"><input type="checkbox" value="' + esc(g.id) + '"' + (E.elegidos.has(g.id) ? ' checked' : '') + '>' +
+    (g.tipo !== 'todo' ? '<span class="ms-punto" style="--c:' + (c || 'var(--tenue)') + '"></span>' : '') +
+    '<span class="ms-gtxt"><b>' + esc(g.nombre) + '</b><small>' + plural(n, 'familia', 'familias') + '</small></span></label>';
+}
+function pintarGrupos() {
+  let html = '';
+  ['todo', 'unidad', 'disciplina', 'clase'].forEach(t => {
+    const gs = G.filter(g => g.tipo === t);
+    if (!gs.length) return;
+    html += '<div class="ms-bloque">' + (TITULOS[t] ? '<h3>' + TITULOS[t] + '</h3>' : '') + '<div class="ms-grupos">' + gs.map(grupoHtml).join('') + '</div></div>';
+  });
+  $('#grupos').innerHTML = html || '<div class="aviso ojo">No hay familias activas en los datos.</div>';
+}
+$('#grupos').addEventListener('change', ev => {
+  const i = ev.target.closest('input[type=checkbox]'); if (!i) return;
+  if (i.checked) E.elegidos.add(i.value); else E.elegidos.delete(i.value);
+  recalcular(); pintarBarra();
+});
+function recalcular() { E.lista = Mensajes.armar(D, [...E.elegidos], CFG); }
+
+/* ── Paso 2: mensaje ──────────────────────────────────────────────────── */
+function pintarPlantillasSelect() {
+  const act = D.plantillas.filter(p => p.activa);
+  $('#plantilla').innerHTML = '<option value="">Texto libre</option>' + act.map(p => '<option value="' + esc(p.nombre) + '"' + (p.nombre === E.plantilla ? ' selected' : '') + '>' + esc(p.nombre) + '</option>').join('');
+}
+$('#plantilla').addEventListener('change', () => {
+  const p = D.plantillas.find(x => x.nombre === $('#plantilla').value);
+  const escrito = ($('#asunto').value.trim() || $('#cuerpo').value.trim());
+  if (p && escrito && !confirm('¿Reemplazar el asunto y el mensaje que ya escribiste por la plantilla «' + p.nombre + '»?')) { $('#plantilla').value = E.plantilla; return; }
+  E.plantilla = p ? p.nombre : '';
+  if (p) { $('#asunto').value = p.asunto; $('#cuerpo').value = p.cuerpo; }
+  leerMensaje(); pintarBarra();
+});
+function leerMensaje() { E.asunto = $('#asunto').value.trim(); E.cuerpo = $('#cuerpo').value.replace(/\s+$/, ''); }
+['#asunto', '#cuerpo'].forEach(s => $(s).addEventListener('input', () => { leerMensaje(); pintarBarra(); }));
+
+/* ── Paso 3: revisar ──────────────────────────────────────────────────── */
+const nombresElegidos = () => G.filter(g => E.elegidos.has(g.id)).map(g => g.nombre);
+function cifra(t, v, principal) { return '<div class="ms-cifra' + (principal ? ' principal' : '') + '"><span>' + t + '</span><b class="cifra-grande">' + v + '</b></div>'; }
+function filaSin(x) {
+  return '<li><span class="ms-nino"><b>' + esc(bonito(x.nino)) + '</b><small>' + esc(x.grupo) + (x.motivo === 'excluido' ? ' · tiene un correo de Vida en Arte' : '') + (x.correo ? ' · «' + esc(x.correo) + '»' : '') + '</small></span>' +
+    (x.telefono ? '<span class="ms-tel">' + esc(x.telefono) + '</span>' : '<span class="ms-tel">Sin teléfono</span>') +
+    (x.whatsapp ? '<a class="btn sec chico" href="' + esc(x.whatsapp) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') + '</li>';
+}
+function pintarRevisar() {
+  const L = E.lista;
+  const hoy = (D.familiasHoy || 0) + L.familias;
+  let html = '<div class="tarjeta"><h2>Revisa antes de enviar</h2><div class="ms-cifras">' +
+    cifra('Familias que recibirán', L.familias, true) + cifra('Niños en los grupos', L.ninos) + cifra('Correos repetidos quitados', L.repetidos) +
+    cifra('Sin correo', L.sinCorreo.length) + (L.invalidos.length ? cifra('Correos con formato inválido', L.invalidos.length) : '') + '</div>';
+  html += '<p class="ayuda" style="margin-top:12px">Grupos: ' + esc(nombresElegidos().join(', ')) + '.</p>';
+  html += CFG.cuenta ? '<div class="aviso info" style="margin-top:12px">Gmail se abrirá con la cuenta <b>' + esc(CFG.cuenta) + '</b>.</div>'
+    : '<div class="aviso ojo" style="margin-top:12px"><b>Revisa que estés en la cuenta de Vida en Arte.</b> Gmail se abrirá con la cuenta que tengas abierta en este navegador.</div>';
+  if (hoy > CFG.avisoDia) html += '<div class="aviso ojo" style="margin-top:10px">Con este envío, hoy se habrán escrito a ' + hoy + ' familias: pasa de ' + CFG.avisoDia + '. Gmail puede frenar los envíos por el límite diario; si quieres, deja una parte para mañana.</div>';
+  html += '</div>';
+  html += '<div class="tarjeta"><h2>Vista previa</h2><div class="ms-correo"><dl><dt>Para</dt><dd>(vacío)</dd><dt>CCO</dt><dd>' + plural(L.familias, 'familia', 'familias') +
+    (E.tandas.length > 1 ? ', en ' + E.tandas.length + ' tandas de hasta ' + CFG.porTanda : '') + '</dd><dt>Asunto</dt><dd>' + esc(E.asunto) + '</dd></dl>' +
+    '<div class="ms-cuerpo">' + esc(E.cuerpo) + '</div></div></div>';
+  html += '<div class="tarjeta"><h2>Sin correo (' + L.sinCorreo.length + ')</h2>' + (L.sinCorreo.length
+    ? '<p class="ayuda" style="margin-bottom:12px">No les llegará este correo: escríbeles por otro lado.</p><ul class="ms-lista">' + L.sinCorreo.map(filaSin).join('') + '</ul>'
+    : '<p class="ayuda">Todas las familias de estos grupos tienen correo.</p>') + '</div>';
+  if (L.invalidos.length) html += '<div class="tarjeta"><h2>Correo con formato inválido (' + L.invalidos.length + ')</h2><p class="ayuda" style="margin-bottom:12px">Se apartaron: corrígelos en la base de datos.</p><ul class="ms-lista">' + L.invalidos.map(filaSin).join('') + '</ul></div>';
+  $('#revisar').innerHTML = html;
+}
+
+/* ── Paso 4: enviar (tandas) ──────────────────────────────────────────── */
+function pintarEnviar() {
+  const n = E.tandas.length;
+  let html = '<div class="tarjeta"><h2>' + (n > 1 ? 'Envía las ' + n + ' tandas' : 'Envía el correo') + '</h2>' +
+    '<p class="ayuda" style="margin-bottom:14px">Cada botón abre Gmail con el asunto, el mensaje y ' + (n > 1 ? 'los correos de esa tanda' : 'todos los correos') + ' en copia oculta (CCO). Revisa y pulsa <b>Enviar</b> en Gmail.' +
+    (n > 1 ? ' Abre una tanda, envíala y luego la siguiente.' : '') + '</p>' +
+    (CFG.cuenta ? '' : '<div class="aviso ojo" style="margin-bottom:14px">Revisa que estés en la cuenta de Vida en Arte.</div>') +
+    '<div class="ms-tandas">' + E.tandas.map((t, i) => {
+      const ab = E.abiertas[i + 1];
+      return '<div class="ms-tanda' + (ab && ab.ok ? ' abierta' : '') + '" data-tanda="' + (i + 1) + '"><h3>' + (n > 1 ? 'Tanda ' + (i + 1) + ' de ' + n : 'Tanda única') + '</h3>' +
+        '<span class="ayuda">' + plural(t.length, 'familia', 'familias') + '</span>' +
+        '<div class="ms-tbotones"><button type="button" class="btn primario" data-abrir="' + (i + 1) + '">Abrir en Gmail</button>' +
+        '<button type="button" class="btn sec" data-copiar-correos="' + (i + 1) + '">Copiar correos</button></div>' +
+        '<p class="ms-estado' + (ab ? (ab.ok ? ' ok' : ' mal') : '') + '" data-estado="' + (i + 1) + '">' + esc(ab ? ab.texto : '') + '</p></div>';
+    }).join('') + '</div>' +
+    '<div class="ms-pie-form"><button type="button" class="btn sec" id="copiarMensaje">Copiar mensaje</button>' +
+    '<span class="ayuda">Si Gmail no se abre: «Copiar correos» y pégalos en CCO; «Copiar mensaje» y pégalo en el correo.</span></div></div>';
+  $('#enviar').innerHTML = html;
+}
+async function copiar(txt, boton, listo) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {
+    const t = document.createElement('textarea'); t.value = txt; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch (e2) { ok = false; } t.remove();
+  }
+  const antes = boton.textContent; boton.textContent = ok ? listo : 'No se pudo copiar';
+  setTimeout(() => { boton.textContent = antes; }, 2200);
+}
+$('#enviar').addEventListener('click', ev => {
+  const a = ev.target.closest('[data-abrir]'), c = ev.target.closest('[data-copiar-correos]');
+  if (c) { copiar(E.tandas[c.dataset.copiarCorreos - 1].join(', '), c, 'Correos copiados'); return; }
+  if (ev.target.closest('#copiarMensaje')) { copiar(E.asunto + '\n\n' + E.cuerpo, ev.target.closest('#copiarMensaje'), 'Mensaje copiado'); return; }
+  if (!a) return;
+  const n = Number(a.dataset.abrir);
+  // Dentro del clic: si no, el navegador bloquea la ventana nueva.
+  const r = Mensajes.enviar(E.tandas[n - 1], { asunto: E.asunto, cuerpo: E.cuerpo }, CFG);
+  if (!r.abierto) { E.abiertas[n] = { ok: false, texto: 'El navegador no dejó abrir Gmail. Permite las ventanas emergentes o usa «Copiar correos» y «Copiar mensaje».' }; pintarEnviar(); return; }
+  E.abiertas[n] = { ok: false, texto: (r.demasiadoLargo ? 'El enlace es muy largo: si Gmail no muestra todo, usa «Copiar». ' : '') + 'Registrando…' };
+  pintarEnviar();
+  registrar(n, r.demasiadoLargo);
+});
+async function registrar(n, largo) {
+  const extra = largo ? 'El enlace es muy largo: si Gmail no muestra todo, usa «Copiar». ' : '';
+  try {
+    const j = await Datos.mensajes.registrar({ idEnvio: E.id, grupos: nombresElegidos().join(', '), familias: E.lista.familias, sinCorreo: E.lista.sinCorreo.length + E.lista.invalidos.length,
+      plantilla: E.plantilla, asunto: E.asunto, tanda: n, tandas: E.tandas.length });
+    E.abiertas[n] = { ok: true, texto: extra + 'Registrado como abierto en Gmail.' };
+    anotarLocal(j.resultado && j.resultado.tandas);
+  } catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    E.abiertas[n] = { ok: false, texto: extra + 'Gmail se abrió, pero no se pudo registrar: ' + e.message };
+  }
+  pintarEnviar();
+}
+/* El registro recién escrito, para que «Enviados» lo muestre sin volver a leer todo. */
+function anotarLocal(tandas) {
+  const ya = D.enviados.find(x => x._id === E.id);
+  if (ya) { ya.tandas = tandas || ya.tandas; return; }
+  const d = new Date(), dos = n => String(n).padStart(2, '0');
+  D.enviados.unshift({ _id: E.id, fecha: d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()) + ' ' + dos(d.getHours()) + ':' + dos(d.getMinutes()),
+    usuario: D.usuario, rol: D.rol, grupos: nombresElegidos().join(', '), familias: E.lista.familias, sinCorreo: E.lista.sinCorreo.length + E.lista.invalidos.length,
+    plantilla: E.plantilla, asunto: E.asunto, tandas: tandas || '' });
+  D.familiasHoy = (D.familiasHoy || 0) + E.lista.familias;
+  D.enviados = D.enviados.slice(0, 20);
+}
+
+/* ── Navegación entre pasos ───────────────────────────────────────────── */
+function puedeSeguir() {
+  if (E.paso === 1) return E.elegidos.size > 0 && E.lista && E.lista.familias > 0;
+  if (E.paso === 2) return !!(E.asunto && E.cuerpo);
+  return true;
+}
+function pintarBarra() {
+  const L = E.lista;
+  const sin = L ? L.sinCorreo.length + L.invalidos.length : 0;
+  $('#cuenta').innerHTML = !E.elegidos.size ? 'Elige uno o más grupos.'
+    : '<b>' + plural(L.familias, 'familia', 'familias') + '</b>' + (sin ? ' · ' + sin + ' sin correo' : '') + (E.paso === 4 ? ' · ' + plural(E.tandas.length, 'tanda', 'tandas') : '');
+  $('#atras').classList.toggle('oculto', E.paso === 1);
+  const s = $('#siguiente');
+  s.classList.toggle('oculto', E.paso === 4);
+  s.textContent = E.paso === 3 ? 'Ir a enviar' : 'Siguiente';
+  s.disabled = !puedeSeguir();
+  $('#atras').textContent = E.paso === 4 ? 'Cambiar algo' : 'Atrás';
+  document.querySelectorAll('#pasos li').forEach(li => {
+    const p = Number(li.dataset.paso);
+    if (p === E.paso) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+    li.classList.toggle('hecho', p < E.paso);
+  });
+}
+function irA(p) {
+  E.paso = p;
+  if (p >= 3) { recalcular(); E.tandas = Mensajes.tandas(E.lista.correos, CFG.porTanda); }
+  if (p === 3) pintarRevisar();
+  if (p === 4) { if (!E.id) E.id = Mensajes.idEnvio(); pintarEnviar(); }
+  for (let i = 1; i <= 4; i++) $('#paso-' + i).classList.toggle('oculto', i !== p);
+  pintarBarra();
+  const h = $('#paso-' + p + ' h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+$('#siguiente').addEventListener('click', () => { if (puedeSeguir() && E.paso < 4) irA(E.paso + 1); });
+$('#atras').addEventListener('click', () => {
+  if (E.paso === 4 && Object.keys(E.abiertas).length && !confirm('Ya abriste tandas en Gmail. Si cambias algo, lo que vuelvas a abrir se registra como un envío nuevo. ¿Seguir?')) return;
+  if (E.paso === 4) { E.id = ''; E.abiertas = {}; }
+  if (E.paso > 1) irA(E.paso - 1);
+});
+function reiniciar() {
+  if (!D) return;
+  Object.assign(E, { paso: 1, elegidos: new Set(), plantilla: '', asunto: '', cuerpo: '', tandas: [], abiertas: {}, id: '' });
+  $('#asunto').value = ''; $('#cuerpo').value = '';
+  recalcular(); pintarGrupos(); pintarPlantillasSelect(); irA(1);
+}
+
+/* ── Enviados ─────────────────────────────────────────────────────────── */
+function pintarEnviados() {
+  if (!D) return;
+  const l = D.enviados;
+  $('#enviados').innerHTML = !l.length ? '<p class="ayuda">Todavía no hay envíos registrados.</p>' : '<ul class="ms-env">' + l.map(e =>
+    '<li><span class="ms-easunto">' + esc(e.asunto || '(sin asunto)') + '</span><span class="ms-enum"><b>' + (e.familias == null ? '—' : e.familias) + '</b> familias</span>' +
+    '<span class="ms-emeta">' + esc(e.fecha) + ' · ' + esc(e.usuario) + (e.rol ? ' (' + esc(e.rol) + ')' : '') + ' · ' + esc(e.grupos) +
+    (e.plantilla ? ' · plantilla «' + esc(e.plantilla) + '»' : ' · texto libre') + ' · ' + (e.sinCorreo == null ? '—' : e.sinCorreo) + ' sin correo · tandas abiertas: ' + esc(e.tandas || '—') +
+    ' · Registrado como abierto en Gmail</span></li>').join('') + '</ul>';
+}
+
+/* ── Plantillas (Dirección y Administrador) ───────────────────────────── */
+let editando = null;   // nombre de la plantilla en edición ('' = nueva)
+function pintarPlantillas() {
+  if (!D) return;
+  $('#plantillas').innerHTML = D.plantillas.length ? D.plantillas.map(p => '<div class="ms-pl-item"><span class="ms-pltxt"><b>' + esc(p.nombre) + '</b><small>' + esc(p.asunto) + '</small></span>' +
+    (p.activa ? '<span class="chip ok">Activa</span>' : '<span class="chip pronto">Inactiva</span>') +
+    '<button type="button" class="btn sec chico" data-editar="' + esc(p.nombre) + '">Editar</button></div>').join('') : '<p class="ayuda">No hay plantillas.</p>';
+}
+function formPlantilla(p) {
+  editando = p ? p.nombre : '';
+  $('#plForm').classList.remove('oculto');
+  $('#plForm').innerHTML = '<div class="tarjeta" style="box-shadow:none;margin-bottom:16px"><h2>' + (p ? 'Editar plantilla' : 'Nueva plantilla') + '</h2>' +
+    '<div class="campo"><label for="plNombre">Nombre</label><input type="text" id="plNombre" maxlength="80" value="' + esc(p ? p.nombre : '') + '"></div>' +
+    '<div class="campo"><label for="plAsunto">Asunto</label><input type="text" id="plAsunto" maxlength="200" value="' + esc(p ? p.asunto : '') + '"></div>' +
+    '<div class="campo"><label for="plCuerpo">Mensaje</label><textarea id="plCuerpo" class="ms-cuerpo-campo" maxlength="20000">' + esc(p ? p.cuerpo : '') + '</textarea></div>' +
+    '<div class="casillas"><label><input type="checkbox" id="plActiva"' + (!p || p.activa ? ' checked' : '') + '> Activa (aparece al escribir un mensaje)</label></div>' +
+    '<div class="ms-pie-form"><span class="ms-estado" id="plEstado" aria-live="polite"></span><span style="display:flex;gap:10px"><button type="button" class="btn sec" id="plCancelar">Cancelar</button>' +
+    '<button type="button" class="btn negro" id="plGuardar">Guardar</button></span></div></div>';
+  $('#plNombre').focus();
+}
+$('#plNueva').addEventListener('click', () => formPlantilla(null));
+$('#plantillas').addEventListener('click', ev => { const b = ev.target.closest('[data-editar]'); if (b) formPlantilla(D.plantillas.find(p => p.nombre === b.dataset.editar)); });
+$('#plForm').addEventListener('click', async ev => {
+  if (ev.target.closest('#plCancelar')) { $('#plForm').classList.add('oculto'); $('#plForm').innerHTML = ''; return; }
+  if (!ev.target.closest('#plGuardar')) return;
+  const p = { nombre: $('#plNombre').value.trim(), nombreAnterior: editando || '', asunto: $('#plAsunto').value.trim(), cuerpo: $('#plCuerpo').value, activa: $('#plActiva').checked };
+  const est = $('#plEstado');
+  if (!p.nombre) { est.className = 'ms-estado mal'; est.textContent = 'Escribe el nombre.'; return; }
+  const b = $('#plGuardar'); b.disabled = true; est.className = 'ms-estado'; est.textContent = 'Guardando…';
+  try {
+    const j = await Datos.mensajes.guardarPlantilla(p);
+    D.plantillas = (j.resultado && j.resultado.plantillas) || D.plantillas;
+    $('#plForm').classList.add('oculto'); $('#plForm').innerHTML = '';
+    pintarPlantillas(); pintarPlantillasSelect();
+    avisar('Plantilla «' + esc(p.nombre) + '» guardada.', 'bien');
+  } catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    b.disabled = false; est.className = 'ms-estado mal'; est.textContent = e.message;
+  }
+});
+
+/* ── Carga ────────────────────────────────────────────────────────────── */
+async function cargar() {
+  let sesion;
+  try { sesion = await Datos.sesion(); }
+  catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } $('#esqueleto').innerHTML = ''; avisar(esc(e.message), 'mal'); return; }
+  Marca.cabecera($('#cab'), { sesion, ruta: [{ texto: 'Inicio', url: '/' }, { texto: 'Gestión' }, { texto: 'Mensajes a familias' }] });
+  try { D = (await Datos.mensajes.leer()).resultado; }
+  catch (e) {
+    if (e.codigo === 'sesion') { Datos.aLogin(); return; }
+    $('#esqueleto').innerHTML = '';
+    avisar(e.codigo === 'sin_permiso' ? 'Tu rol no tiene acceso a Mensajes a familias. Si lo necesitas, pídeselo a Dirección.' : esc(e.message), 'mal');
+    return;
+  }
+  D.enviados = D.enviados || []; D.plantillas = D.plantillas || [];
+  CFG = Mensajes.config(D.config);
+  G = Mensajes.grupos(D);
+  CONTEOS = Mensajes.conteos(D, CFG);
+  $('#esqueleto').innerHTML = '';
+  $('#tab-plantillas').classList.toggle('oculto', !D.puedePlantillas);
+  reiniciar();
+  atenderHash();
+}
+cargar();
+</script>
+</body>
+</html>

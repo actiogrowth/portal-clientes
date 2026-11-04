@@ -17,6 +17,7 @@
      /configuracion/api.php        usuarios (X-CSRF en las escrituras)
      /resumen/api.php              26-oct: metas, Preschool y finanzas del Resumen del negocio
      /pendientes/api.php           26-oct: Pendientes de hoy (cada rol recibe lo suyo)
+     /mensajes/api.php             3-nov: Mensajes a familias (familias activas, plantillas, registro)
 
    Errores: se lanza Datos.Error con .codigo:
      'sesion'        no hay sesión (la página manda al login)
@@ -163,6 +164,17 @@
     pendientes: {
       /** {resultado: {hoy, items: [{clave, n, url}]}} — solo lo que este rol atiende */
       leer() { return pedir('/pendientes/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); }
+    },
+
+    /* ── Mensajes a familias (3-nov; Dirección, Administrador y Comercial) ─── */
+    mensajes: {
+      /** {resultado: {hoy, familias[], clases[], config[], plantillas[], enviados[], familiasHoy, puedePlantillas, usuario, rol}}
+          familias: solo inscritos activos, ya filtrados en el servidor (docs/ACCIONES_API.md › Mensajes) */
+      leer() { return pedir('/mensajes/api.php', { metodo: 'POST', cuerpo: { accion: 'leer' } }); },
+      /** Solo Dirección y Administrador. {nombre, nombreAnterior?, asunto, cuerpo, activa} → {resultado: {plantillas[]}} */
+      guardarPlantilla(p) { return pedir('/mensajes/api.php', { metodo: 'POST', cuerpo: { accion: 'guardarPlantilla', datos: p } }); },
+      /** Anota que se abrió una tanda en Gmail (sin correos ni nombres): {idEnvio, grupos, familias, sinCorreo, plantilla, asunto, tanda, tandas} */
+      registrar(r) { return pedir('/mensajes/api.php', { metodo: 'POST', cuerpo: { accion: 'registrar', datos: r } }); }
     },
 
     /* ── Configuración › Usuarios ───────────────────────────────────────── */

@@ -84,6 +84,15 @@ const PENDIENTES = [{ clave: 'pruebas', n: 2, url: '/after-school/#pruebas' }, {
 const DOC_PROC = { nombre: 'Manual de bienvenida inventado', unidad: 'After School', proceso: 'Entrega de servicio', fecha: '2026-09-01', enlace: 'https://docs.google.com/document/d/PRUEBA/edit' };
 const DOC_PA = { nombre: 'Informe reservado de Actio inventado', unidad: 'Gerencia', enlace: 'https://docs.google.com/document/d/PA/edit', idEntregable: '', fecha: '2026-10-01' };
 let rol = 'administrador', mutaciones = {}, guardadas = [];
+/* 3-nov: lo que manda mensajes/api.php › leer, inventado. */
+const MSJ_DEMO = S => ({ hoy: '2026-11-03', familiasHoy: 0, puedePlantillas: S.areas === '*', usuario: S.usuario, rol: 'Prueba',
+  clases: [{ codigo: 'LUN-1630-PARKOUR', servicio: 'Parkour', dia: 'Lunes', hora: '16:30' }, { codigo: 'MIE-1630-TELAS', servicio: 'Telas', dia: 'Miércoles', hora: '16:30' }],
+  familias: [{ unidad: 'After School', id: 'AS-1', nino: 'ZACARÍAS INVENTADO', telefono: '6000-0001', correo: 'uno@ejemplo.test', clases: ['LUN-1630-PARKOUR'] },
+    { unidad: 'After School', id: 'AS-2', nino: 'NIÑO DOS', telefono: '6000-0002', correo: '', clases: ['MIE-1630-TELAS'] },
+    { unidad: 'Preschool', id: 'VEA-1', nino: 'Niña Tres', telefono: '6000-0003', correo: 'tres@ejemplo.test', clases: [] }],
+  config: [{ parametro: 'Destinatarios por tanda', valor: '50' }],
+  plantillas: [{ nombre: 'Aviso de evento', asunto: 'Te invitamos', cuerpo: 'Hola, familia', activa: true }],
+  enviados: [{ fecha: '2026-11-02 10:00', usuario: 'prueba', rol: 'Comercial', grupos: 'Todo Vida en Arte', familias: 2, sinCorreo: 1, plantilla: '', asunto: 'Hola', tandas: '1 de 1' }] });
 function servidor() {
   const tipos = { html: 'text/html; charset=utf-8', js: 'application/javascript; charset=utf-8', css: 'text/css; charset=utf-8', png: 'image/png', webmanifest: 'application/manifest+json' };
   return http.createServer((req, res) => {
@@ -108,6 +117,8 @@ function servidor() {
         return json({ ok: true, resultado: { hoy: '2026-11-03', yo: { usuario: S.usuario, todo: true }, mios: [], revisar: [], reglas: [], momentos: [], horarios: [], faltan: [], personas: {}, calendario: {},
           fichas: {}, puestos: [P('DIR', 'Dirección', 'Dirección', '', 'Por cargar'), P('C0', 'Coordinación de prueba', 'Comercial', 'DIR', 'Borrador'), P('C1', 'Puesto de prueba', 'Comercial', 'C0', 'Por cargar')] } });
       }
+      // 3-nov: Mensajes a familias (datos inventados).
+      if (url === '/mensajes/api.php') return ve('mensajes') ? json({ ok: true, resultado: MSJ_DEMO(S) }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
       if (url === '/resumen/api.php') return ve('resumen') ? json({ ok: true, resultado: { hoy: asPost('leer').resultado.hoy, metas: [], preschool: null, finanzas: null, faltan: [] } }) : json({ ok: false, codigo: 'sin_permiso' }, 403);
       if (url === '/after-school/api.php') {
         if (!tiene('as.ver')) return json({ ok: false, codigo: 'sin_permiso', error: 'Tu rol no permite esto.' }, 403);
@@ -133,13 +144,13 @@ function servidor() {
 }
 
 /* ── Lo esperado por rol ────────────────────────────────────────────────── */
-const TODO = ['inicio', 'afterschool', 'veranito', 'cumpleanos', 'kinder', 'babyandme', 'resumen', 'procesos', 'equipo', 'basededatos', 'proyecto-actio', 'configuracion'];
+const TODO = ['inicio', 'afterschool', 'veranito', 'cumpleanos', 'kinder', 'babyandme', 'resumen', 'mensajes', 'procesos', 'equipo', 'basededatos', 'proyecto-actio', 'configuracion'];
 const ESPERADO = {
-  administrador:            { nav: TODO, nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: true, principal: 'afterschool' },
-  direccion:                { nav: TODO, nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: true, principal: 'afterschool' },
+  administrador:            { nav: TODO, nuevo: ['inscribir', 'visita', 'pago', 'mensaje'], ninos: true, pa: true, principal: 'afterschool' },
+  direccion:                { nav: TODO, nuevo: ['inscribir', 'visita', 'pago', 'mensaje'], ninos: true, pa: true, principal: 'afterschool' },
   coordinacion_afterschool: { nav: ['inicio', 'afterschool', 'procesos', 'equipo', 'basededatos'], nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: false, principal: 'afterschool' },
   recepcion:                { nav: ['inicio', 'afterschool', 'procesos', 'equipo'], nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: false, principal: 'afterschool' },
-  comercial:                { nav: ['inicio', 'afterschool', 'kinder', 'procesos', 'equipo', 'basededatos'], nuevo: ['visita'], ninos: true, pa: false, principal: 'afterschool' },
+  comercial:                { nav: ['inicio', 'afterschool', 'kinder', 'mensajes', 'procesos', 'equipo', 'basededatos'], nuevo: ['visita', 'mensaje'], ninos: true, pa: false, principal: 'afterschool' },
   contabilidad:             { nav: ['inicio', 'afterschool', 'procesos', 'equipo'], nuevo: ['pago'], ninos: true, pa: false, principal: 'afterschool' },
   coordinacion_preescolar:  { nav: ['inicio', 'kinder', 'procesos', 'equipo', 'basededatos'], nuevo: [], ninos: false, pa: false, principal: 'kinder' },
   profesor:                 { nav: ['inicio', 'afterschool', 'procesos', 'equipo'], nuevo: [], ninos: false, pa: false, principal: 'afterschool' }
@@ -162,7 +173,7 @@ async function correr(nav, base, log) {
       parkour: '#E0412F', telas: '#1974A8', parkids: '#F2A01E', babyme: '#7FB3D5', ok: '#278746', alerta: '#E08A00', peligro: '#D71C0E' };
     ok(Object.entries(COLORES).every(([k, v]) => new RegExp('--' + k + ': ' + v + '[;\\s]').test(raiz)), 'vea.css: los colores del sistema (fondo, panel, línea, tinta, disciplinas y estados)');
     const paginas = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
-      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html'];
+      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html', 'mensajes/index.html'];
     const malas = paginas.filter(f => { const t = leerComoSirve(f); return !/\/comun\/vea\.css\?v=/.test(t) || /class="vidrio"|fondo-local/.test(t); });
     ok(!malas.length, 'todas las páginas usan vea.css y ninguna lleva el vidrio ni la foto vieja' + (malas.length ? ' (' + malas.join(', ') + ')' : ''));
     ok(!/fondo-local|\.vidrio body/.test(css + fs.readFileSync(path.join(RAIZ, 'comun', 'organigrama.js'), 'utf8')), 'vea.css y el organigrama sin la foto de fondo');
@@ -177,7 +188,7 @@ async function correr(nav, base, log) {
   {
     rol = 'administrador';
     const PAGINAS = { '/': 'inicio', '/after-school/': 'afterschool', '/kinder/': 'kinder', '/veranito/': 'veranito', '/procesos/': 'procesos', '/procesos/#equipo': 'equipo',
-      '/equipo/': 'equipo', '/resumen/': 'resumen', '/proyecto-actio/': 'proyecto-actio', '/configuracion/': 'configuracion' };
+      '/equipo/': 'equipo', '/resumen/': 'resumen', '/proyecto-actio/': 'proyecto-actio', '/configuracion/': 'configuracion', '/mensajes/': 'mensajes' };
     for (const [ruta, id] of Object.entries(PAGINAS)) {
       const [ctx, p] = await nueva(1440);
       await p.goto(base + ruta); await p.waitForSelector('.lat [aria-current="page"]', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300);
@@ -198,7 +209,7 @@ async function correr(nav, base, log) {
     rol = 'administrador';
     // Cada página carga comun/tema.js en el <head>, ANTES de los estilos (sin parpadeo).
     const PAGS = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
-      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html'];
+      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html', 'mensajes/index.html'];
     const sinTema = PAGS.filter(f => { const t = leerComoSirve(f); const i = t.indexOf('/comun/tema.js?v='), j = t.indexOf('/comun/vea.css?v=');
       return i < 0 || j < 0 || i > j || !/<script src="\/comun\/tema\.js\?v=[0-9a-f]{10}"><\/script>/.test(t) || t.indexOf('</head>') < i; });
     ok(!sinTema.length, 'todas las páginas aplican la apariencia en el <head>, antes de los estilos' + (sinTema.length ? ' (faltan: ' + sinTema.join(', ') + ')' : ''));
@@ -271,7 +282,7 @@ async function correr(nav, base, log) {
       return malos;
     };
     const archivos = ['comun/vea.css', 'comun/armazon.css', 'portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html',
-      'configuracion/index.html', 'procesos/index.html', 'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'kinder/index.html', 'comun/organigrama.js', 'comun/verificacion.js', 'comun/visor-pantalla.js'];
+      'configuracion/index.html', 'procesos/index.html', 'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'kinder/index.html', 'mensajes/index.html', 'comun/organigrama.js', 'comun/verificacion.js', 'comun/visor-pantalla.js', 'comun/mensajes.js'];
     const malos = archivos.flatMap(f => fuera(leerComoSirve(f), f));
     // Un comentario sin cerrar «se come» las reglas que siguen, sin ningún error a la vista (pasó en el ajuste 3).
     const abiertos = ['comun/vea.css', 'comun/armazon.css'].filter(f => { let d = false, mal = false;
@@ -283,7 +294,7 @@ async function correr(nav, base, log) {
   if (log) console.log('· contraste en los dos modos, en las pantallas principales (ajuste 3)');
   for (const modo of ['claro', 'oscuro']) {
     rol = 'administrador';
-    for (const [ruta, nombre] of [['/', 'Inicio'], ['/after-school/#ocupacion', 'Ocupación'], ['/after-school/#lista', 'Pasar lista'], ['/after-school/#pagos', 'Pagos'], ['/procesos/#documentos', 'Procesos'], ['/resumen/', 'Resumen']]) {
+    for (const [ruta, nombre] of [['/', 'Inicio'], ['/after-school/#ocupacion', 'Ocupación'], ['/after-school/#lista', 'Pasar lista'], ['/after-school/#pagos', 'Pagos'], ['/procesos/#documentos', 'Procesos'], ['/resumen/', 'Resumen'], ['/mensajes/', 'Mensajes']]) {
       const [ctx, p] = await nueva(1440);
       await p.emulateMedia({ colorScheme: modo === 'oscuro' ? 'dark' : 'light' });
       await p.goto(base + ruta); await p.waitForTimeout(1600);

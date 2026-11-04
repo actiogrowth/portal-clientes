@@ -15,6 +15,11 @@
  *                        cualquier estado (Dirección y Administrador, por '*').
  *   equipo.ficha:<ID>    preparado: ver la ficha de ese puesto aunque no lo ocupe ni
  *                        sea su jefe (hoy no lo tiene ningún rol).
+ *   mensajes.enviar      Mensajes a familias (3-nov): abrir la pantalla y pedir los
+ *                        correos de las familias activas (Dirección, Administrador
+ *                        y Comercial). Junto con area:mensajes.
+ *   mensajes.plantillas  crear y editar las plantillas de mensajes (Dirección y
+ *                        Administrador, por '*').
  *   procesos.ver:<…>     Procesos (23-oct): qué documentos recibe. '*' todos;
  *                        '<unidad>' toda la unidad; '<unidad>:<proceso>' uno
  *                        solo (ver procesos_permite). Hoy todos los roles
@@ -61,9 +66,11 @@ const ROLES = [
     'comercial' => [
         'inicio_as' => 'pruebas',
         'nombre' => 'Comercial',
-        'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool y Base de Datos VEA.',
+        'descripcion' => 'After School: Ocupación y Pruebas (ver y agendar). Tablero de Preschool, Base de Datos VEA y Mensajes a familias.',
         'permisos' => ['area:afterschool', 'area:kinder', 'area:basededatos', 'as.ver', 'as.pruebas.ver',
-                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo'],
+                       'as.pruebas.agendar', 'as.contactos.prospectos', 'area:procesos', 'procesos.ver:*', 'area:equipo',
+                       // 3-nov: Mensajes a familias (enviar; las plantillas solo Dirección y Administrador).
+                       'area:mensajes', 'mensajes.enviar'],
     ],
     'contabilidad' => [
         'inicio_as' => 'pagos',
@@ -104,6 +111,7 @@ const CARPETAS_AREA = [
     'procesos'      => 'procesos',          // 23-oct: todos los roles
     'equipo'        => 'equipo',            // 26-oct: Mi lista, Revisar y el puente de Equipo; todos los roles
     'resumen'       => 'resumen',           // 26-oct: Resumen (26-oct: del negocio); solo Administrador y Dirección (nadie más la tiene)
+    'mensajes'      => 'mensajes',          // 3-nov: Mensajes a familias; Administrador, Dirección y Comercial
     'pendientes'    => 'equipo',            // 26-oct: el puente de «Pendientes de hoy» de la portada; todos los roles (cada uno recibe lo suyo)
 ];
 
@@ -114,7 +122,7 @@ const CARPETAS_LIBRES = ['biblioteca'];
 /* Áreas que la portada conoce (tarjetas). 22-oct: 'proyecto-actio' reemplaza a
    'actio' (la tarjeta Sistema Operativo, que llevaba a GitHub Pages). */
 /* 21-oct (rediseño): 'pasarlista' ya no es tarjeta (Pasar lista está dentro de After School). */
-const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion', 'procesos', 'equipo', 'resumen'];
+const AREAS = ['kinder', 'veranito', 'afterschool', 'basededatos', 'babyandme', 'cumpleanos', 'proyecto-actio', 'configuracion', 'procesos', 'equipo', 'resumen', 'mensajes'];
 
 /* 23-oct: la portada agrupa las unidades por marca; tocar un logo abre la
    página de esa marca (la portada con ?marca=). Mismo orden que en comun/marca.js. */
@@ -130,7 +138,7 @@ const AREAS_SIN_ENTRADA = ['procesos', 'equipo'];   // 26-oct: Equipo también (
 const AREA_URL = [
     'kinder' => '/kinder/', 'veranito' => '/veranito/', 'afterschool' => '/after-school/',
     'basededatos' => '/basededatos/', 'configuracion' => '/configuracion/', 'proyecto-actio' => '/proyecto-actio/',
-    'procesos' => '/procesos/', 'equipo' => '/equipo/', 'resumen' => '/resumen/',
+    'procesos' => '/procesos/', 'equipo' => '/equipo/', 'resumen' => '/resumen/', 'mensajes' => '/mensajes/',
 ];
 
 /** Tras el login: si el usuario abre UNA sola sección, va directo a ella; si

@@ -649,3 +649,73 @@ Finanzas: tarjeta «Próximamente», sin números. **Fuera por falta de
 definición** (no se inventan): inscripciones del mes. (La ocupación de
 After School estuvo fuera en la primera versión; Marco la pidió con la
 regla de la pestaña Ocupación, la de la tabla.)
+
+## Mensajes a familias (`/mensajes/` y `mensajes/api.php`) — 3-nov
+
+Quién: área `mensajes` (Administrador, Dirección y Comercial) y además
+`mensajes.enviar`; `guardarPlantilla` pide `mensajes.plantillas` (Dirección y
+Administrador). Cualquier otro rol recibe **403 `sin_permiso`** y el pedido no
+llega a ningún Apps Script. Todo es `POST` JSON `{accion, datos}`.
+
+| Acción | Qué hace | A quién le pregunta |
+|---|---|---|
+| `leer` | Familias que pueden recibir, clases, plantillas, configuración y los últimos 20 envíos | After School `leer` (AfterSchool.gs, sin cambios) y Base de Datos `mensajesLeer` |
+| `guardarPlantilla` | Crea o edita una plantilla (por nombre; `nombreAnterior` para renombrar) | Base de Datos `mensajesGuardarPlantilla` |
+| `registrar` | Anota que se abrió una tanda en Gmail | Base de Datos `mensajesRegistrar` |
+
+### `leer` → `resultado`
+
+```
+{ hoy, familiasHoy,                  // familias registradas hoy (para el aviso de 450)
+  familias: [{ unidad: 'After School' | 'Preschool', id, nino, telefono, correo, clases: [código] }],
+  clases:   [{ codigo, servicio, dia, hora }],   // solo las que tienen niños que reciben
+  config:   [{ parametro, valor }],              // pestaña «Config mensajes»
+  plantillas: [{ nombre, asunto, cuerpo, activa }],   // Comercial: solo las activas
+  enviados: [{ fecha, usuario, rol, grupos, familias, sinCorreo, plantilla, asunto, tandas }],
+  puedePlantillas, usuario, rol }
+```
+
+**Quién sale en `familias` (lo decide el puente, R161):**
+- After School: «Niños» › Estado = **Activo**. Sus clases, de las inscripciones
+  abiertas, sin las de un «Servicio fuera de Mensajes». Si todas sus clases son
+  de un servicio fuera (hoy Baby & Me), el niño no sale.
+- Preschool: casilla «Kínder» de «👦 Base de Datos» **y** «Estado actual» =
+  Activo en la pestaña «🧸 Kínder».
+- Solo esos seis campos. Nada de responsable, nacimiento, notas, pagos ni
+  retirados, interesados o pruebas.
+- Si After School o la Base de Datos no responden: **502**, sin lista (un «Todo»
+  a medias no se distinguiría de uno completo).
+
+### `guardarPlantilla`
+
+`datos: {nombre, nombreAnterior?, asunto, cuerpo, activa}` → `resultado: {plantillas}`.
+El puente manda solo esos cinco campos (recortados: 80 / 200 / 20.000
+caracteres). El script no deja que un renombre pise otra plantilla y guarda
+todo como texto (nada que empiece con `= + - @` queda como fórmula).
+
+### `registrar`
+
+`datos: {idEnvio, grupos, familias, sinCorreo, plantilla, asunto, tanda, tandas}`
+→ `resultado: {idEnvio, tandas}` (p. ej. «1, 2 de 3»). **Usuario y rol salen
+de la sesión**, nunca del navegador. Ningún correo entra al registro (un correo
+escrito en el asunto o en los grupos se cambia por «[correo]»). Una fila por
+envío (`idEnvio`); cada tanda abierta se suma; repetir la misma no cambia nada.
+La app no sabe si el correo salió: la pantalla dice «Registrado como abierto
+en Gmail».
+
+### Apps Script de la Base de Datos (`bdclientesvea/apps-script-vea.gs`)
+
+Tres acciones nuevas en `doPost`: `mensajesLeer`, `mensajesGuardarPlantilla`,
+`mensajesRegistrar`. Además de la clave de siempre (`key`, que está en el
+`index.html` público de la Base de Datos) piden **`claveMensajes`** igual a la
+propiedad del script **`MSJ_CLAVE_API`** (`msj_clave` en `portal_config.php`).
+Sin esa propiedad, las tres responden error. Escriben solo en «Plantillas de
+mensajes», «Mensajes enviados» y «Config mensajes», y las crean si faltan.
+
+### El envío (v1)
+
+Lo hace **una sola función**, `Mensajes.enviar` (`comun/mensajes.js`): abre la
+redacción de Gmail web con el asunto, el cuerpo y la tanda en **CCO** («Para»
+vacío), con `authuser` si «Cuenta de Gmail para mensajes» tiene valor. Para
+pasar a Resend se cambia esa función (y se agrega su acción aquí); la pantalla
+no cambia.
