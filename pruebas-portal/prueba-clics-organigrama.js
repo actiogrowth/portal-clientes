@@ -80,6 +80,9 @@ const nombre = id => PUESTOS.find(p => p.id === id).puesto;
 
 async function preparar(navegador, opciones) {
   const ctx = await navegador.newContext(opciones);
+  // 5-nov (ajuste 4): la página abre en Claro por defecto; aquí la cuenta de prueba eligió Automático,
+  // para que el modo siga al dispositivo (colorScheme) como prueba esta pieza.
+  await ctx.addInitScript(() => { try { localStorage.setItem('vea360.apariencia.ultimo', 'auto'); localStorage.setItem('vea360.apariencia.admin-de-prueba', 'auto'); } catch (e) { } });
   const page = await ctx.newPage();
   const errores = [];
   page.on('pageerror', e => errores.push(e.message));
@@ -216,7 +219,7 @@ let base = '';
       await ctx.close();
     }
     /* 3-nov (rediseño, ajuste 3): el árbol COMPLETO en el lienzo (la última tarjeta de la columna más larga
-       se cortaba), en claro y en oscuro, en varios anchos. El modo sale del dispositivo (Automático), así que
+       se cortaba), en claro y en oscuro, en varios anchos. El modo sale del dispositivo (Automático, elegido por la cuenta de prueba), así que
        esto prueba también que Automático lo sigue; y que Equipo cambia de escena según el modo. */
     for (const modo of ['claro', 'oscuro']) {
       console.log('· el árbol completo y la escena, en ' + modo + ' (Automático, el dispositivo en ' + modo + ')');
