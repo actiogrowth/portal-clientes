@@ -57,6 +57,8 @@ switch ($p['op']) {
   case 'destino': $r = [ms_destino_prueba($p['config'], $p['usuario'], 'buzon@vea-prueba.test')]; break;
   case 'cupo': $r = msj_cupo($p['marcas'], $p['max'], $p['n'], $p['ahora']); break;
   case 'smtp': $r = ms_smtp($p['cfg'], 'x'); unset($r['clave']); break;
+  case 'firma': $r = [(ms_valores($p['filas'], MS_FIRMA)[0] ?? '') ?: MS_FIRMA_FALTA]; break;
+  case 'corchetes': $r = ms_corchetes($p['texto']); break;
   case 'numero': $r = [ms_numero($p['filas'], $p['parametro'], 50, 1, 500)]; break;
 }
 echo json_encode($r, JSON_UNESCAPED_UNICODE);
@@ -86,7 +88,7 @@ const CLAVES = Object.keys(DEST);
 (async () => {
   const S = await smtpDeMentira({ usuario: BUZON, clave: CLAVE_BUZON });
   const cfg = { smtp_host: '127.0.0.1', smtp_puerto: S.puerto, smtp_seguridad: 'ninguna', smtp_usuario: BUZON, smtp_clave: CLAVE_BUZON, msj_logo: 'https://portal.prueba.test/comun/logo-vea.png' };
-  const tanda = (t, extra) => php(Object.assign({ op: 'tanda', cfg, carpeta, t: Object.assign({ carpeta, id: 'envio-prueba-0001', huellaMensaje: 'h1', asunto: 'Función de fin de año', cuerpo: 'Hola, familia:\n\nLos esperamos.\nhttps://vidaenarte.test/fiesta\n\n<script>x</script>', tanda: 1, destinos: DEST, claves: CLAVES, porTanda: 50, maxHora: 100 }, t) }, extra || {}));
+  const tanda = (t, extra) => php(Object.assign({ op: 'tanda', cfg, carpeta, t: Object.assign({ carpeta, id: 'envio-prueba-0001', huellaMensaje: 'h1', firma: 'Equipo Vida en Arte', asunto: 'Función de fin de año', cuerpo: 'Hola, familia:\n\nLos esperamos.\nhttps://vidaenarte.test/fiesta\n\n<script>x</script>', tanda: 1, destinos: DEST, claves: CLAVES, porTanda: 50, maxHora: 100 }, t) }, extra || {}));
   const veces = c => S.correos.filter(m => m.para.includes(c)).length;
   try {
     console.log('· el correo');
@@ -101,12 +103,15 @@ const CLAVES = Object.keys(DEST);
     ok(m && m.encabezados.to === '<' + m.para[0] + '>', '«Para»: solo la familia', m && m.encabezados.to);
     ok(S.correos.every(x => !('cc' in x.encabezados) && !('bcc' in x.encabezados)), 'sin copia ni copia oculta');
     ok(m && m.asunto === 'Función de fin de año', 'el asunto con tildes llega bien', m && m.asunto);
-    ok(m && /Hola, familia:/.test(m.texto) && /Los esperamos\./.test(m.texto), 'la versión de solo texto lleva el mensaje', m && m.texto);
-    ok(m && /<img src="https:\/\/portal\.prueba\.test\/comun\/logo-vea\.png"/.test(m.html) && m.html.indexOf('<img') < m.html.indexOf('Hola, familia'), 'el HTML lleva el logo ARRIBA y el texto debajo', m && m.html.slice(0, 900));
+    ok(m && /Hola, familia:/.test(m.texto) && /Los esperamos\./.test(m.texto) && /\r?\n\r?\nEquipo Vida en Arte\s*$/.test(m.texto), 'la versión de solo texto lleva el mensaje y al final la firma', m && m.texto);
+    const pLogo = m ? m.html.indexOf('<img') : -1, pFirma = m ? m.html.indexOf('Equipo Vida en Arte') : -1, pTexto = m ? m.html.indexOf('Hola, familia') : -1;
+    ok(m && /<img src="https:\/\/portal\.prueba\.test\/comun\/logo-vea\.png"/.test(m.html) && pTexto >= 0 && pTexto < pFirma && pFirma < pLogo, '5-nov (ajuste): el texto, debajo la línea de firma y debajo el logo (como firma)', m && m.html.slice(0, 1200));
+    ok(m && /width="140"/.test(m.html) && !/align="center"|text-align:center|margin:0 auto/.test(m.html), 'el logo pequeño (140 px) y a la izquierda, nada centrado');
+    ok(m && !/background:#(?!fff)|background-color|border-radius:1[0-9]px|<table/i.test(m.html), 'un aviso personal, no un boletín: sin fondos de color ni recuadros', m && m.html.slice(0, 600));
     ok(m && (m.html.match(/<img/g) || []).length === 1, 'ninguna otra imagen (sin píxeles de seguimiento)');
     ok(m && /&lt;script&gt;/.test(m.html) && !/<script/.test(m.html), 'el texto se escapa en el HTML (no se cuela código)');
     ok(m && /<a href="https:\/\/vidaenarte\.test\/fiesta"/.test(m.html), 'las direcciones web quedan como enlace');
-    ok(m && /max-width:560px/.test(m.html) && /name="viewport"/.test(m.html), 'HTML simple que se lee en celular (ancho máximo y viewport)');
+    ok(m && /max-width:600px/.test(m.html) && /name="viewport"/.test(m.html), 'HTML simple que se lee en celular (ancho máximo y viewport)');
     ok(m && /^Message-ID: <[0-9a-f]{32}@vea-prueba\.test>\r?$/m.test(m.datos), 'Message-ID con el dominio del buzón');
     ok(S.auths.length === 1 && S.auths[0][0] === BUZON, 'entra al buzón una vez por tanda (AUTH PLAIN)');
 
@@ -191,6 +196,10 @@ const CLAVES = Object.keys(DEST);
     ok((await php({ op: 'destino', config: [], usuario: 'direccion-uno' }))[0] === 'buzon@vea-prueba.test', 'si no, el buzón que envía');
     ok((await php({ op: 'numero', filas: [{ parametro: 'Máximo de correos por hora', valor: '100' }], parametro: 'Máximo de correos por hora' }))[0] === 100 &&
        (await php({ op: 'numero', filas: [], parametro: 'Máximo de correos por hora' }))[0] === 50, 'los números salen de Config mensajes (y si faltan, el valor prudente)');
+    ok((await php({ op: 'firma', filas: [] }))[0] === 'Equipo Vida en Arte' && (await php({ op: 'firma', filas: [{ parametro: 'Firma', valor: 'Dirección de Vida en Arte' }] }))[0] === 'Dirección de Vida en Arte',
+      '5-nov (ajuste): la firma sale de Config mensajes › «Firma»; si no está, «Equipo Vida en Arte»');
+    const co2 = await php({ op: 'corchetes', texto: 'Aviso: [día sin clase / cambio de horario]\nHola [nombre] y [nombre]. Correo [ok' });
+    ok(JSON.stringify(co2) === JSON.stringify(['[día sin clase / cambio de horario]', '[nombre]']), 'los corchetes sin completar se encuentran (una vez cada uno)', JSON.stringify(co2));
     const ar = await php({ op: 'armar', m: { de: BUZON, nombre: 'Vida en Arte', para: 'x@familia.test', asunto: 'Hola\r\nBcc: otro@malo.test', cuerpo: '.línea con punto', logo: '', dominio: 'vea-prueba.test' } });
     const dd = decodificar(ar.datos || '');
     ok(!('bcc' in dd.encabezados) && /^Subject: Hola Bcc: otro@malo\.test\r?$/m.test(ar.datos || ''), 'un salto de línea en el asunto no mete otro encabezado', (ar.datos || '').slice(0, 400));
@@ -204,7 +213,10 @@ const CLAVES = Object.keys(DEST);
       ['correo.php', 'manda a todos en copia oculta', "        'To: <' . $p['para'] . '>',", "        'To: <' . $p['para'] . '>',\r\n        'Bcc: copia@vea-prueba.test',"],
       ['correo.php', 'sin Reply-To', "        'Reply-To: <' . $p['de'] . '>',\n", ''],
       ['correo.php', 'sin la versión de solo texto', "        'Content-Type: text/plain; charset=UTF-8',", "        'Content-Type: text/x-nada; charset=UTF-8',"],
-      ['correo.php', 'sin el logo', "        $img .\n", ''],
+      ['correo.php', 'sin el logo', "        msj_html_cuerpo($cuerpo) . $f . $img .", "        msj_html_cuerpo($cuerpo) . $f ."],
+      ['correo.php', 'el logo arriba otra vez', "        msj_html_cuerpo($cuerpo) . $f . $img .", "        $img . msj_html_cuerpo($cuerpo) . $f ."],
+      ['correo.php', 'sin la firma', "    $f = $firma !== '' ?", "    $f = false ?"],
+      ['correo.php', 'el logo grande y centrado', "const MSJ_LOGO_ANCHO = 140;", "const MSJ_LOGO_ANCHO = 220;"],
       ['correo.php', 'el texto sin escapar en el HTML', "        $h = htmlspecialchars($p, ENT_QUOTES | ENT_HTML5, 'UTF-8');", '        $h = $p;'],
       ['correo.php', 'sin SSL a cualquier servidor', "    if ($seg !== 'ssl' && !($seg === 'ninguna' && $local))", '    if (false)'],
       ['correo.php', 'el asunto deja pasar saltos de línea', "    $s = trim(preg_replace('/[\\r\\n\\t]+/', ' ', $s));", '    $s = trim($s);'],
@@ -217,6 +229,7 @@ const CLAVES = Object.keys(DEST);
       ['api.php', 'envía a una huella que ya no es de una familia activa', "            if (isset($t['destinos'][$k])) return true;", "            if (true) return true;"],
       ['api.php', 'otro mensaje con el mismo ID sigue enviando', "        if ($id !== '' && ($E['huellaMensaje'] ?? '') !== $t['huellaMensaje'])", "        if (false)"],
       ['api.php', 'la configuración saca la lista de exclusión', "        if (in_array(ms_norm($f['parametro']), $privados, true) || str_contains((string) ($f['valor'] ?? ''), '@')) continue;", ''],
+      ['api.php', 'los corchetes no se buscan', "    preg_match_all('/\\[[^\\[\\]\\n]{1,200}\\]/u', $texto, $m);", "    $m = [[]];"],
       ['api.php', 'un correo excluido recibe', "(in_array($c, $ex, true) ? 'excluido' :", '(false ? \'excluido\' :'],
       ['api.php', 'no se anota lo que salió', "            if ($r['estado'] === 'enviado') { $E['destinos'][$k] = ['e' => 'enviado', 't' => time()]; $res['enviadas'][] = $k; }", "            if ($r['estado'] === 'enviado') { $res['enviadas'][] = $k; }"]
     ];

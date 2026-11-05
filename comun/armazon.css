@@ -161,20 +161,22 @@ body.hoja-abierta { overflow: hidden; }
   .lat-logo { padding: 2px 0 10px; justify-content: center; }
   .lat-logo-largo { display: none !important; }
   .lat-logo .lat-logo-ic { display: block !important; height: 40px; width: 40px; border-radius: 10px; }
-  .lat-360, .lat-grupo-tit, .lat-txt, .lat-punto, .lat-yo > svg { display: none; }
-  .lat-nav { gap: 2px; align-items: center; overflow: visible; }
-  .lat-grupo { align-items: center; padding-top: 6px; }
-  .lat-grupo + .lat-grupo { border-top: 1px solid var(--linea); }
-  .lat-item { width: 52px; height: 48px; padding: 0; justify-content: center; }
-  .lat-item svg { width: 22px; height: 22px; }
-  .lat-item.pronto { opacity: .5; }
+  /* 5-nov: todo esto SOLO en la barra lateral (.lat). El panel «Más» del celular usa las mismas
+     piezas (.lat-nav, .lat-item…) y heredaba estas reglas: mostraba solo los iconos, sin su nombre. */
+  .lat .lat-360, .lat .lat-grupo-tit, .lat .lat-txt, .lat .lat-punto, .lat .lat-yo > svg { display: none; }
+  .lat .lat-nav { gap: 2px; align-items: center; overflow: visible; }
+  .lat .lat-grupo { align-items: center; padding-top: 6px; }
+  .lat .lat-grupo + .lat-grupo { border-top: 1px solid var(--linea); }
+  .lat .lat-item { width: 52px; height: 48px; padding: 0; justify-content: center; }
+  .lat .lat-item svg { width: 22px; height: 22px; }
+  .lat .lat-item.pronto { opacity: .5; }
   /* El nombre: un globo a la derecha al pasar el mouse, al enfocar o al mantener el dedo. */
-  .lat-item::after { content: attr(title); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: var(--activo); color: var(--sobre-activo);
+  .lat .lat-item::after { content: attr(title); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: var(--activo); color: var(--sobre-activo);
     font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5; }
-  .lat-item:hover::after, .lat-item:focus-visible::after, .lat-item:active::after { opacity: 1; }
-  .lat-usuario { width: 100%; display: flex; justify-content: center; }
-  .lat-yo { width: auto; padding: 6px; }
-  .lat-usuario .menu { left: 0; right: auto; }
+  .lat .lat-item:hover::after, .lat .lat-item:focus-visible::after, .lat .lat-item:active::after { opacity: 1; }
+  .lat .lat-usuario { width: 100%; display: flex; justify-content: center; }
+  .lat .lat-yo { width: auto; padding: 6px; }
+  .lat .lat-usuario .menu { left: 0; right: auto; }
   .cab-in { padding: 10px 24px; }
   .pagina { padding: 22px 24px 56px; }
 }

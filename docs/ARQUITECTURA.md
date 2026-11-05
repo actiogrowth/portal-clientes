@@ -751,6 +751,13 @@ acción, no hay botón.
   (`.ms-en-envio`): tapaba las tandas (reunión del 4-nov). Ya no hay Gmail ni
   «Cuenta de Gmail para mensajes». Resend y WhatsApp van en encargos aparte.
   (Hasta el 5-nov: Gmail web en CCO, ver D-120.)
+- **Ajuste del 5-nov (D-129)**: el correo lleva la línea de firma («Config
+  mensajes» › «Firma», o «Equipo Vida en Arte») y el logo pequeño abajo a la
+  izquierda, sin fondos; corchetes de la plantilla sin completar frenan el
+  envío (pantalla y servidor); la barra de Mensajes queda encima de la
+  navegación inferior en el iPhone; los pasos numeran con `data-paso`; el
+  panel «Más» muestra los nombres (las reglas de la barra de iconos ahora
+  son solo de `.lat`).
 - **Instalar** (una vez): pegar `apps-script-vea.gs` en el proyecto de la Base
   de Datos, agregar la propiedad del script `MSJ_CLAVE_API` (32 caracteres o
   más) y publicar **Nueva versión** en la implementación existente; en

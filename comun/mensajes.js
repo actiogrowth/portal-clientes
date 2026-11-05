@@ -198,13 +198,28 @@
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
+  /**
+   * 5-nov (ajuste): los textos entre corchetes que quedan de la plantilla
+   * («[día sin clase / cambio de horario]»). Mientras haya alguno no se envía
+   * nada (ni la prueba): el correo sale directo a las familias, sin revisión
+   * en Gmail. El servidor busca lo mismo (mensajes/api.php › ms_corchetes).
+   */
+  function corchetes(...textos) {
+    const out = [];
+    textos.forEach(t => (String(t == null ? '' : t).match(/\[[^\[\]\n]{1,200}\]/g) || []).forEach(x => { if (!out.includes(x)) out.push(x); }));
+    return out;
+  }
+
+  /** La línea de firma del correo (Config mensajes › «Firma»; si falta, «Equipo Vida en Arte»). */
+  const FIRMA_FALTA = 'Equipo Vida en Arte';
+
   /** Un ID para el envío (lo usa el registro para sumar las tandas a la misma fila). */
   function idEnvio() {
     const c = raiz.crypto;
     return (c && c.randomUUID) ? c.randomUUID() : 'env-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
 
-  const api = { TODO, norm, limpiarCorreo, correoValido, config, grupos, armar, conteos, tandas, enlaceWhatsapp, enviar, horaDe, idEnvio };
+  const api = { TODO, FIRMA_FALTA, norm, limpiarCorreo, correoValido, config, grupos, armar, conteos, tandas, enlaceWhatsapp, enviar, horaDe, corchetes, idEnvio };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   raiz.Mensajes = api;
 })(typeof window !== 'undefined' ? window : globalThis);

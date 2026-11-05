@@ -10,7 +10,7 @@
  * Tres piezas, sin librerías de fuera:
  *   1. msj_armar()      el correo: From «Vida en Arte <buzón>», un solo
  *                       destinatario en «Para», Reply-To al buzón, HTML simple
- *                       con el logo arriba + versión de solo texto. Sin
+ *                       con la firma y el logo abajo (5-nov) + versión de solo texto. Sin
  *                       píxeles de seguimiento.
  *   2. smtp_*()         un cliente SMTP mínimo: SSL directo (puerto 465),
  *                       AUTH PLAIN o LOGIN, un correo por destinatario.
@@ -55,29 +55,32 @@ function msj_html_cuerpo(string $texto): string {
     return $out;
 }
 
-/** El HTML completo: tabla de 560 px de ancho máximo (se lee bien en celular), logo arriba, texto debajo. */
-function msj_html(string $asunto, string $cuerpo, string $logo, string $nombre): string {
+/** 5-nov (ajuste): un aviso personal, no un boletín. Sin fondos de color ni recuadros: el texto, debajo la
+ *  línea de firma («Config mensajes» › «Firma») y debajo el logo, pequeño y a la izquierda, como firma. */
+const MSJ_LOGO_ANCHO = 140;   // px del logo en la firma (el archivo es de 581 × 120)
+
+function msj_html(string $asunto, string $cuerpo, string $logo, string $nombre, string $firma = ''): string {
     $a = htmlspecialchars($asunto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $n = htmlspecialchars($nombre, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $img = $logo !== '' ? '<tr><td align="center" style="padding:28px 24px 4px;"><img src="' . htmlspecialchars($logo, ENT_QUOTES | ENT_HTML5, 'UTF-8') .
-        '" width="220" alt="' . $n . '" style="display:block;width:220px;max-width:70%;height:auto;border:0;"></td></tr>' : '';
+    $f = $firma !== '' ? '<p style="margin:24px 0 10px;">' . nl2br(htmlspecialchars($firma, ENT_QUOTES | ENT_HTML5, 'UTF-8'), false) . '</p>' : '';
+    $img = $logo !== '' ? '<img src="' . htmlspecialchars($logo, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '" width="' . MSJ_LOGO_ANCHO . '" alt="' . $n .
+        '" style="display:block;width:' . MSJ_LOGO_ANCHO . 'px;max-width:50%;height:auto;border:0;margin:' . ($f === '' ? '24px' : '0') . ' 0 0;">' : '';
     return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' .
-        '<title>' . $a . '</title></head><body style="margin:0;padding:0;background:#F5F3EF;">' .
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5F3EF;"><tr><td align="center" style="padding:24px 12px;">' .
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#FFFFFF;border-radius:12px;">' .
-        $img .
-        '<tr><td style="padding:20px 28px 16px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#222222;">' . msj_html_cuerpo($cuerpo) . '</td></tr>' .
-        '</table></td></tr></table></body></html>';
+        '<title>' . $a . '</title></head><body style="margin:0;padding:0;">' .
+        '<div style="max-width:600px;padding:16px;text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#222222;">' .
+        msj_html_cuerpo($cuerpo) . $f . $img .
+        '</div></body></html>';
 }
 
 /**
  * El correo entero, listo para DATA (líneas con CRLF, sin el punto final).
- * $p: de (correo), nombre, para (correo), asunto, cuerpo, logo (URL), dominio, fecha (opcional, para las pruebas).
+ * $p: de (correo), nombre, para (correo), asunto, cuerpo, logo (URL), dominio, firma (5-nov), fecha (opcional, para las pruebas).
  */
 function msj_armar(array $p): string {
     $limite = 'vea-' . bin2hex(random_bytes(12));
     $b64 = fn($s) => rtrim(chunk_split(base64_encode($s), 76, "\r\n"));
     $texto = str_replace(["\r\n", "\r"], "\n", (string) $p['cuerpo']);
+    $firma = trim(str_replace(["\r\n", "\r"], "\n", (string) ($p['firma'] ?? '')));
     $h = [
         'Date: ' . ($p['fecha'] ?? date('r')),
         'From: ' . msj_encabezado((string) $p['nombre']) . ' <' . $p['de'] . '>',
@@ -93,12 +96,12 @@ function msj_armar(array $p): string {
         'Content-Type: text/plain; charset=UTF-8',
         'Content-Transfer-Encoding: base64',
         '',
-        $b64(str_replace("\n", "\r\n", $texto)),
+        $b64(str_replace("\n", "\r\n", rtrim($texto) . ($firma !== '' ? "\n\n" . $firma : ''))),
         '--' . $limite,
         'Content-Type: text/html; charset=UTF-8',
         'Content-Transfer-Encoding: base64',
         '',
-        $b64(msj_html((string) $p['asunto'], $texto, (string) ($p['logo'] ?? ''), (string) $p['nombre'])),
+        $b64(msj_html((string) $p['asunto'], $texto, (string) ($p['logo'] ?? ''), (string) $p['nombre'], $firma)),
         '--' . $limite . '--',
     ];
     return implode("\r\n", $h) . "\r\n\r\n" . implode("\r\n", $partes);

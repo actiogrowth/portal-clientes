@@ -23,7 +23,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <script src="/comun/tema.js?v=90ae127559"></script>
-<link rel="stylesheet" href="/comun/vea.css?v=b94ac6aec1">
+<link rel="stylesheet" href="/comun/vea.css?v=d2c17497a8">
 </head>
 <body>
 <header id="cab"></header>
@@ -114,8 +114,8 @@
 </main>
 
 <script src="/comun/datos.js?v=62fa2e69ae"></script>
-<script src="/comun/mensajes.js?v=98a7b5916c"></script>
-<script src="/comun/marca.js?v=9f094af087"></script>
+<script src="/comun/mensajes.js?v=6ebca1f93f"></script>
+<script src="/comun/marca.js?v=3892f6fb25"></script>
 <script>
 'use strict';
 const esc = Marca.esc;
@@ -207,8 +207,11 @@ function filaSin(x) {
 }
 const ENV = () => D.envio || {};
 function pintarRevisar() {
+  const sinCompletar = Mensajes.corchetes(E.asunto, E.cuerpo);
   const L = E.lista;
-  let html = '<div class="tarjeta"><h2>Revisa antes de enviar</h2><div class="ms-cifras">' +
+  const avisoCorchetes = !sinCompletar.length ? '' : '<div class="aviso mal ms-corchetes" style="margin-bottom:14px"><b>Falta completar ' + (sinCompletar.length === 1 ? 'un texto de la plantilla' : sinCompletar.length + ' textos de la plantilla') +
+    ':</b> ' + sinCompletar.map(x => '<code>' + esc(x) + '</code>').join(', ') + '. Vuelve a «Mensaje» y cámbialo: así como está no se puede enviar (el correo sale directo a las familias).</div>';
+  let html = '<div class="tarjeta"><h2>Revisa antes de enviar</h2>' + avisoCorchetes + '<div class="ms-cifras">' +
     cifra('Familias que recibirán', L.familias, true) + cifra('Niños en los grupos', L.ninos) + cifra('Correos repetidos quitados', L.repetidos) +
     cifra('Sin correo', L.sinCorreo.length) + (L.invalidos.length ? cifra('Correos con formato inválido', L.invalidos.length) : '') + '</div>';
   html += '<p class="ayuda" style="margin-top:12px">Grupos: ' + esc(nombresElegidos().join(', ')) + '.</p>';
@@ -220,8 +223,9 @@ function pintarRevisar() {
   html += '<div class="tarjeta"><h2>Vista previa</h2><div class="ms-correo"><dl>' +
     (D.puedeEnviar && ENV().remitente ? '<dt>De</dt><dd>' + esc(ENV().remitente) + '</dd>' : '<dt>De</dt><dd>Vida en Arte</dd>') +
     '<dt>Para</dt><dd>Cada familia por separado: ' + plural(L.familias, 'correo', 'correos') + ', cada uno con su familia como único destinatario' +
-    (E.tandas.length > 1 ? ', en ' + E.tandas.length + ' tandas de hasta ' + CFG.porTanda : '') + '</dd><dt>Asunto</dt><dd>' + esc(E.asunto) + '</dd></dl>' +
-    '<div class="ms-cuerpo"><img class="ms-logo-correo" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte" width="180" height="37">' + esc(E.cuerpo) + '</div></div></div>';
+    (E.tandas.length > 1 ? ', en ' + E.tandas.length + ' tandas de hasta ' + CFG.porTanda : '') + '</dd><dt>Asunto</dt><dd>' + marcarCorchetes(E.asunto) + '</dd></dl>' +
+    '<div class="ms-cuerpo">' + marcarCorchetes(E.cuerpo) + '<div class="ms-firma">' + esc(D.firma || Mensajes.FIRMA_FALTA) + '</div>' +
+    '<img class="ms-logo-correo" src="/comun/logo-vea.png?v=03a73eb9c2" alt="Vida en Arte" width="140" height="29"></div></div></div>';
   html += '<div class="tarjeta"><h2>Sin correo (' + L.sinCorreo.length + ')</h2>' + (L.sinCorreo.length
     ? '<p class="ayuda" style="margin-bottom:12px">No les llegará este correo: escríbeles por otro lado.</p><ul class="ms-lista">' + L.sinCorreo.map(filaSin).join('') + '</ul>'
     : '<p class="ayuda">Todas las familias de estos grupos tienen correo.</p>') + '</div>';
@@ -262,8 +266,10 @@ function pintarEnviar() {
       (n > 1 ? ' en ' + n + ' tandas' : '') + '. Tu rol puede preparar y revisar el mensaje, pero el envío lo hacen Dirección o Administración. Pídeles que lo envíen desde Mensajes.</p></div>';
     return;
   }
-  const ocupado = E.enviando > 0;
+  const sinCompletar = Mensajes.corchetes(E.asunto, E.cuerpo);
+  const ocupado = E.enviando > 0 || sinCompletar.length > 0;   // 5-nov (ajuste): con corchetes sin completar, nada se envía
   let html = '<div class="tarjeta"><h2>' + (n > 1 ? 'Envía las ' + n + ' tandas' : 'Envía el correo') + '</h2>';
+  if (sinCompletar.length) html += '<div class="aviso mal ms-corchetes" style="margin-bottom:14px"><b>No se puede enviar todavía.</b> Falta completar: ' + sinCompletar.map(x => '<code>' + esc(x) + '</code>').join(', ') + '. Pulsa «Cambiar algo» y vuelve a «Mensaje».</div>';
   if (!env.listo) html += '<div class="aviso mal" style="margin-bottom:14px">Falta configurar el buzón que envía en la configuración del servidor del portal. Hasta entonces no se puede enviar.</div>';
   html += '<p class="ayuda" style="margin-bottom:14px">El correo sale desde <b>' + esc(env.remitente || 'el buzón de Vida en Arte') + '</b>: uno por familia, cada uno con su familia como único destinatario. ' +
     (n > 1 ? 'Envía una tanda, espera el resultado y luego la siguiente. ' : '') + 'Máximo ' + CFG.maxHora + ' correos por hora.</p>';
@@ -304,6 +310,7 @@ $('#enviar').addEventListener('click', ev => {
   if (b) enviarTanda(Number(b.dataset.enviar));
 });
 async function enviarPrueba() {
+  if (Mensajes.corchetes(E.asunto, E.cuerpo).length) { pintarEnviar(); return; }
   E.prueba = { enCurso: true }; pintarEnviar();
   try {
     const r = (await Datos.mensajes.prueba({ asunto: E.asunto, cuerpo: E.cuerpo })).resultado;
@@ -318,7 +325,7 @@ async function enviarPrueba() {
   pintarEnviar();
 }
 async function enviarTanda(i) {
-  if (E.enviando) return;
+  if (E.enviando || Mensajes.corchetes(E.asunto, E.cuerpo).length) return;
   const t = E.tandas[i - 1], previo = E.res[i];
   const primera = !Object.keys(E.res).some(k => E.res[k] && !E.res[k].error && E.res[k].estado !== 'limite' && E.res[k].estado !== 'ocupado');
   if (primera && !confirm('Se enviará el correo «' + E.asunto + '» a ' + plural(t.length, 'familia', 'familias') + ' (tanda ' + i + ' de ' + E.tandas.length + ') desde ' + (ENV().remitente || 'el buzón de Vida en Arte') + '. ¿Enviar?')) return;
@@ -360,9 +367,17 @@ function anotarLocal(r) {
 }
 
 /* ── Navegación entre pasos ───────────────────────────────────────────── */
+/* El cuerpo con los corchetes sin completar resaltados (vista previa). */
+function marcarCorchetes(t) {
+  const marcas = Mensajes.corchetes(t);
+  let h = esc(t);
+  marcas.forEach(m => { h = h.split(esc(m)).join('<mark class="ms-falta">' + esc(m) + '</mark>'); });
+  return h;
+}
 function puedeSeguir() {
   if (E.paso === 1) return E.elegidos.size > 0 && E.lista && E.lista.familias > 0;
   if (E.paso === 2) return !!(E.asunto && E.cuerpo);
+  if (E.paso === 3) return !Mensajes.corchetes(E.asunto, E.cuerpo).length;   // 5-nov (ajuste): primero completar los corchetes
   return true;
 }
 function pintarBarra() {

@@ -1446,9 +1446,11 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
    mensajes/index.html. Solo tokens: se ve igual de bien en claro y oscuro. */
 .ms .ms-titulo h1.titulo { font-size: 40px; line-height: 1; }
 .ms #avisos:empty, .ms #esqueleto:empty { display: none; }   /* vacíos no dejan hueco entre las pestañas y los pasos */
-.ms-pasos { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; counter-reset: paso; flex-wrap: wrap; }
+.ms-pasos { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
 .ms-pasos li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--suave); padding: 6px 12px 6px 6px; border-radius: 999px; border: 1px solid var(--linea); background: var(--panel); }
-.ms-pasos li::before { counter-increment: paso; content: counter(paso); display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); color: var(--texto-2); font-weight: 600; font-size: 13px; }
+/* 5-nov: el número sale del propio paso (data-paso), no de un contador: en el iPhone el contador no
+   contaba los pasos ya hechos (con ✓) y el celular mostraba «1 Revisar» y «2» en vez de «3» y «4». */
+.ms-pasos li::before { content: attr(data-paso); display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--panel-2); color: var(--texto-2); font-weight: 600; font-size: 13px; }
 .ms-pasos li[aria-current="step"] { color: var(--tinta); font-weight: 600; border-color: var(--borde-fuerte); }
 .ms-pasos li[aria-current="step"]::before { background: var(--activo); color: var(--sobre-activo); }
 .ms-pasos li.hecho::before { background: var(--ok); color: var(--blanco); content: '✓'; }
@@ -1524,7 +1526,12 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 .ms-fallas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .ms-fallas li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: var(--peligro-fondo); color: var(--texto); overflow-wrap: anywhere; }
 .ms-fallas small { color: var(--texto-2); }
-.ms-correo .ms-logo-correo { display: block; width: 180px; max-width: 60%; height: auto; margin: 0 auto 16px; padding: 8px 12px; border-radius: 10px; background: var(--blanco); }   /* como en el correo: sobre blanco */
+.ms-correo .ms-firma { margin-top: 18px; white-space: pre-wrap; }
+/* 5-nov (ajuste): como en el correo, el logo va abajo, pequeño y a la izquierda, como firma. En la vista previa
+   lleva un fondo blanco mínimo para que se lea también en oscuro (en el correo no hay fondo). */
+.ms-correo .ms-logo-correo { display: block; width: 140px; max-width: 50%; height: auto; margin: 8px 0 0; padding: 3px 4px; border-radius: 4px; background: var(--blanco); }
+.ms mark.ms-falta { background: var(--peligro-fondo); color: var(--peligro-texto); border-radius: 4px; padding: 0 2px; font-weight: 600; }
+.ms .ms-corchetes code { font: inherit; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
 .ms-env .ms-mal { color: var(--peligro-texto); }
 .ms-env .ms-enum small { color: var(--suave); font-size: 12px; }
 @media (max-width: 640px) {
@@ -1532,7 +1539,9 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
   .ms-pasos li { padding: 4px 10px 4px 4px; font-size: 13px; }
   .ms-pasos li:not([aria-current="step"]) span { display: none; }
   .ms-grupos { grid-template-columns: 1fr; }
-  .ms-barra { bottom: calc(var(--alto-abajo, 64px) + 8px); padding: 10px 12px; }
+  /* 5-nov: encima de la barra inferior del portal, contando la franja de abajo del iPhone (safe-area),
+     que la barra inferior suma a su alto; sin eso quedaba montada sobre ella y con los botones cortados. */
+  .ms-barra { bottom: calc(var(--alto-abajo, 64px) + env(safe-area-inset-bottom, 0px) + 8px); padding: 10px 12px; }
   .ms-barra .ms-botones, .ms-barra .ms-botones .btn { width: 100%; }
   .ms-barra .ms-botones { display: grid; grid-template-columns: 1fr 1fr; }
   .ms-barra .ms-botones .btn.oculto + .btn { grid-column: 1 / -1; }   /* sin «Atrás», «Siguiente» ocupa toda la barra */

@@ -389,6 +389,13 @@ async function correr(nav, base, log) {
     const abajo = await p.evaluate(() => ({ lat: getComputedStyle(document.querySelector('.lat')).display, items: [...document.querySelectorAll('.abajo .abajo-item')].map(x => x.dataset.nav || x.querySelector('span:not(.cab-numero)').textContent.trim()) }));
     const esperado = ['inicio', E.principal, 'Buscar', 'Avisos', 'Más'];
     ok(abajo.lat === 'none' && JSON.stringify(abajo.items) === JSON.stringify(esperado), r + ': en celular, barra inferior ' + esperado.join(' · ') + (JSON.stringify(abajo.items) === JSON.stringify(esperado) ? '' : ' (dio ' + abajo.items.join(' · ') + ')'));
+    // 5-nov (ajuste): el panel «Más» muestra cada sección con su NOMBRE visible al lado del icono (antes, solo iconos),
+    // y solo las secciones del rol (las mismas que su barra lateral).
+    await p.click('#abrirMas'); await p.waitForTimeout(300);
+    const mas = await p.$$eval('#hojaMas .lat-item', l => l.map(a => { const t = a.querySelector('.lat-txt'), r = t && t.getBoundingClientRect();
+      return { nav: a.dataset.nav || '', txt: t ? t.textContent.trim() : '', ve: !!(t && getComputedStyle(t).display !== 'none' && r.width > 20 && r.height > 8), ancho: a.getBoundingClientRect().width }; }));
+    ok(mas.length > 0 && mas.every(x => x.ve && x.txt && x.ancho > 200), r + ': en celular, «Más» con el nombre de cada sección (' + mas.filter(x => !x.ve).map(x => x.nav).join(', ') + ')');
+    ok(JSON.stringify(mas.map(x => x.nav).filter(Boolean)) === JSON.stringify(navs.filter(x => mas.some(y => y.nav === x))) && mas.every(x => !x.nav || E.nav.includes(x.nav)), r + ': «Más» solo con las secciones de su rol');
     await ctx.close();
   }
 

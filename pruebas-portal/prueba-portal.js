@@ -1422,6 +1422,14 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         ok(google.llamadas.filter(l => l.accion === 'mensajesRegistrar').length === regAntes, 'la prueba no se anota en «Mensajes enviados»');
         ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'x' }), { 'X-CSRF': DI.csrf })).status === 400, 'sin un ID de envío válido no se envía');
         ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0002', tanda: 3, tandas: 2 }), { 'X-CSRF': DI.csrf })).status === 400, 'ni una tanda fuera de rango');
+        {   // 5-nov (ajuste): corchetes de la plantilla sin completar
+          const c0 = SMTP.correos.length;
+          const k1 = await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0005', asunto: 'Aviso: [día sin clase / cambio de horario]' }), { 'X-CSRF': DI.csrf });
+          const k2 = await ms('prueba-direccion', 'prueba', { asunto: 'Hola', cuerpo: 'Les avisamos que [el día ... no habrá clase].' }, { 'X-CSRF': DI.csrf });
+          ok(k1.status === 400 && k1.j.codigo === 'corchetes' && k1.j.error.includes('[día sin clase') && k2.status === 400 && k2.j.codigo === 'corchetes' && SMTP.correos.length === c0,
+            '5-nov (ajuste): con un texto entre corchetes sin completar no sale ni el envío ni la prueba, y dice cuál falta (' + k1.texto.slice(0, 160) + ')');
+          ok(DI.firma === 'Equipo Vida en Arte', 'leer trae la firma (sin la fila «Firma» en Config mensajes, «Equipo Vida en Arte»)');
+        }
         ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0003', claves: ['familia.a@ejemplo.test'] }), { 'X-CSRF': DI.csrf })).status === 400 && SMTP.correos.length === 2, 'un correo escrito en vez de una huella no se acepta: el servidor no envía a direcciones que mande el navegador');
         ok((await ms('prueba-comercial', 'otra')).status === 403, 'una acción que no existe se rechaza');
         ok((await new Nav(base).post('/mensajes/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');

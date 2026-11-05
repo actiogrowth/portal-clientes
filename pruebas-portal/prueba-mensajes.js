@@ -153,6 +153,18 @@ console.log('· el envío, detrás de una sola función (lo hace el servidor)');
   ok(/Enviarme una prueba/.test(pagina) && /Reintentar/.test(pagina) && /Copiar correos/.test(pagina) && /Copiar mensaje/.test(pagina), '«Enviarme una prueba», «Reintentar», «Copiar correos» y «Copiar mensaje»');
   ok(/D\.puedeEnviar/.test(pagina), 'lo de enviar y copiar depende de si el servidor dice que puede enviar');
   ok(/e\.canal/.test(pagina) && /enviado por el servidor/.test(pagina) && pagina.includes('Registrado como abierto en Gmail (antes del 5-nov)'), '«Enviados» dice lo que de verdad salió; las filas de antes, como abiertas en Gmail');
+  console.log('· 5-nov (ajuste): corchetes, firma, pasos, barra y panel «Más»');
+  ok(M.corchetes('Aviso: [día sin clase / cambio de horario]', 'Hola, [nombre]. Otra vez [nombre].').join('|') === '[día sin clase / cambio de horario]|[nombre]', 'encuentra los corchetes de la plantilla, en el asunto y en el mensaje');
+  ok(M.corchetes('Todo completo', 'sin corchetes [ ni cierres').length === 0, 'un texto completo no tiene nada que marcar');
+  ok(/if \(E\.paso === 3\) return !Mensajes\.corchetes\(E\.asunto, E\.cuerpo\)\.length;/.test(pagina), 'con corchetes, «Ir a enviar» no avanza');
+  ok(/const ocupado = E\.enviando > 0 \|\| sinCompletar\.length > 0;/.test(pagina) && /async function enviarTanda\(i\) \{\n?\s*if \(E\.enviando \|\| Mensajes\.corchetes/.test(pagina.replace(/\r/g, '')) && /async function enviarPrueba\(\) \{\n?\s*if \(Mensajes\.corchetes/.test(pagina.replace(/\r/g, '')),
+    'ni la prueba ni las tandas salen con corchetes');
+  ok(/Falta completar/.test(pagina) && /ms-falta/.test(pagina), '«Revisar» dice qué corchete falta y lo marca en la vista previa');
+  ok(/class="ms-firma"/.test(pagina) && pagina.indexOf('ms-firma') < pagina.indexOf('class="ms-logo-correo"') && pagina.indexOf('marcarCorchetes(E.cuerpo)') < pagina.indexOf('ms-firma'), 'la vista previa: texto, firma y logo abajo, como el correo');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'comun', 'vea.css'), 'utf8'), arm = fs.readFileSync(path.join(__dirname, '..', 'comun', 'armazon.css'), 'utf8');
+  ok(/\.ms-pasos li::before \{ content: attr\(data-paso\);/.test(css) && !/counter-increment: paso/.test(css) && /data-paso="3"/.test(pagina), 'los números de los pasos salen de cada paso (iPhone: «3 Revisar», «4 Enviar»)');
+  ok(/\.ms-barra \{ bottom: calc\(var\(--alto-abajo, 64px\) \+ env\(safe-area-inset-bottom, 0px\) \+ 8px\);/.test(css), 'en celular la barra de Mensajes queda encima de la navegación inferior, contando la franja del iPhone');
+  ok(/\.lat \.lat-360, \.lat \.lat-grupo-tit, \.lat \.lat-txt/.test(arm) && !/\n  \.lat-360, \.lat-grupo-tit, \.lat-txt/.test(arm.replace(/\r/g, '')), 'el panel «Más» del celular conserva los nombres (las reglas de iconos son solo de la barra lateral)');
   fin();
 })();
 function fin() {
@@ -171,6 +183,7 @@ if (!callado) {
     ['no usa el estado que manda el servidor', '    if (f.estadoCorreo) return', '    if (false) return'],
     ['el envío manda los correos y no las claves', "    const p = Object.assign({}, pedido, { claves: (pedido.claves || []).slice() });", "    const p = Object.assign({}, pedido, { correos: (pedido.claves || []).slice() });"],
     ['WhatsApp sin código de país', "    if (!t.startsWith('+') && (d.length === 7 || d.length === 8)) d = String(codigoPais || POR_DEFECTO.codigoPais).replace(/\\D/g, '') + d;", ''],
+    ['no encuentra los corchetes', "(String(t == null ? '' : t).match(/\\[[^\\[\\]\\n]{1,200}\\]/g) || [])", '[]'],
     ['disciplinas escritas a mano', "    clases.forEach(c => { if (c.servicio && !servicios.includes(c.servicio)) servicios.push(c.servicio); });", "    ['Parkour', 'Telas', 'Parkids'].forEach(s => servicios.push(s));"]
   ];
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'msj-'));

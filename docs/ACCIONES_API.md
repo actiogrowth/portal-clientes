@@ -744,6 +744,11 @@ no sea una huella, 400.
   si el Sheet está ocupado reintenta 3 veces con 2 s de espera. Ningún correo
   entra al registro (un correo en el asunto o los grupos se cambia por «[correo]»).
 
+**Ajuste del 5-nov:** `enviar` y `prueba` responden **400 `corchetes`** si el
+asunto o el mensaje tienen un texto entre corchetes de la plantilla sin
+completar (el mensaje dice cuál). `leer` trae además `firma` (la línea de
+firma del correo: «Config mensajes» › «Firma», o «Equipo Vida en Arte»).
+
 ### `prueba` y `avance` (5-nov)
 
 `prueba`: `datos: {asunto, cuerpo}` (`X-CSRF`) → el mismo `resultado` que una

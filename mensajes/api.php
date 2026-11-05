@@ -57,6 +57,8 @@ const MS_UNIDAD_PRE = 'Preschool';
 const MS_SERVICIO_FUERA = 'Servicio fuera de Mensajes';
 const MS_EXCLUIDO = 'Correo excluido';
 const MS_CORREO_PRUEBA = 'Correo de prueba';
+const MS_FIRMA = 'Firma';                   // 5-nov (ajuste): la línea de firma del correo; si falta, MS_FIRMA_FALTA
+const MS_FIRMA_FALTA = 'Equipo Vida en Arte';
 const MS_POR_TANDA = 'Destinatarios por tanda';
 const MS_MAX_HORA = 'Máximo de correos por hora';
 /* Lo que pasa si falta el parámetro en «Config mensajes»: el valor prudente.
@@ -123,6 +125,7 @@ if ($accion === 'leer') {
         'plantillas' => $plantillas,
         'enviados' => array_values(array_map('ms_enviado', array_slice((array) ($L['bd']['enviados'] ?? []), 0, 20))),
         'familiasHoy' => (int) ($L['bd']['familiasHoy'] ?? 0),
+        'firma' => $L['firma'],   // 5-nov (ajuste): la línea de firma, para la vista previa
         'puedePlantillas' => $puedePlantillas, 'puedeEnviar' => $puedeEnviar,
         'usuario' => $usuario, 'rol' => $rol,
     ];
@@ -151,13 +154,16 @@ if (!$smtp['listo']) fallo('Falta configurar el correo del servidor en portal_co
 $asunto = ms_texto($d['asunto'] ?? '', 200);
 $cuerpo = rtrim(ms_texto($d['cuerpo'] ?? '', 20000, true));
 if ($asunto === '' || trim($cuerpo) === '') fallo('Falta el asunto o el mensaje.', 400, 'datos');
+// 5-nov (ajuste): un texto de la plantilla entre corchetes sin completar no sale (la pantalla ya lo frena; esto es el cerrojo).
+$sinCompletar = ms_corchetes($asunto . "\n" . $cuerpo);
+if ($sinCompletar) fallo('Falta completar ' . implode(', ', $sinCompletar) . '. Cambia el texto entre corchetes antes de enviar.', 400, 'corchetes');
 @set_time_limit(300);
 ignore_user_abort(true);   // si se cierra la pestaña a mitad, el servidor termina la tanda y anota lo que salió
 
 if ($accion === 'prueba') {
     $L = ms_leer_todo($cfg, $usuario);
     $para = ms_destino_prueba($L['config'], $usuario, $smtp['usuario']);
-    $r = ms_enviar_tanda(['carpeta' => $carpeta, 'smtp' => $smtp, 'id' => '', 'huellaMensaje' => '', 'asunto' => '[Prueba] ' . $asunto, 'cuerpo' => $cuerpo,
+    $r = ms_enviar_tanda(['carpeta' => $carpeta, 'smtp' => $smtp, 'id' => '', 'huellaMensaje' => '', 'asunto' => '[Prueba] ' . $asunto, 'cuerpo' => $cuerpo, 'firma' => $L['firma'],
         'tanda' => 1, 'destinos' => ['prueba' => $para], 'claves' => ['prueba'], 'porTanda' => 1, 'maxHora' => $L['maxHora']]);
     $r['para'] = $para;
     echo json_encode(['ok' => true, 'resultado' => $r], JSON_UNESCAPED_UNICODE);
@@ -176,7 +182,7 @@ if (count($claves) > $L['porTanda']) fallo('La tanda tiene más familias de las 
 $destinos = [];
 foreach ($L['familias'] as $f) if ($f['estadoCorreo'] === 'ok') $destinos[$f['clave']] = $f['correo'];
 $r = ms_enviar_tanda(['carpeta' => $carpeta, 'smtp' => $smtp, 'id' => $id, 'huellaMensaje' => hash('sha256', $asunto . "\n" . $cuerpo),
-    'asunto' => $asunto, 'cuerpo' => $cuerpo, 'tanda' => $tanda, 'destinos' => $destinos, 'claves' => $claves, 'porTanda' => $L['porTanda'], 'maxHora' => $L['maxHora']]);
+    'asunto' => $asunto, 'cuerpo' => $cuerpo, 'firma' => $L['firma'], 'tanda' => $tanda, 'destinos' => $destinos, 'claves' => $claves, 'porTanda' => $L['porTanda'], 'maxHora' => $L['maxHora']]);
 // El registro: lo que de verdad pasó en todo el envío hasta ahora (si esta tanda no llegó a enviar nada, no hay nada nuevo que anotar).
 if (in_array($r['estado'], ['completa', 'detenida'], true)) {
     $reg = ['idEnvio' => $id, 'usuario' => $usuario, 'rol' => $rol,
@@ -249,7 +255,13 @@ function ms_leer_todo(array $cfg, string $usuario): array {
     $porTanda = ms_numero($config, MS_POR_TANDA, MS_POR_TANDA_FALTA, 1, 500);
     $maxHora = ms_numero($config, MS_MAX_HORA, MS_MAX_HORA_FALTA, 1, 100000);
     return ['bd' => $bd, 'familias' => $f['familias'], 'clases' => $f['clases'], 'config' => $config,
-            'porTanda' => min($porTanda, $maxHora), 'maxHora' => $maxHora];
+            'porTanda' => min($porTanda, $maxHora), 'maxHora' => $maxHora, 'firma' => (ms_valores($config, MS_FIRMA)[0] ?? '') ?: MS_FIRMA_FALTA];
+}
+
+/** 5-nov (ajuste): los textos entre corchetes que quedan de la plantilla («[día sin clase / cambio de horario]»). Los mismos que busca comun/mensajes.js › corchetes. */
+function ms_corchetes(string $texto): array {
+    preg_match_all('/\[[^\[\]\n]{1,200}\]/u', $texto, $m);
+    return array_values(array_unique($m[0]));
 }
 
 /** Los valores de un parámetro de «Config mensajes» (puede repetirse). */
@@ -440,7 +452,7 @@ function ms_enviar_tanda(array $t): array {
         foreach ($cola as $i => $k) {
             if ($detenida) { $res['pendientes'][] = $k; continue; }
             $datos = msj_armar(['de' => $s['usuario'], 'nombre' => $s['nombre'], 'para' => $t['destinos'][$k], 'asunto' => $t['asunto'],
-                                'cuerpo' => $t['cuerpo'], 'logo' => $s['logo'], 'dominio' => $s['dominio']]);
+                                'cuerpo' => $t['cuerpo'], 'logo' => $s['logo'], 'dominio' => $s['dominio'], 'firma' => (string) ($t['firma'] ?? '')]);
             $r = smtp_enviar($con['s'], $s['usuario'], $t['destinos'][$k], $datos, function () use (&$E, &$marcas, $k, $guardar, $carpeta, $ahora) {
                 // ANTES de que el correo pueda salir: queda «incierto» y cuenta para la hora.
                 $E['destinos'][$k] = ['e' => 'incierto', 't' => time()];
