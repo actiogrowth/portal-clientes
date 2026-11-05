@@ -35,6 +35,15 @@ const ROTURAS = [
   ['Base de Datos: no pide sesión ni rol', 'basededatos/api.php', "\nrequerir_sesion();\n", "\n"],
   ['Base de Datos: la lectura no da el sello', 'basededatos/api.php', "    header('X-CSRF: ' . csrf_token());", "    csrf_token();"],
   ['Base de Datos: Comercial sin bd.editar (ya no podría guardar)', 'portal-raiz/permisos.php', "'area:mensajes',\n                       'bd.editar'],", "'area:mensajes'],"],
+  // 5-nov (ajuste 4): «General» (Gerencia) solo para Dirección y Administrador, también en /biblioteca/
+  ['Procesos: procesos.ver:* vuelve a abrir General', 'portal-raiz/permisos.php', "const PROCESOS_RESERVADAS = ['general'];", "const PROCESOS_RESERVADAS = [];"],
+  ['Procesos: General para todos (sin mirar las reservadas)', 'portal-raiz/permisos.php', "    return !in_array($u, PROCESOS_RESERVADAS, true) && roles_permiten($roles, 'procesos.ver:*');", "    return roles_permiten($roles, 'procesos.ver:*');"],
+  ['Procesos: pedir General sin permiso no da 403', 'procesos/api.php', "    if ($unidadPedida !== '' && !procesos_unidad_permitida(", "    if (false && !procesos_unidad_permitida("],
+  ['Procesos: pedir una unidad devuelve todas', 'procesos/api.php', "        if ($soloUnidad !== '' && procesos_clave($unidad) !== procesos_clave($soloUnidad)) continue;\n", ""],
+  ['biblioteca: vuelve a abrirse con la sola sesión', 'portal-raiz/gate.php', "    if (!procesos_biblioteca_permite($rolesBib, $nombreBib)) negar(", "    if (false) negar("],
+  ['biblioteca: abre lo que no está en ninguna lista', 'procesos/api.php', "        if ($hay) return true;\n    }\n    return false;", "        if ($hay) return true;\n    }\n    return true;"],
+  ['biblioteca: el recorte de la lista no mira el rol', 'procesos/api.php', "        $c['procesos_segmentos'], $c['procesos_general'], $roles)];", "        $c['procesos_segmentos'], $c['procesos_general'], ['administrador'])];"],
+  ['biblioteca: Proyecto Actio abre sus archivos a cualquiera', 'procesos/api.php', "    if (roles_permiten($roles, 'area:proyecto-actio'))\n", "    if (true)\n"],
   // 23-oct: Procesos, biblioteca y portada por marca
   ['Procesos manda lo que no es para el cliente (recorte de Administrador)', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], roles_permiten(roles_actuales(), 'pa.internos'),"],
   ['Procesos manda lo interno a todos', 'procesos/api.php', "pa_recortar($l['cuerpo'], false,", "pa_recortar($l['cuerpo'], true,"],
@@ -80,7 +89,7 @@ const ROTURAS = [
   ['la contraseña temporal no obliga a cambiarla', 'portal-raiz/auth.php', "    if (!empty($c['cambiar_clave'])) {", "    if (false) {"],
   // gate.php
   ['gate.php no corre directo las páginas de la raíz (bucle con el .htaccess anterior, 20-oct)', 'portal-raiz/gate.php', "if (in_array($directa, ['login.php', 'logout.php', 'cambiar-clave.php', 'acceso.php'], true)) {", "if (false) {"],
-  ['gate.php entrega sin mirar el área', 'portal-raiz/gate.php', "requerir_sesion(substr($ruta, strlen($base) + 1));", ''],
+  ['gate.php entrega sin mirar el área', 'portal-raiz/gate.php', "requerir_sesion($rel);\n", ''],
   // acceso.php
   ['la portada muestra todas las tarjetas a todos', 'portal-raiz/acceso.php', "json_encode(areas_visibles($roles))", "json_encode('*')"],
   // login.php

@@ -5,7 +5,7 @@ name: Pruebas After School
 
 on:
   push:
-    branches: [after-school-registro, roles-usuarios, rediseno-etapa1, mensajes-v1, seguridad-bd, mensajes-smtp, mensajes-firma]
+    branches: [after-school-registro, roles-usuarios, rediseno-etapa1, mensajes-v1, seguridad-bd, mensajes-smtp, mensajes-firma, ajuste4]
 
 permissions:
   contents: read

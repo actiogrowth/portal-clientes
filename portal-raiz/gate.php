@@ -85,7 +85,24 @@ $tipos = [
     'woff' => 'font/woff', 'woff2' => 'font/woff2', 'mp4' => 'video/mp4',
 ];
 // El área sale del archivo real que se va a entregar, ya resuelto.
-requerir_sesion(substr($ruta, strlen($base) + 1));
+$rel = str_replace('\\', '/', substr($ruta, strlen($base) + 1));
+requerir_sesion($rel);
+
+/* 5-nov (ajuste 4): /biblioteca/ ya no se abre con la sola sesión. Un archivo se entrega solo a
+   quien lo recibe en su lista de Procesos (o de Proyecto Actio, si abre esa sección): así los
+   documentos de «General» (Gerencia) los abren solo Dirección y Administrador, aunque otro rol
+   conozca la dirección. La regla vive en procesos/api.php (procesos_biblioteca_permite), con el
+   mismo recorte del puente. Cualquier otro archivo dentro de biblioteca/ (que no sea un nombre
+   simple .html) no lo abre nadie. */
+if (str_starts_with($rel, 'biblioteca/')) {
+    $nombreBib = preg_match('#^biblioteca/([a-z0-9][a-z0-9-]*\.html)$#', $rel, $mb) ? $mb[1] : '';
+    $rolesBib = roles_actuales();
+    session_write_close();   // soltar la sesión antes de esperar al Sheet (como los puentes)
+    if ($nombreBib === '') negar('Este archivo no se puede abrir.', 403, 'sin_permiso');
+    define('PROCESOS_SOLO_FUNCIONES', true);
+    require_once __DIR__ . '/procesos/api.php';
+    if (!procesos_biblioteca_permite($rolesBib, $nombreBib)) negar('Tu usuario no tiene permiso para abrir este documento.', 403, 'sin_permiso');
+}
 
 $ext = strtolower(pathinfo($ruta, PATHINFO_EXTENSION));
 if (!isset($tipos[$ext])) no_encontrado();

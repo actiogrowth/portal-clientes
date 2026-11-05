@@ -239,7 +239,8 @@ const PA_DATOS = () => ({ generado: '2026-10-22T12:00:00Z', faltan: [],
     { nombre: 'Guía compartida suelta de Proyecto 2', unidad: 'Gerencia', segmento: '', tipo: 'Capacitación', fecha: '2026-10-06', enlace: 'https://ejemplo.test/guia-p2', idEntregable: '', proyecto: 'Proyecto 2', visibleCliente: 'si' },
     // 23-oct: Procesos (Marketing → Atracción, Servicio → Entrega de servicio; Gerencia → General)
     { nombre: 'Guía de redes de prueba (Presentación)', unidad: 'After School', segmento: 'Marketing', tipo: 'Documento', fecha: '2026-06-01', enlace: '/biblioteca/guia-redes.html', idEntregable: '', proyecto: '' },
-    { nombre: 'Manual de servicio de prueba', unidad: 'Gerencia', segmento: 'Servicio', tipo: 'Documento', fecha: '2026-06-02', enlace: 'https://ejemplo.test/manual', idEntregable: '', proyecto: '' },
+    // 5-nov (ajuste 4): el documento de General (Gerencia) vive en la biblioteca: solo Dirección y Administrador lo abren.
+    { nombre: 'Manual de servicio de prueba', unidad: 'Gerencia', segmento: 'Servicio', tipo: 'Documento', fecha: '2026-06-02', enlace: '/biblioteca/manual-gerencia.html', idEntregable: '', proyecto: '' },
     { nombre: 'Guion PROCESO-OCULTO de prueba', unidad: 'After School', segmento: 'Marketing', tipo: 'Documento', fecha: '2026-06-03', enlace: 'https://ejemplo.test/oculto', idEntregable: '', proyecto: '', visibleCliente: 'No' },
     { nombre: 'Guion PROCESO-P2 de prueba', unidad: 'Veranito', segmento: 'Servicio', tipo: 'Documento', fecha: '2026-06-04', enlace: 'https://ejemplo.test/p2', idEntregable: '', proyecto: 'Proyecto 2' }],
   reuniones: [
@@ -894,15 +895,33 @@ async function correr(fuente) {
       ok(fresco.status === 200 && fresco.j.ok && !fresco.j.copia, 'sin copia, se vuelve a leer del Sheet');
     }
 
-    seccion('biblioteca: las presentaciones privadas abren con la sesión de cualquier rol, nunca sin sesión');
+    seccion('biblioteca: cada archivo lo abre solo quien lo recibe en su lista (5-nov: «General» solo Dirección y Administrador), nunca sin sesión');
     {
       const dir = path.join(web, 'biblioteca');
-      fs.writeFileSync(path.join(dir, 'plan-de-prueba.html'), '<!doctype html><title>Presentación de prueba</title><p>CONTENIDO-PRESENTACION</p>');
+      const presentacion = marca => '<!doctype html><title>Presentación de prueba</title><p>' + marca + '</p>';
+      fs.writeFileSync(path.join(dir, 'plan-de-prueba.html'), presentacion('CONTENIDO-PRESENTACION'));      // en ninguna lista
+      fs.writeFileSync(path.join(dir, 'guia-redes.html'), presentacion('CONTENIDO-REDES'));                // After School › Atracción: todos
+      fs.writeFileSync(path.join(dir, 'manual-gerencia.html'), presentacion('CONTENIDO-GERENCIA'));        // General: Dirección y Administrador
+      fs.writeFileSync(path.join(dir, 'plan-compartido.html'), presentacion('CONTENIDO-PROYECTO-ACTIO'));  // solo Proyecto Actio (Finanzas, «Sí» heredado)
       fs.writeFileSync(path.join(dir, 'malo.php'), '<?php echo "EJ" . "ECUTADO";');
       fs.writeFileSync(path.join(dir, 'api.php'), '<?php echo "EJ" . "ECUTADO";');
-      for (const u of ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
-        const r = await n[u].get('/biblioteca/plan-de-prueba.html');
-        ok(r.status === 200 && /CONTENIDO-PRESENTACION/.test(r.texto) && /^text\/html/.test(r.tipo), u + ': abre la presentación de /biblioteca/ (' + r.status + ')');
+      const TODOS = ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1'];
+      const GERENCIA = ['admin-uno', 'prueba-direccion'];
+      for (const u of TODOS) {
+        const r = await n[u].get('/biblioteca/guia-redes.html');
+        ok(r.status === 200 && /CONTENIDO-REDES/.test(r.texto) && /^text\/html/.test(r.tipo), u + ': abre la presentación de After School de /biblioteca/ (' + r.status + ')');
+        const g = await n[u].get('/biblioteca/manual-gerencia.html');
+        if (GERENCIA.includes(u)) ok(g.status === 200 && /CONTENIDO-GERENCIA/.test(g.texto), u + ': abre el documento de General (Gerencia) de /biblioteca/ (' + g.status + ')');
+        else ok(g.status === 403 && !/CONTENIDO-GERENCIA/.test(g.texto), u + ': 403 al abrir (o previsualizar) el documento de General aunque conozca su dirección (' + g.status + ')');
+        const gv = await n[u].get('/proyecto-actio/archivos/manual-gerencia.html');   // la ruta vieja del Sheet: 301 y la misma puerta
+        const gv2 = gv.status === 301 ? await n[u].get(gv.location) : gv;
+        ok(gv.status === 301 && (GERENCIA.includes(u) ? gv2.status === 200 : gv2.status === 403 && !/CONTENIDO-GERENCIA/.test(gv2.texto)),
+          u + ': por la ruta vieja, lo mismo (' + gv.status + ' → ' + gv2.status + ')');
+        const pc = await n[u].get('/biblioteca/plan-compartido.html');
+        if (GERENCIA.includes(u)) ok(pc.status === 200 && /CONTENIDO-PROYECTO-ACTIO/.test(pc.texto), u + ': abre la presentación que recibe en Proyecto Actio (' + pc.status + ')');
+        else ok(pc.status === 403 && !/CONTENIDO-PROYECTO-ACTIO/.test(pc.texto), u + ': 403 a una presentación que solo está en Proyecto Actio (' + pc.status + ')');
+        const nada = await n[u].get('/biblioteca/plan-de-prueba.html');
+        ok(nada.status === 403 && !/CONTENIDO-PRESENTACION/.test(nada.texto), u + ': 403 a un archivo de la biblioteca que no está en ninguna de sus listas (' + nada.status + ')');
       }
       const anon = await new Nav(base).get('/biblioteca/plan-de-prueba.html');
       ok(anon.status === 302 && /login\.html/.test(anon.location) && !/CONTENIDO-PRESENTACION/.test(anon.texto), 'sin sesión: al login, sin contenido');
@@ -917,6 +936,8 @@ async function correr(fuente) {
       // Los enlaces viejos del Sheet: 301 a /biblioteca/, que pide sesión.
       const viejo = await n['prueba-profesor-1'].get('/proyecto-actio/archivos/plan-de-prueba.html');
       ok(viejo.status === 301 && viejo.location === '/biblioteca/plan-de-prueba.html', '/proyecto-actio/archivos/<x>.html → 301 /biblioteca/<x>.html (' + viejo.status + ' ' + viejo.location + ')');
+      const anonG = await new Nav(base).get('/biblioteca/manual-gerencia.html');
+      ok(anonG.status === 302 && !/CONTENIDO-GERENCIA/.test(anonG.texto), 'sin sesión, el documento de General tampoco (al login)');
       const viejoAnon = await new Nav(base).get('/proyecto-actio/archivos/plan-de-prueba.html');
       ok(viejoAnon.status === 301 && !/CONTENIDO-PRESENTACION/.test(viejoAnon.texto), 'la redirección no entrega nada por sí sola');
       for (const ruta of ['/proyecto-actio/archivos/Plan.html', '/proyecto-actio/archivos/../api.php', '/proyecto-actio/archivos/x.php']) {
@@ -930,14 +951,25 @@ async function correr(fuente) {
     seccion('Procesos: todos los roles; solo documentos visibles para el cliente, de los tres procesos y con los campos de la pantalla');
     {
       const leer = u => n[u].post('/procesos/api.php', { json: { accion: 'leer' } });
+      // 5-nov (ajuste 4): «General» (Gerencia) solo para Dirección y Administrador.
+      const GERENCIA = ['admin-uno', 'prueba-direccion'];
       const ESPERADOS = 'Guía de redes de prueba (Presentación)|After School|Atracción,Manual de servicio de prueba|General|Entrega de servicio,Plan de prueba uno (Documento)|Kinder|Adquisición';
+      const ESPERADOS_SIN_GENERAL = 'Guía de redes de prueba (Presentación)|After School|Atracción,Plan de prueba uno (Documento)|Kinder|Adquisición';
       for (const u of ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
         const r = await leer(u);
         const R = r.j && r.j.resultado;
         ok(r.status === 200 && r.j.ok && R, u + ': lee Procesos (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
         if (!R) continue;
         const vistos = R.documentos.map(d => d.nombre + '|' + d.unidad + '|' + d.proceso).sort().join();
-        ok(vistos === ESPERADOS, u + ': recibe solo los documentos visibles de Atracción, Adquisición y Entrega de servicio; Gerencia va como General (' + vistos + ')');
+        if (GERENCIA.includes(u)) ok(vistos === ESPERADOS, u + ': recibe los documentos visibles de Atracción, Adquisición y Entrega de servicio; Gerencia va como General (' + vistos + ')');
+        else ok(vistos === ESPERADOS_SIN_GENERAL && !/General|manual-gerencia|Manual de servicio/.test(r.texto),
+          u + ': recibe los documentos visibles de los tres procesos, SIN la unidad General (Gerencia), ni en el texto de la respuesta (' + vistos + ')');
+        // Pedir la unidad General sola: 403 a quien no la tiene; a Dirección y Administrador, solo esa unidad.
+        const g = await n[u].post('/procesos/api.php', { json: { accion: 'leer', unidad: 'General' } });
+        if (GERENCIA.includes(u)) ok(g.status === 200 && g.j && g.j.ok && g.j.resultado.documentos.map(d => d.nombre).join() === 'Manual de servicio de prueba',
+          u + ': {unidad: General} da solo los documentos de General (' + g.status + ' ' + g.texto.slice(0, 160) + ')');
+        else ok(g.status === 403 && g.j && g.j.codigo === 'sin_permiso' && !/Manual de servicio|manual-gerencia/.test(g.texto),
+          u + ': 403 al listar la unidad General (' + g.status + ' ' + g.texto.slice(0, 120) + ')');
         ok(R.documentos.every(d => Object.keys(d).sort().join() === 'enlace,fecha,nombre,proceso,unidad'), u + ': solo nombre, unidad, proceso, fecha y enlace');
         ok(Object.keys(R).sort().join() === 'documentos,generado,procesos', u + ': ni entregables, ni reuniones, ni acompañamiento');
         ok(JSON.stringify(R.procesos) === '[{"nombre":"Atracción","segmentos":["Marketing"]},{"nombre":"Adquisición","segmentos":["Ventas"]},{"nombre":"Entrega de servicio","segmentos":["Servicio"]}]',

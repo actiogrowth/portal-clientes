@@ -1296,7 +1296,14 @@ a.rs-item:hover { border-color: var(--activo); color: var(--texto); }
 
 /* ── Inicio (3-nov) ────────────────────────────────────────────────────── */
 .ini-saludo .ayuda { font-size: 14px; margin-bottom: 4px; }
-.ini-marcas { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+/* 5-nov (ajuste 4): en computador y tablet las tarjetas de las marcas van lado a lado y con la MISMA
+   altura (la fila de la rejilla las estira); las unidades conservan su alto y la de 2 unidades deja el
+   espacio libre abajo. Con una sola marca (?marca= o un rol de una sola), la tarjeta ocupa todo el ancho.
+   En celular, una debajo de la otra (abajo, en el bloque de 640 px). */
+.ini-marcas { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 20px; align-items: stretch; }
+.ini-marcas > .ini-marca, .ini-accesos > .tarjeta { margin: 0; }   /* sin el margen de .tarjeta + .tarjeta: arriba a la par */
+.ini-marcas + #accesos, .ini-marcas + .ini-resumen { margin-top: 40px; }
+#accesos + .ini-resumen { margin-top: 32px; }
 .ini-marca { position: relative; padding: 22px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
 .ini-marca::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--franja); }
 .ini-marca-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
@@ -1332,7 +1339,7 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 .ini-cifra > span:first-child { font-size: 14px; color: var(--suave); }
 .ini-cifra small { font-size: 13px; color: var(--suave); }
 @media (max-width: 900px) { .ini-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ini-cifra:nth-child(2) { border-right: 0; } .ini-cifra:nth-child(-n+2) { border-bottom: 1px solid var(--linea); } }
-@media (max-width: 640px) { .ini-marcas { grid-template-columns: minmax(0, 1fr); } .ini-marca { padding: 16px; } .ini-unidad { padding: 12px; } .ini-accesos { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@media (max-width: 640px) { .ini-marcas { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); } .ini-marcas + #accesos, .ini-marcas + .ini-resumen { margin-top: 28px; } #accesos + .ini-resumen { margin-top: 24px; } .ini-marca { padding: 16px; } .ini-unidad { padding: 12px; } .ini-accesos { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .ini-cifra { padding: 14px; } .ini-cifra .cifra-grande { font-size: 32px; } }
 
 /* ── After School › Ocupación (3-nov): cifras, clases en tarjeta, «Dónde hay más cupos» ── */

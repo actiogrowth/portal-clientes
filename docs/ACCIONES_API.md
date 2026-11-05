@@ -300,6 +300,14 @@ Configuración en `portal_config.php` (además de `pa_exec`, `pa_clave` y
 'procesos_general' => ['Gerencia'],  // unidades cuyos documentos van en «General», al final
 ```
 
+**5-nov (ajuste 4).** `leer` acepta un campo opcional `unidad` (por ejemplo
+`{accion: 'leer', unidad: 'General'}`): devuelve solo esa unidad. Si el rol no
+puede ver esa unidad, **403 `sin_permiso`** y no se lee el catálogo. «General»
+(Gerencia) solo la reciben Dirección y Administrador: para los demás roles no
+aparece en `leer` (ni en el buscador, que usa esta misma acción). Los archivos
+de `/biblioteca/` que enlazan los documentos los entrega `gate.php` con la
+misma regla (403 si no están en la lista del rol).
+
 | Acción | Tipo | Permiso | Roles | Parámetros | `resultado` | Errores propios |
 |---|---|---|---|---|---|---|
 | `leer` | L | area:procesos (+ `procesos.ver:…` por fila) | todos | — | ver abajo | `sin_configuracion` (falta `pa_exec`, `pa_clave`, `pa_proyectos_cliente`, `procesos_segmentos` o `procesos_general`) |

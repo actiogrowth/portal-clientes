@@ -346,6 +346,10 @@ apaga y Procesos queda.
   el puente responde `sin_configuracion` nombrándolos.
 - Permiso por unidad y proceso **preparado**: `procesos.ver:*` (hoy todos),
   `procesos.ver:<unidad>` o `procesos.ver:<unidad>:<proceso>`.
+  **5-nov (ajuste 4, D-130):** `procesos.ver:*` no abre las unidades de
+  `PROCESOS_RESERVADAS` (hoy «General», los documentos de Gerencia): esa la
+  reciben solo Dirección y Administrador (por `*`). `{accion:'leer',
+  unidad:'General'}` sin permiso da 403.
 
 **Visor común** (`comun/visor-pantalla.js`): el diálogo a pantalla entera
 (Descargar, Pantalla completa, versiones como pestañas) que antes vivía en
@@ -358,10 +362,14 @@ script se ejecuta (regla 3d del `.htaccess` de la raíz, que va antes de la
 de los puentes, y `biblioteca/.htaccess`). `gate.php` responde
 `/proyecto-actio/archivos/<nombre>.html` con un 301 a
 `/biblioteca/<nombre>.html`, y el visor ya muestra esa ruta vieja desde
-`/biblioteca/`: los enlaces del Sheet no se rompen. **Ojo**: un archivo de la
-biblioteca lo abre cualquiera con sesión que conozca su ruta; «Visible para
-el cliente» oculta la fila, no el archivo. Lo que sea solo de Actio no va en
-la biblioteca.
+`/biblioteca/`: los enlaces del Sheet no se rompen. **Desde el 5-nov
+(ajuste 4, R188)** un archivo de la biblioteca ya no lo abre cualquiera con
+sesión: `gate.php` carga `procesos/api.php` con `PROCESOS_SOLO_FUNCIONES` y lo
+entrega solo si el archivo está en la lista de Procesos de ese rol o, si abre
+Proyecto Actio, en la suya (`procesos_biblioteca_permite`, con la copia del
+catálogo de `portal_cache/`); si no, 403. Así «Visible para el cliente» y
+«General» cierran también el archivo, no solo la fila. Los enlaces a Drive,
+Gamma, Loom u otras páginas no pasan por el portal: los cierra su dueño.
 
 ## 2e. Equipo, Resumen de Dirección y estilo vidrio (26-oct)
 
@@ -707,8 +715,9 @@ acción, no hay botón.
 
 ### Ajuste 3 (3-nov): apariencia clara, oscura o automática
 
-- **Dónde se elige**: menú del usuario (abajo de la barra lateral; en celular, en «Más») › Apariencia: Claro · Oscuro · Automático. Por defecto, Automático (sigue `prefers-color-scheme` y cambia solo si el dispositivo cambia).
-- **Sin parpadeo**: `comun/tema.js` va en el `<head>` de cada página ANTES de los estilos y pone `<html data-modo="claro|oscuro" data-apariencia="…">` antes de pintar. La elección se guarda por usuario en el navegador (`localStorage` `vea360.apariencia.<usuario>`) y la del último que entró (`…ultimo`) sirve para pintar antes de que llegue la sesión; al llegar, `Marca.cabecera` aplica la de esa persona. La pantalla de entrada usa la última (Automático si no hay).
+- **Dónde se elige**: menú del usuario (abajo de la barra lateral; en celular, en «Más») › Apariencia: Claro · Oscuro · Automático. Por defecto, **Claro** (desde el 5-nov, ajuste 4; antes Automático). Automático sigue `prefers-color-scheme` y cambia solo si el dispositivo cambia.
+- **Botón sol/luna** (5-nov, ajuste 4): en la barra de arriba, junto a la campana, también en celular (`#botonTema`, `Apariencia.alternar`). Muestra la luna en claro y el sol en oscuro; un clic alterna Claro y Oscuro y lo guarda por usuario. Automático solo en el menú.
+- **Sin parpadeo**: `comun/tema.js` va en el `<head>` de cada página ANTES de los estilos y pone `<html data-modo="claro|oscuro" data-apariencia="…">` antes de pintar. La elección se guarda por usuario en el navegador (`localStorage` `vea360.apariencia.<usuario>`) y la del último que entró (`…ultimo`) sirve para pintar antes de que llegue la sesión; al llegar, `Marca.cabecera` aplica la de esa persona. La pantalla de entrada usa la última (Claro si no hay).
 - **Todo color sale de los tokens** de `comun/vea.css`: el juego claro en `:root` y el oscuro en `:root[data-modo="oscuro"]`. Ninguna regla ni página escribe un color suelto (lo comprueba `prueba-rediseno.js`); los nombres nuevos: `--activo` / `--sobre-activo` (lo elegido: oscuro en claro, claro en oscuro), `--panel-2`, `--borde-fuerte`, `--borde-campo`, `--deshabilitado`, `--tinte-*` de las disciplinas, `--serie-*` de los gráficos, `--unidad-*` del Resumen, `--estado-validado/abierto`, `--losa-*`, `--escena-*`, `--papel-*`. `--blanco` queda solo para letra sobre un color de marca o de estado.
 - **Islas claras**: las tarjetas del organigrama y la hoja del contrato vuelven a declarar el juego claro (son blancas también en oscuro). El PDF y la impresión pasan a claro (`beforeprint` / `afterprint` en `tema.js`).
 - **Equipo**: en claro, la escena del ajuste 2; en oscuro, la escena oscura de antes (degradado, brillos del color de las áreas y chispas, sin las partículas comunes). Lo decide solo CSS (`[data-modo="oscuro"]`).

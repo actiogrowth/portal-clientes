@@ -26,7 +26,12 @@
  *   procesos.ver:<…>     Procesos (23-oct): qué documentos recibe. '*' todos;
  *                        '<unidad>' toda la unidad; '<unidad>:<proceso>' uno
  *                        solo (ver procesos_permite). Hoy todos los roles
- *                        tienen 'procesos.ver:*'.
+ *                        tienen 'procesos.ver:*'. 5-nov (ajuste 4): '*' NO
+ *                        cubre las unidades de PROCESOS_RESERVADAS («General»,
+ *                        los documentos de Gerencia): esas piden su permiso
+ *                        propio, 'procesos.ver:general', que hoy solo tienen
+ *                        Dirección y Administrador (por '*'). Vale también
+ *                        para los archivos de /biblioteca/ (gate.php).
  *   bd.editar            Base de Datos VEA (4-nov, D-123): guardar y eliminar
  *                        por basededatos/api.php. Leer basta con
  *                        area:basededatos. Hoy lo tienen todos los roles que
@@ -176,11 +181,17 @@ function procesos_clave(string $s): string {
     return trim(preg_replace('/[^a-z0-9]+/', '-', $s), '-');
 }
 
+/* 5-nov (ajuste 4): unidades de Procesos que 'procesos.ver:*' NO abre. Cada una pide su permiso
+   propio ('procesos.ver:<unidad>' o '<unidad>:<proceso>'). «General» son los documentos de Gerencia
+   (las unidades de procesos_general de portal_config.php): solo Dirección y Administrador, por '*'.
+   Para abrir una a otro rol, se le agrega 'procesos.ver:general' en ROLES. */
+const PROCESOS_RESERVADAS = ['general'];
+
 /** ¿Recibe este rol un documento de Procesos de esa unidad y ese proceso? */
 function procesos_permite(array $roles, string $unidad, string $proceso): bool {
     $u = procesos_clave($unidad); $p = procesos_clave($proceso);
-    return roles_permiten($roles, 'procesos.ver:*') || roles_permiten($roles, 'procesos.ver:' . $u)
-        || roles_permiten($roles, 'procesos.ver:' . $u . ':' . $p);
+    if (roles_permiten($roles, 'procesos.ver:' . $u) || roles_permiten($roles, 'procesos.ver:' . $u . ':' . $p)) return true;
+    return !in_array($u, PROCESOS_RESERVADAS, true) && roles_permiten($roles, 'procesos.ver:*');
 }
 
 /** La pestaña de After School con la que abre la página: la del primer rol (en el orden de ROLES) que la defina. */

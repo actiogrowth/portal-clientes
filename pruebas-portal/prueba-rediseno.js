@@ -171,6 +171,10 @@ async function correr(nav, base, log) {
   const ok = (c, que) => { total++; if (!c) fallos++; if (log || !c) console.log((c ? '  ✓ ' : '  ✗ ') + que); };
   const nueva = async (ancho, alto) => { const ctx = await nav.newContext({ viewport: { width: ancho, height: alto || 900 }, reducedMotion: 'reduce', hasTouch: ancho < 1100 });
     const p = await ctx.newPage(); p.errores = []; p.on('pageerror', e => p.errores.push(e.message)); return [ctx, p]; };
+  /* 5-nov (ajuste 4): por defecto la página va en Claro. Para medir los dos modos siguiendo al dispositivo,
+     cada usuario de prueba queda en Automático (como si lo hubiera elegido en el menú). */
+  const USUARIOS_PRUEBA = Object.keys(ROLES).map(r => 'usuario-' + r);
+  const automatico = p => p.addInitScript(us => { try { localStorage.setItem('vea360.apariencia.ultimo', 'auto'); us.forEach(u => localStorage.setItem('vea360.apariencia.' + u, 'auto')); } catch (e) { } }, USUARIOS_PRUEBA);
 
   if (log) console.log('· sistema visual');
   {
@@ -235,8 +239,8 @@ async function correr(nav, base, log) {
     await p.goto(base + '/'); await p.waitForSelector('.lat-yo');
     await p.click('.lat .lat-yo'); await p.waitForTimeout(200);
     const ops = await p.$$eval('#usuMenu [data-apariencia]', l => l.map(b => b.textContent));
-    ok(JSON.stringify(ops) === '["Claro","Oscuro","Automático"]' && await p.$eval('#usuMenu [data-apariencia="auto"]', b => b.getAttribute('aria-pressed')) === 'true',
-      'menú del usuario › Apariencia: Claro, Oscuro y Automático; por defecto, Automático');
+    ok(JSON.stringify(ops) === '["Claro","Oscuro","Automático"]' && await p.$eval('#usuMenu [data-apariencia="claro"]', b => b.getAttribute('aria-pressed')) === 'true',
+      'menú del usuario › Apariencia: Claro, Oscuro y Automático; por defecto (5-nov), Claro');
     await p.click('#usuMenu [data-apariencia="oscuro"]'); await p.waitForTimeout(100);
     const g1 = await p.evaluate(() => ({ modo: document.documentElement.dataset.modo, mio: localStorage.getItem('vea360.apariencia.usuario-administrador') }));
     await p.reload(); await p.waitForSelector('.lat-yo'); await p.waitForTimeout(300);
@@ -244,11 +248,47 @@ async function correr(nav, base, log) {
     ok(g1.modo === 'oscuro' && g1.mio === 'oscuro' && g2 === 'oscuro', 'elegir «Oscuro» lo aplica al instante, lo guarda para ese usuario y sigue al volver a entrar');
     rol = 'recepcion';
     await p.reload(); await p.waitForSelector('.lat-yo'); await p.waitForTimeout(400);
-    ok(await p.evaluate(() => document.documentElement.dataset.apariencia) === 'auto', 'otro usuario en el mismo navegador tiene la suya (Automático, si no eligió)');
+    ok(await p.evaluate(() => document.documentElement.dataset.apariencia) === 'claro', 'otro usuario en el mismo navegador tiene la suya (Claro, si no eligió)');
     rol = 'administrador';
     await ctx.close();
-    // Automático sigue al dispositivo, y cambia solo si el dispositivo cambia.
+    // 5-nov (ajuste 4): por defecto CLARO, también con el dispositivo en oscuro y para quien nunca eligió.
     [ctx, p] = await nueva(1440);
+    await p.emulateMedia({ colorScheme: 'dark' });
+    await p.goto(base + '/'); await p.waitForSelector('.lat-yo'); await p.waitForTimeout(200);
+    const def = await p.evaluate(() => ({ modo: document.documentElement.dataset.modo, ap: document.documentElement.dataset.apariencia, guardada: localStorage.getItem('vea360.apariencia.usuario-administrador') }));
+    ok(def.modo === 'claro' && def.ap === 'claro' && def.guardada === null, 'sin elegir nada (y el dispositivo en oscuro): Claro, sin guardar nada por el usuario (' + JSON.stringify(def) + ')');
+    // El botón sol/luna junto a la campana: a la vista en computador, tablet y celular; un clic alterna Claro y Oscuro y se guarda por usuario.
+    for (const ancho of [1440, 820, 390]) {
+      await p.setViewportSize({ width: ancho, height: 900 }); await p.waitForTimeout(150);
+      const b = await p.evaluate(() => { const x = document.getElementById('botonTema'), c = document.getElementById('campana'), r = x && x.getBoundingClientRect();
+        return x && { visible: r.width > 0 && r.height > 0 && getComputedStyle(x).visibility !== 'hidden', enCab: !!x.closest('.cab'), alLado: !c || c.previousElementSibling === x, arriba: r.top < 80, ancho: r.width, alto: r.height,
+          dentro: r.right <= innerWidth, etiqueta: x.getAttribute('aria-label'), luna: /A9 9 0 1 1/.test(x.innerHTML) }; });
+      ok(b && b.visible && b.enCab && b.alLado && b.arriba && b.dentro && b.ancho >= 40 && b.alto >= 40 && b.luna && b.etiqueta === 'Cambiar a modo oscuro',
+        ancho + ' px: botón con la luna en la barra de arriba, junto a la campana, a la vista y de buen tamaño (' + JSON.stringify(b) + ')');
+    }
+    await p.setViewportSize({ width: 390, height: 844 });
+    await p.click('#botonTema'); await p.waitForTimeout(150);
+    const t1 = await p.evaluate(() => ({ modo: document.documentElement.dataset.modo, mio: localStorage.getItem('vea360.apariencia.usuario-administrador'),
+      sol: !/A9 9 0 1 1/.test(document.getElementById('botonTema').innerHTML), etiqueta: document.getElementById('botonTema').getAttribute('aria-label') }));
+    ok(t1.modo === 'oscuro' && t1.mio === 'oscuro' && t1.sol && t1.etiqueta === 'Cambiar a modo claro', 'un clic en la luna pasa a Oscuro, lo guarda para el usuario y muestra el sol (' + JSON.stringify(t1) + ')');
+    await p.reload(); await p.waitForSelector('#botonTema'); await p.waitForTimeout(200);
+    ok(await p.evaluate(() => document.documentElement.dataset.modo) === 'oscuro', 'Oscuro sigue al volver a entrar');
+    await p.click('#botonTema'); await p.waitForTimeout(150);
+    ok(await p.evaluate(() => document.documentElement.dataset.modo + '/' + localStorage.getItem('vea360.apariencia.usuario-administrador')) === 'claro/claro', 'otro clic (el sol) vuelve a Claro y lo guarda');
+    // «Automático» solo en el menú del usuario: el botón no lo ofrece.
+    await p.setViewportSize({ width: 1440, height: 900 }); await p.waitForTimeout(150);
+    ok(await p.evaluate(() => !document.querySelector('.cab [data-apariencia="auto"]') && !!document.querySelector('#usuMenu [data-apariencia="auto"]')), 'Automático no está en la barra de arriba; sí en el menú del usuario › Apariencia');
+    // Quien ya eligió Automático a mano lo conserva; desde Automático (dispositivo en oscuro), el botón pasa a Claro.
+    await p.click('.lat .lat-yo'); await p.waitForTimeout(150); await p.click('#usuMenu [data-apariencia="auto"]'); await p.waitForTimeout(150);
+    await p.reload(); await p.waitForSelector('#botonTema'); await p.waitForTimeout(200);
+    const au = await p.evaluate(() => document.documentElement.dataset.apariencia + '/' + document.documentElement.dataset.modo);
+    ok(au === 'auto/oscuro', 'quien eligió Automático a mano lo conserva (sigue al dispositivo, en oscuro) (' + au + ')');
+    await p.click('#botonTema'); await p.waitForTimeout(150);
+    ok(await p.evaluate(() => document.documentElement.dataset.apariencia + '/' + document.documentElement.dataset.modo) === 'claro/claro', 'desde Automático en oscuro, el botón pasa a Claro');
+    await ctx.close();
+    // Automático (elegido a mano) sigue al dispositivo, y cambia solo si el dispositivo cambia.
+    [ctx, p] = await nueva(1440);
+    await p.addInitScript(() => { try { localStorage.setItem('vea360.apariencia.ultimo', 'auto'); localStorage.setItem('vea360.apariencia.usuario-administrador', 'auto'); } catch (e) { } });
     await p.emulateMedia({ colorScheme: 'dark' });
     await p.goto(base + '/'); await p.waitForSelector('.lat-yo');
     const a1 = await p.evaluate(() => document.documentElement.dataset.modo);
@@ -263,12 +303,37 @@ async function correr(nav, base, log) {
     const imp = await p.evaluate(() => { window.dispatchEvent(new Event('beforeprint')); const d = document.documentElement.dataset.modo; window.dispatchEvent(new Event('afterprint')); return [d, document.documentElement.dataset.modo]; });
     ok(imp[0] === 'claro' && imp[1] === 'oscuro', 'al imprimir (el PDF del contrato o Ctrl P) la página pasa a claro, y vuelve después (' + imp.join(' → ') + ')');
     await ctx.close();
-    // La pantalla de entrada también respeta Automático.
+    // La pantalla de entrada también respeta Automático (si es lo último que se eligió).
     [ctx, p] = await nueva(1440);
+    await p.addInitScript(() => { try { localStorage.setItem('vea360.apariencia.ultimo', 'auto'); } catch (e) { } });
     await p.emulateMedia({ colorScheme: 'dark' });
     await p.goto(base + '/login.html').catch(() => {});
     ok(await p.evaluate(() => document.documentElement.dataset.modo) === 'oscuro', 'la pantalla de entrada respeta Automático');
     await ctx.close();
+  }
+
+  if (log) console.log('· Inicio: las tarjetas de las marcas (ajuste 4)');
+  {
+    rol = 'administrador';
+    for (const [ancho, alto] of [[1440, 900], [1180, 820], [820, 1180], [390, 844]]) {
+      const [ctx, p] = await nueva(ancho, alto);
+      await p.goto(base + '/'); await p.waitForSelector('.ini-marca'); await p.waitForTimeout(250);
+      const m = await p.evaluate(() => {
+        const t = [...document.querySelectorAll('.ini-marca')].map(x => x.getBoundingClientRect());
+        const u = [...document.querySelectorAll('.ini-marca')].map(x => [...x.querySelectorAll('.ini-unidad')].map(y => Math.round(y.getBoundingClientRect().height)));
+        const acc = document.getElementById('accesos'), marcas = document.querySelector('.ini-marcas').getBoundingClientRect();
+        const ocultos = [...document.querySelectorAll('.ini-marca details, .ini-marca [aria-expanded]')].length;
+        return { n: t.length, altos: t.map(r => Math.round(r.height)), arriba: t.map(r => Math.round(r.top)), izq: t.map(r => Math.round(r.left)), unidades: u,
+          hueco: acc && !acc.classList.contains('oculto') ? Math.round(acc.getBoundingClientRect().top - marcas.bottom) : null, ocultos, ancho: document.documentElement.scrollWidth <= innerWidth };
+      });
+      // Sin estirarse: ninguna unidad de Kids es más alta que la más alta de Vida en Arte (su alto es el de su contenido).
+      const parejas = Math.max(...m.unidades[1]) <= Math.max(...m.unidades[0]) + 30;
+      if (ancho > 640) ok(m.n === 2 && m.arriba[0] === m.arriba[1] && m.izq[0] !== m.izq[1] && Math.abs(m.altos[0] - m.altos[1]) <= 1 && parejas && !m.ocultos && m.ancho,
+        ancho + ' px: Vida en Arte (3 unidades) y Kids (2) lado a lado, con la MISMA altura, unidades del mismo alto (sin estirarse) y todo a la vista (' + JSON.stringify(m) + ')');
+      else ok(m.n === 2 && m.arriba[1] > m.arriba[0] && m.izq[0] === m.izq[1] && parejas && m.ancho, ancho + ' px: una tarjeta debajo de la otra (' + JSON.stringify(m) + ')');
+      ok(m.hueco !== null && m.hueco >= (ancho > 640 ? 36 : 24), ancho + ' px: espacio entre las tarjetas y «Accesos rápidos» (' + m.hueco + ' px)');
+      await ctx.close();
+    }
   }
 
   if (log) console.log('· colores solo en los tokens (ajuste 3)');
@@ -302,6 +367,7 @@ async function correr(nav, base, log) {
     rol = 'administrador';
     for (const [ruta, nombre] of [['/', 'Inicio'], ['/after-school/#ocupacion', 'Ocupación'], [LISTA_FIJA, 'Pasar lista'], ['/after-school/#seguimiento', 'Seguimiento'], ['/after-school/#pagos', 'Pagos'], ['/procesos/#documentos', 'Procesos'], ['/resumen/', 'Resumen'], ['/mensajes/', 'Mensajes']]) {
       const [ctx, p] = await nueva(1440);
+      await automatico(p);
       await p.emulateMedia({ colorScheme: modo === 'oscuro' ? 'dark' : 'light' });
       await p.goto(base + ruta); await p.waitForTimeout(1600);
       const c = await p.evaluate(medirContraste);
@@ -314,6 +380,7 @@ async function correr(nav, base, log) {
   {
     rol = 'administrador';
     const [ctx, p] = await nueva(1440);
+    await automatico(p);
     await p.emulateMedia({ colorScheme: 'dark' });
     await p.goto(base + '/after-school/#ocupacion'); await p.waitForTimeout(1600);
     const et = await p.evaluate(() => {
@@ -508,6 +575,14 @@ async function correr(nav, base, log) {
 
 /* Roturas: con estos cambios, la prueba TIENE que fallar. */
 const ROTURAS = [
+  // 5-nov (ajuste 4): sol/luna, Claro por defecto y las tarjetas de Inicio.
+  ['por defecto vuelve a Automático', 'comun/tema.js', "DEFECTO = 'claro';", "DEFECTO = 'auto';"],
+  ['sin el botón sol/luna', 'comun/marca.js', "nuevoHtml() + temaHtml() +", "nuevoHtml() +"],
+  ['el botón sol/luna se esconde en celular', 'comun/armazon.css', ".cab-buscar, .cab-campana { display: none; }", ".cab-buscar, .cab-campana, .cab-tema { display: none; }"],
+  ['el botón sol/luna no alterna', 'comun/tema.js', "window.Apariencia.elegir(modo() === 'oscuro' ? 'claro' : 'oscuro', usuario);", "window.Apariencia.elegir('oscuro', usuario);"],
+  ['las tarjetas de Inicio con distinta altura', 'comun/vea.css', "grid-auto-columns: minmax(0, 1fr); gap: 20px; align-items: stretch; }", "grid-auto-columns: minmax(0, 1fr); gap: 20px; align-items: start; }"],
+  ['las tarjetas de Inicio una debajo de la otra en tablet', 'comun/vea.css', ".ini-marcas { display: grid; grid-auto-flow: column;", ".ini-marcas { display: grid; grid-auto-flow: row;"],
+  ['«Accesos rápidos» pegado a las tarjetas', 'comun/vea.css', ".ini-marcas + #accesos, .ini-marcas + .ini-resumen { margin-top: 40px; }", ".ini-marcas + #accesos, .ini-marcas + .ini-resumen { margin-top: 0; }"],
   // (Pedir niños sin as.ver tampoco es rotura de esta pieza: after-school/api.php se los niega; lo prueba prueba-portal.js.)
   ['elegir un niño no abre su ficha', 'comun/marca.js', "if (r.tipo === 'nino') ir('/after-school/#ficha=' + encodeURIComponent(r.dato.id));", "if (r.tipo === 'nino') ir('/after-school/#ocupacion');"],
   // (Pedir Proyecto Actio sin el área no es rotura de esta pieza: el puente lo niega, y eso lo prueba prueba-portal.js.)

@@ -11,22 +11,29 @@
      vea360.apariencia.<usuario>   'claro' | 'oscuro' | 'auto'
      vea360.apariencia.ultimo      la del último que entró (para pintar antes
                                    de saber quién es: la sesión llega después)
-   Por defecto, 'auto': sigue al dispositivo (prefers-color-scheme) y cambia
-   solo si el dispositivo cambia. La pantalla de entrada usa la última.
+   Por defecto, 'claro' (5-nov, ajuste 4: decisión de Marco; antes era
+   'auto'). Quien ya eligió algo a mano (la clave por usuario existe) lo
+   conserva. 'auto' sigue al dispositivo (prefers-color-scheme) y cambia solo
+   si el dispositivo cambia; se elige en el menú del usuario › Apariencia.
+   El botón sol/luna de la barra superior alterna Claro y Oscuro
+   (Apariencia.alternar). La pantalla de entrada usa la última.
    Al imprimir (el PDF del contrato o Ctrl P) la página pasa a claro.
 
      Apariencia.actual()            'claro' | 'oscuro' | 'auto'
      Apariencia.modo()              'claro' | 'oscuro' (lo que se ve)
      Apariencia.elegir(p, usuario)  guarda y aplica
+     Apariencia.alternar(usuario)   Claro ↔ Oscuro según lo que se ve (desde
+                                    Automático pasa al contrario de lo que
+                                    muestra el dispositivo)
      Apariencia.deUsuario(usuario)  aplica la del usuario (al llegar la sesión)
    ========================================================================== */
 (function () {
   'use strict';
-  var CLAVE = 'vea360.apariencia.', OPCIONES = ['claro', 'oscuro', 'auto'];
-  var raiz = document.documentElement, oscuroDisp = null, actual = 'auto', imprimiendo = false;
+  var CLAVE = 'vea360.apariencia.', OPCIONES = ['claro', 'oscuro', 'auto'], DEFECTO = 'claro';
+  var raiz = document.documentElement, oscuroDisp = null, actual = DEFECTO, imprimiendo = false;
   function leer(k) { try { return localStorage.getItem(CLAVE + k); } catch (e) { return null; } }
   function guardar(k, v) { try { localStorage.setItem(CLAVE + k, v); } catch (e) { } }
-  function valida(p) { return OPCIONES.indexOf(p) >= 0 ? p : 'auto'; }
+  function valida(p) { return OPCIONES.indexOf(p) >= 0 ? p : DEFECTO; }
   try { oscuroDisp = window.matchMedia('(prefers-color-scheme: dark)'); } catch (e) { }
   function modo() { return actual === 'oscuro' || (actual === 'auto' && !!(oscuroDisp && oscuroDisp.matches)) ? 'oscuro' : 'claro'; }
   function aplicar(p) {
@@ -49,6 +56,7 @@
     actual: function () { return actual; },
     modo: modo,
     elegir: function (p, usuario) { p = valida(p); if (usuario) guardar(usuario, p); guardar('ultimo', p); aplicar(p); },
+    alternar: function (usuario) { window.Apariencia.elegir(modo() === 'oscuro' ? 'claro' : 'oscuro', usuario); },
     deUsuario: function (usuario) { if (!usuario) return; var p = valida(leer(usuario)); guardar('ultimo', p); if (p !== actual) aplicar(p); }
   };
 })();

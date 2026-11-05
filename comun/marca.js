@@ -179,7 +179,7 @@
       '<a class="cab-logo" href="/" aria-label="Inicio">' + logoVea('') + '</a>' +
       '<button class="cab-buscar" type="button" data-abrir-buscador aria-haspopup="dialog">' + icono('buscar', 18) +
         '<span class="cab-buscar-txt">' + esc(textoBuscador()) + '</span><kbd>' + (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl') + ' K</kbd></button>' +
-      '<div class="cab-acciones">' + nuevoHtml() +
+      '<div class="cab-acciones">' + nuevoHtml() + temaHtml() +
         '<button class="btn-icono cab-campana" type="button" id="campana" aria-haspopup="true" aria-expanded="false" aria-controls="notif" aria-label="Notificaciones">' +
           icono('campana') + '<span class="cab-numero oculto" id="campanaN"></span></button>' +
       '</div></div>';
@@ -199,6 +199,7 @@
     while (capas.firstChild) document.body.appendChild(capas.firstChild);
     particulas();
     enganchar();
+    pintarTema();
     // Las notificaciones, cuando la página ya pidió lo suyo.
     if (ve('equipo')) setTimeout(() => leerNotificaciones(false), 700);
     else $('#campana').classList.add('oculto');
@@ -221,10 +222,26 @@
 
   /* 3-nov (ajuste 3): la apariencia, en el menú del usuario. La aplica y la guarda comun/tema.js. */
   const APARIENCIAS = [['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Automático']];
-  const aparienciaActual = () => window.Apariencia ? Apariencia.actual() : 'auto';
+  const aparienciaActual = () => window.Apariencia ? Apariencia.actual() : 'claro';
   function marcarApariencia() {
     document.querySelectorAll('button[data-apariencia]').forEach(b => b.setAttribute('aria-pressed', b.dataset.apariencia === aparienciaActual() ? 'true' : 'false'));
   }
+
+  /* 5-nov (ajuste 4): el botón sol/luna junto a la campana, a la vista también en celular. Un clic
+     alterna Claro y Oscuro (lo guarda comun/tema.js, por usuario). Muestra la luna en claro (pasa a
+     oscuro) y el sol en oscuro (pasa a claro). «Automático» queda solo en el menú del usuario. */
+  function temaHtml() {
+    return window.Apariencia ? '<button class="btn-icono cab-tema" type="button" id="botonTema" data-tema-alternar>' + icono('luna') + '</button>' : '';
+  }
+  function pintarTema() {
+    const b = document.getElementById('botonTema');
+    if (!b || !window.Apariencia) return;
+    const oscuro = Apariencia.modo() === 'oscuro', txt = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+    b.innerHTML = icono(oscuro ? 'sol' : 'luna');
+    b.setAttribute('aria-label', txt); b.title = txt;
+    b.dataset.modo = oscuro ? 'oscuro' : 'claro';
+  }
+  window.addEventListener('vea-apariencia', () => { pintarTema(); marcarApariencia(); });
 
   function usuarioHtml(donde) {
     const nom = nombreDe(S) || 'Usuario', rol = S && S.roles && S.roles.length ? S.roles.map(r => r.nombre).join(' · ') : '';
@@ -325,6 +342,7 @@
     document.addEventListener('click', ev => {
       const t = ev.target;
       if (t.closest('[data-abrir-buscador]')) { ev.preventDefault(); cerrarPaneles(); abrirBuscador(); return; }
+      if (t.closest('[data-tema-alternar]') && window.Apariencia) { Apariencia.alternar(S && S.usuario); pintarTema(); marcarApariencia(); return; }
       const ap = t.closest('button[data-apariencia]');   // solo los botones del menú: <html> también lleva data-apariencia
       if (ap && window.Apariencia) { Apariencia.elegir(ap.dataset.apariencia, S && S.usuario); marcarApariencia(); return; }
       const yo = t.closest('.lat-yo');
