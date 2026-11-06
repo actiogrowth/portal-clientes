@@ -57,7 +57,8 @@ switch ($p['op']) {
   case 'destino': $r = [ms_destino_prueba($p['config'], $p['usuario'], 'buzon@vea-prueba.test')]; break;
   case 'cupo': $r = msj_cupo($p['marcas'], $p['max'], $p['n'], $p['ahora']); break;
   case 'smtp': $r = ms_smtp($p['cfg'], 'x'); unset($r['clave']); break;
-  case 'firma': $r = [(ms_valores($p['filas'], MS_FIRMA)[0] ?? '') ?: MS_FIRMA_FALTA]; break;
+  case 'firma': $r = [ms_firma($p['filas'])]; break;
+  case 'imagen': $r = [ms_smtp($p['cfg'], 'x')['logo']]; break;
   case 'corchetes': $r = ms_corchetes($p['texto']); break;
   case 'numero': $r = [ms_numero($p['filas'], $p['parametro'], 50, 1, 500)]; break;
 }
@@ -103,10 +104,31 @@ const CLAVES = Object.keys(DEST);
     ok(m && m.encabezados.to === '<' + m.para[0] + '>', '«Para»: solo la familia', m && m.encabezados.to);
     ok(S.correos.every(x => !('cc' in x.encabezados) && !('bcc' in x.encabezados)), 'sin copia ni copia oculta');
     ok(m && m.asunto === 'Función de fin de año', 'el asunto con tildes llega bien', m && m.asunto);
-    ok(m && /Hola, familia:/.test(m.texto) && /Los esperamos\./.test(m.texto) && /\r?\n\r?\nEquipo Vida en Arte\s*$/.test(m.texto), 'la versión de solo texto lleva el mensaje y al final la firma', m && m.texto);
-    const pLogo = m ? m.html.indexOf('<img') : -1, pFirma = m ? m.html.indexOf('Equipo Vida en Arte') : -1, pTexto = m ? m.html.indexOf('Hola, familia') : -1;
-    ok(m && /<img src="https:\/\/portal\.prueba\.test\/comun\/logo-vea\.png"/.test(m.html) && pTexto >= 0 && pTexto < pFirma && pFirma < pLogo, '5-nov (ajuste): el texto, debajo la línea de firma y debajo el logo (como firma)', m && m.html.slice(0, 1200));
-    ok(m && /width="140"/.test(m.html) && !/align="center"|text-align:center|margin:0 auto/.test(m.html), 'el logo pequeño (140 px) y a la izquierda, nada centrado');
+    // 6-nov: la firma en imagen. La versión de solo texto termina con lo mismo, escrito.
+    const FIRMA_ESCRITA = 'Equipo VEA\n(507) 385-6515 · (507) 6809-7257\nInstagram: vidaenartepty\nCalle Primera, Local 107, Parque Industrial, Costa del Este, Panamá\nwww.vidaenarte.com';
+    const textoN = m ? m.texto.replace(/\r\n/g, '\n') : '';
+    ok(m && /Hola, familia:/.test(textoN) && /Los esperamos\./.test(textoN) && textoN.trimEnd().endsWith('Los esperamos.\nhttps://vidaenarte.test/fiesta\n\n<script>x</script>\n\nEquipo Vida en Arte\n\n' + FIRMA_ESCRITA),
+      '6-nov: la versión de solo texto lleva el mensaje, la línea de «Firma» y al final la firma escrita (teléfonos, Instagram, dirección, web)', textoN.slice(-400));
+    const IMG = 'https://portal.vidaenarte.com/comun/firma-vea.png';
+    const pImg = m ? m.html.indexOf('<img') : -1, pFirma = m ? m.html.indexOf('Equipo Vida en Arte') : -1, pTexto = m ? m.html.indexOf('Hola, familia') : -1;
+    ok(m && m.html.includes('<img src="' + IMG + '"') && pTexto >= 0 && pTexto < pFirma && pFirma < pImg, '6-nov: el texto, debajo la línea de «Firma» y debajo la firma en imagen', m && m.html.slice(0, 1400));
+    ok((await php({ op: 'imagen', cfg: Object.assign({}, cfg, { msj_logo: 'https://otro.test/logo-viejo.png' }) }))[0] === IMG,
+      '6-nov: la imagen es siempre la firma nueva, aunque portal_config.php tenga una línea «msj_logo» vieja');
+    const archivoImg = path.join(REPO, 'comun', IMG.split('/').pop());
+    const png = fs.existsSync(archivoImg) ? fs.readFileSync(archivoImg) : Buffer.alloc(0);
+    ok(png.length > 24 && png.readUInt32BE(16) === 1320 && png.readUInt32BE(20) === 440,
+      '6-nov: el archivo de la firma existe en comun/ y es el de 1320 × 440 (al doble de 660 px: nítido)', archivoImg + ' ' + png.length);
+    ok(m && /<img[^>]* width="660"[^>]*style="[^"]*display:block;width:100%;max-width:660px;height:auto;/.test(m.html) && !/<img[^>]* height="/.test(m.html),
+      '6-nov: 660 px en computador (Outlook usa el atributo) y al ancho de la pantalla en celular; alto automático (no se deforma)', m && m.html.slice(pImg, pImg + 500));
+    ok(m && /max-width:660px;padding:16px/.test(m.html) && !/align="center"|text-align:center|margin:0 auto/.test(m.html), 'el correo cabe la imagen entera (660 px) y nada va centrado');
+    ok(m && /<a href="https:\/\/www\.vidaenarte\.com" target="_blank"[^>]*><img /.test(m.html), '6-nov: la imagen es un enlace a https://www.vidaenarte.com');
+    ok(m && m.html.includes(' alt="Vida en Arte · (507) 385-6515 · (507) 6809-7257 · www.vidaenarte.com"') && /<img[^>]*style="[^"]*font-family:Arial[^"]*color:#222222/.test(m.html),
+      '6-nov: con las imágenes bloqueadas se lee el texto alternativo (nombre, teléfonos y web), con letra legible');
+    // Sin línea de «Firma»: solo la imagen, sin «Equipo Vida en Arte» repetido.
+    const sinLinea = decodificar((await php({ op: 'armar', m: { de: BUZON, nombre: 'Vida en Arte', para: 'x@familia.test', asunto: 'Aviso', cuerpo: 'Hola.', logo: IMG, dominio: 'vea-prueba.test', firma: '' } })).datos || '');
+    ok(/<\/p><a href="https:\/\/www\.vidaenarte\.com"[^>]*margin:24px 0 0;"><img /.test(sinLinea.html || '') && !/Equipo Vida en Arte/.test(sinLinea.html || '') &&
+       (sinLinea.texto || '').replace(/\r\n/g, '\n').trimEnd() === 'Hola.\n\n' + FIRMA_ESCRITA,
+      '6-nov: con «Firma» vacía, solo la imagen (HTML) y solo la firma escrita (texto)', (sinLinea.html || '').slice(0, 900) + ' | ' + sinLinea.texto);
     ok(m && !/background:#(?!fff)|background-color|border-radius:1[0-9]px|<table/i.test(m.html), 'un aviso personal, no un boletín: sin fondos de color ni recuadros', m && m.html.slice(0, 600));
     ok(m && (m.html.match(/<img/g) || []).length === 1, 'ninguna otra imagen (sin píxeles de seguimiento)');
     ok(m && /&lt;script&gt;/.test(m.html) && !/<script/.test(m.html), 'el texto se escapa en el HTML (no se cuela código)');
@@ -196,8 +218,9 @@ const CLAVES = Object.keys(DEST);
     ok((await php({ op: 'destino', config: [], usuario: 'direccion-uno' }))[0] === 'buzon@vea-prueba.test', 'si no, el buzón que envía');
     ok((await php({ op: 'numero', filas: [{ parametro: 'Máximo de correos por hora', valor: '100' }], parametro: 'Máximo de correos por hora' }))[0] === 100 &&
        (await php({ op: 'numero', filas: [], parametro: 'Máximo de correos por hora' }))[0] === 50, 'los números salen de Config mensajes (y si faltan, el valor prudente)');
-    ok((await php({ op: 'firma', filas: [] }))[0] === 'Equipo Vida en Arte' && (await php({ op: 'firma', filas: [{ parametro: 'Firma', valor: 'Dirección de Vida en Arte' }] }))[0] === 'Dirección de Vida en Arte',
-      '5-nov (ajuste): la firma sale de Config mensajes › «Firma»; si no está, «Equipo Vida en Arte»');
+    ok((await php({ op: 'firma', filas: [] }))[0] === '' && (await php({ op: 'firma', filas: [{ parametro: 'Firma', valor: '  ' }] }))[0] === '' &&
+       (await php({ op: 'firma', filas: [{ parametro: 'Firma', valor: 'Dirección de Vida en Arte' }] }))[0] === 'Dirección de Vida en Arte',
+      '6-nov: la línea de firma sale de Config mensajes › «Firma»; vacía o sin la fila, no hay línea (solo la imagen)');
     const co2 = await php({ op: 'corchetes', texto: 'Aviso: [día sin clase / cambio de horario]\nHola [nombre] y [nombre]. Correo [ok' });
     ok(JSON.stringify(co2) === JSON.stringify(['[día sin clase / cambio de horario]', '[nombre]']), 'los corchetes sin completar se encuentran (una vez cada uno)', JSON.stringify(co2));
     const ar = await php({ op: 'armar', m: { de: BUZON, nombre: 'Vida en Arte', para: 'x@familia.test', asunto: 'Hola\r\nBcc: otro@malo.test', cuerpo: '.línea con punto', logo: '', dominio: 'vea-prueba.test' } });
@@ -213,10 +236,17 @@ const CLAVES = Object.keys(DEST);
       ['correo.php', 'manda a todos en copia oculta', "        'To: <' . $p['para'] . '>',", "        'To: <' . $p['para'] . '>',\r\n        'Bcc: copia@vea-prueba.test',"],
       ['correo.php', 'sin Reply-To', "        'Reply-To: <' . $p['de'] . '>',\n", ''],
       ['correo.php', 'sin la versión de solo texto', "        'Content-Type: text/plain; charset=UTF-8',", "        'Content-Type: text/x-nada; charset=UTF-8',"],
-      ['correo.php', 'sin el logo', "        msj_html_cuerpo($cuerpo) . $f . $img .", "        msj_html_cuerpo($cuerpo) . $f ."],
-      ['correo.php', 'el logo arriba otra vez', "        msj_html_cuerpo($cuerpo) . $f . $img .", "        $img . msj_html_cuerpo($cuerpo) . $f ."],
-      ['correo.php', 'sin la firma', "    $f = $firma !== '' ?", "    $f = false ?"],
-      ['correo.php', 'el logo grande y centrado', "const MSJ_LOGO_ANCHO = 140;", "const MSJ_LOGO_ANCHO = 220;"],
+      ['correo.php', 'firma sin imagen', "    if ($imagen === '') return '';", "    return '';"],
+      ['correo.php', 'la imagen arriba del texto', "        msj_html_cuerpo($cuerpo) . $f . msj_firma_img($imagen, $f !== '') .", "        msj_firma_img($imagen, $f !== '') . msj_html_cuerpo($cuerpo) . $f ."],
+      ['correo.php', 'sin la línea de «Firma»', "    $f = $firma !== '' ?", "    $f = false ?"],
+      ['correo.php', 'la imagen a otro ancho (borrosa o cortada)', "const MSJ_FIRMA_ANCHO = 660;", "const MSJ_FIRMA_ANCHO = 1320;"],
+      ['correo.php', 'la imagen no se ajusta al celular', "display:block;width:100%;max-width:' . MSJ_FIRMA_ANCHO . 'px;", "display:block;width:' . MSJ_FIRMA_ANCHO . 'px;"],
+      ['correo.php', 'la imagen sin enlace a la web', "    return '<a href=\"' . $e(MSJ_FIRMA_ENLACE) . '\"", "    return '<a data-x=\"' . $e(MSJ_FIRMA_ENLACE) . '\""],
+      ['correo.php', 'sin texto alternativo (bloqueada no se lee)', "alt=\"' . $e(MSJ_FIRMA_ALT) . '\"", "alt=\"\""],
+      ['correo.php', 'el solo texto sin la firma escrita', " . \"\\n\\n\" . MSJ_FIRMA_TEXTO;", ";"],
+      ['api.php', 'la imagen que no carga (otro archivo)', "const MS_FIRMA_IMAGEN = 'https://portal.vidaenarte.com/comun/firma-vea.png';", "const MS_FIRMA_IMAGEN = 'https://portal.vidaenarte.com/comun/firma-vieja.png';"],
+      ['api.php', '«msj_logo» vuelve a ganarle a la firma', "'logo' => MS_FIRMA_IMAGEN,", "'logo' => (string) ($cfg['msj_logo'] ?? MS_FIRMA_IMAGEN),"],
+      ['api.php', '«Firma» vacía vuelve a escribir «Equipo Vida en Arte»', "    return trim((string) (ms_valores($config, MS_FIRMA)[0] ?? ''));", "    return trim((string) (ms_valores($config, MS_FIRMA)[0] ?? '')) ?: 'Equipo Vida en Arte';"],
       ['correo.php', 'el texto sin escapar en el HTML', "        $h = htmlspecialchars($p, ENT_QUOTES | ENT_HTML5, 'UTF-8');", '        $h = $p;'],
       ['correo.php', 'sin SSL a cualquier servidor', "    if ($seg !== 'ssl' && !($seg === 'ninguna' && $local))", '    if (false)'],
       ['correo.php', 'el asunto deja pasar saltos de línea', "    $s = trim(preg_replace('/[\\r\\n\\t]+/', ' ', $s));", '    $s = trim($s);'],

@@ -160,7 +160,11 @@ console.log('· el envío, detrás de una sola función (lo hace el servidor)');
   ok(/const ocupado = E\.enviando > 0 \|\| sinCompletar\.length > 0;/.test(pagina) && /async function enviarTanda\(i\) \{\n?\s*if \(E\.enviando \|\| Mensajes\.corchetes/.test(pagina.replace(/\r/g, '')) && /async function enviarPrueba\(\) \{\n?\s*if \(Mensajes\.corchetes/.test(pagina.replace(/\r/g, '')),
     'ni la prueba ni las tandas salen con corchetes');
   ok(/Falta completar/.test(pagina) && /ms-falta/.test(pagina), '«Revisar» dice qué corchete falta y lo marca en la vista previa');
-  ok(/class="ms-firma"/.test(pagina) && pagina.indexOf('ms-firma') < pagina.indexOf('class="ms-logo-correo"') && pagina.indexOf('marcarCorchetes(E.cuerpo)') < pagina.indexOf('ms-firma'), 'la vista previa: texto, firma y logo abajo, como el correo');
+  ok(/class="ms-firma"/.test(pagina) && pagina.indexOf('ms-firma"') < pagina.indexOf('class="ms-firma-img"') && pagina.indexOf('marcarCorchetes(E.cuerpo)') < pagina.indexOf('ms-firma"'), 'la vista previa: texto, línea de firma y la firma en imagen abajo, como el correo');
+  ok(/\(D\.firma \? '<div class="ms-firma">' \+ esc\(D\.firma\) \+ '<\/div>' : ''\)/.test(pagina) && !/FIRMA_FALTA/.test(pagina) && !('FIRMA_FALTA' in M),
+    '6-nov: con «Firma» vacía, la vista previa no inventa una línea (solo la imagen)');
+  ok(/<img class="ms-firma-img" src="\/comun\/firma-vea\.png\?v=[0-9a-f]{10}" alt="' \+ esc\(D\.firmaAlt \|\| ''\) \+ '" width="660" height="220">/.test(pagina) && /href="' \+ esc\(D\.firmaEnlace \|\| ''\) \+ '" target="_blank" rel="noopener">/.test(pagina),
+    '6-nov: la vista previa usa la misma imagen, el mismo texto alternativo y el mismo enlace que el correo');
   const css = fs.readFileSync(path.join(__dirname, '..', 'comun', 'vea.css'), 'utf8'), arm = fs.readFileSync(path.join(__dirname, '..', 'comun', 'armazon.css'), 'utf8');
   ok(/\.ms-pasos li::before \{ content: attr\(data-paso\);/.test(css) && !/counter-increment: paso/.test(css) && /data-paso="3"/.test(pagina), 'los números de los pasos salen de cada paso (iPhone: «3 Revisar», «4 Enviar»)');
   ok(/\.ms-barra \{ bottom: calc\(var\(--alto-abajo, 64px\) \+ env\(safe-area-inset-bottom, 0px\) \+ 8px\);/.test(css), 'en celular la barra de Mensajes queda encima de la navegación inferior, contando la franja del iPhone');
@@ -184,6 +188,7 @@ if (!callado) {
     ['el envío manda los correos y no las claves', "    const p = Object.assign({}, pedido, { claves: (pedido.claves || []).slice() });", "    const p = Object.assign({}, pedido, { correos: (pedido.claves || []).slice() });"],
     ['WhatsApp sin código de país', "    if (!t.startsWith('+') && (d.length === 7 || d.length === 8)) d = String(codigoPais || POR_DEFECTO.codigoPais).replace(/\\D/g, '') + d;", ''],
     ['no encuentra los corchetes', "(String(t == null ? '' : t).match(/\\[[^\\[\\]\\n]{1,200}\\]/g) || [])", '[]'],
+    ['«Firma» vacía vuelve a inventar «Equipo Vida en Arte»', "  const api = { TODO, norm,", "  const FIRMA_FALTA = 'Equipo Vida en Arte';\n  const api = { TODO, FIRMA_FALTA, norm,"],
     ['disciplinas escritas a mano', "    clases.forEach(c => { if (c.servicio && !servicios.includes(c.servicio)) servicios.push(c.servicio); });", "    ['Parkour', 'Telas', 'Parkids'].forEach(s => servicios.push(s));"]
   ];
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'msj-'));

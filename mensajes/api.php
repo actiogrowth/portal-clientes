@@ -37,9 +37,10 @@
  *     'smtp_puerto'  => 465,
  *     'smtp_usuario' => 'el buzón que envía (también es el remitente)',
  *     'smtp_clave'   => 'la contraseña de ese buzón (la escribe Marco a mano)',
- *   Opcionales: 'smtp_nombre' (por defecto «Vida en Arte»), 'msj_logo' (la
- *   dirección del logo), 'msj_carpeta' (dónde se guardan los envíos; por
- *   defecto portal_mensajes/ junto a portal_config.php).
+ *   Opcionales: 'smtp_nombre' (por defecto «Vida en Arte») y 'msj_carpeta'
+ *   (dónde se guardan los envíos; por defecto portal_mensajes/ junto a
+ *   portal_config.php). 6-nov: 'msj_logo' ya no se lee (la firma en imagen
+ *   es siempre MS_FIRMA_IMAGEN); si la línea sigue en el archivo, no hace nada.
  *
  * MS_SOLO_FUNCIONES: con esa constante el archivo solo declara sus funciones
  * (las pruebas la usan).
@@ -57,8 +58,7 @@ const MS_UNIDAD_PRE = 'Preschool';
 const MS_SERVICIO_FUERA = 'Servicio fuera de Mensajes';
 const MS_EXCLUIDO = 'Correo excluido';
 const MS_CORREO_PRUEBA = 'Correo de prueba';
-const MS_FIRMA = 'Firma';                   // 5-nov (ajuste): la línea de firma del correo; si falta, MS_FIRMA_FALTA
-const MS_FIRMA_FALTA = 'Equipo Vida en Arte';
+const MS_FIRMA = 'Firma';                   // 5-nov (ajuste): la línea de firma del correo, encima de la imagen. 6-nov: vacía o sin fila = sin línea
 const MS_POR_TANDA = 'Destinatarios por tanda';
 const MS_MAX_HORA = 'Máximo de correos por hora';
 /* Lo que pasa si falta el parámetro en «Config mensajes»: el valor prudente.
@@ -66,7 +66,9 @@ const MS_MAX_HORA = 'Máximo de correos por hora';
 const MS_POR_TANDA_FALTA = 50;
 const MS_MAX_HORA_FALTA = 100;
 const MS_NOMBRE_FALTA = 'Vida en Arte';
-const MS_LOGO_FALTA = 'https://portal.vidaenarte.com/comun/logo-vea.png';
+/* 6-nov: la firma en imagen del correo (la que ven las familias: dirección pública, sin sesión).
+   Si la imagen cambia, va con OTRO nombre: los programas de correo guardan la vieja. */
+const MS_FIRMA_IMAGEN = 'https://portal.vidaenarte.com/comun/firma-vea.png';
 /* Parámetros con correos: nunca salen al navegador (ni a quien envía: no los necesita). */
 const MS_PARAMETROS_PRIVADOS = ['Correo excluido', 'Correo de prueba', 'Cuenta de Gmail para mensajes'];
 const MS_REGISTRO_INTENTOS = 3;             // «otro guardado en curso»: se espera y se reintenta
@@ -125,7 +127,8 @@ if ($accion === 'leer') {
         'plantillas' => $plantillas,
         'enviados' => array_values(array_map('ms_enviado', array_slice((array) ($L['bd']['enviados'] ?? []), 0, 20))),
         'familiasHoy' => (int) ($L['bd']['familiasHoy'] ?? 0),
-        'firma' => $L['firma'],   // 5-nov (ajuste): la línea de firma, para la vista previa
+        'firma' => $L['firma'],   // 5-nov (ajuste): la línea de firma, para la vista previa (6-nov: vacía = sin línea)
+        'firmaAlt' => MSJ_FIRMA_ALT, 'firmaEnlace' => MSJ_FIRMA_ENLACE,   // 6-nov: la firma en imagen, igual que en el correo
         'puedePlantillas' => $puedePlantillas, 'puedeEnviar' => $puedeEnviar,
         'usuario' => $usuario, 'rol' => $rol,
     ];
@@ -255,7 +258,12 @@ function ms_leer_todo(array $cfg, string $usuario): array {
     $porTanda = ms_numero($config, MS_POR_TANDA, MS_POR_TANDA_FALTA, 1, 500);
     $maxHora = ms_numero($config, MS_MAX_HORA, MS_MAX_HORA_FALTA, 1, 100000);
     return ['bd' => $bd, 'familias' => $f['familias'], 'clases' => $f['clases'], 'config' => $config,
-            'porTanda' => min($porTanda, $maxHora), 'maxHora' => $maxHora, 'firma' => (ms_valores($config, MS_FIRMA)[0] ?? '') ?: MS_FIRMA_FALTA];
+            'porTanda' => min($porTanda, $maxHora), 'maxHora' => $maxHora, 'firma' => ms_firma($config)];
+}
+
+/** 6-nov: la línea de firma de «Config mensajes» › «Firma», encima de la imagen. Vacía o sin la fila: sin línea (solo la imagen). */
+function ms_firma(array $config): string {
+    return trim((string) (ms_valores($config, MS_FIRMA)[0] ?? ''));
 }
 
 /** 5-nov (ajuste): los textos entre corchetes que quedan de la plantilla («[día sin clase / cambio de horario]»). Los mismos que busca comun/mensajes.js › corchetes. */
@@ -366,7 +374,7 @@ function ms_smtp(array $cfg, string $servidor): array {
     $ehlo = preg_replace('/[^A-Za-z0-9.-]/', '', $servidor) ?: 'localhost';
     return ['listo' => !$faltan, 'faltan' => $faltan, 'host' => (string) ($cfg['smtp_host'] ?? ''), 'puerto' => (int) ($cfg['smtp_puerto'] ?? 0),
             'seguridad' => (string) ($cfg['smtp_seguridad'] ?? 'ssl'), 'usuario' => $usuario, 'clave' => (string) ($cfg['smtp_clave'] ?? ''),
-            'nombre' => trim((string) ($cfg['smtp_nombre'] ?? '')) ?: MS_NOMBRE_FALTA, 'logo' => (string) ($cfg['msj_logo'] ?? MS_LOGO_FALTA),
+            'nombre' => trim((string) ($cfg['smtp_nombre'] ?? '')) ?: MS_NOMBRE_FALTA, 'logo' => MS_FIRMA_IMAGEN,
             'ehlo' => $ehlo, 'dominio' => substr(strrchr($usuario, '@') ?: '@localhost', 1)];
 }
 

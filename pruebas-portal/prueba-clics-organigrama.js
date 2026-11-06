@@ -231,13 +231,13 @@ let base = '';
           const fuera = [...document.querySelectorAll('.eq-cara')].map(c => ({ c, r: c.getBoundingClientRect() }))
             .filter(x => x.r.bottom > l.bottom + 0.5 || x.r.top < l.top - 0.5 || x.r.right > l.right + 0.5 || x.r.left < l.left - 0.5).map(x => x.c.textContent.trim().slice(0, 30));
           const ver = s => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none'; };
-          return { fuera, modo: document.documentElement.dataset.modo, chispas: ver('.eq-chispa'), particulas: ver('.particulas'),
+          return { fuera, modo: document.documentElement.dataset.modo, adornos: document.querySelectorAll('.eq-chispa, .eq-brillos, .particulas').length,
             degradado: /gradient/.test(getComputedStyle(document.body).backgroundImage), cara: getComputedStyle(document.querySelector('.eq-losa-puesto:not(.eq-fantasma) .eq-cara')).backgroundImage };
         });
         ok(!r.fuera.length, modo + ' ' + w + ' px: todas las tarjetas dentro del lienzo' + (r.fuera.length ? ' (cortadas: ' + r.fuera.join(' · ') + ')' : ''));
         ok(r.modo === modo, modo + ' ' + w + ' px: Automático sigue al dispositivo (data-modo=' + r.modo + ')');
-        if (w === 1440) ok(modo === 'oscuro' ? (r.chispas && !r.particulas && r.degradado) : (!r.chispas && !r.degradado),
-          modo + ': la escena de Equipo es la ' + (modo === 'oscuro' ? 'oscura (degradado y chispas; sin las partículas comunes)' : 'clara (sin degradado ni chispas)'));
+        if (w === 1440) ok(!r.adornos && (modo === 'oscuro' ? r.degradado : !r.degradado),
+          modo + ': la escena de Equipo es la ' + (modo === 'oscuro' ? 'oscura (degradado; 6-nov: sin chispas, brillos ni partículas)' : 'clara (sin degradado, chispas ni partículas)'));
         if (w === 1440) ok(/255, 255, 255/.test(r.cara), modo + ': las tarjetas son blancas también en oscuro (' + r.cara.slice(0, 60) + ')');
         ok(!errores.length, modo + ' ' + w + ' px: sin errores de JavaScript (' + errores.join(' | ') + ')');
         await ctx.close();

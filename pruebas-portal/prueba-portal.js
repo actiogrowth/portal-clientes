@@ -774,6 +774,8 @@ async function correr(fuente) {
       }
       const png = await anon.get('/comun/logo-vea.png');
       ok(png.status === 200, '/comun/logo-vea.png se abre sin sesión');
+      const firmaPng = await anon.get('/comun/firma-vea.png');
+      ok(firmaPng.status === 200, '6-nov: /comun/firma-vea.png (la firma de los correos) se abre sin sesión, como la ven las familias');
       // App instalable (23-oct): el navegador pide el manifiesto y sus íconos SIN cookies.
       const man = await anon.get('/comun/app.webmanifest?v=0123456789');
       ok(man.status === 200 && man.j && man.j.name === 'Vida en Arte 360' && man.j.start_url === '/' && man.j.scope === '/' && man.j.display === 'standalone',
@@ -1460,7 +1462,8 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
           const k2 = await ms('prueba-direccion', 'prueba', { asunto: 'Hola', cuerpo: 'Les avisamos que [el día ... no habrá clase].' }, { 'X-CSRF': DI.csrf });
           ok(k1.status === 400 && k1.j.codigo === 'corchetes' && k1.j.error.includes('[día sin clase') && k2.status === 400 && k2.j.codigo === 'corchetes' && SMTP.correos.length === c0,
             '5-nov (ajuste): con un texto entre corchetes sin completar no sale ni el envío ni la prueba, y dice cuál falta (' + k1.texto.slice(0, 160) + ')');
-          ok(DI.firma === 'Equipo Vida en Arte', 'leer trae la firma (sin la fila «Firma» en Config mensajes, «Equipo Vida en Arte»)');
+          ok(DI.firma === '' && /^Vida en Arte · /.test(DI.firmaAlt || '') && DI.firmaEnlace === 'https://www.vidaenarte.com',
+            '6-nov: leer trae la firma (sin la fila «Firma» en Config mensajes, vacía: solo la imagen) y el texto alternativo y el enlace de la imagen');
         }
         ok((await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0003', claves: ['familia.a@ejemplo.test'] }), { 'X-CSRF': DI.csrf })).status === 400 && SMTP.correos.length === 2, 'un correo escrito en vez de una huella no se acepta: el servidor no envía a direcciones que mande el navegador');
         ok((await ms('prueba-comercial', 'otra')).status === 403, 'una acción que no existe se rechaza');

@@ -187,11 +187,10 @@ async function correr(nav, base, log) {
     const malas = paginas.filter(f => { const t = leerComoSirve(f); return !/\/comun\/vea\.css\?v=/.test(t) || /class="vidrio"|fondo-local/.test(t); });
     ok(!malas.length, 'todas las páginas usan vea.css y ninguna lleva el vidrio ni la foto vieja' + (malas.length ? ' (' + malas.join(', ') + ')' : ''));
     ok(!/fondo-local|\.vidrio body/.test(css + fs.readFileSync(path.join(RAIZ, 'comun', 'organigrama.js'), 'utf8')), 'vea.css y el organigrama sin la foto de fondo');
-    const arm = fs.readFileSync(path.join(RAIZ, 'comun', 'armazon.css'), 'utf8');
-    ok(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.particulas i \{ animation: none/.test(arm) && /\.vea-pausa \.particulas i \{ animation-play-state: paused; \}/.test(arm) && /\.particulas \{[^}]*pointer-events: none/.test(arm),
-      'partículas: quietas con «reducir movimiento», en pausa con la pestaña oculta y sin recibir clics');
-    const mj = fs.readFileSync(path.join(RAIZ, 'comun', 'marca.js'), 'utf8'), n = +/for \(let i = 0; i < (\d+); i\+\+\) \{\s*const tam/.exec(mj)[1];
-    ok(n <= 30, 'partículas: ' + n + ' (máximo 30)');
+    // 6-nov (pedido de Vida en Arte): sin partículas, chispas ni brillos. Que no quede código de ellas en comun/.
+    const restos = ['marca.js', 'armazon.css', 'vea.css', 'organigrama.js'].filter(f => /\.particulas|particulas\(|COLORES_PARTICULAS|vea-sube|vea-pausa|--particulas|eq-chispa|eq-brillos|eq-sube|CHISPAS/.test(
+      fs.readFileSync(path.join(RAIZ, 'comun', f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')));
+    ok(!restos.length, '6-nov: sin código de partículas, chispas ni brillos en comun/' + (restos.length ? ' (quedan en: ' + restos.join(', ') + ')' : ''));
   }
 
   if (log) console.log('· la entrada activa de la barra, en cada página (también las de estilos propios)');
@@ -210,6 +209,21 @@ async function correr(nav, base, log) {
       });
       ok(a && a.id === id && a.fondo === 'rgb(22, 24, 29)' && a.letra === 'rgb(255, 255, 255)' && a.ancho > 20 && a.alto > 10 && a.texto && a.visible === 'visible',
         ruta + ': la entrada activa («' + (a ? a.texto : '—') + '») se ve con su nombre y el fondo de activo' + (a ? ' (' + a.fondo + ' / ' + a.letra + ')' : ' (no hay)'));
+      await ctx.close();
+    }
+    // 6-nov: ninguna página, en Claro ni en Oscuro, tiene partículas, chispas ni brillos, ni nada que se mueva sin parar
+    // detrás del contenido (lo único que se mueve siempre es el organigrama 3D; y el «cargando», mientras carga).
+    for (const modo of ['claro', 'oscuro']) for (const ruta of Object.keys(PAGINAS)) {
+      const [ctx, p] = await nueva(1440);
+      await p.addInitScript(m => { try { localStorage.setItem('vea360.apariencia.ultimo', m); localStorage.setItem('vea360.apariencia.usuario-administrador', m); } catch (e) { } }, modo);
+      await p.goto(base + ruta); await p.waitForSelector('.lat [aria-current="page"]', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(ruta.includes('equipo') ? 3000 : 600);
+      const f = await p.evaluate(() => ({
+        modo: document.documentElement.dataset.modo,
+        adornos: document.querySelectorAll('.particulas, .eq-chispa, .eq-brillos').length,
+        siempre: [...document.querySelectorAll('body *')].filter(x => getComputedStyle(x).animationIterationCount.includes('infinite') && !x.closest('.eq-org3d') && !x.closest('.esq'))
+          .map(x => x.tagName.toLowerCase() + '.' + [...x.classList].join('.')).slice(0, 4) }));
+      ok(f.modo === modo && !f.adornos && !f.siempre.length, modo + ' ' + ruta + ': sin partículas, chispas ni brillos, y nada que se mueva sin parar fuera del organigrama' +
+        (f.adornos || f.siempre.length ? ' (' + f.adornos + ' adornos; ' + f.siempre.join(', ') + ')' : ''));
       await ctx.close();
     }
   }
@@ -407,12 +421,10 @@ async function correr(nav, base, log) {
     await p.goto(base + '/procesos/#equipo'); await p.waitForSelector('.eq-acceso', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(500);
     const e = await p.evaluate(() => ({
       oscura: document.documentElement.classList.contains('eq-escena'), clara: document.documentElement.classList.contains('eq-escena-clara'),
-      fondo: getComputedStyle(document.body).backgroundColor, chispas: [...document.querySelectorAll('.eq-chispa, .eq-brillos')].filter(x => getComputedStyle(x).display !== 'none').length,
-      particulas: (x => !!x && getComputedStyle(x).display !== 'none')(document.querySelector('.particulas')),
+      fondo: getComputedStyle(document.body).backgroundColor, chispas: document.querySelectorAll('.eq-chispa, .eq-brillos, .particulas').length,
       titulo: getComputedStyle(document.querySelector('main h1')).color, acceso: (x => x && getComputedStyle(x).color)(document.querySelector('.eq-acceso')),
       barra: getComputedStyle(document.querySelector('.cab')).backgroundColor }));
-    ok(!e.oscura && e.clara && e.fondo === 'rgb(250, 248, 245)' && !e.chispas, 'Equipo ya no usa la escena oscura: fondo claro de la app, sin chispas ni brillos (' + e.fondo + ')');
-    ok(e.particulas, 'Equipo lleva las partículas de la estructura común (una sola capa)');
+    ok(!e.oscura && e.clara && e.fondo === 'rgb(250, 248, 245)' && !e.chispas, 'Equipo ya no usa la escena oscura: fondo claro de la app, sin partículas, chispas ni brillos (' + e.fondo + ')');
     ok(e.titulo === 'rgb(22, 24, 29)' && e.acceso === 'rgb(22, 24, 29)' && !/^rgba\(14, 15, 17/.test(e.barra), 'título, «Reglas del juego» / «Horarios» y la barra de arriba en los colores normales de la app');
     ok(!p.errores.length, 'Equipo sin errores de JavaScript' + (p.errores.length ? ' (' + p.errores.join(' | ') + ')' : ''));
     await ctx.close();
@@ -584,6 +596,8 @@ const ROTURAS = [
   ['las tarjetas de Inicio una debajo de la otra en tablet', 'comun/vea.css', ".ini-marcas { display: grid; grid-auto-flow: column;", ".ini-marcas { display: grid; grid-auto-flow: row;"],
   ['«Accesos rápidos» pegado a las tarjetas', 'comun/vea.css', ".ini-marcas + #accesos, .ini-marcas + .ini-resumen { margin-top: 40px; }", ".ini-marcas + #accesos, .ini-marcas + .ini-resumen { margin-top: 0; }"],
   // (Pedir niños sin as.ver tampoco es rotura de esta pieza: after-school/api.php se los niega; lo prueba prueba-portal.js.)
+  ['vuelven las partículas de fondo', 'comun/marca.js', "    enganchar();", "    document.body.insertAdjacentHTML('beforeend', '<div class=\"particulas\" aria-hidden=\"true\"><i></i></div>'); enganchar();"],
+  ['algo se mueve sin parar detrás del contenido', 'comun/armazon.css', "/* ── Esqueletos de carga (Marca.esqueleto)", ".lat-logo { animation: vea-gira 9s linear infinite; } @keyframes vea-gira { to { opacity: .99; } }\n/* ── Esqueletos de carga (Marca.esqueleto)"],
   ['elegir un niño no abre su ficha', 'comun/marca.js', "if (r.tipo === 'nino') ir('/after-school/#ficha=' + encodeURIComponent(r.dato.id));", "if (r.tipo === 'nino') ir('/after-school/#ocupacion');"],
   // (Pedir Proyecto Actio sin el área no es rotura de esta pieza: el puente lo niega, y eso lo prueba prueba-portal.js.)
   ['el buscador distingue tildes', 'comun/marca.js', "const coincide = (texto, q) => { const h = normal(texto);", "const coincide = (texto, q) => { const h = String(texto).toLowerCase();"],

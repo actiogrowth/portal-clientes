@@ -27,9 +27,8 @@
      «Por cargar» como tarjeta blanca semitransparente con borde punteado gris. Se arrastra para moverlo, la
      rueda o el pellizco acercan, y hay − / + / «Ajustar».
      Movimiento: entrada en cascada (~2,5 s, una vez), y después una luz que
-     recorre las líneas (del color de cada área) y el halo de Dirección. Las
-     partículas del fondo son las de la estructura común (comun/marca.js): no
-     hay una segunda capa.
+     recorre las líneas (del color de cada área) y el halo de Dirección. Sin
+     partículas, chispas ni brillos de fondo (6-nov, pedido de Vida en Arte).
      Solo se anima transform y opacity; se pausa con la pestaña oculta; con
      «reducir movimiento» todo queda quieto; con «reducir transparencia» (o
      sin desenfoque) el fondo es plano, sin foto ni animación.
@@ -68,7 +67,6 @@
   // tronco = dónde baja la línea que une las filas (a la izquierda de la primera columna).
   const M = { col: 210, sep: 16, margen: 24, bus: 56, sangria: 16, legible: 0.85, tronco: -12 };
   const ENTRADA = { dir: 0.15, lineas: 0.6, areas: 1.25, paso: 0.09, puestos: 1.7, puesto: 0.07, tope: 2.4, total: 2.6 };
-  const CHISPAS = 16;   // máximo 20 (solo en oscuro)
   const ZOOM_MIN = 0.3, ZOOM_MAX = 1.6, CELULAR = '(max-width: 640px)';
 
   let D = null, el = null, op = {}, sel = '', paso = 'contrato', leyoReglas = false, cargando = false, aviso = '', porFila = 0;
@@ -255,28 +253,17 @@
 
   /* La escena de Equipo. <html class="eq-escena-clara"> ensancha la página y pone el fondo de la
      escena; lo que se VE depende del modo (comun/vea.css, sin código aparte):
-     · claro (ajuste 2): el fondo claro de la app, el piso en gris y las partículas comunes;
-     · oscuro (ajuste 3): la escena oscura de antes, con el degradado, los brillos del color de las
-       áreas y las chispas (y sin las partículas comunes: una sola capa). */
+     · claro (ajuste 2): el fondo claro de la app y el piso en gris;
+     · oscuro (ajuste 3): el degradado oscuro y el piso.
+     6-nov: sin chispas ni brillos de color (pedido de Vida en Arte: la app más limpia). */
   function escenaClara(si) {
     document.documentElement.classList.toggle('eq-escena-clara', si);
     let f = document.getElementById('eqFondo');
     if (si && !f) {
       f = document.createElement('div');
       f.id = 'eqFondo'; f.className = 'eq-fondo'; f.setAttribute('aria-hidden', 'true');
-      // Chispas en lugares fijos (no al azar: la página se ve igual cada vez). Solo se ven en oscuro.
-      let sem = 7, chispas = '';
-      const azar = () => (sem = (sem * 9301 + 49297) % 233280) / 233280;
-      for (let i = 0; i < Math.min(CHISPAS, 20); i++)
-        chispas += '<span class="eq-chispa" style="left:' + (4 + azar() * 92).toFixed(1) + '%;top:' + (60 + azar() * 38).toFixed(1) + '%;animation-delay:' + (ENTRADA.total + azar() * 9).toFixed(1) + 's"></span>';
-      f.innerHTML = '<div class="eq-brillos"></div><div class="eq-piso"></div>' + chispas;
+      f.innerHTML = '<div class="eq-piso"></div>';
       document.body.insertBefore(f, document.body.firstChild);
-    }
-    if (si && D) {
-      // Los brillos (solo en oscuro), de los colores de las áreas que hay: izquierda, centro y derecha.
-      const cols = arbol(D.puestos).columnas.filter(c => !c.suelta).map(c => colorArea(c.cab.area).fondo);
-      const b = f.querySelector('.eq-brillos'), en = (i, x, y) => cols.length ? 'radial-gradient(700px 420px at ' + x + ' ' + y + ', ' + cols[Math.min(cols.length - 1, i)] + '38, transparent 70%)' : '';
-      if (b) b.style.backgroundImage = [en(0, '8%', '70%'), en(Math.floor(cols.length / 2), '50%', '95%'), en(cols.length - 1, '92%', '65%')].filter(Boolean).join(',');
     }
     if (f) f.hidden = !si;
   }
@@ -826,7 +813,7 @@
     }
   }
 
-  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _chispas: CHISPAS, _hora12: hora12,
+  window.Organigrama = { mostrar, salir, _arbol: arbol, _escena: escena, _porFila: porFilaPara, _conteo: conteo, _medidas: M, _entrada: ENTRADA, _hora12: hora12,
     // Para la prueba (pruebas-portal/prueba-organigrama.js): pintar la ficha con datos inventados, sin navegador.
     // 2-nov: ficha(id, paso, pestaña, ampliado); papel(id) = la hoja del PDF.
     _probar: { datos(d) { D = d; }, ficha(id, p, t, a) { paso = p || 'contrato'; pestana = t || 'contrato'; ampliado = !!a; sel = id; return fichaHtml(id); },

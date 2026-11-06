@@ -730,8 +730,9 @@ no sea una huella, 400.
   motivo, registro: { ok, tandas | error } }
 ```
 - **Un correo por familia**, ella sola en «Para» (sin Cc ni Bcc), From
-  «Vida en Arte <buzón>», Reply-To el buzón; HTML simple con el logo arriba y
-  versión de solo texto; sin píxeles de seguimiento.
+  «Vida en Arte <buzón>», Reply-To el buzón; HTML simple con la firma en
+  imagen abajo (6-nov; antes, el logo) y versión de solo texto que termina con
+  la firma escrita; sin píxeles de seguimiento.
 - **Nunca dos veces la misma huella en un envío**: el archivo
   `portal_mensajes/envio-<idEnvio>.json` (junto a `portal_config.php`, fuera de
   la carpeta pública) guarda por huella `enviado` | `fallido` | `incierto`.
@@ -755,7 +756,9 @@ no sea una huella, 400.
 **Ajuste del 5-nov:** `enviar` y `prueba` responden **400 `corchetes`** si el
 asunto o el mensaje tienen un texto entre corchetes de la plantilla sin
 completar (el mensaje dice cuál). `leer` trae además `firma` (la línea de
-firma del correo: «Config mensajes» › «Firma», o «Equipo Vida en Arte»).
+firma del correo: «Config mensajes» › «Firma»; 6-nov: vacía o sin la fila,
+`""` y no se muestra) y, desde el 6-nov, `firmaAlt` y `firmaEnlace` (el texto
+alternativo y el enlace de la firma en imagen, para la vista previa).
 
 ### `prueba` y `avance` (5-nov)
 
@@ -771,8 +774,9 @@ hora y no se anota en «Mensajes enviados».
 
 `smtp_host`, `smtp_puerto` (465), `smtp_usuario` (el buzón, que también es el
 remitente) y `smtp_clave` (la contraseña; nunca en el repositorio ni en el
-navegador). Opcionales: `smtp_nombre` («Vida en Arte»), `msj_logo` (dirección
-del logo), `msj_carpeta`. La conexión va siempre cifrada (SSL directo);
+navegador). Opcionales: `smtp_nombre` («Vida en Arte») y `msj_carpeta`.
+(`msj_logo` ya no se lee desde el 6-nov: la firma en imagen es fija; si la
+línea sigue en el archivo, no hace nada.) La conexión va siempre cifrada (SSL directo);
 `smtp_seguridad => 'ninguna'` solo vale contra 127.0.0.1 (las pruebas).
 
 ### Apps Script de la Base de Datos (`bdclientesvea/apps-script-vea.gs`)

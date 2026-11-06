@@ -124,17 +124,6 @@ dialog.bus-dialogo::backdrop { background: rgba(22, 24, 29, .35); }
 .hoja .lat-usuario .menu { position: static; box-shadow: none; border: 0; padding: 0; }
 body.hoja-abierta { overflow: hidden; }
 
-/* ── Partículas del fondo ──────────────────────────────────────────────── */
-.particulas { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; opacity: var(--particulas-opacidad, 1); }   /* en oscuro, un poco más tenues */
-.particulas i { position: absolute; bottom: -10px; border-radius: 50%; opacity: 0; will-change: transform, opacity;
-  animation-name: vea-sube; animation-timing-function: linear; animation-iteration-count: infinite; }
-@keyframes vea-sube { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: var(--o, .3); } 85% { opacity: var(--o, .3); } 100% { transform: translateY(-105vh); opacity: 0; } }
-.vea-pausa .particulas i { animation-play-state: paused; }
-@media (prefers-reduced-motion: reduce) {
-  .particulas i { animation: none; opacity: var(--o, .3); }
-  .particulas i:nth-child(odd) { transform: translateY(-40vh); } .particulas i:nth-child(3n) { transform: translateY(-75vh); }
-}
-
 /* ── Esqueletos de carga (Marca.esqueleto) ─────────────────────────────── */
 .esq { display: flex; flex-direction: column; gap: 16px; }
 .esq-b { display: block; background: linear-gradient(90deg, var(--linea) 0%, var(--fondo-suave) 50%, var(--linea) 100%); background-size: 200% 100%; border-radius: 8px;

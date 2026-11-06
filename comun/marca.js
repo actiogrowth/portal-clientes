@@ -32,7 +32,7 @@
      piden en cuanto carga este archivo: cuando llega la sesión ya están. */
   if (!document.querySelector('link[data-armazon]')) {
     const l = document.createElement('link');
-    l.rel = 'stylesheet'; l.href = '/comun/armazon.css?v=c11ff2ae2c'; l.setAttribute('data-armazon', '');
+    l.rel = 'stylesheet'; l.href = '/comun/armazon.css?v=e6845a642e'; l.setAttribute('data-armazon', '');
     document.head.appendChild(l);
   }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -197,7 +197,6 @@
         '<div class="hoja-cab"><b>Secciones</b><button type="button" class="btn-icono" data-cerrar-hoja aria-label="Cerrar">' + icono('cerrar') + '</button></div>' +
         '<nav class="lat-nav">' + navHtml('mas') + '</nav>' + usuarioHtml('mas') + '</div></div>';
     while (capas.firstChild) document.body.appendChild(capas.firstChild);
-    particulas();
     enganchar();
     pintarTema();
     // Las notificaciones, cuando la página ya pidió lo suyo.
@@ -365,26 +364,8 @@
     window.addEventListener('hashchange', marcarActivo);
   }
 
-  /* ── Partículas del fondo ──────────────────────────────────────────────
-     Máximo 30, muy tenues, de los colores de la marca. Solo se animan
-     transform y opacity; detrás del contenido y sin recibir clics. Se
-     detienen con la pestaña oculta y quedan quietas con «reducir movimiento»
-     (vea.css). */
-  const COLORES_PARTICULAS = ['#E0412F', '#1974A8', '#F2A01E', '#7FB3D5', '#278746', '#7E53A2'];
-  function particulas() {
-    if (document.querySelector('.particulas')) return;
-    const p = document.createElement('div');
-    p.className = 'particulas'; p.setAttribute('aria-hidden', 'true');
-    let html = '';
-    for (let i = 0; i < 26; i++) {
-      const tam = 3 + (i * 7) % 5, x = (i * 37 + 11) % 100, dur = 22 + (i * 13) % 18, ret = -((i * 29) % dur);
-      html += '<i style="left:' + x + '%;width:' + tam + 'px;height:' + tam + 'px;background:' + COLORES_PARTICULAS[i % COLORES_PARTICULAS.length] +
-        ';animation-duration:' + dur + 's;animation-delay:' + ret + 's;--o:' + (0.22 + (i % 4) * 0.06).toFixed(2) + '"></i>';
-    }
-    p.innerHTML = html;
-    document.body.appendChild(p);
-    document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('vea-pausa', document.hidden));
-  }
+  /* 6-nov (pedido de Vida en Arte): sin partículas de fondo. La app va limpia,
+     sin nada que se mueva detrás del contenido. */
 
   /* ── Notificaciones (lo que antes era «Pendientes de hoy») ────────────────
      Los mismos cálculos y permisos: pendientes/api.php decide qué le llega a

@@ -97,13 +97,12 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
   const larga = O._escena(O._arbol([P('D', 'D', 'Dirección', '')].concat([1, 2, 3, 4, 5, 6].map(k => P('A' + k, 'a', 'Preschool', 'D')),
     Array.from({ length: 20 }, (_, k) => P('X' + k, 'x', 'Preschool', 'A6')))));
   ok(Math.max(...larga.columnas[5].puestos.map(x => x.d)) <= E_.tope, 'aunque un área tenga 20 puestos, la cascada termina a tiempo');
-  // 3-nov (rediseño, ajuste 2): Equipo sobre el fondo claro; sin escena oscura ni una segunda capa de partículas.
-  // 3-nov (ajuste 3): la escena depende del modo. Las chispas y los brillos existen, pero solo se ven en oscuro.
-  ok(O._chispas > 0 && O._chispas <= 20 && /classList\.toggle\('eq-escena-clara', si\)/.test(FUENTE) && !/'eq-escena'/.test(FUENTE),
-    'la escena de Equipo: chispas (como mucho 20) y brillos que solo se ven en oscuro');
-  ok(/\.eq-brillos, \.eq-chispa \{ display: none; \}/.test(CSS) && /\[data-modo="oscuro"\] \.eq-brillos, \[data-modo="oscuro"\] \.eq-chispa \{ display: block; \}/.test(CSS) &&
-    /\[data-modo="oscuro"\]\.eq-escena-clara \.particulas \{ display: none; \}/.test(CSS) && /\.eq-escena-clara body \{ background-image: var\(--escena-fondo\);/.test(CSS) && !/\.eq-escena[ ,.{]/.test(CSS),
-    'vea.css: en claro, el fondo de la app y las partículas comunes; en oscuro, el degradado, los brillos y las chispas (una sola capa de partículas)');
+  // 3-nov (rediseño, ajuste 2): Equipo sobre el fondo claro; en oscuro (ajuste 3), el degradado.
+  // 6-nov (pedido de Vida en Arte): sin chispas ni brillos, en ningún modo. El fondo de la escena es solo el piso.
+  ok(!('_chispas' in O) && /classList\.toggle\('eq-escena-clara', si\)/.test(FUENTE) && !/'eq-escena'/.test(FUENTE) && /f\.innerHTML = '<div class="eq-piso"><\/div>';/.test(FUENTE) && !/eq-chispa|eq-brillos/.test(FUENTE),
+    '6-nov: la escena de Equipo sin chispas ni brillos (solo el piso)');
+  ok(!/eq-chispa|eq-brillos|eq-sube|\.particulas/.test(CSS) && /\.eq-escena-clara body \{ background-image: var\(--escena-fondo\);/.test(CSS) && !/\.eq-escena[ ,.{]/.test(CSS),
+    'vea.css: en claro, el fondo de la app; en oscuro, el degradado; sin chispas, brillos ni partículas');
   // Colores, en un solo lugar.
   ok(Pu.colorArea('Operación').fondo === '#D71C0E' && Pu.colorArea('comercial').fondo === '#2E9D4F' && Pu.colorArea('Dirección').fondo === '#111111' &&
     Pu.colorArea('After School').texto === '#111111' && Pu.colorArea('Veranito').fondo === '#FFA615' && Pu.colorArea('Otra').fondo === '#555555', 'los colores de las áreas (texto negro sobre el naranja; un área desconocida, gris)');
@@ -293,13 +292,13 @@ function comprobar(cargado, decir, FUENTE, CSS, VERIF) {
   ok(/CELULAR = '\(max-width: 640px\)'/.test(FUENTE) && /modo = window\.matchMedia && window\.matchMedia\(CELULAR\)\.matches \? 'lista' : 'arbol'/.test(FUENTE), 'en celular (640 px o menos), la lista por áreas, sin 3D');
   ok(/data-eq-zoom="' \+ k/.test(FUENTE) && /'ajustar'/.test(FUENTE) && /addEventListener\('wheel'/.test(FUENTE) && /pellizco/.test(FUENTE), 'mover y acercar: rueda, pellizco y botones − / + / «Ajustar»');
   ok(/class="eq-losa ' \+ clases \+ '"' \+ st \+ ' data-eq-puesto=/.test(FUENTE) && /<button type="button" class="eq-losa/.test(FUENTE) && /\.eq-losa:focus-visible \{ outline: 3px solid var\(--azul\)/.test(CSS), 'cada tarjeta es un botón con foco visible que abre la ficha');
-  ok(/addEventListener\('visibilitychange', \(\) => document\.documentElement\.classList\.toggle\('eq-pausa', document\.hidden\)\)/.test(FUENTE) && /\.eq-pausa \.eq-fondo \*, \.eq-pausa \.eq-org3d \*[^{]*\{ animation-play-state: paused !important; \}/.test(CSS),
+  ok(/addEventListener\('visibilitychange', \(\) => document\.documentElement\.classList\.toggle\('eq-pausa', document\.hidden\)\)/.test(FUENTE) && /\.eq-pausa \.eq-org3d \*[^{]*\{ animation-play-state: paused !important; \}/.test(CSS),
     'con la pestaña oculta, las animaciones se pausan');
   const cuadros = [...CSS.matchAll(/@keyframes (eq-[\w-]+) \{([\s\S]*?)\}\s*\}/g)];
   const props = cuadros.flatMap(k => [...k[2].matchAll(/([a-z-]+)\s*:/g)].map(x => x[1]));
   // 3-nov (ajuste 2): sin la de las chispas quedan 7 (plano, respira, luz v/h, crece v/h, aparece).
   ok(cuadros.length >= 7 && props.length && props.every(p => p === 'transform' || p === 'opacity'), 'las animaciones de Equipo mueven solo transform y opacity (' + [...new Set(props)].join(', ') + ')');
-  ok(/@media \(prefers-reduced-motion: reduce\) \{\s*\.eq-fondo \*, \.eq-org3d \*, \.eq-org3d \*::after \{ animation: none !important; \}/.test(CSS), 'con «reducir movimiento», todo quieto');
+  ok(/@media \(prefers-reduced-motion: reduce\) \{\s*\.eq-org3d \*, \.eq-org3d \*::after \{ animation: none !important; \}/.test(CSS), 'con «reducir movimiento», todo quieto');
   ok(/@media \(prefers-reduced-transparency: reduce\) \{\s*\.eq-fondo \{ display: none; \}/.test(CSS) && /@supports not \(\(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\)\) \{\s*\.eq-fondo \{ display: none; \}/.test(CSS),
     'versión sólida (reducir transparencia o sin desenfoque): sin piso, tarjetas opacas y sin animación');
   // 3-nov (ajuste 2): sobre claro, las sombras de las losas son grises suaves (no negras) y los textos de la página, los normales.
@@ -359,7 +358,8 @@ const ROTURAS = [
   ['la manito siempre', 'css', ".eq-org3d .eq-lienzo.puede-arrastrar { cursor: grab; }", ".eq-org3d .eq-lienzo { cursor: grab; }"],
   ['la cascada no termina', 'org', "d: Math.min(ENTRADA.tope, ENTRADA.puestos + i * ENTRADA.paso + j * ENTRADA.puesto)", "d: ENTRADA.puestos + i * ENTRADA.paso + j * 0.3"],
   ['vuelve la escena oscura', 'org', "classList.toggle('eq-escena-clara', si);", "classList.toggle('eq-escena-clara', si); document.documentElement.classList.toggle('eq-escena', si);"],
-  ['las chispas se ven también en claro (dos capas de partículas)', 'css', ".eq-brillos, .eq-chispa { display: none; }", ".eq-brillos { display: none; }"],
+  ['vuelven las chispas a la escena', 'org', "f.innerHTML = '<div class=\"eq-piso\"></div>';", "f.innerHTML = '<div class=\"eq-piso\"></div><span class=\"eq-chispa\"></span>';"],
+  ['vuelven los brillos de color en oscuro', 'css', ".eq-escena-clara body { background-image: var(--escena-fondo); background-attachment: fixed; }", ".eq-escena-clara body { background-image: var(--escena-fondo); background-attachment: fixed; }\n[data-modo=\"oscuro\"] .eq-brillos { display: block; }"],
   ['las sombras de las losas vuelven a negro en claro', 'css', "--losa-sombra: 0 16px 28px rgba(22, 24, 29, .12);", "--losa-sombra: 0 18px 30px rgba(0, 0, 0, .45);"],
   ['«En construcción» vuelve al vidrio blanco sobre oscuro', 'css', ".eq-fantasma { color: var(--tinta); }", ".eq-fantasma { color: #FFFFFF; }"],
   ['Operación sin su rojo', 'puestos', "'operacion':      { fondo: '#D71C0E'", "'operacion':      { fondo: '#555555'"],
@@ -407,7 +407,7 @@ const ROTURAS = [
   ['el celular ve el árbol', 'org', "CELULAR = '(max-width: 640px)'", "CELULAR = '(max-width: 1px)'"],
   ['no se pausa con la pestaña oculta', 'org', "document.addEventListener('visibilitychange', () => document.documentElement.classList.toggle('eq-pausa', document.hidden));", ""],
   ['una animación mueve otra cosa (el piso)', 'css', "@keyframes eq-crece-v { from { transform: scaleY(0); } to { transform: scaleY(1); } }", "@keyframes eq-crece-v { from { height: 0; } to { height: 100%; } }"],
-  ['«reducir movimiento» ya no detiene todo', 'css', "  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }\n", ""],
+  ['«reducir movimiento» ya no detiene todo', 'css', "  .eq-org3d *, .eq-org3d *::after { animation: none !important; }\n  .eq-plano { transform: rotateX(7deg); }", "  .eq-plano { transform: rotateX(7deg); }"],
   ['la versión sólida conserva el piso', 'css', "@media (prefers-reduced-transparency: reduce) {\n  .eq-fondo { display: none; }", "@media (prefers-reduced-transparency: reduce) {"],
   ['el PDF imprime toda la página', 'css', "  html.eq-imprimiendo body > *:not(#eq-impresion) { display: none !important; }\n", ""]
 ];

@@ -10,7 +10,7 @@
  * Tres piezas, sin librerías de fuera:
  *   1. msj_armar()      el correo: From «Vida en Arte <buzón>», un solo
  *                       destinatario en «Para», Reply-To al buzón, HTML simple
- *                       con la firma y el logo abajo (5-nov) + versión de solo texto. Sin
+ *                       con la firma en imagen abajo (6-nov) + versión de solo texto. Sin
  *                       píxeles de seguimiento.
  *   2. smtp_*()         un cliente SMTP mínimo: SSL directo (puerto 465),
  *                       AUTH PLAIN o LOGIN, un correo por destinatario.
@@ -56,25 +56,50 @@ function msj_html_cuerpo(string $texto): string {
 }
 
 /** 5-nov (ajuste): un aviso personal, no un boletín. Sin fondos de color ni recuadros: el texto, debajo la
- *  línea de firma («Config mensajes» › «Firma») y debajo el logo, pequeño y a la izquierda, como firma. */
-const MSJ_LOGO_ANCHO = 140;   // px del logo en la firma (el archivo es de 581 × 120)
+ *  línea de firma («Config mensajes» › «Firma», solo si tiene algo) y debajo la firma en imagen.
+ *
+ *  6-nov (pedido de Vida en Arte): la firma es una IMAGEN (comun/firma-vea.png, 1320 × 440, al doble de
+ *  resolución): «EQUIPO VEA», logo, teléfonos, Instagram, dirección y web. Se ve a 660 px en computador y
+ *  se ajusta al ancho en celular. Es un enlace a la web. Con las imágenes bloqueadas se lee su texto
+ *  alternativo (MSJ_FIRMA_ALT), y la versión de solo texto termina con lo mismo escrito (MSJ_FIRMA_TEXTO).
+ *  El texto y la imagen dicen lo mismo y cambian JUNTOS: si cambia un teléfono, se cambian la imagen
+ *  (con OTRO nombre de archivo, para que ningún correo muestre la vieja guardada) y estas dos líneas. */
+const MSJ_FIRMA_ANCHO = 660;    // px en computador (la imagen tiene el doble: se ve nítida)
+const MSJ_FIRMA_ENLACE = 'https://www.vidaenarte.com';
+const MSJ_FIRMA_ALT = 'Vida en Arte · (507) 385-6515 · (507) 6809-7257 · www.vidaenarte.com';
+const MSJ_FIRMA_TEXTO = "Equipo VEA\n(507) 385-6515 · (507) 6809-7257\nInstagram: vidaenartepty\n" .
+                        "Calle Primera, Local 107, Parque Industrial, Costa del Este, Panamá\nwww.vidaenarte.com";
 
-function msj_html(string $asunto, string $cuerpo, string $logo, string $nombre, string $firma = ''): string {
+/** La firma en imagen, enlazada a la web. Ancho fijo por atributo (Outlook de escritorio) y, por estilo,
+ *  100 % hasta 660 px (celular). El alto va automático: nunca se deforma. El texto alternativo lleva letra
+ *  y color para que, bloqueada, se lea como una línea normal. */
+function msj_firma_img(string $imagen, bool $conLinea): string {
+    if ($imagen === '') return '';
+    $e = fn($s) => htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return '<a href="' . $e(MSJ_FIRMA_ENLACE) . '" target="_blank" style="display:block;text-decoration:none;border:0;margin:' . ($conLinea ? '0' : '24px') . ' 0 0;">' .
+        '<img src="' . $e($imagen) . '" width="' . MSJ_FIRMA_ANCHO . '" alt="' . $e(MSJ_FIRMA_ALT) . '"' .
+        ' style="display:block;width:100%;max-width:' . MSJ_FIRMA_ANCHO . 'px;height:auto;border:0;outline:none;text-decoration:none;' .
+        'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222222;"></a>';
+}
+
+function msj_html(string $asunto, string $cuerpo, string $imagen, string $nombre, string $firma = ''): string {
     $a = htmlspecialchars($asunto, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $n = htmlspecialchars($nombre, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $f = $firma !== '' ? '<p style="margin:24px 0 10px;">' . nl2br(htmlspecialchars($firma, ENT_QUOTES | ENT_HTML5, 'UTF-8'), false) . '</p>' : '';
-    $img = $logo !== '' ? '<img src="' . htmlspecialchars($logo, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '" width="' . MSJ_LOGO_ANCHO . '" alt="' . $n .
-        '" style="display:block;width:' . MSJ_LOGO_ANCHO . 'px;max-width:50%;height:auto;border:0;margin:' . ($f === '' ? '24px' : '0') . ' 0 0;">' : '';
     return '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' .
         '<title>' . $a . '</title></head><body style="margin:0;padding:0;">' .
-        '<div style="max-width:600px;padding:16px;text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#222222;">' .
-        msj_html_cuerpo($cuerpo) . $f . $img .
+        '<div style="max-width:' . MSJ_FIRMA_ANCHO . 'px;padding:16px;text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#222222;">' .
+        msj_html_cuerpo($cuerpo) . $f . msj_firma_img($imagen, $f !== '') .
         '</div></body></html>';
+}
+
+/** La versión de solo texto: el mensaje, la línea de «Firma» (si tiene algo) y la firma escrita. */
+function msj_texto(string $texto, string $firma): string {
+    return rtrim($texto) . ($firma !== '' ? "\n\n" . $firma : '') . "\n\n" . MSJ_FIRMA_TEXTO;
 }
 
 /**
  * El correo entero, listo para DATA (líneas con CRLF, sin el punto final).
- * $p: de (correo), nombre, para (correo), asunto, cuerpo, logo (URL), dominio, firma (5-nov), fecha (opcional, para las pruebas).
+ * $p: de (correo), nombre, para (correo), asunto, cuerpo, logo (URL de la firma en imagen; 6-nov), dominio, firma (5-nov), fecha (opcional, para las pruebas).
  */
 function msj_armar(array $p): string {
     $limite = 'vea-' . bin2hex(random_bytes(12));
@@ -96,7 +121,7 @@ function msj_armar(array $p): string {
         'Content-Type: text/plain; charset=UTF-8',
         'Content-Transfer-Encoding: base64',
         '',
-        $b64(str_replace("\n", "\r\n", rtrim($texto) . ($firma !== '' ? "\n\n" . $firma : ''))),
+        $b64(str_replace("\n", "\r\n", msj_texto($texto, $firma))),
         '--' . $limite,
         'Content-Type: text/html; charset=UTF-8',
         'Content-Transfer-Encoding: base64',

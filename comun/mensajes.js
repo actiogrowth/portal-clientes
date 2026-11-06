@@ -210,16 +210,13 @@
     return out;
   }
 
-  /** La línea de firma del correo (Config mensajes › «Firma»; si falta, «Equipo Vida en Arte»). */
-  const FIRMA_FALTA = 'Equipo Vida en Arte';
-
   /** Un ID para el envío (lo usa el registro para sumar las tandas a la misma fila). */
   function idEnvio() {
     const c = raiz.crypto;
     return (c && c.randomUUID) ? c.randomUUID() : 'env-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
 
-  const api = { TODO, FIRMA_FALTA, norm, limpiarCorreo, correoValido, config, grupos, armar, conteos, tandas, enlaceWhatsapp, enviar, horaDe, corchetes, idEnvio };
+  const api = { TODO, norm, limpiarCorreo, correoValido, config, grupos, armar, conteos, tandas, enlaceWhatsapp, enviar, horaDe, corchetes, idEnvio };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   raiz.Mensajes = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -130,9 +130,10 @@ pese. Nada de esto se construye sin la aprobación de Marco.
 | Pieza | Qué es |
 |---|---|
 | `comun/vea.css` | (3-nov: con `comun/armazon.css`, la estructura común; ver §2i) El archivo de estilos del portal (variables de color, botones en píldora, tarjetas, pestañas, ocupación, Pasar lista, adaptaciones a tablet y celular). Dos temas sobre los mismos componentes: Vida en Arte (por defecto) y **Vida en Arte Kids** (`.tema-kids` en `<html>`: solo cambia variables; lo usa Preschool). |
-| `comun/marca.js` | `window.Marca`: desde el 3-nov, la estructura común (barra lateral, superior e inferior, notificaciones, buscador, «Nuevo», partículas y esqueletos; §2i), avisos y formato de fechas. |
+| `comun/marca.js` | `window.Marca`: desde el 3-nov, la estructura común (barra lateral, superior e inferior, notificaciones, buscador, «Nuevo» y esqueletos; §2i; sin partículas desde el 6-nov), avisos y formato de fechas. |
 | `comun/datos.js` | `window.Datos`: la capa de datos (ver la tabla de capas). Es lo único que habría que reescribir para hablar con otro servidor (Firebase o Supabase). |
 | `comun/logo-vea.png`, `comun/logo-kids.png` | Logos. |
+| `comun/firma-vea.png` | (6-nov) La firma de los correos de Mensajes (1320 × 440, al doble de resolución; se ve a 660 px). Pública, sin sesión: la ven las familias. Si cambia, va con OTRO nombre (los programas de correo guardan la vieja) y se cambian con ella el texto alternativo y la firma escrita de `mensajes/correo.php`. |
 | `comun/app.webmanifest`, `comun/app-icono-{180,192,512}.png` | **App instalable** (23-oct): el manifiesto (nombre «Vida en Arte 360», corto «VEA 360», empieza en `/`, abarca todo el sitio, pantalla completa sin barra del navegador) y los íconos (el símbolo de las tres bolitas sobre blanco; el de 512 sirve también de «maskable»). Todas las páginas con la marca los enlazan en el `<head>`, así que se instala desde cualquier pantalla: Android/Chrome «Instalar app», iPhone Safari › Compartir › «Agregar a inicio». **Sin service worker**: nada se guarda para usar sin conexión y no hay una caché más que pueda servir una página vieja o una sesión vencida. |
 | `comun/.htaccess` (`comun/htaccess.txt` en el repo) | Segundo cerrojo: sin listado, sin CGI, y niega `.php`, `.phtml`, `.phar`, `.html` y otros aunque alguien los suba. |
 | `login.html`, `cambiar-clave.html` (raíz) | Páginas **fijas** (sin PHP). Piden su estado a `login.php?estado=1` / `cambiar-clave.php?estado=1` y mandan el formulario por JSON. `login.php` y `cambiar-clave.php` sin `estado` redirigen a la página fija (direcciones viejas). |
@@ -511,8 +512,8 @@ mueve ni borra nada.
   arriba en vidrio oscuro con el logo en blanco). Dirección arriba con su
   halo; las áreas en columnas; plano inclinado 7° con `perspective`;
   tarjetas con grosor que se levantan; «Por cargar» como vidrio con borde
-  punteado. Entrada en cascada (~2,5 s, una vez), luz en las líneas, chispas
-  (16, máximo 20), halo. Solo `transform` y `opacity`; se pausa con la
+  punteado. Entrada en cascada (~2,5 s, una vez), luz en las líneas, halo
+  (las chispas se quitaron el 6-nov). Solo `transform` y `opacity`; se pausa con la
   pestaña oculta; «reducir movimiento» = quieto; «reducir transparencia» o
   sin desenfoque = fondo plano sin foto ni animación. Se mantienen mover,
   acercar y «Ajustar». En celular, la lista por áreas, sin 3D.
@@ -616,7 +617,7 @@ Bebas Neue solo en el `h1` de cada página y en las cifras grandes
 15 px y nada de texto de trabajo por debajo de 13 px. Botones de 42 px de alto
 (48 px en tablet táctil), pestañas subrayadas, etiquetas `.chip` (`ok`,
 `alerta`, `peligro`, `pronto`). **Sin vidrio ni foto**: `comun/fondo-local.jpg`
-se retiró (también de la escena de Equipo). **Ajuste 2 (3-nov, decidido por Vida en Arte): Equipo también va sobre el fondo claro** —sin degradado oscuro ni brillos ni chispas propias; las partículas son las comunes—, conservando el plano inclinado, las tarjetas con grosor (sombras grises suaves), la tarjeta que se levanta, la entrada en cascada, la luz que recorre las líneas (del color de cada área), el halo de Dirección, el zoom y la zona de clic quieta. Líneas en gris medio (#958F86, 3:1) y las de cada área con su color; «En construcción» como tarjeta blanca semitransparente con borde punteado gris; título, leyenda, «Reglas del juego» y «Horarios» en los colores normales. `organigrama.js` pone `<html class="eq-escena-clara">` (ancho de 1440 y el piso gris en perspectiva).
+se retiró (también de la escena de Equipo). **Ajuste 2 (3-nov, decidido por Vida en Arte): Equipo también va sobre el fondo claro** —sin degradado oscuro ni brillos ni chispas propias; desde el 6-nov tampoco hay partículas (D-134)—, conservando el plano inclinado, las tarjetas con grosor (sombras grises suaves), la tarjeta que se levanta, la entrada en cascada, la luz que recorre las líneas (del color de cada área), el halo de Dirección, el zoom y la zona de clic quieta. Líneas en gris medio (#958F86, 3:1) y las de cada área con su color; «En construcción» como tarjeta blanca semitransparente con borde punteado gris; título, leyenda, «Reglas del juego» y «Horarios» en los colores normales. `organigrama.js` pone `<html class="eq-escena-clara">` (ancho de 1440 y el piso gris en perspectiva).
 
 **Estructura común** (`comun/marca.js` › `Marca.cabecera`, estilos en
 `comun/armazon.css`). Toda página que llamaba a `Marca.cabecera` (todas menos
@@ -637,10 +638,11 @@ login y cambiar contraseña) recibe, la primera vez que hay sesión:
 - `armazon.css` va aparte y **sin capa** porque Veranito y la Base de Datos
   cargan `vea.css` dentro de `@layer vea`, debajo de sus propios estilos;
   `marca.js` lo pide en cuanto carga (con su `?v=`).
-- **Partículas**: 26 puntos de los colores de la marca que suben despacio
-  (solo `transform` y `opacity`), detrás del contenido, sin recibir clics; en
-  pausa con la pestaña oculta y quietas con «reducir movimiento». En la
-  escena oscura de Equipo no se ven.
+- **Sin partículas** (6-nov, D-134, pedido de Vida en Arte: «más limpia»):
+  hasta esa fecha había 26 puntos de colores que subían detrás del contenido.
+  Se quitaron de todas las páginas, en Claro y en Oscuro, con su código y sus
+  estilos. Lo único que se mueve sin parar es el organigrama 3D de Equipo
+  (luz en las líneas y halo); `prueba-rediseno.js` lo comprueba página por página.
 - **Esqueletos**: `Marca.esqueleto(tipo)` (`ocupacion`, `lista`, `tabla`,
   `tarjetas`, `inicio`) reemplaza la tarjeta «Cargando…» en After School,
   Procesos, Mi lista, Proyecto Actio e Inicio.
@@ -720,7 +722,7 @@ acción, no hay botón.
 - **Sin parpadeo**: `comun/tema.js` va en el `<head>` de cada página ANTES de los estilos y pone `<html data-modo="claro|oscuro" data-apariencia="…">` antes de pintar. La elección se guarda por usuario en el navegador (`localStorage` `vea360.apariencia.<usuario>`) y la del último que entró (`…ultimo`) sirve para pintar antes de que llegue la sesión; al llegar, `Marca.cabecera` aplica la de esa persona. La pantalla de entrada usa la última (Claro si no hay).
 - **Todo color sale de los tokens** de `comun/vea.css`: el juego claro en `:root` y el oscuro en `:root[data-modo="oscuro"]`. Ninguna regla ni página escribe un color suelto (lo comprueba `prueba-rediseno.js`); los nombres nuevos: `--activo` / `--sobre-activo` (lo elegido: oscuro en claro, claro en oscuro), `--panel-2`, `--borde-fuerte`, `--borde-campo`, `--deshabilitado`, `--tinte-*` de las disciplinas, `--serie-*` de los gráficos, `--unidad-*` del Resumen, `--estado-validado/abierto`, `--losa-*`, `--escena-*`, `--papel-*`. `--blanco` queda solo para letra sobre un color de marca o de estado.
 - **Islas claras**: las tarjetas del organigrama y la hoja del contrato vuelven a declarar el juego claro (son blancas también en oscuro). El PDF y la impresión pasan a claro (`beforeprint` / `afterprint` en `tema.js`).
-- **Equipo**: en claro, la escena del ajuste 2; en oscuro, la escena oscura de antes (degradado, brillos del color de las áreas y chispas, sin las partículas comunes). Lo decide solo CSS (`[data-modo="oscuro"]`).
+- **Equipo**: en claro, la escena del ajuste 2; en oscuro, el degradado oscuro de antes. Desde el 6-nov (D-134), sin brillos de color ni chispas en ningún modo; el plano, las tarjetas con grosor, la luz en las líneas y el halo siguen igual. Lo decide solo CSS (`[data-modo="oscuro"]`).
 - **Logos**: en oscuro, el logo de Vida en Arte es su versión clara, `comun/logo-vea-oscuro.png` (letras y barras blancas; versión clara hecha por Actio a partir del logo oficial, cambiando el negro por blanco; pendiente de que Vida en Arte la apruebe o entregue la suya), que `Marca.logoVea` y la pantalla de entrada muestran con `.logo-solo-claro` / `.logo-solo-oscuro`. El de Kids va sobre una placa clara (`.logo-placa`). Nada se invierte con un filtro.
 - **Páginas con paleta propia**: Preschool declara sus tonos como variables (con su versión oscura); Veranito y la Base de Datos (fuera del portal se ven como siempre) tienen, dentro del portal, su juego oscuro en `.portal[data-modo="oscuro"]`.
 - **Lienzo del organigrama**: su alto se mide con el árbol COMO SE VE (inclinado, con perspectiva, grosor y sombra) y se vuelve a medir al terminar la entrada; antes cortaba la última tarjeta de la columna más larga. Lo prueba `prueba-clics-organigrama.js` en claro y oscuro, a 1440, 1366, 1100 y 820 px.
@@ -739,7 +741,7 @@ acción, no hay botón.
         ├─▶ AfterSchool.gs › leer             (VEA_AfterSchool_BD; sin cambios)
         ├─▶ apps-script-vea.gs › mensajes*   (VEA_BaseDatos_Clientes; clave + MSJ_CLAVE_API)
         └─▶ mensajes/correo.php  (no es puente: solo lo incluye api.php)
-              SMTP SSL 465 al buzón del hosting · un correo por familia · HTML con logo + texto
+              SMTP SSL 465 al buzón del hosting · un correo por familia · HTML con firma en imagen + texto
               portal_mensajes/ (junto a portal_config.php): envio-<id>.json (huellas), hora.json, candado
 ```
 
@@ -767,6 +769,15 @@ acción, no hay botón.
   navegación inferior en el iPhone; los pasos numeran con `data-paso`; el
   panel «Más» muestra los nombres (las reglas de la barra de iconos ahora
   son solo de `.lat`).
+- **Firma en imagen (6-nov, D-133, R191)**: debajo del texto, la línea de
+  «Firma» de «Config mensajes» SOLO si tiene algo (vacía o sin la fila: nada;
+  ya no se escribe «Equipo Vida en Arte») y debajo `comun/firma-vea.png`,
+  enlazada a https://www.vidaenarte.com, a 660 px en computador y al ancho en
+  celular. Con las imágenes bloqueadas se lee su texto alternativo; la
+  versión de solo texto termina con la firma escrita. La dirección de la
+  imagen es fija (`MS_FIRMA_IMAGEN`): `msj_logo` de `portal_config.php`
+  ya no se lee. La vista previa de «Revisar» usa la misma imagen, el mismo
+  texto alternativo y el mismo enlace (`leer` los manda).
 - **Instalar** (una vez): pegar `apps-script-vea.gs` en el proyecto de la Base
   de Datos, agregar la propiedad del script `MSJ_CLAVE_API` (32 caracteres o
   más) y publicar **Nueva versión** en la implementación existente; en

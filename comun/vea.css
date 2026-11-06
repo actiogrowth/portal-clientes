@@ -123,7 +123,6 @@
   /* La hoja del contrato (igual en los dos modos: es papel) y la mesa donde se amplía. */
   --papel-fondo: #FFFFFF; --papel-texto: #1A1A1A; --papel-borde: #E1E4E1; --papel-marca: #5A6B7B; --papel-verde: #0E4A2B;
   --papel-celda: #EEF2EE; --papel-celda-borde: #D5DAD5; --papel-mesa: #EEF0EE;
-  --particulas-opacidad: 1;
   --placa-logo: transparent;   /* en oscuro, la placa clara detrás de los logos de letras negras */
 }
 /* ── El juego OSCURO ───────────────────────────────────────────────────────
@@ -165,7 +164,6 @@
   --fantasma-fondo: rgba(255, 255, 255, .09); --fantasma-borde: rgba(255, 255, 255, .55); --fantasma-sombra: 0 10px 24px rgba(0, 0, 0, .35);
   --fantasma-sombra-alta: 0 24px 40px rgba(0, 0, 0, .5);
   --papel-mesa: #0E0F11;
-  --particulas-opacidad: .7;
   --placa-logo: #F2F1EE;
 }
 :root[data-modo="oscuro"].tema-kids { --rojo-texto: #FF8A7E; --lima-texto: #A6D46A; }   /* las cifras de Kids, legibles sobre oscuro */
@@ -259,7 +257,7 @@ h2.titulo, h3.titulo { font-family: var(--fuente); font-weight: 600; font-size: 
 .dos { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 20px; align-items: start; }
 .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 
-/* El adorno de la marca de antes (bolitas y barras): retirado; las partículas lo reemplazan. */
+/* El adorno de la marca de antes (bolitas y barras): retirado. Desde el 6-nov tampoco hay partículas: la app va limpia. */
 .adorno { display: none; }
 
 /* ── Avisos, chips y toast ─────────────────────────────────────────────── */
@@ -806,9 +804,9 @@ body.eq-ficha-abierta { overflow: hidden; }
 
 /* ── Procesos › Equipo v2 (29-oct): el «Escenario 3D» del organigrama ────────
    3-nov (rediseño, ajuste 2, decidido por Vida en Arte): sobre el FONDO CLARO
-   de la app, como todas las páginas. Sin degradado oscuro, sin foto, sin
-   brillos de color y sin chispas propias: las partículas son las de la
-   estructura común (comun/armazon.css). <html class="eq-escena-clara"> lo
+   de la app, como todas las páginas. Sin foto. 6-nov (pedido de Vida en
+   Arte): sin partículas, sin chispas y sin brillos de color, ni en claro ni
+   en oscuro; en oscuro queda solo el degradado. <html class="eq-escena-clara"> lo
    pone comun/organigrama.js mientras se ve Equipo (también Reglas del juego
    y Horarios): solo ensancha la página y agrega el piso en perspectiva, gris.
    Los colores de las áreas llegan como --c desde comun/puestos.js. Se anima
@@ -819,15 +817,8 @@ body.eq-ficha-abierta { overflow: hidden; }
    movimiento», todo quieto; con «reducir transparencia» o sin desenfoque,
    sin piso, tarjetas sólidas y sin animación. */
 .eq-fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-/* Ajuste 3: el fondo de la escena (en oscuro, el degradado de antes; en claro, nada) y lo que solo se ve en oscuro. */
+/* Ajuste 3: el fondo de la escena (en oscuro, el degradado de antes; en claro, nada). */
 .eq-escena-clara body { background-image: var(--escena-fondo); background-attachment: fixed; }
-.eq-brillos, .eq-chispa { display: none; }
-.eq-brillos { position: absolute; inset: 0; }
-.eq-brillos::before { content: ''; position: absolute; inset: 0; background: radial-gradient(1200px 520px at 50% -8%, color-mix(in srgb, var(--blanco) 10%, transparent), transparent 60%); }
-.eq-chispa { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: var(--blanco); opacity: 0; animation: eq-sube 9s linear infinite; }
-@keyframes eq-sube { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .6; } 100% { transform: translateY(-700px); opacity: 0; } }
-[data-modo="oscuro"] .eq-brillos, [data-modo="oscuro"] .eq-chispa { display: block; }
-[data-modo="oscuro"].eq-escena-clara .particulas { display: none; }   /* una sola capa: en oscuro, las chispas */
 .eq-fondo[hidden] { display: none; }
 .eq-piso { position: absolute; left: -20%; right: -20%; bottom: -120px; height: 520px; transform: perspective(700px) rotateX(62deg); transform-origin: 50% 100%;
   background-image: linear-gradient(var(--escena-piso) 1px, transparent 1px), linear-gradient(90deg, var(--escena-piso) 1px, transparent 1px); background-size: 64px 64px;
@@ -937,10 +928,9 @@ button.eq-losa { cursor: pointer; }
 .eq-entra { animation: eq-aparece .7s cubic-bezier(.2, .8, .2, 1) backwards; animation-delay: var(--d, 0s); }
 @keyframes eq-aparece { from { opacity: 0; transform: translateY(-18px) translateZ(80px) rotateX(-20deg); } to { opacity: 1; transform: translateZ(0); } }
 .eq-quieto .eq-entra, .eq-quieto .eq-plano, .eq-quieto .eq-crece-v, .eq-quieto .eq-crece-h { animation: none; }
-.eq-pausa .eq-fondo *, .eq-pausa .eq-org3d *, .eq-pausa .eq-org3d *::after { animation-play-state: paused !important; }
+.eq-pausa .eq-org3d *, .eq-pausa .eq-org3d *::after { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
-  .eq-fondo *, .eq-org3d *, .eq-org3d *::after { animation: none !important; }
-  [data-modo="oscuro"] .eq-chispa { display: none; }
+  .eq-org3d *, .eq-org3d *::after { animation: none !important; }
   .eq-plano { transform: rotateX(7deg); }
 }
 /* Versión sólida: sin piso, sin desenfoque, tarjetas «Por cargar» opacas y sin animación. */
@@ -954,7 +944,7 @@ button.eq-losa { cursor: pointer; }
   .eq-fantasma > .eq-cara { background: var(--fondo-suave); }
   .eq-org3d *, .eq-org3d *::after { animation: none !important; }
 }
-@media (max-width: 640px) { .eq-piso, [data-modo="oscuro"] .eq-chispa { display: none; } }
+@media (max-width: 640px) { .eq-piso { display: none; } }
 
 /* Reglas del juego y Horarios del servicio: tarjetas blancas, como el resto de la app. */
 .eq-reglas { display: flex; flex-direction: column; gap: 16px; }
@@ -1534,9 +1524,11 @@ a.ini-acceso:hover { border-color: var(--borde-fuerte); color: var(--tinta); }
 .ms-fallas li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: 10px; background: var(--peligro-fondo); color: var(--texto); overflow-wrap: anywhere; }
 .ms-fallas small { color: var(--texto-2); }
 .ms-correo .ms-firma { margin-top: 18px; white-space: pre-wrap; }
-/* 5-nov (ajuste): como en el correo, el logo va abajo, pequeño y a la izquierda, como firma. En la vista previa
-   lleva un fondo blanco mínimo para que se lea también en oscuro (en el correo no hay fondo). */
-.ms-correo .ms-logo-correo { display: block; width: 140px; max-width: 50%; height: auto; margin: 8px 0 0; padding: 3px 4px; border-radius: 4px; background: var(--blanco); }
+/* 6-nov: la firma en imagen, como en el correo: 660 px como mucho y al ancho en celular. La imagen trae su
+   fondo blanco, así que en oscuro se ve como una tarjeta blanca (igual que en un programa de correo oscuro). */
+.ms-correo .ms-firma-enlace { display: block; margin: 8px 0 0; max-width: 660px; }
+.ms-correo .ms-firma-enlace.sola { margin-top: 18px; }
+.ms-correo .ms-firma-img { display: block; width: 100%; max-width: 660px; height: auto; border-radius: 4px; background: var(--blanco); }
 .ms mark.ms-falta { background: var(--peligro-fondo); color: var(--peligro-texto); border-radius: 4px; padding: 0 2px; font-weight: 600; }
 .ms .ms-corchetes code { font: inherit; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
 .ms-env .ms-mal { color: var(--peligro-texto); }
