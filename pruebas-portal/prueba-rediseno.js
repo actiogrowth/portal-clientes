@@ -168,7 +168,7 @@ const ESPERADO = {
 const leerComoSirve = f => { let t = fs.readFileSync(path.join(RAIZ, f), 'utf8'); for (const [a, b] of mutaciones[f] || []) t = t.replace(a, b); return t; };
 async function correr(nav, base, log) {
   let fallos = 0, total = 0;
-  const ok = (c, que) => { total++; if (!c) fallos++; if (log || !c) console.log((c ? '  ✓ ' : '  ✗ ') + que); };
+  const ok = (c, que) => { total++; if (!c) fallos++; if (log || !c) console.log((c ? '  ✓ ' : '  ✗ ') + que); if (log && !c && process.env.GITHUB_ACTIONS) console.log('::error title=Rediseño::' + que.slice(0, 900)); };
   const nueva = async (ancho, alto) => { const ctx = await nav.newContext({ viewport: { width: ancho, height: alto || 900 }, reducedMotion: 'reduce', hasTouch: ancho < 1100 });
     const p = await ctx.newPage(); p.errores = []; p.on('pageerror', e => p.errores.push(e.message)); return [ctx, p]; };
   /* 5-nov (ajuste 4): por defecto la página va en Claro. Para medir los dos modos siguiendo al dispositivo,
@@ -637,7 +637,7 @@ const ROTURAS = [
       mutaciones = { [archivo]: [[a, b]] };
       let x;
       try { x = await correr(nav, base, false); } catch (e) { x = { fallos: 1 }; }
-      console.log((x.fallos ? '  ✓ detectada: ' : '  ✗ NO DETECTADA: ') + que);
+      console.log((x.fallos ? '  ✓ detectada: ' : '  ✗ NO DETECTADA: ') + que); if (!x.fallos && process.env.GITHUB_ACTIONS) console.log('::error title=Rotura no detectada::' + que);
       if (!x.fallos) noDetectadas++;
     }
     mutaciones = {};
