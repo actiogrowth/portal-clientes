@@ -6,7 +6,7 @@
  * (PHP), contra un servidor de correo DE MENTIRA (smtp-de-mentira.js): no sale
  * ningún correo real. Datos inventados. Comprueba:
  *   · el correo: From «Vida en Arte <buzón>», Reply-To, la familia sola en
- *     «Para» (sin Cc ni Bcc), asunto con tildes, HTML con el logo arriba y el
+ *     «Para» (sin Cc ni Bcc), asunto con tildes, HTML con la firma en imagen abajo (6-nov) y el
  *     texto, versión de solo texto, ninguna otra imagen (sin píxeles);
  *   · un correo por familia y por tanda; repetir la tanda no reenvía;
  *   · el máximo por hora: la tanda que lo pasaría no sale y dice desde cuándo;
@@ -133,7 +133,7 @@ const CLAVES = Object.keys(DEST);
     ok(m && (m.html.match(/<img/g) || []).length === 1, 'ninguna otra imagen (sin píxeles de seguimiento)');
     ok(m && /&lt;script&gt;/.test(m.html) && !/<script/.test(m.html), 'el texto se escapa en el HTML (no se cuela código)');
     ok(m && /<a href="https:\/\/vidaenarte\.test\/fiesta"/.test(m.html), 'las direcciones web quedan como enlace');
-    ok(m && /max-width:600px/.test(m.html) && /name="viewport"/.test(m.html), 'HTML simple que se lee en celular (ancho máximo y viewport)');
+    ok(m && /max-width:660px;padding:16px/.test(m.html) && /name="viewport"/.test(m.html), 'HTML simple que se lee en celular (ancho máximo de 660 px, el de la firma, y viewport)');
     ok(m && /^Message-ID: <[0-9a-f]{32}@vea-prueba\.test>\r?$/m.test(m.datos), 'Message-ID con el dominio del buzón');
     ok(S.auths.length === 1 && S.auths[0][0] === BUZON, 'entra al buzón una vez por tanda (AUTH PLAIN)');
 
