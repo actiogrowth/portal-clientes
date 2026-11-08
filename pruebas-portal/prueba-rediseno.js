@@ -523,6 +523,13 @@ async function correr(nav, base, log) {
     ok(/naranja = casi lleno, desde \d+ %/.test(await p.textContent('#leyenda')), 'la leyenda explica lleno y casi lleno');
     const cupos = await p.$$eval('#ocCupos .oc-cupo .libres', l => l.map(x => parseInt(x.textContent, 10)));
     ok(cupos.length <= 6 && cupos.length > 0 && cupos.every((v, i) => !i || cupos[i - 1] >= v), '«Dónde hay más cupos»: hasta 6, de más a menos (' + cupos.join(', ') + ')');
+    // 6-nov: «lo que queda de la semana» puede ser poco (un viernes en la tarde): la semana siguiente está entera,
+    // así que ahí también se mira el orden, con el desempate por fecha (la más cercana primero).
+    await p.click('#ocSig'); await p.waitForTimeout(300);
+    const sig = await p.$$eval('#ocCupos .oc-cupo', l => l.map(x => ({ n: parseInt(x.querySelector('.libres').textContent, 10), f: x.dataset.fecha })));
+    ok(sig.length > 1 && new Set(sig.map(x => x.f)).size > 1 && sig.every((v, i) => !i || sig[i - 1].n > v.n || (sig[i - 1].n === v.n && sig[i - 1].f <= v.f)),
+      '«Dónde hay más cupos», semana siguiente: de más a menos y, si empatan, la fecha más cercana primero (' + sig.map(x => x.n + ' ' + x.f).join(', ') + ')');
+    await p.click('#ocHoy'); await p.waitForTimeout(300);
     await p.click('[data-filtro="Telas"]'); await p.waitForTimeout(200);
     const soloTelas = await p.$$eval('#grillas .oc-clase .txt', l => [...new Set(l.map(x => x.textContent))]);
     ok(JSON.stringify(soloTelas) === '["Telas"]', 'el filtro por disciplina deja solo esa');
