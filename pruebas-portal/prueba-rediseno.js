@@ -522,7 +522,10 @@ async function correr(nav, base, log) {
     ok(cifras[3] === String(llenas.length) && detalle.split(' · ').length === llenas.length, 'clases llenas = solo las de 100 %, y el detalle las nombra (' + cifras[3] + ': ' + detalle + ')');
     ok(/naranja = casi lleno, desde \d+ %/.test(await p.textContent('#leyenda')), 'la leyenda explica lleno y casi lleno');
     const cupos = await p.$$eval('#ocCupos .oc-cupo .libres', l => l.map(x => parseInt(x.textContent, 10)));
-    ok(cupos.length <= 6 && cupos.length > 0 && cupos.every((v, i) => !i || cupos[i - 1] >= v), '«Dónde hay más cupos»: hasta 6, de más a menos (' + cupos.join(', ') + ')');
+    // Un domingo (o tarde en la semana) ya no queda nada: la lista vacía tiene que decirlo.
+    const sinCupos = !cupos.length && /No quedan cupos libres esta semana/.test(await p.textContent('#ocCupos'));
+    ok(cupos.length <= 6 && (cupos.length > 0 || sinCupos) && cupos.every((v, i) => !i || cupos[i - 1] >= v),
+      '«Dónde hay más cupos»: hasta 6, de más a menos (' + (cupos.join(', ') || 'esta semana ya no quedan: lo dice') + ')');
     // 6-nov: «lo que queda de la semana» puede ser poco (un viernes en la tarde): la semana siguiente está entera,
     // así que ahí también se mira el orden, con el desempate por fecha (la más cercana primero).
     await p.click('#ocSig'); await p.waitForTimeout(300);
