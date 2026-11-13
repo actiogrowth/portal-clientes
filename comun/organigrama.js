@@ -4,7 +4,8 @@
    formato del contrato en papel, PDF, hoja diaria, Reglas del juego y
    Horarios del servicio)
 
-   Lo usa /procesos/ (#equipo, #reglas, #horarios, #puesto=<ID>). Habla solo
+   Lo usa /equipo/organigrama/ (13-nov; antes /procesos/): #equipo o sin nada, #reglas,
+   #horarios, #puesto=<ID>. Habla solo
    con Datos.equipo (→ /equipo/api.php), que ya manda recortado lo que ve
    esta persona: el organigrama con el nombre y el área de cada puesto y SOLO
    las fichas que le tocan. Esta pantalla no decide nada de permisos: si una
@@ -223,7 +224,7 @@
     if (v === 'reglas') { titulo('Reglas del juego', 'Lo que une a todos en Vida en Arte. Se lee antes de aceptar cualquier contrato.'); el.innerHTML = reglasHtml(true); return; }
     if (v === 'horarios') {
       titulo('Horarios del servicio', 'La hora de cada momento del servicio a las familias. Cambiarla aquí no cambia ningún contrato.');
-      el.innerHTML = D.horarios ? horariosHtml() : '<div class="pantalla"><h2>Sin acceso</h2><p>Los horarios del servicio los ven Dirección y Administración.</p></div>';
+      el.innerHTML = D.horarios ? horariosHtml() : '<div class="pantalla"><h2>Sin acceso</h2><p>Los horarios del servicio los ven Dirección y Coordinación Operativa.</p></div>';
       return;
     }
     titulo('Equipo', subtitulo());

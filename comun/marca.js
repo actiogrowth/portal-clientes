@@ -114,25 +114,28 @@
       { id: 'resumen', texto: 'Resumen del negocio', url: '/resumen/', icono: 'resumen', areas: ['resumen'] },
       { id: 'mensajes', texto: 'Mensajes', url: '/mensajes/', icono: 'sobre', areas: ['mensajes'] },   // 3-nov: Mensajes a familias
       { id: 'procesos', texto: 'Procesos', url: '/procesos/#documentos', icono: 'documento', areas: ['procesos'] },
-      { id: 'equipo', texto: 'Equipo', url: '/procesos/#equipo', icono: 'organigrama', areas: ['procesos', 'equipo'] }] },
+      // 13-nov (roles-gerencia): Equipo en su propia dirección, para todos los que tienen el área «equipo».
+      { id: 'equipo', texto: 'Equipo', url: '/equipo/organigrama/', icono: 'organigrama', areas: ['equipo'] }] },
+    // 13-nov: sin «Base de datos» (quitada para todos). «Usuarios» es la entrada de quien gestiona
+    // cuentas sin tener Configuración (Coordinación Operativa): sinAreas = las que, si las tiene, la ocultan.
     { grupo: 'Administración', items: [
-      { id: 'basededatos', texto: 'Base de datos', url: '/basededatos/', icono: 'datos', areas: ['basededatos'] },
       { id: 'proyecto-actio', texto: 'Proyecto Actio', url: '/proyecto-actio/', icono: 'maletin', areas: ['proyecto-actio'] },
-      { id: 'configuracion', texto: 'Configuración', url: '/configuracion/', icono: 'engrane', areas: ['configuracion'] }] }
+      { id: 'configuracion', texto: 'Configuración', url: '/configuracion/', icono: 'engrane', areas: ['configuracion'] },
+      { id: 'usuarios', texto: 'Usuarios', url: '/configuracion/', icono: 'engrane', areas: ['usuarios'], sinAreas: ['configuracion'] }] }
   ];
   /* La unidad principal del rol (barra inferior del celular): la primera que abre, en este orden. */
-  const PRINCIPAL = ['afterschool', 'kinder', 'veranito', 'resumen', 'basededatos', 'proyecto-actio', 'configuracion'];
+  const PRINCIPAL = ['afterschool', 'kinder', 'veranito', 'resumen', 'proyecto-actio', 'configuracion', 'usuarios'];
 
   /* Qué entrada de la barra está activa según la dirección. */
-  const VISTAS_EQUIPO = /^#(equipo|puesto=|reglas|horarios)/;
   function activoAhora() {
     const p = location.pathname, h = location.hash || '';
     if (p === '/' || p === '/index.html') return 'inicio';
     if (p.startsWith('/after-school/') || p.startsWith('/pasar-lista/')) return 'afterschool';
     if (p.startsWith('/equipo/')) return 'equipo';
-    if (p.startsWith('/procesos/')) return VISTAS_EQUIPO.test(h) ? 'equipo' : 'procesos';
+    if (p.startsWith('/procesos/')) return 'procesos';
+    if (p.startsWith('/configuracion/')) return ve('configuracion') ? 'configuracion' : 'usuarios';
     const m = /^\/([a-z-]+)\//.exec(p);
-    return m ? ({ kinder: 'kinder', veranito: 'veranito', resumen: 'resumen', mensajes: 'mensajes', basededatos: 'basededatos', 'proyecto-actio': 'proyecto-actio', configuracion: 'configuracion' })[m[1]] || '' : '';
+    return m ? ({ kinder: 'kinder', veranito: 'veranito', resumen: 'resumen', mensajes: 'mensajes', 'proyecto-actio': 'proyecto-actio', configuracion: 'configuracion' })[m[1]] || '' : '';
   }
 
   /* ── Estado de la estructura ───────────────────────────────────────────── */
@@ -140,7 +143,7 @@
   let armada = false;
   const ve = a => !!S && (S.areas === '*' || (Array.isArray(S.areas) && S.areas.includes(a)));
   const permAS = p => !!S && Array.isArray(S.permisosAS) && S.permisosAS.includes(p);
-  const veItem = it => it.areas.every(ve);
+  const veItem = it => it.areas.every(ve) && !(it.sinAreas || []).some(ve);
   const $ = s => document.querySelector(s);
 
   /** Pinta (o pone al día) la estructura común. `el` es la barra superior. */
@@ -460,7 +463,7 @@
     NAV.forEach(g => g.items.filter(veItem).forEach(it => { if (it.url) l.push({ texto: it.texto, sub: g.grupo || 'Vida en Arte 360', url: it.url, icono: it.icono }); }));
     if (ve('afterschool')) PESTANAS_AS.filter(p => permAS(p.permiso)).forEach(p => l.push({ texto: p.texto, sub: 'After School', url: '/after-school/#' + p.vista, icono: p.vista === 'lista' ? 'pasarLista' : 'parkour' }));
     if (ve('equipo')) l.push({ texto: 'Mi lista', sub: 'Equipo', url: '/equipo/', icono: 'lista' });
-    if (ve('procesos')) l.push({ texto: 'Reglas del juego', sub: 'Procesos › Equipo', url: '/procesos/#reglas', icono: 'documento' });
+    if (ve('equipo')) l.push({ texto: 'Reglas del juego', sub: 'Equipo', url: '/equipo/organigrama/#reglas', icono: 'documento' });   // 13-nov: Equipo en su dirección
     return l;
   }
 

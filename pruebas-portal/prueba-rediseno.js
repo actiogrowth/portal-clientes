@@ -80,7 +80,7 @@ g.cargaInicial();
 const asPost = (accion, datos, usuario) => JSON.parse(g.doPost({ postData: { contents: JSON.stringify({ key: CLAVE, usuario: usuario || 'prueba', accion, datos: datos || {} }) } }).getContent());
 
 /* ── Servidor ───────────────────────────────────────────────────────────── */
-const PENDIENTES = [{ clave: 'pruebas', n: 2, url: '/after-school/#pruebas' }, { clave: 'revisar', n: 0, url: '/equipo/#revisar' }, { clave: 'contratos', n: 3, url: '/procesos/#equipo' }];
+const PENDIENTES = [{ clave: 'pruebas', n: 2, url: '/after-school/#pruebas' }, { clave: 'revisar', n: 0, url: '/equipo/#revisar' }, { clave: 'contratos', n: 3, url: '/equipo/organigrama/' }];
 const DOC_PROC = { nombre: 'Manual de bienvenida inventado', unidad: 'After School', proceso: 'Entrega de servicio', fecha: '2026-09-01', enlace: 'https://docs.google.com/document/d/PRUEBA/edit' };
 const DOC_PA = { nombre: 'Informe reservado de Actio inventado', unidad: 'Gerencia', enlace: 'https://docs.google.com/document/d/PA/edit', idEntregable: '', fecha: '2026-10-01' };
 let rol = 'administrador', mutaciones = {}, guardadas = [];
@@ -131,7 +131,7 @@ function servidor() {
         delete j.estado; j.permisos = { puedeOtroDia: true }; return json(j);
       }
       const PAG = { '/': 'portal-raiz/index.html', '/login.html': 'portal-raiz/login.html' };
-      const carpeta = /^\/([a-z-]+)\/$/.exec(url);
+      const carpeta = /^\/([a-z-]+(?:\/[a-z-]+)?)\/$/.exec(url);   // 13-nov: también /equipo/organigrama/
       if (carpeta) PAG[url] = carpeta[1] + '/index.html';
       const rel = PAG[url] || (url.startsWith('/comun/') ? url.slice(1) : null);
       if (!rel || !fs.existsSync(path.join(RAIZ, rel))) { res.writeHead(404); res.end('no'); return; }
@@ -150,16 +150,19 @@ const LISTA_FIJA = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.ge
   return '/after-school/?fecha=' + d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()) + '&clase=LUN-1630-PARKOUR#lista'; })();
 
 /* ── Lo esperado por rol ────────────────────────────────────────────────── */
-const TODO = ['inicio', 'afterschool', 'veranito', 'cumpleanos', 'kinder', 'babyandme', 'resumen', 'mensajes', 'procesos', 'equipo', 'basededatos', 'proyecto-actio', 'configuracion'];
+/* 13-nov (roles-gerencia): sin «Base de datos» para nadie; Procesos, Resumen, Proyecto Actio y Configuración solo
+   Dirección y Soporte Actio; Equipo para todos; Coordinación Operativa con «Usuarios» (no Configuración). */
+const TODO = ['inicio', 'afterschool', 'veranito', 'cumpleanos', 'kinder', 'babyandme', 'resumen', 'mensajes', 'procesos', 'equipo', 'proyecto-actio', 'configuracion'];
 const ESPERADO = {
   administrador:            { nav: TODO, nuevo: ['inscribir', 'visita', 'pago', 'mensaje'], ninos: true, pa: true, principal: 'afterschool' },
   direccion:                { nav: TODO, nuevo: ['inscribir', 'visita', 'pago', 'mensaje'], ninos: true, pa: true, principal: 'afterschool' },
-  coordinacion_afterschool: { nav: ['inicio', 'afterschool', 'procesos', 'equipo', 'basededatos'], nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: false, principal: 'afterschool' },
-  recepcion:                { nav: ['inicio', 'afterschool', 'procesos', 'equipo'], nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: false, principal: 'afterschool' },
-  comercial:                { nav: ['inicio', 'afterschool', 'kinder', 'mensajes', 'procesos', 'equipo', 'basededatos'], nuevo: ['visita', 'mensaje'], ninos: true, pa: false, principal: 'afterschool' },
-  contabilidad:             { nav: ['inicio', 'afterschool', 'procesos', 'equipo'], nuevo: ['pago'], ninos: true, pa: false, principal: 'afterschool' },
-  coordinacion_preescolar:  { nav: ['inicio', 'kinder', 'procesos', 'equipo', 'basededatos'], nuevo: [], ninos: false, pa: false, principal: 'kinder' },
-  profesor:                 { nav: ['inicio', 'afterschool', 'procesos', 'equipo'], nuevo: [], ninos: false, pa: false, principal: 'afterschool' }
+  coordinacion_operativa:   { nav: ['inicio', 'afterschool', 'veranito', 'cumpleanos', 'kinder', 'babyandme', 'mensajes', 'equipo', 'usuarios'], nuevo: ['inscribir', 'visita', 'pago', 'mensaje'], ninos: true, pa: false, principal: 'afterschool' },
+  coordinacion_afterschool: { nav: ['inicio', 'afterschool', 'equipo'], nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: false, principal: 'afterschool' },
+  recepcion:                { nav: ['inicio', 'afterschool', 'equipo'], nuevo: ['inscribir', 'visita', 'pago'], ninos: true, pa: false, principal: 'afterschool' },
+  comercial:                { nav: ['inicio', 'afterschool', 'kinder', 'mensajes', 'equipo'], nuevo: ['visita', 'mensaje'], ninos: true, pa: false, principal: 'afterschool' },
+  contabilidad:             { nav: ['inicio', 'afterschool', 'equipo'], nuevo: ['pago'], ninos: true, pa: false, principal: 'afterschool' },
+  coordinacion_preescolar:  { nav: ['inicio', 'kinder', 'equipo'], nuevo: [], ninos: false, pa: false, principal: 'kinder' },
+  profesor:                 { nav: ['inicio', 'afterschool', 'equipo'], nuevo: [], ninos: false, pa: false, principal: 'afterschool' }
 };
 
 /* ── La prueba ─────────────────────────────────────────────────────────── */
@@ -183,7 +186,7 @@ async function correr(nav, base, log) {
       parkour: '#E0412F', telas: '#1974A8', parkids: '#F2A01E', babyme: '#7FB3D5', ok: '#278746', alerta: '#E08A00', peligro: '#D71C0E' };
     ok(Object.entries(COLORES).every(([k, v]) => new RegExp('--' + k + ': ' + v + '[;\\s]').test(raiz)), 'vea.css: los colores del sistema (fondo, panel, línea, tinta, disciplinas y estados)');
     const paginas = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
-      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html', 'mensajes/index.html'];
+      'equipo/index.html', 'equipo/organigrama/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html', 'mensajes/index.html'];
     const malas = paginas.filter(f => { const t = leerComoSirve(f); return !/\/comun\/vea\.css\?v=/.test(t) || /class="vidrio"|fondo-local/.test(t); });
     ok(!malas.length, 'todas las páginas usan vea.css y ninguna lleva el vidrio ni la foto vieja' + (malas.length ? ' (' + malas.join(', ') + ')' : ''));
     ok(!/fondo-local|\.vidrio body/.test(css + fs.readFileSync(path.join(RAIZ, 'comun', 'organigrama.js'), 'utf8')), 'vea.css y el organigrama sin la foto de fondo');
@@ -197,7 +200,7 @@ async function correr(nav, base, log) {
   {
     rol = 'administrador';
     const PAGINAS = { '/': 'inicio', '/after-school/': 'afterschool', '/kinder/': 'kinder', '/veranito/': 'veranito', '/procesos/': 'procesos', '/procesos/#equipo': 'equipo',
-      '/equipo/': 'equipo', '/resumen/': 'resumen', '/proyecto-actio/': 'proyecto-actio', '/configuracion/': 'configuracion', '/mensajes/': 'mensajes' };
+      '/equipo/organigrama/': 'equipo', '/equipo/': 'equipo', '/resumen/': 'resumen', '/proyecto-actio/': 'proyecto-actio', '/configuracion/': 'configuracion', '/mensajes/': 'mensajes' };
     for (const [ruta, id] of Object.entries(PAGINAS)) {
       const [ctx, p] = await nueva(1440);
       await p.goto(base + ruta); await p.waitForSelector('.lat [aria-current="page"]', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300);
@@ -233,7 +236,7 @@ async function correr(nav, base, log) {
     rol = 'administrador';
     // Cada página carga comun/tema.js en el <head>, ANTES de los estilos (sin parpadeo).
     const PAGS = ['portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html', 'configuracion/index.html', 'procesos/index.html',
-      'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html', 'mensajes/index.html'];
+      'equipo/index.html', 'equipo/organigrama/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'veranito/index.html', 'kinder/index.html', 'mensajes/index.html'];
     const sinTema = PAGS.filter(f => { const t = leerComoSirve(f); const i = t.indexOf('/comun/tema.js?v='), j = t.indexOf('/comun/vea.css?v=');
       return i < 0 || j < 0 || i > j || !/<script src="\/comun\/tema\.js\?v=[0-9a-f]{10}"><\/script>/.test(t) || t.indexOf('</head>') < i; });
     ok(!sinTema.length, 'todas las páginas aplican la apariencia en el <head>, antes de los estilos' + (sinTema.length ? ' (faltan: ' + sinTema.join(', ') + ')' : ''));
@@ -367,7 +370,7 @@ async function correr(nav, base, log) {
       return malos;
     };
     const archivos = ['comun/vea.css', 'comun/armazon.css', 'portal-raiz/index.html', 'portal-raiz/login.html', 'portal-raiz/cambiar-clave.html', 'after-school/index.html',
-      'configuracion/index.html', 'procesos/index.html', 'equipo/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'kinder/index.html', 'mensajes/index.html', 'comun/organigrama.js', 'comun/verificacion.js', 'comun/visor-pantalla.js', 'comun/mensajes.js'];
+      'configuracion/index.html', 'procesos/index.html', 'equipo/index.html', 'equipo/organigrama/index.html', 'resumen/index.html', 'proyecto-actio/index.html', 'kinder/index.html', 'mensajes/index.html', 'comun/organigrama.js', 'comun/verificacion.js', 'comun/visor-pantalla.js', 'comun/mensajes.js'];
     const malos = archivos.flatMap(f => fuera(leerComoSirve(f), f));
     // Un comentario sin cerrar «se come» las reglas que siguen, sin ningún error a la vista (pasó en el ajuste 3).
     const abiertos = ['comun/vea.css', 'comun/armazon.css'].filter(f => { let d = false, mal = false;
@@ -418,7 +421,7 @@ async function correr(nav, base, log) {
   {
     rol = 'administrador';
     const [ctx, p] = await nueva(1440);
-    await p.goto(base + '/procesos/#equipo'); await p.waitForSelector('.eq-acceso', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(500);
+    await p.goto(base + '/equipo/organigrama/'); await p.waitForSelector('.eq-acceso', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(500);
     const e = await p.evaluate(() => ({
       oscura: document.documentElement.classList.contains('eq-escena'), clara: document.documentElement.classList.contains('eq-escena-clara'),
       fondo: getComputedStyle(document.body).backgroundColor, chispas: document.querySelectorAll('.eq-chispa, .eq-brillos, .particulas').length,
@@ -451,10 +454,29 @@ async function correr(nav, base, log) {
     const rc = await buscar('parkour lunes');
     ok(rc.includes('#Clases') === E.ninos, r + ': ' + (E.ninos ? 'encuentra' : 'no encuentra') + ' clases');
     const rd = await buscar('inventado');
-    ok(rd.some(t => /Manual de bienvenida/.test(t)) && rd.some(t => /Informe reservado/.test(t)) === E.pa, r + ': documentos de Procesos' + (E.pa ? ' y de Proyecto Actio' : '; nada de Proyecto Actio'));
+    const conProc = E.nav.includes('procesos');   // 13-nov: los documentos de Procesos, solo para quien abre Procesos
+    ok(rd.some(t => /Manual de bienvenida/.test(t)) === conProc && rd.some(t => /Informe reservado/.test(t)) === E.pa,
+      r + ': ' + (conProc ? 'documentos de Procesos' : 'nada de Procesos') + (E.pa ? ' y de Proyecto Actio' : '; nada de Proyecto Actio'));
     const rs = await buscar('configuracion');
     ok(rs.some(t => t === 'Configuración') === E.nav.includes('configuracion'), r + ': las secciones, solo las de su rol');
+    // 13-nov: «Usuarios» solo para quien la tiene sin Configuración; «Base de datos» para nadie; Procesos y Equipo según su rol.
+    const ru = await buscar('usuarios');
+    ok(ru.some(t => t === 'Usuarios') === E.nav.includes('usuarios'), r + ': «Usuarios» en el buscador ' + (E.nav.includes('usuarios') ? 'sí' : 'no'));
+    const rb = await buscar('base de datos');
+    ok(!rb.some(t => /Base de datos/i.test(t)), r + ': el buscador no ofrece «Base de datos»');
+    const rp = await buscar('procesos');
+    ok(rp.some(t => t === 'Procesos') === conProc, r + ': «Procesos» en el buscador ' + (conProc ? 'sí' : 'no'));
+    const rr = await buscar('reglas del juego');
+    ok(rr.some(t => t === 'Reglas del juego'), r + ': «Reglas del juego» (de Equipo) en el buscador');
     ok(!p.errores.length, r + ': sin errores de JavaScript' + (p.errores.length ? ' (' + p.errores.join(' | ') + ')' : ''));
+    // 13-nov: quien tiene «Usuarios» sin Configuración entra a la misma página, que se llama «Usuarios» y marca «Usuarios» en la barra.
+    if (E.nav.includes('usuarios') || E.nav.includes('configuracion')) {
+      await p.goto(base + '/configuracion/'); await p.waitForSelector('.lat [aria-current="page"]', { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300);
+      const c = await p.evaluate(() => ({ activo: ((document.querySelector('.lat [aria-current="page"]') || {}).dataset || {}).nav, titulo: document.querySelector('#titulo').textContent }));
+      const solo = E.nav.includes('usuarios');
+      ok(c.activo === (solo ? 'usuarios' : 'configuracion') && c.titulo === (solo ? 'Usuarios' : 'Configuración'),
+        r + ': /configuracion/ se llama «' + (solo ? 'Usuarios' : 'Configuración') + '» y la barra marca esa entrada (dio ' + c.activo + ', «' + c.titulo + '»)');
+    }
     await ctx.close();
     // Tablet: barra de iconos de 76 px con el nombre en cada uno.
     [ctx, p] = await nueva(820);
@@ -611,7 +633,14 @@ const ROTURAS = [
   ['elegir un niño no abre su ficha', 'comun/marca.js', "if (r.tipo === 'nino') ir('/after-school/#ficha=' + encodeURIComponent(r.dato.id));", "if (r.tipo === 'nino') ir('/after-school/#ocupacion');"],
   // (Pedir Proyecto Actio sin el área no es rotura de esta pieza: el puente lo niega, y eso lo prueba prueba-portal.js.)
   ['el buscador distingue tildes', 'comun/marca.js', "const coincide = (texto, q) => { const h = normal(texto);", "const coincide = (texto, q) => { const h = String(texto).toLowerCase();"],
-  ['la barra lateral muestra todo a todos', 'comun/marca.js', "const veItem = it => it.areas.every(ve);", "const veItem = it => true;"],
+  ['la barra lateral muestra todo a todos', 'comun/marca.js', "const veItem = it => it.areas.every(ve) && !(it.sinAreas || []).some(ve);", "const veItem = it => true;"],
+  // 13-nov (roles-gerencia)
+  ['vuelve «Base de datos» a la barra', 'comun/marca.js', "    { grupo: 'Administración', items: [\n", "    { grupo: 'Administración', items: [\n      { id: 'basededatos', texto: 'Base de datos', url: '/basededatos/', icono: 'datos', areas: [] },\n"],
+  ['Equipo vuelve a pedir Procesos', 'comun/marca.js', "url: '/equipo/organigrama/', icono: 'organigrama', areas: ['equipo'] }", "url: '/equipo/organigrama/', icono: 'organigrama', areas: ['procesos', 'equipo'] }"],
+  ['«Usuarios» también a quien tiene Configuración', 'comun/marca.js', "areas: ['usuarios'], sinAreas: ['configuracion'] }", "areas: ['usuarios'] }"],
+  ['la barra no mira «sinAreas»', 'comun/marca.js', "const veItem = it => it.areas.every(ve) && !(it.sinAreas || []).some(ve);", "const veItem = it => it.areas.every(ve);"],
+  ['Usuarios sin Configuración se sigue llamando Configuración', 'configuracion/index.html', "$('#titulo').textContent = 'Usuarios';", "$('#titulo').textContent = 'Configuración';"],
+  ['el buscador ofrece Reglas del juego solo con Procesos', 'comun/marca.js', "if (ve('equipo')) l.push({ texto: 'Reglas del juego'", "if (ve('procesos')) l.push({ texto: 'Reglas del juego'"],
   ['«Nuevo» ofrece acciones sin permiso', 'comun/marca.js', "NUEVO.filter(a => permAS(a.permiso))", "NUEVO.slice()"],
   ['las notificaciones cuentan los avisos en 0', 'comun/marca.js', "filter(x => NOTIFICACIONES[x.clave] && x.n);", "filter(x => NOTIFICACIONES[x.clave]);"],
   ['lo leído no se recuerda por usuario', 'comun/marca.js', "const claveUsuario = k => 'vea360.' + k + '.' + (S ? S.usuario : '');", "const claveUsuario = k => 'vea360.' + k;"],

@@ -534,7 +534,9 @@ async function correr(fuente) {
     for (const u of Object.keys(HEREDADOS)) {
       nav[u] = new Nav(base);
       const r = await nav[u].entrar(u, claves[u]);
-      ok(r.ok && r.destino === '/', u + ' entra con su contraseña de siempre (y va a la portada: tiene varias secciones)');
+      // 13-nov (roles-gerencia): Coordinación After School ya solo tiene After School (y Equipo, que no cuenta): entra directo.
+      const dest = u === 'cuenta-general' ? '/after-school/' : '/';
+      ok(r.ok && r.destino === dest, u + ' entra con su contraseña de siempre (y va a ' + dest + ')');
     }
     {
       const d = leerCuentas();
@@ -546,8 +548,10 @@ async function correr(fuente) {
       }
       const a = await nav['admin-uno'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(a.texto), 'acceso.php: un Administrador ve todas las tarjetas');
+      const aj = (await nav['admin-uno'].get('/acceso.php?formato=json')).j;
+      ok(JSON.stringify(aj.roles) === '[{"id":"administrador","nombre":"Soporte Actio"}]', '13-nov: el rol de clave «administrador» se muestra como «Soporte Actio» (la clave interna no cambia: las cuentas de siempre siguen entrando) (' + JSON.stringify(aj.roles) + ')');
       const g = await nav['cuenta-general'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","basededatos","procesos","equipo"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School, Base de Datos, Procesos y Equipo (Pasar lista ya no es tarjeta) (' + g.texto.split('\n')[0] + ')');
+      ok(/window\.ACCESO = \["afterschool","equipo"\]/.test(g.texto), 'acceso.php: Coordinación After School ve After School y Equipo (13-nov: sin Base de Datos ni Procesos) (' + g.texto.split('\n')[0] + ')');
       // Un cambio posterior en usuarios.php ya no cuenta.
       fs.writeFileSync(path.join(web, 'usuarios.php'), '<?php return [];');
       const n = new Nav(base);
@@ -568,7 +572,7 @@ async function correr(fuente) {
 
     seccion('crear cuentas por cargo: contraseña temporal, una sola vez, cambio obligatorio');
     const porRol = {
-      'direccion': 'prueba-direccion', 'coordinacion_afterschool': 'prueba-coord-as', 'recepcion': 'prueba-recepcion',
+      'direccion': 'prueba-direccion', 'coordinacion_operativa': 'prueba-coord-op', 'coordinacion_afterschool': 'prueba-coord-as', 'recepcion': 'prueba-recepcion',
       'comercial': 'prueba-comercial', 'contabilidad': 'prueba-contabilidad', 'coordinacion_preescolar': 'prueba-coord-pre',
       'profesor': 'prueba-profesor-1'
     };
@@ -623,8 +627,9 @@ async function correr(fuente) {
       ok(sinCsrf.status === 403 && sinCsrf.j.codigo === 'csrf' && leerCuentas().usuarios['prueba-recepcion'].cambiar_clave === true, 'sin token CSRF no se cambia');
     }
     /* Tras cambiar la temporal, cada uno va a su inicio: si abre UNA sola sección, directo a ella. */
-    const INICIO = { 'prueba-direccion': '/', 'prueba-coord-as': '/', 'prueba-recepcion': '/after-school/', 'prueba-comercial': '/',
-                     'prueba-contabilidad': '/after-school/', 'prueba-coord-pre': '/', 'prueba-profesor-1': '/after-school/' };
+    // 13-nov (roles-gerencia): sin Procesos ni Base de Datos, las coordinaciones de After School y Preschool tienen una sola sección.
+    const INICIO = { 'prueba-direccion': '/', 'prueba-coord-op': '/', 'prueba-coord-as': '/after-school/', 'prueba-recepcion': '/after-school/', 'prueba-comercial': '/',
+                     'prueba-contabilidad': '/after-school/', 'prueba-coord-pre': '/kinder/', 'prueba-profesor-1': '/after-school/' };
     for (const u of Object.values(porRol)) {
       const nueva = clave();
       const r = await n[u].cambiarClave(claves[u], nueva);
@@ -671,19 +676,24 @@ async function correr(fuente) {
 
     seccion('áreas: cada rol abre solo lo suyo (y la URL directa responde sin permiso)');
     {
+      // 13-nov (roles-gerencia): «Base de datos» (bd) no la abre NADIE, ni Soporte Actio ni Dirección; Procesos (proc),
+      // Resumen (res), Proyecto Actio (pa) y Configuración (conf) solo Soporte Actio y Dirección, salvo «Usuarios»
+      // (la misma carpeta configuracion/) para Coordinación Operativa; Equipo (eq y su organigrama, org) para todos.
+      const GER = { kinder: 1, veranito: 1, as: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, org: 1, res: 1, msj: 1, pa: 1 };
       const R = {
-        'admin-uno':           { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1, msj: 1 },
-        'prueba-direccion':    { kinder: 1, veranito: 1, as: 1, bd: 1, conf: 1, cgi: 1, baby: 1, cumple: 1, nueva: 1, pl: 1, proc: 1, eq: 1, res: 1, msj: 1 },
-        'prueba-coord-as':     { as: 1, bd: 1, pl: 1, proc: 1, eq: 1 },
-        'prueba-recepcion':    { as: 1, proc: 1, eq: 1 },
-        'prueba-comercial':    { kinder: 1, as: 1, bd: 1, proc: 1, eq: 1, msj: 1 },
-        'prueba-contabilidad': { as: 1, proc: 1, eq: 1 },
-        'prueba-coord-pre':    { kinder: 1, bd: 1, proc: 1, eq: 1 },
-        'prueba-profesor-1':   { as: 1, pl: 1, proc: 1, eq: 1 }
+        'admin-uno':           GER,
+        'prueba-direccion':    GER,
+        'prueba-coord-op':     { kinder: 1, veranito: 1, as: 1, conf: 1, baby: 1, cumple: 1, pl: 1, eq: 1, org: 1, msj: 1 },
+        'prueba-coord-as':     { as: 1, pl: 1, eq: 1, org: 1 },
+        'prueba-recepcion':    { as: 1, eq: 1, org: 1 },
+        'prueba-comercial':    { kinder: 1, as: 1, eq: 1, org: 1, msj: 1 },
+        'prueba-contabilidad': { as: 1, eq: 1, org: 1 },
+        'prueba-coord-pre':    { kinder: 1, eq: 1, org: 1 },
+        'prueba-profesor-1':   { as: 1, pl: 1, eq: 1, org: 1 }
       };
       const RUTAS = { kinder: ['/kinder/', '/kinder/csv.php?tabla=config'], veranito: ['/veranito/'], as: ['/after-school/'], bd: ['/basededatos/', '/basededatos/api.php?accion=leer'],
         conf: ['/configuracion/', '/configuracion/api.php?accion=listar'], cgi: ['/cgi-bin/'], baby: ['/baby-and-me/'], cumple: ['/cumpleanos/'], nueva: ['/carpeta-nueva/'],
-        pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], res: ['/resumen/'], msj: ['/mensajes/'] };
+        pl: ['/pasar-lista/'], proc: ['/procesos/'], eq: ['/equipo/'], org: ['/equipo/organigrama/'], res: ['/resumen/'], msj: ['/mensajes/'], pa: ['/proyecto-actio/'] };
       for (const [u, puede] of Object.entries(R)) {
         for (const [k, rutas] of Object.entries(RUTAS)) for (const ruta of rutas) {
           const r = await n[u].get(ruta);
@@ -694,9 +704,14 @@ async function correr(fuente) {
         ok((await n[u].get('/raiz.txt')).status === 200, u + ': los archivos de la raíz (portada) se abren con sesión');
       }
       const ac = await n['prueba-profesor-1'].get('/acceso.php');
-      ok(/window\.ACCESO = \["afterschool","procesos","equipo"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School, Procesos y Equipo (entra directo a Pasar lista)');
+      ok(/window\.ACCESO = \["afterschool","equipo"\];/.test(ac.texto), 'Profesor: la portada solo tendría After School y Equipo (entra directo a Pasar lista)');
       const co = await n['prueba-comercial'].get('/acceso.php');
-      ok(/window\.ACCESO = \["kinder","afterschool","basededatos","procesos","equipo","mensajes"\]/.test(co.texto), 'Comercial: Preschool, After School, Base de Datos, Procesos, Equipo y (3-nov) Mensajes');
+      ok(/window\.ACCESO = \["kinder","afterschool","equipo","mensajes"\]/.test(co.texto), 'Comercial: Preschool, After School, Equipo y Mensajes (13-nov: sin Base de Datos ni Procesos)');
+      const cop = await n['prueba-coord-op'].get('/acceso.php');
+      ok(/window\.ACCESO = \["kinder","veranito","afterschool","babyandme","cumpleanos","usuarios","equipo","mensajes"\];/.test(cop.texto),
+        '13-nov: Coordinación Operativa: todas las unidades, Usuarios (no Configuración), Equipo y Mensajes; sin Resumen, Procesos ni Proyecto Actio (' + cop.texto.split('\n')[0] + ')');
+      const ping = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_abren_ruta(["administrador"], "basededatos/index.html"), roles_abren_ruta(["direccion"], "basededatos/api.php"), in_array("basededatos", CARPETAS_CERRADAS, true), roles_abren_ruta(["coordinacion_operativa"], "configuracion/api.php"), roles_permiten(["coordinacion_operativa"], "area:configuracion")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
+      ok(ping.stdout.trim() === '[false,false,true,true,false]', '13-nov: basededatos/ está cerrada para todos (también con «*»); Coordinación Operativa abre la carpeta de Usuarios sin tener area:configuracion (' + (ping.stdout + ping.stderr).slice(0, 200) + ')');
       const di = await n['prueba-direccion'].get('/acceso.php');
       ok(/window\.ACCESO = "\*"/.test(di.texto), 'Dirección: todas las tarjetas, Configuración incluida');
     }
@@ -706,11 +721,12 @@ async function correr(fuente) {
       const ESPERA = {
         'admin-uno':           { inicio: '/', inicioAS: 'ocupacion' },
         'prueba-direccion':    { inicio: '/', inicioAS: 'ocupacion' },
-        'prueba-coord-as':     { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-coord-op':     { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-coord-as':     { inicio: '/after-school/', inicioAS: 'ocupacion' },
         'prueba-recepcion':    { inicio: '/after-school/', inicioAS: 'pruebas' },
         'prueba-comercial':    { inicio: '/', inicioAS: 'pruebas' },
         'prueba-contabilidad': { inicio: '/after-school/', inicioAS: 'pagos' },
-        'prueba-coord-pre':    { inicio: '/', inicioAS: 'ocupacion' },
+        'prueba-coord-pre':    { inicio: '/kinder/', inicioAS: 'ocupacion' },
         'prueba-profesor-1':   { inicio: '/after-school/', inicioAS: 'lista' }
       };
       for (const [u, e] of Object.entries(ESPERA)) {
@@ -719,7 +735,7 @@ async function correr(fuente) {
           u + ': empieza en ' + e.inicio + ' y After School abre en «' + e.inicioAS + '» (dio ' + (a.j && a.j.inicio) + ', ' + (a.j && a.j.inicioAS) + ')');
       }
       const prof = (await n['prueba-profesor-1'].get('/acceso.php?formato=json')).j;
-      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool","procesos","equipo"]',
+      ok(JSON.stringify(prof.permisosAS.slice().sort()) === '["as.lista.marcar","as.lista.ver"]' && JSON.stringify(prof.areas) === '["afterschool","equipo"]',
         'Profesor: solo los permisos de Pasar lista (' + JSON.stringify(prof.permisosAS) + ')');
       const coord = (await n['prueba-coord-as'].get('/acceso.php?formato=json')).j;
       ok(coord.permisosAS.includes('as.lista.marcar') && coord.permisosAS.includes('as.ver'), 'Coordinación: Pasar lista es una pestaña más');
@@ -828,7 +844,7 @@ async function correr(fuente) {
       const cache = path.join(home, 'portal_cache', 'proyecto-actio.json');
       PA.llamadas = 0;
       // Quién entra
-      for (const u of ['prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
+      for (const u of ['prueba-coord-op', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
         const r = await leerPA(u);
         ok(r.status === 403 && !/Plan de prueba/.test(r.texto), u + ': el puente de Proyecto Actio responde 403 y no manda datos');
         ok((await n[u].get('/proyecto-actio/')).status !== 200, u + ': no abre la página /proyecto-actio/');
@@ -907,11 +923,13 @@ async function correr(fuente) {
       fs.writeFileSync(path.join(dir, 'plan-compartido.html'), presentacion('CONTENIDO-PROYECTO-ACTIO'));  // solo Proyecto Actio (Finanzas, «Sí» heredado)
       fs.writeFileSync(path.join(dir, 'malo.php'), '<?php echo "EJ" . "ECUTADO";');
       fs.writeFileSync(path.join(dir, 'api.php'), '<?php echo "EJ" . "ECUTADO";');
-      const TODOS = ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1'];
+      const TODOS = ['admin-uno', 'prueba-direccion', 'prueba-coord-op', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1'];
       const GERENCIA = ['admin-uno', 'prueba-direccion'];
       for (const u of TODOS) {
+        // 13-nov (roles-gerencia): los archivos que llegaban por Procesos ya solo los abren quienes abren Procesos.
         const r = await n[u].get('/biblioteca/guia-redes.html');
-        ok(r.status === 200 && /CONTENIDO-REDES/.test(r.texto) && /^text\/html/.test(r.tipo), u + ': abre la presentación de After School de /biblioteca/ (' + r.status + ')');
+        if (GERENCIA.includes(u)) ok(r.status === 200 && /CONTENIDO-REDES/.test(r.texto) && /^text\/html/.test(r.tipo), u + ': abre la presentación de After School de /biblioteca/ (' + r.status + ')');
+        else ok(r.status === 403 && !/CONTENIDO-REDES/.test(r.texto), u + ': 13-nov: 403 a la presentación de After School de /biblioteca/ (le llegaba por Procesos, que ya no abre) (' + r.status + ')');
         const g = await n[u].get('/biblioteca/manual-gerencia.html');
         if (GERENCIA.includes(u)) ok(g.status === 200 && /CONTENIDO-GERENCIA/.test(g.texto), u + ': abre el documento de General (Gerencia) de /biblioteca/ (' + g.status + ')');
         else ok(g.status === 403 && !/CONTENIDO-GERENCIA/.test(g.texto), u + ': 403 al abrir (o previsualizar) el documento de General aunque conozca su dirección (' + g.status + ')');
@@ -950,14 +968,25 @@ async function correr(fuente) {
       fs.unlinkSync(path.join(dir, 'malo.php')); fs.unlinkSync(path.join(dir, 'api.php'));
     }
 
-    seccion('Procesos: todos los roles; solo documentos visibles para el cliente, de los tres procesos y con los campos de la pantalla');
+    seccion('Procesos: 13-nov solo Soporte Actio y Dirección (los demás, «sin permiso»); solo documentos visibles para el cliente, de los tres procesos y con los campos de la pantalla');
     {
       const leer = u => n[u].post('/procesos/api.php', { json: { accion: 'leer' } });
       // 5-nov (ajuste 4): «General» (Gerencia) solo para Dirección y Administrador.
       const GERENCIA = ['admin-uno', 'prueba-direccion'];
       const ESPERADOS = 'Guía de redes de prueba (Presentación)|After School|Atracción,Manual de servicio de prueba|General|Entrega de servicio,Plan de prueba uno (Documento)|Kinder|Adquisición';
       const ESPERADOS_SIN_GENERAL = 'Guía de redes de prueba (Presentación)|After School|Atracción,Plan de prueba uno (Documento)|Kinder|Adquisición';
-      for (const u of ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
+      for (const u of ['admin-uno', 'prueba-direccion', 'prueba-coord-op', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1']) {
+        if (!GERENCIA.includes(u)) {   // 13-nov (roles-gerencia)
+          const antes = PA.llamadas;
+          for (const cuerpo of [{ accion: 'leer' }, { accion: 'leer', unidad: 'General' }, { accion: 'leer', unidad: 'After School' }]) {
+            const x = await n[u].post('/procesos/api.php', { json: cuerpo });
+            ok(x.status === 403 && x.j && x.j.codigo === 'sin_permiso' && !/Guía de redes|Plan de prueba|Manual de servicio/.test(x.texto), u + ': 13-nov: Procesos ' + JSON.stringify(cuerpo) + ' → 403 «sin_permiso», sin documentos (' + x.status + ')');
+          }
+          ok(PA.llamadas === antes, u + ': y no llega a leer el Sheet');
+          const pg = await n[u].get('/procesos/');
+          ok(pg.status === 403 && !/<title>Procesos/.test(pg.texto), u + ': la página /procesos/ escrita a mano → 403 (' + pg.status + ')');
+          continue;
+        }
         const r = await leer(u);
         const R = r.j && r.j.resultado;
         ok(r.status === 200 && r.j.ok && R, u + ': lee Procesos (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
@@ -981,11 +1010,11 @@ async function correr(fuente) {
       }
       const anon = await new Nav(base).post('/procesos/api.php', { json: { accion: 'leer' } });
       ok(anon.status !== 200 && !/Plan de prueba|Guía de redes/.test(anon.texto), 'sin sesión no hay datos (' + anon.status + ')');
-      const otra = await n['prueba-recepcion'].post('/procesos/api.php', { json: { accion: 'guardar' } });
+      const otra = await n['prueba-direccion'].post('/procesos/api.php', { json: { accion: 'guardar' } });
       ok(otra.status === 403 && otra.j && otra.j.codigo === 'sin_permiso', 'cualquier acción que no sea «leer» se rechaza');
-      const pg = await n['prueba-profesor-1'].get('/procesos/');
+      const pg = await n['prueba-direccion'].get('/procesos/');
       ok(pg.status === 200 && /<title>Procesos · Vida en Arte 360/.test(pg.texto) && /\/comun\/visor-pantalla\.js\?v=[0-9a-f]{10}/.test(pg.texto) &&
-        /<link rel="stylesheet" href="\/comun\/vea\.css\?v=[0-9a-f]{10}">/.test(pg.texto) && !/<style>/.test(pg.texto), 'el Profesor abre la página de Procesos (vea.css y visor común versionados, sin estilos propios)');
+        /<link rel="stylesheet" href="\/comun\/vea\.css\?v=[0-9a-f]{10}">/.test(pg.texto) && !/<style>/.test(pg.texto), 'Dirección abre la página de Procesos (vea.css y visor común versionados, sin estilos propios)');
       ok(!/['"`]\/?[\w\/-]*api\.php/.test(pg.texto) && !/fetch\(/.test(pg.texto), 'la página no llama a api.php: todo pasa por datos.js');
       // Sin la configuración de Procesos: se niega, nombrando lo que falta (no hay valores escritos en el código).
       const cfgF = path.join(home, 'portal_config.php'), cfg = fs.readFileSync(cfgF, 'utf8');
@@ -1027,14 +1056,14 @@ echo 'SIGUIO';
       fs.writeFileSync(script, `<?php
 require '${web.replace(/\\/g, '/')}/permisos.php';
 $casos = [['*'], ['afterschool', 'procesos'], ['procesos'], ['afterschool', 'veranito', 'procesos'], ['kinder', 'babyandme'], ['kinder', 'procesos'],
-          ['kinder', 'basededatos', 'procesos'], ['afterschool', 'kinder', 'procesos'], ['basededatos', 'procesos'], []];
+          ['kinder', 'equipo'], ['afterschool', 'kinder', 'procesos'], ['afterschool', 'equipo'], []];
 echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v), $casos));
 `);
       const d = spawnSync(PHP, [script], { encoding: 'utf8' });
-      ok(d.stdout === '/,/after-school/,/,/?marca=vea,/?marca=kids,/kinder/,/,/,/basededatos/,/',
-        'entrada: una sección → directo (Procesos no cuenta); solo unidades de una marca → la página de la marca; si no, la portada (dio ' + d.stdout + d.stderr + ')');
+      ok(d.stdout === '/,/after-school/,/,/?marca=vea,/?marca=kids,/kinder/,/kinder/,/,/after-school/,/',
+        'entrada: una sección → directo (Procesos y Equipo no cuentan); solo unidades de una marca → la página de la marca; si no, la portada (dio ' + d.stdout + d.stderr + ')');
       const pr = await new Nav(base).entrar('prueba-profesor-1', claves['prueba-profesor-1']);
-      ok(pr.ok && pr.destino === '/after-school/', 'el Profesor sigue entrando directo a Pasar lista aunque también tenga Procesos');
+      ok(pr.ok && pr.destino === '/after-school/', 'el Profesor sigue entrando directo a Pasar lista aunque también tenga Equipo');
       ok((await n['prueba-profesor-1'].get('/?marca=vea')).status === 200, 'la página de una marca es la portada (?marca=): la abre cualquiera con sesión');
     }
 
@@ -1048,7 +1077,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       const COMPLETO = new Set(ACCIONES.filter(a => a !== 'leerLista' && a !== 'guardarLista'));
       const sinCorregir = new Set([...COMPLETO].filter(a => a !== 'noHuboClase' && a !== 'resolverFueraDeLista'));
       const R = {
-        'admin-uno': COMPLETO, 'prueba-direccion': COMPLETO, 'prueba-coord-as': COMPLETO, 'prueba-recepcion': sinCorregir,
+        'admin-uno': COMPLETO, 'prueba-direccion': COMPLETO, 'prueba-coord-op': COMPLETO, 'prueba-coord-as': COMPLETO, 'prueba-recepcion': sinCorregir,
         'prueba-comercial': new Set(['leer', 'ocupacion', 'agendarPrueba']),
         'prueba-contabilidad': new Set(['leer', 'ocupacion', 'listarPagos', 'registrarPago', 'pagoPrueba']),
         'prueba-coord-pre': new Set(), 'prueba-profesor-1': new Set()
@@ -1109,6 +1138,9 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       r = await pl('prueba-coord-as', 'leerLista', { fecha: '2026-10-01', limiteProfesor: true });
       ok(r.status === 200 && ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false && r.j.permisos.puedeOtroDia === true,
         'Coordinación After School: soloHoy y limiteProfesor = false (corrige otros días, sin cambios)');
+      r = await pl('prueba-coord-op', 'leerLista', { fecha: '2026-10-01', limiteProfesor: true });
+      ok(r.status === 200 && ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false && r.j.permisos.puedeOtroDia === true,
+        '13-nov: Coordinación Operativa pasa lista y corrige otros días, como Coordinación After School');
       await pl('admin-uno', 'guardarLista', { codigo: 'X', marcas: [] });
       ok(ultima().datos.soloHoy === false && ultima().datos.limiteProfesor === false, 'Administrador: también otros días');
       await pl('prueba-direccion', 'leerLista', {});
@@ -1151,7 +1183,9 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         'prueba-coord-as':     { fichas: 'CUMP,JEF,PRO,REC', mios: 'CUMP,JEF', revisar: 'PRO,REC', no: /SECRETO|MARCA-(OTR|BOR|VAL)|CANTIDAD|FALTA-DE-PRUEBA|REVISION|prueba-contabilidad|"Borrador"|"Validado"/ },
         'prueba-comercial':    { fichas: '', mios: '', revisar: '', no: /SECRETO|TEXTO-|MARCA-|PUNTO-|CANTIDAD|UNIDAD-|COMO-|FALTA-DE-PRUEBA|quien-|REVISION|"Borrador"|"Validado"/ },
         'prueba-direccion':    { fichas: CON_RES, mios: '', revisar: 'CUMP,JEF,OTR,PRO,REC,RES', puestos: CON_RES, no: /MARCA-VIEJA/ },
-        'admin-uno':           { fichas: CON_RES, mios: '', revisar: '', puestos: CON_RES, no: /MARCA-VIEJA/ }
+        'admin-uno':           { fichas: CON_RES, mios: '', revisar: '', puestos: CON_RES, no: /MARCA-VIEJA/ },
+        // 13-nov (roles-gerencia): Coordinación Operativa tiene equipo.todo («todo lo de Equipo, como Dirección»).
+        'prueba-coord-op':     { fichas: CON_RES, mios: '', revisar: '', puestos: CON_RES, no: /MARCA-VIEJA/ }
       };
       const lista = a => (a || []).slice().sort().join();
       for (const [u, e] of Object.entries(CASOS)) {
@@ -1165,7 +1199,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
           u + ': fichas solo de ' + (e.fichas || 'ninguno') + ' (dio ' + lista(Object.keys(R.fichas)) + ')');
         ok(lista(R.mios) === e.mios && lista(R.revisar) === e.revisar, u + ': Mi lista de «' + e.mios + '» y Revisar de «' + e.revisar + '» (dio ' + lista(R.mios) + ' / ' + lista(R.revisar) + ')');
         ok(!e.no.test(r.texto), u + ': nada de puestos ajenos ni no abiertos en el texto de la respuesta (' + ((r.texto.match(e.no) || [''])[0]) + ')');
-        const todo = u === 'prueba-direccion' || u === 'admin-uno';
+        const todo = u === 'prueba-direccion' || u === 'admin-uno' || u === 'prueba-coord-op';
         if (!todo) {
           ok(R.puestos.every(p => Object.keys(p).sort().join() === 'area,estado,ficha,id,puesto,reportaA'), u + ': del organigrama solo nombre, área, a quién reporta y estado');
           ok(R.puestos.filter(p => ['DIR', 'BOR', 'VAL'].includes(p.id)).every(p => p.estado === 'En construcción') && R.puestos.find(p => p.id === 'PRO').estado === 'Abierto al equipo',
@@ -1216,6 +1250,9 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
       ok(JSON.stringify(dirE.horarios) === JSON.stringify([{ momento: 'Momento de prueba', unidad: 'UNIDAD-HORARIO', hora: '10:00', puestos: ['Profesor de prueba', 'NO-EXISTE'] }]),
         'Dirección: la tabla de Horarios del servicio con el NOMBRE de los puestos (' + JSON.stringify(dirE.horarios) + ')');
       ok(dirE.fichas.BOR.pdf === true && dirE.fichas.DIR.pdf === true, 'Dirección descarga el PDF de cualquier puesto, en cualquier estado');
+      const coE = (await eq('prueba-coord-op', 'leer')).j.resultado;
+      ok(JSON.stringify(coE.horarios) === JSON.stringify(dirE.horarios) && coE.fichas.BOR.pdf === true && lista(coE.faltan) === 'FALTA-DE-PRUEBA',
+        '13-nov: Coordinación Operativa ve Equipo como Dirección: Horarios del servicio, PDF de cualquier puesto y lo que falta en el Sheet');
       ok(coord.fichas.CUMP.verificador.id === 'DIR' && coord.fichas.CUMP.verificador.escalado === true && coord.fichas.CUMP.verifico === false && !coord.revisar.includes('CUMP'),
         'nadie se verifica a sí mismo: quien ocupa CUMP ocupa también el puesto que lo verifica, y la verificación sube a Dirección');
       ok(dirE.revisar.includes('CUMP') && dirE.fichas.CUMP.verifico === true, 'y Dirección la ve en Revisar');
@@ -1279,9 +1316,10 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
 
     seccion('Resumen de Dirección, Mi lista y estilo vidrio');
     {
-      for (const u of ['prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
+      for (const u of ['prueba-coord-op', 'prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
         ok((await n[u].get('/resumen/')).status === 403, u + ': el Resumen de Dirección responde sin permiso');
         ok((await n[u].get('/equipo/')).status === 200, u + ': abre Mi lista');
+        ok((await n[u].get('/equipo/organigrama/')).status === 200, u + ': 13-nov: abre Equipo en su propia dirección');
       }
       for (const u of ['prueba-direccion', 'admin-uno']) {
         const r = await n[u].get('/resumen/');
@@ -1296,7 +1334,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
         'Resumen del negocio: todas las cuentas en comun/cifras.js, con lo que manda resumen/api.php');
       ok(!/Inscripciones del mes/i.test(res), 'Resumen: «Inscripciones del mes» sigue fuera');
       // 3-nov (rediseño etapa 1): el vidrio y la foto de fondo se retiraron de TODAS las páginas.
-      for (const ruta of ['/', '/procesos/', '/equipo/', '/resumen/', '/after-school/', '/pasar-lista/', '/configuracion/', '/proyecto-actio/', '/veranito/', '/kinder/']) {
+      for (const ruta of ['/', '/procesos/', '/equipo/', '/equipo/organigrama/', '/resumen/', '/after-school/', '/pasar-lista/', '/configuracion/', '/proyecto-actio/', '/veranito/', '/kinder/']) {
         const t = (await n['admin-uno'].get(ruta)).texto;
         ok(!/class="vidrio"|fondo-local/.test(t), ruta + ' sin vidrio ni foto de fondo');
       }
@@ -1332,7 +1370,7 @@ echo implode(',', array_map(fn($v) => destino_de_areas($v === ['*'] ? '*' : $v),
     seccion('Resumen del negocio (26-oct): solo Dirección y Administrador; Preschool sin montos ni nombres; metas del Sheet');
     {
       const rs = u => n[u].post('/resumen/api.php', { json: { accion: 'leer' } });
-      for (const u of ['prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
+      for (const u of ['prueba-coord-op', 'prueba-profesor-1', 'prueba-recepcion', 'prueba-coord-as', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre']) {
         const antes = google.llamadas.length, r = await rs(u);
         ok(r.status === 403 && google.llamadas.length === antes && !/Kínder|activos|metas/.test(r.texto), u + ': el puente del Resumen responde sin permiso y no consulta nada (' + r.status + ')');
       }
@@ -1368,7 +1406,7 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
       ok(nota.stdout.trim() === '["Datos en revisión","","Otra nota"]', 'R140 la nota sale de portal_config.php › preschool_nota: sin la clave, «Datos en revisión»; vacía, ninguna (' + (nota.stdout + nota.stderr).slice(0, 200) + ')');
     }
 
-    seccion('Mensajes a familias (3-nov; 5-nov: envía el servidor): abren Administrador, Dirección y Comercial; envían solo Dirección y Administrador; solo salen los activos');
+    seccion('Mensajes a familias (3-nov; 5-nov: envía el servidor): abren Soporte Actio, Dirección, Comercial y (13-nov) Coordinación Operativa; envían todos ellos salvo Comercial; solo salen los activos');
     {
       const ms = (u, accion, datos, headers) => n[u].post('/mensajes/api.php', { json: { accion, datos: datos || {} }, headers: headers || {} });
       const ACCIONES = ['leer', 'enviar', 'prueba', 'avance', 'guardarPlantilla'];
@@ -1382,8 +1420,8 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
           }
           ok((await n[u].get('/mensajes/')).status === 403, u + ': la pantalla /mensajes/ tampoco abre');
         }
-        const perm = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_permiten(["comercial"], "area:mensajes"), roles_permiten(["comercial"], "mensajes.enviar"), roles_permiten(["direccion"], "mensajes.enviar"), roles_permiten(["administrador"], "mensajes.enviar")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
-        ok(perm.stdout.trim() === '[true,false,true,true]', '5-nov: Comercial abre Mensajes pero NO tiene mensajes.enviar; Dirección y Administrador sí (' + (perm.stdout + perm.stderr).slice(0, 200) + ')');
+        const perm = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_permiten(["comercial"], "area:mensajes"), roles_permiten(["comercial"], "mensajes.enviar"), roles_permiten(["direccion"], "mensajes.enviar"), roles_permiten(["administrador"], "mensajes.enviar"), roles_permiten(["coordinacion_operativa"], "mensajes.enviar"), roles_permiten(["coordinacion_operativa"], "mensajes.plantillas"), roles_permiten(["comercial"], "mensajes.plantillas")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
+        ok(perm.stdout.trim() === '[true,false,true,true,true,true,false]', '5-nov: Comercial abre Mensajes pero NO tiene mensajes.enviar; Dirección y Soporte Actio sí; 13-nov: Coordinación Operativa envía y edita plantillas (' + (perm.stdout + perm.stderr).slice(0, 200) + ')');
 
         // Comercial: arma el grupo y ve cifras y vista previa, sin un solo correo.
         let antes = google.llamadas.length;
@@ -1476,107 +1514,49 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         const f2 = await ms('prueba-direccion', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0004' }), { 'X-CSRF': DI.csrf });
         ok(f2.status === 502 && SMTP.correos.length === c0, 'ni se envía sin poder volver a leer las familias');
         MSJ.falla = false;
+        {   // 13-nov (roles-gerencia): Coordinación Operativa arma, ve los correos (también los de Preschool) y envía. La
+            // página «Base de datos» se quitó, pero Mensajes sigue leyendo de la Base de Datos por su propio camino.
+          const co = await ms('prueba-coord-op', 'leer'), CO = co.j && co.j.resultado;
+          ok(co.status === 200 && CO && CO.puedeEnviar === true && CO.puedePlantillas === true && /^[0-9a-f]{64}$/.test(CO.csrf || ''), '13-nov: Coordinación Operativa lee Mensajes, puede enviar y editar plantillas');
+          const pre = CO && CO.familias.find(f => f.unidad === 'Preschool' && f.id === 'VEA-501');
+          ok(pre && /@ejemplo\.test$/.test(pre.correo || '') && pre.estadoCorreo === 'ok', '13-nov: los correos de Preschool siguen llegando a Mensajes (de la Base de Datos, sin la página «Base de datos») (' + JSON.stringify(pre) + ')');
+          antes = google.llamadas.length; const c1 = SMTP.correos.length;
+          const ec = await ms('prueba-coord-op', 'enviar', Object.assign({}, PEDIDO, { idEnvio: 'envio-portal-0006', claves: [CO.familias.find(f => f.id === 'AS-0101').clave] }), { 'X-CSRF': CO.csrf });
+          const regC = google.llamadas.slice(antes).filter(l => l.accion === 'mensajesRegistrar');
+          ok(ec.status === 200 && ec.j.resultado.enviadas.length === 1 && SMTP.correos.length === c1 + 1 && regC.length === 1 && regC[0].datos.usuario === 'prueba-coord-op' && regC[0].datos.rol === 'Coordinación Operativa',
+            '13-nov: Coordinación Operativa envía; el registro lleva su usuario y su rol (' + ec.status + ' ' + JSON.stringify(regC.map(l => l.datos.rol)) + ')');
+          antes = google.llamadas.length;
+          const gp = await ms('prueba-coord-op', 'guardarPlantilla', { nombre: 'Plantilla de prueba', asunto: 'a', cuerpo: 'b', activa: true });
+          ok(gp.status !== 403 || (gp.j && gp.j.codigo !== 'sin_permiso'), '13-nov: Coordinación Operativa puede guardar plantillas (no da «sin_permiso») (' + gp.status + ' ' + gp.texto.slice(0, 120) + ')');
+        }
         ok(/session_write_close\(\);/.test(fs.readFileSync(path.join(web, 'mensajes', 'api.php'), 'utf8')), 'mensajes/api.php suelta la sesión antes de esperar a Google o al correo');
         const pag = await n['prueba-comercial'].get('/mensajes/');
         ok(pag.status === 200 && /<title>Mensajes a familias/.test(pag.texto), 'Comercial abre la pantalla');
       } finally { MSJ.as = false; MSJ.falla = false; }
     }
 
-    seccion('Base de Datos VEA (4-nov, D-123): sin clave en el navegador; leer con el área, escribir con bd.editar y CSRF');
+    seccion('Base de Datos VEA: 13-nov (roles-gerencia) la página y su puente quedan cerrados para TODOS los roles');
     {
-      const LEEN = ['admin-uno', 'prueba-direccion', 'prueba-coord-as', 'prueba-comercial', 'prueba-coord-pre'];
-      const NO = ['prueba-recepcion', 'prueba-contabilidad', 'prueba-profesor-1'];
-      const leer = (u, extra) => n[u].get('/basededatos/api.php?accion=leer' + (extra || ''));
-      const escribir = (u, cuerpo, csrf) => n[u].post('/basededatos/api.php', { json: cuerpo, headers: csrf === undefined ? {} : { 'X-CSRF': csrf } });
+      const TODOS = ['admin-uno', 'prueba-direccion', 'prueba-coord-op', 'prueba-coord-as', 'prueba-recepcion', 'prueba-comercial', 'prueba-contabilidad', 'prueba-coord-pre', 'prueba-profesor-1'];
       const GUARDAR = { accion: 'guardarTodo', baseDatos: [{ id: 'VEA-901', nombre: 'Inventado' }], unidades: { 'Kínder': {}, 'After School': {} } };
-      for (const u of NO) {
+      for (const u of TODOS) {
         let antes = google.llamadas.length;
-        const r = await leer(u);
-        ok(r.status === 403 && r.j && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes && !/VEA-901/.test(r.texto), u + ': leer la Base de Datos → 403, sin llegar a Google (dio ' + r.status + ')');
+        const r = await n[u].get('/basededatos/api.php?accion=leer');
+        ok(r.status === 403 && r.j && r.j.codigo === 'sin_permiso' && google.llamadas.length === antes && !/VEA-901/.test(r.texto),
+          u + ': leer la Base de Datos → 403 «sin_permiso», sin llegar a Google (dio ' + r.status + ')');
         antes = google.llamadas.length;
-        const w = await escribir(u, GUARDAR, 'cualquiera');
+        const w = await n[u].post('/basededatos/api.php', { json: GUARDAR, headers: { 'X-CSRF': 'cualquiera' } });
         ok(w.status === 403 && google.llamadas.length === antes, u + ': guardar → 403, sin llegar a Google');
+        const pg = await n[u].get('/basededatos/');
+        ok(pg.status === 403 && !/<p>basededatos/.test(pg.texto), u + ': la página /basededatos/ escrita a mano → 403 (' + pg.status + ')');
+        const a2 = (await n[u].get('/acceso.php?formato=json')).j;
+        ok(a2.areas === '*' || !a2.areas.includes('basededatos'), u + ': la portada no conoce el área «basededatos»');
       }
-      // El sello sale en la cabecera X-CSRF de la lectura.
-      const selloDe = async u => { const h = await fetch(base + '/basededatos/api.php?accion=leer', { headers: { Cookie: Object.entries(n[u].cookies).map(([k, v]) => k + '=' + v).join('; ') } }); return h.headers.get('x-csrf') || ''; };
-      for (const u of LEEN) {
-        let antes = google.llamadas.length;
-        const r = await leer(u, '&key=clave-del-navegador&otra=x');
-        const ll = google.llamadas.slice(antes);
-        ok(r.status === 200 && r.j && r.j.ok && r.j.data.baseDatos[0].id === 'VEA-901', u + ': lee la Base de Datos (' + r.status + ' ' + r.texto.slice(0, 120) + ')');
-        ok(ll.length === 1 && ll[0].metodo === 'GET' && ll[0].key === 'clave-bd-de-prueba' && ll[0].params.sort().join() === 'accion,key', u + ': a Google llega la clave del servidor y nada más (la del navegador se descarta)');
-        ok(!/clave-bd-de-prueba|clave-msj-de-prueba/.test(r.texto), u + ': ninguna clave en la respuesta');
-        const sello = await selloDe(u);
-        ok(/^[0-9a-f]{64}$/.test(sello), u + ': la lectura trae el sello CSRF en la cabecera X-CSRF');
-        antes = google.llamadas.length;
-        const sin = await escribir(u, GUARDAR);
-        ok(sin.status === 403 && sin.j && sin.j.codigo === 'csrf' && google.llamadas.length === antes, u + ': guardar sin sello → 403 «csrf», no llega a Google');
-        const malo = await escribir(u, GUARDAR, 'f'.repeat(64));
-        ok(malo.status === 403 && malo.j && malo.j.codigo === 'csrf' && google.llamadas.length === antes, u + ': con un sello falso, tampoco');
-        antes = google.llamadas.length;
-        const g = await escribir(u, Object.assign({ key: 'clave-del-navegador', claveMensajes: 'x', extra: 'x' }, GUARDAR), sello);
-        const lg = google.llamadas.slice(antes);
-        ok(g.status === 200 && g.j && g.j.ok, u + ': guarda con su sello (' + g.status + ' ' + g.texto.slice(0, 120) + ')');
-        ok(lg.length === 1 && lg[0].key === 'clave-bd-de-prueba' && JSON.stringify(Object.keys(lg[0].cuerpo).sort()) === '["accion","baseDatos","key","unidades"]',
-          u + ': a Google llega solo accion, baseDatos, unidades y la clave del servidor (' + (lg[0] ? JSON.stringify(Object.keys(lg[0].cuerpo)) : '') + ')');
-        ok(lg[0] && !Array.isArray(lg[0].cuerpo.unidades) && typeof lg[0].cuerpo.unidades['Kínder'] === 'object' && !Array.isArray(lg[0].cuerpo.unidades['Kínder']), u + ': los objetos vacíos siguen siendo objetos (no listas)');
-        antes = google.llamadas.length;
-        const e = await escribir(u, { accion: 'eliminarNino', id: 'VEA-901', baseDatos: [] }, sello);
-        const le = google.llamadas.slice(antes);
-        ok(e.status === 200 && le.length === 1 && JSON.stringify(Object.keys(le[0].cuerpo).sort()) === '["accion","id","key"]', u + ': elimina con su sello, con solo accion, id y la clave');
-        for (const a of ['login', 'mensajesLeer', 'mensajesRegistrar', 'mensajesGuardarPlantilla', 'otra']) {
-          antes = google.llamadas.length;
-          const x = await escribir(u, { accion: a, user: 'x', pass: 'y' }, sello);
-          ok(x.status === 403 && google.llamadas.length === antes, u + ': ' + a + ' por este puente → 403, no llega a Google');
-        }
-        antes = google.llamadas.length;
-        const lo = await n[u].get('/basededatos/api.php?accion=login&user=x&pass=y');
-        ok(lo.status === 403 && google.llamadas.length === antes, u + ': por GET solo «leer» (login → 403, no llega a Google)');
-      }
-      ok((await new Nav(base).get('/basededatos/api.php?accion=leer')).status === 302, 'sin sesión, leer manda al login');
-      ok((await new Nav(base).post('/basededatos/api.php', { json: GUARDAR })).status === 302, 'sin sesión, guardar tampoco');
-      // Quién tiene bd.editar (preparado: quitárselo a un rol lo deja en solo lectura del servidor).
-      const solo = spawnSync(PHP, ['-r', 'require $argv[1]; echo json_encode([roles_permiten(["coordinacion_preescolar"], "bd.editar"), roles_permiten(["coordinacion_afterschool"], "bd.editar"), roles_permiten(["comercial"], "bd.editar"), roles_permiten(["recepcion"], "bd.editar"), roles_permiten(["profesor"], "bd.editar"), roles_permiten(["contabilidad"], "bd.editar"), roles_permiten(["direccion"], "bd.editar")]);', path.join(web, 'permisos.php')], { encoding: 'utf8' });
-      ok(solo.stdout.trim() === '[true,true,true,false,false,false,true]', 'bd.editar: lo tienen quienes abren la Base de Datos (Dirección y Administrador por *), no Recepción, Profesor ni Contabilidad (' + (solo.stdout + solo.stderr).slice(0, 200) + ')');
-      // Hoy todos los que abren la Base de Datos pueden guardar, así que ningún rol real
-      // prueba el candado de bd.editar. Por un momento se le quita a Comercial (solo en
-      // la copia de la prueba): tiene que poder leer y NO guardar.
-      {
-        const archPerm = path.join(web, 'permisos.php');
-        const permOrig = fs.readFileSync(archPerm, 'utf8');
-        const sinEditar = permOrig.replace(/('area:mensajes'),\r?\n\s*'bd\.editar'\],(\s*\/\/[^\r\n]*)?/, "$1],");
-        ok(sinEditar !== permOrig, 'la prueba encuentra la línea de bd.editar de Comercial en permisos.php');
-        // El servidor de pruebas guarda los PHP compilados (opcache) y mira la fecha del
-        // archivo como mucho cada 2 s: se cambia la fecha a mano y se espera a que la vea.
-        let corrimiento = 0;
-        const cambiarYEsperar = async texto => {
-          fs.writeFileSync(archPerm, texto);
-          corrimiento += 30000;   // cada cambio, una fecha distinta y posterior
-          const t = new Date(Date.now() + corrimiento);
-          fs.utimesSync(archPerm, t, t);
-          await new Promise(r => setTimeout(r, 3500));
-        };
-        await cambiarYEsperar(sinEditar);
-        try {
-          const r = await leer('prueba-comercial');
-          ok(r.status === 200 && r.j && r.j.ok, 'Comercial sin bd.editar: sigue leyendo la Base de Datos (' + r.status + ')');
-          const sello = await selloDe('prueba-comercial');
-          for (const cuerpo of [GUARDAR, { accion: 'eliminarNino', id: 'VEA-901' }]) {
-            const antes = google.llamadas.length;
-            const w = await escribir('prueba-comercial', cuerpo, sello);
-            ok(w.status === 403 && w.j && w.j.codigo === 'sin_permiso' && google.llamadas.length === antes, 'Comercial sin bd.editar: ' + cuerpo.accion + ' con su sello → 403 «sin_permiso», no llega a Google (dio ' + w.status + ')');
-          }
-        } finally { await cambiarYEsperar(permOrig); }
-        // Y de vuelta: con el permiso restituido, Comercial guarda otra vez (el servidor ya ve el original).
-        {
-          const sello = await selloDe('prueba-comercial');
-          const antes = google.llamadas.length;
-          const w = await escribir('prueba-comercial', GUARDAR, sello);
-          ok(w.status === 200 && google.llamadas.length === antes + 1, 'Comercial con bd.editar otra vez: guarda (dio ' + w.status + ')');
-        }
-      }
-      const fuenteBd = fs.readFileSync(path.join(web, 'basededatos', 'api.php'), 'utf8');
-      ok(fuenteBd.indexOf('session_write_close();') > 0 && fuenteBd.indexOf('session_write_close();') < fuenteBd.indexOf('curl_init('), 'basededatos/api.php suelta la sesión antes de esperar a Google (D-068)');
+      ok((await new Nav(base).get('/basededatos/api.php?accion=leer')).status === 302, 'sin sesión, al login');
+      const mj = fs.readFileSync(path.join(web, 'comun', 'marca.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+      ok(!/basededatos|Base de datos/.test(mj), 'marca.js (barra lateral, celular, «Más», buscador, «Nuevo») ya no nombra la Base de datos');
+      const perm = fs.readFileSync(path.join(web, 'permisos.php'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+      ok(!/'area:basededatos'|'bd\.editar'/.test(perm), 'ningún rol tiene area:basededatos ni bd.editar');
     }
 
     seccion('Pendientes de hoy (26-oct): cada rol recibe solo lo que le toca actuar, decidido en el servidor');
@@ -1587,7 +1567,8 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         'prueba-recepcion': 'pruebas=1',
         'prueba-coord-as': 'sinLista=2 pruebas=1 revisar=2',
         'prueba-direccion': 'sinLista=2 pruebas=1 revisar=4 contratos=1',
-        'admin-uno': 'sinLista=2 pruebas=1 revisar=4 contratos=1'
+        'admin-uno': 'sinLista=2 pruebas=1 revisar=4 contratos=1',
+        'prueba-coord-op': 'sinLista=2 pruebas=1 revisar=4 contratos=1'   // 13-nov: como Dirección (After School completo y equipo.todo)
       };
       for (const [u, esp] of Object.entries(ESPERA)) {
         const antes = google.llamadas.length, r = await pe(u), R = r.j && r.j.resultado;
@@ -1597,6 +1578,7 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         if (!/sinLista/.test(esp)) ok(!as.includes('seguimiento'), u + ': no consulta el seguimiento de After School');
         if (!/pruebas/.test(esp)) ok(!as.includes('leer'), u + ': no consulta las pruebas de After School');
         ok(R && !/AS-000|Inventado|Jefatura|RESERVADO|Recepción de prueba|LUN-1630/.test(r.texto), u + ': solo conteos, ningún nombre de niño ni de puesto');
+        ok(R && !R.items.some(x => /\/procesos\//.test(x.url)), u + ': 13-nov: ningún aviso lleva a /procesos/ (los contratos van a /equipo/organigrama/)');
       }
       ok((await new Nav(base).post('/pendientes/api.php', { json: { accion: 'leer' } })).status !== 200, 'sin sesión, nada');
       // 3-nov (rediseño): «Pendientes de hoy» pasa a la campana de notificaciones (comun/marca.js), con los mismos avisos del servidor.
@@ -1632,19 +1614,27 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         'barra lateral: nombre y apellido; sin nombre, el usuario');
       ok(/\+ \(s \? ', ' \+ \(\(s\.nombre \|\| ''\)\.trim\(\) \|\| s\.usuario\) : ''\);/.test(marca) && /\$\('#hola'\)\.textContent = Marca\.saludo\(S\);/.test(port), 'saludo «Buenos días, <nombre>»; sin nombre, el usuario');
       const conf = (await admin.get('/configuracion/')).texto;
-      ok(/id="dnNombre"/.test(conf) && /\(D\.puedeAdmin \? b\('data-nombre', 'Nombre', 'sec', true\) : ''\)/.test(conf), 'Configuración › Usuarios: «Nombre» solo para el Administrador');
+      ok(/id="dnNombre"/.test(conf) && /\(D\.puedeNombres \? b\('data-nombre', 'Nombre', 'sec', tocable\) : ''\)/.test(conf), 'Configuración › Usuarios: «Nombre» solo para quien tiene usuarios.nombres (13-nov: Soporte Actio y Coordinación Operativa)');
     }
 
-    seccion('Procesos con dos tarjetas, organigrama y Ocupación (26-oct)');
+    seccion('13-nov: Procesos solo con Documentos; Equipo en su propia dirección (/equipo/organigrama/), para todos');
     {
-      const pr = (await n['prueba-recepcion'].get('/procesos/')).texto;
-      ok(/class="pr-entrada vidrio-tarjeta" href="#documentos"/.test(pr) && /class="pr-entrada vidrio-tarjeta" href="#equipo"/.test(pr) && !/pr-vistas|Por unidad/.test(pr), 'Procesos: dos tarjetas, Documentos y Equipo; sin las pestañas de antes');
-      ok(/cabecera\(\[RUTA_PROCESOS, RUTA_DOCS, \{ texto: nom \}\]\)/.test(pr) && /cabecera\(sub === 'org' \? \[RUTA_PROCESOS, \{ texto: 'Equipo' \}\] : \[RUTA_PROCESOS, RUTA_EQUIPO, \{ texto: sub === 'reglas' \? 'Reglas del juego' : 'Horarios del servicio' \}\]\)/.test(pr),
-        'ruta Inicio / Procesos / Documentos, Inicio / Procesos / Equipo y (29-oct) Inicio / Procesos / Equipo / Reglas del juego u Horarios del servicio');
-      ok(/const VISTAS_EQUIPO = \{ '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' \};/.test(pr) && /if \(v !== 'equipo'\) Organigrama\.salir\(\);/.test(pr) && /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/organigrama\.js/.test(pr) &&
-        // 2-nov: Mi lista carga la misma lista de verificación que la ficha.
-        /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>/.test(fs.readFileSync(path.join(web, 'equipo', 'index.html'), 'utf8')),
-        '29-oct: Procesos abre Reglas del juego, Horarios y una ficha por dirección, carga comun/puestos.js y apaga la escena oscura al salir de Equipo');
+      const pr = (await n['prueba-direccion'].get('/procesos/')).texto;
+      ok(!/href="#equipo"|Organigrama\.mostrar|\/comun\/organigrama\.js/.test(pr) && /cabecera\(\[RUTA_PROCESOS, RUTA_DOCS, \{ texto: nom \}\]\)/.test(pr),
+        'Procesos: solo Documentos (sin la tarjeta ni la vista de Equipo); ruta Inicio / Procesos / Documentos');
+      ok((pr.match(/location\.replace\('\/equipo\/organigrama\/' \+ location\.hash\)/g) || []).length === 2 && /\^#\(equipo\|reglas\|horarios\|puesto=\)/.test(pr),
+        'las direcciones viejas /procesos/#equipo, #reglas, #horarios y #puesto=… llevan a /equipo/organigrama/ con el mismo #');
+      const og = await n['prueba-recepcion'].get('/equipo/organigrama/');
+      ok(og.status === 200 && /<title>Equipo · Vida en Arte 360/.test(og.texto) && /Organigrama\.mostrar\(\$\('#equipo'\)/.test(og.texto) &&
+        /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/organigrama\.js/.test(og.texto) &&
+        /const VISTAS = \{ '': 'org', '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' \};/.test(og.texto) && !/fetch\(|['"`]\/?[\w\/-]*api\.php/.test(og.texto),
+        'Recepción abre Equipo en /equipo/organigrama/: organigrama, Reglas del juego, Horarios y la ficha por dirección, por la capa de datos');
+      ok(/cabecera\(sub === 'org' \? \[\{ texto: 'Equipo' \}\] : \[RUTA_EQUIPO, \{ texto: sub === 'reglas' \? 'Reglas del juego' : 'Horarios del servicio' \}\]\)/.test(og.texto),
+        'ruta Inicio / Equipo y Inicio / Equipo / Reglas del juego u Horarios del servicio');
+      const ml = fs.readFileSync(path.join(web, 'equipo', 'index.html'), 'utf8');
+      ok(/const fichaUrl = id => '\/equipo\/organigrama\/#puesto=' \+ encodeURIComponent\(id\);/.test(ml) && !/\/procesos\//.test(ml.replace(/<!--[\s\S]*?-->/g, '')) &&
+        /<script src="\/comun\/puestos\.js\?v=[0-9a-f]{10}"><\/script>\s*<script src="\/comun\/verificacion\.js\?v=[0-9a-f]{10}"><\/script>/.test(ml),
+        'Mi lista abre la ficha en /equipo/organigrama/ y ya no enlaza a /procesos/');
       const as = (await n['prueba-coord-as'].get('/after-school/')).texto;
       ok(/<script src="\/comun\/cifras\.js\?v=[0-9a-f]{10}"><\/script>/.test(as) && /id="ocCifras"/.test(as) && /cif = deHoy \? Cifras\.ocupacionAS\(E\) : null;/.test(as), 'Ocupación: la ocupación de la semana con la regla del Resumen');
     }
@@ -1790,6 +1780,81 @@ echo json_encode([rs_nota_preschool([]), rs_nota_preschool(['preschool_nota' => 
         const r = await n[u].config('crear', { usuario: 'prueba-intruso', roles: ['administrador'] });
         ok(r.status === 403, u + ' no puede usar Configuración aunque fuerce la llamada');
       }
+    }
+
+    seccion('13-nov: Configuración › Usuarios para Coordinación Operativa: solo las cuentas del equipo; ni ve ni toca Dirección, Soporte Actio ni otra Coordinación Operativa');
+    {
+      const co = n['prueba-coord-op'];
+      const otra = await n['admin-uno'].config('crear', { usuario: 'prueba-coord-op-2', roles: ['coordinacion_operativa'] });
+      ok(otra.status === 200, '(control) Soporte Actio crea una segunda cuenta de Coordinación Operativa');
+      temporales.push(otra.j && otra.j.temporal);
+      const RESERVADOS = ['administrador', 'direccion', 'coordinacion_operativa'];
+      const ocultas = () => Object.entries(leerCuentas().usuarios).filter(([, c]) => c.roles.some(r => RESERVADOS.includes(r))).map(([u]) => u);
+      const l = await co.get('/configuracion/api.php?accion=listar');
+      const vistos = (l.j && l.j.usuarios || []).map(u => u.usuario);
+      ok(l.status === 200 && l.j.recortado === true && l.j.puedeNombres === true && l.j.puedeAdmin === false, 'Coordinación Operativa abre Usuarios: con recorte, edita nombres, sin lo de Soporte Actio');
+      ok(ocultas().length >= 7 && ocultas().every(u => !vistos.includes(u) && (u === 'prueba-coord-op' || !l.texto.includes('"' + u + '"'))),
+        'listar no le manda NINGUNA cuenta de Dirección, Soporte Actio ni Coordinación Operativa (tampoco la suya; su usuario solo va como «yo»), ni en el texto (' + vistos.join(', ') + ')');
+      ok(['prueba-recepcion', 'prueba-profesor-1', 'prueba-comercial'].every(u => vistos.includes(u)), 'y sí las del equipo');
+      ok(l.j.roles.map(r => r.id).sort().join() === 'comercial,contabilidad,coordinacion_afterschool,coordinacion_preescolar,profesor,recepcion',
+        'los roles que se le ofrecen: solo los del equipo (' + l.j.roles.map(r => r.id).join() + ')');
+      const foto = JSON.stringify(Object.fromEntries(ocultas().map(u => [u, leerCuentas().usuarios[u]])));
+      const PROHIBIDO = [
+        ['crear', { usuario: 'prueba-co-dir', roles: ['direccion'] }, 403, 'crear una cuenta de Dirección'],
+        ['crear', { usuario: 'prueba-co-sop', roles: ['administrador'] }, 403, 'crear una cuenta de Soporte Actio'],
+        ['crear', { usuario: 'prueba-co-op', roles: ['coordinacion_operativa'] }, 403, 'crear otra Coordinación Operativa'],
+        ['crear', { usuario: 'prueba-co-mix', roles: ['recepcion', 'direccion'] }, 403, 'crear una cuenta con Dirección entre sus roles'],
+        ['roles', { usuario: 'prueba-recepcion', roles: ['recepcion', 'direccion'] }, 403, 'darle Dirección a una cuenta del equipo'],
+        ['roles', { usuario: 'prueba-recepcion', roles: ['administrador'] }, 403, 'darle Soporte Actio a una cuenta del equipo'],
+        ['roles', { usuario: 'prueba-recepcion', roles: ['coordinacion_operativa'] }, 403, 'darle Coordinación Operativa a una cuenta del equipo'],
+        ['roles', { usuario: 'prueba-direccion', roles: ['recepcion'] }, 404, 'cambiar los roles de Dirección'],
+        ['desactivar', { usuario: 'prueba-direccion' }, 404, 'desactivar a Dirección'],
+        ['reiniciar', { usuario: 'prueba-direccion' }, 404, 'reiniciar la contraseña de Dirección'],
+        ['nombre', { usuario: 'prueba-direccion', nombre: 'Otra', apellido: '' }, 404, 'cambiar el nombre de Dirección'],
+        ['roles', { usuario: 'admin-dos', roles: ['recepcion'] }, 404, 'cambiar los roles de Soporte Actio'],
+        ['desactivar', { usuario: 'admin-dos' }, 404, 'desactivar a Soporte Actio'],
+        ['reiniciar', { usuario: 'admin-dos' }, 404, 'reiniciar la contraseña de Soporte Actio'],
+        ['nombre', { usuario: 'admin-dos', nombre: 'Otra', apellido: '' }, 404, 'cambiar el nombre de Soporte Actio'],
+        ['reactivar', { usuario: 'admin-tres' }, 404, 'reactivar a Soporte Actio'],
+        ['roles', { usuario: 'prueba-coord-op-2', roles: ['recepcion'] }, 404, 'cambiar los roles de otra Coordinación Operativa'],
+        ['desactivar', { usuario: 'prueba-coord-op-2' }, 404, 'desactivar a otra Coordinación Operativa'],
+        ['reiniciar', { usuario: 'prueba-coord-op-2' }, 404, 'reiniciar la contraseña de otra Coordinación Operativa'],
+        ['nombre', { usuario: 'prueba-coord-op-2', nombre: 'Otra', apellido: '' }, 404, 'cambiar el nombre de otra Coordinación Operativa'],
+        ['roles', { usuario: 'prueba-coord-op', roles: ['direccion'] }, 404, 'cambiarse sus propios roles (y darse Dirección)'],
+        ['desactivar', { usuario: 'prueba-coord-op' }, 404, 'desactivarse a sí misma']
+      ];
+      for (const [acc, datos, st, que] of PROHIBIDO) {
+        const r = await co.config(acc, datos);
+        ok(r.status === st && r.j && r.j.ok === false && !/temporal/.test(JSON.stringify(Object.keys(r.j))), 'Coordinación Operativa NO puede ' + que + ' (' + st + '; dio ' + r.status + ' ' + (r.j && r.j.error) + ')');
+      }
+      ok(JSON.stringify(Object.fromEntries(ocultas().map(u => [u, leerCuentas().usuarios[u]]))) === foto, 'las cuentas de Dirección, Soporte Actio y Coordinación Operativa quedaron intactas (roles, estado, contraseña, nombre)');
+      ok(!['prueba-co-dir', 'prueba-co-sop', 'prueba-co-op', 'prueba-co-mix'].some(u => leerCuentas().usuarios[u]) && !leerCuentas().usuarios['prueba-recepcion'].roles.some(r => RESERVADOS.includes(r)),
+        'no se creó ninguna cuenta reservada ni se repartió ningún rol reservado');
+      const dup = await co.config('crear', { usuario: 'prueba-direccion', roles: ['recepcion'] });
+      ok(dup.status === 400 && /en uso/.test(dup.j.error) && !/Ya existe|reactív/.test(dup.j.error), 'crear con el usuario de una cuenta que no ve: «ya está en uso», sin decir que existe ni de quién es');
+      // Lo que sí puede.
+      const c = await co.config('crear', { usuario: 'prueba-hecha-por-coop', roles: ['recepcion'] });
+      ok(c.status === 200 && c.j.temporal && c.j.usuarios.some(u => u.usuario === 'prueba-hecha-por-coop'), 'Coordinación Operativa crea cuentas del equipo (con contraseña temporal)');
+      temporales.push(c.j && c.j.temporal);
+      ok((await co.config('roles', { usuario: 'prueba-hecha-por-coop', roles: ['recepcion', 'comercial'] })).status === 200, 'y les cambia los roles');
+      const nm = await co.config('nombre', { usuario: 'prueba-hecha-por-coop', nombre: 'Persona', apellido: 'Inventada' });
+      ok(nm.status === 200 && leerCuentas().usuarios['prueba-hecha-por-coop'].nombre === 'Persona', 'y les cambia el nombre y el apellido');
+      const rc = await co.config('reiniciar', { usuario: 'prueba-hecha-por-coop' });
+      ok(rc.status === 200 && rc.j.temporal, 'y les da una contraseña temporal nueva');
+      temporales.push(rc.j && rc.j.temporal);
+      ok((await co.config('desactivar', { usuario: 'prueba-hecha-por-coop' })).status === 200 && (await co.config('reactivar', { usuario: 'prueba-hecha-por-coop' })).status === 200, 'y las desactiva y reactiva');
+      ok((await co.config('nombre', { usuario: 'prueba-profesor-1', nombre: 'Profe', apellido: 'Inventado' })).status === 200 &&
+        (await co.config('nombre', { usuario: 'prueba-profesor-1', nombre: '', apellido: '' })).status === 200, 'también en las cuentas del equipo que ya existían');
+      ok(leerCuentas().eventos.some(e => e.accion === 'crear' && e.usuario === 'prueba-hecha-por-coop' && e.quien === 'prueba-coord-op'), 'cada cambio queda anotado con quién lo hizo');
+      // Dirección sí ve y gestiona las cuentas de Coordinación Operativa (y sigue sin tocar Soporte Actio).
+      const ld = await n['prueba-direccion'].get('/configuracion/api.php?accion=listar');
+      ok(ld.j.recortado === false && ld.j.usuarios.some(u => u.usuario === 'prueba-coord-op-2') && ld.j.roles.some(r => r.id === 'coordinacion_operativa'), 'Dirección ve las cuentas de Coordinación Operativa y puede dar ese rol');
+      ok((await n['prueba-direccion'].config('desactivar', { usuario: 'prueba-coord-op-2' })).status === 200, 'y la desactiva');
+      // La página: sin Configuración, se llama «Usuarios».
+      const pg = (await co.get('/configuracion/')).texto;
+      ok(/\$\('#titulo'\)\.textContent = 'Usuarios';/.test(pg) && /document\.querySelectorAll\('\[data-area="configuracion"\]'\)\.forEach\(x => x\.remove\(\)\);/.test(pg),
+        'la página, sin el área Configuración, se llama «Usuarios» y quita cualquier otra parte de Configuración');
+      ok((await co.get('/configuracion/')).status === 200, 'y abre');
     }
 
     seccion('regla del último Administrador activo');

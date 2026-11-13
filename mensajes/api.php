@@ -85,8 +85,8 @@ $datos = json_decode((string) file_get_contents('php://input'), true);
 $accion = is_array($datos) ? (string) ($datos['accion'] ?? '') : '';
 if (!in_array($accion, MS_ACCIONES, true)) fallo('Acción desconocida.', 403, 'sin_permiso');
 $puedeEnviar = puede('mensajes.enviar');
-if (in_array($accion, MS_ENVIAN, true) && !$puedeEnviar) fallo('Tu rol puede armar el mensaje, pero no enviarlo: lo envían Dirección o Administración.', 403, 'sin_permiso');
-if ($accion === 'guardarPlantilla' && !puede('mensajes.plantillas')) fallo('Solo Dirección y Administrador editan las plantillas.', 403, 'sin_permiso');
+if (in_array($accion, MS_ENVIAN, true) && !$puedeEnviar) fallo('Tu rol puede armar el mensaje, pero no enviarlo: lo envían Dirección o Coordinación Operativa.', 403, 'sin_permiso');
+if ($accion === 'guardarPlantilla' && !puede('mensajes.plantillas')) fallo('Solo Dirección, Coordinación Operativa y Soporte Actio editan las plantillas.', 403, 'sin_permiso');
 if (in_array($accion, ['enviar', 'prueba'], true) && !csrf_valido($_SERVER['HTTP_X_CSRF'] ?? '')) fallo('Vuelve a abrir Mensajes: la página quedó vieja (sello de seguridad).', 403, 'csrf');
 
 $rutaConfig = dirname(__DIR__, 2) . '/portal_config.php';

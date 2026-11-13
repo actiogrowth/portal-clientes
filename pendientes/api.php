@@ -67,7 +67,7 @@ if (!empty($cfg['pr_exec']) && !empty($cfg['pr_clave'])) {
     $V = $S === null ? null : eq_vista($S, $usuario, $roles, $nombresRol, $puede['contratos']);
     if ($V === null || $V['respuesta']['revisar'] || $puede['contratos'])
         $items[] = ['clave' => 'revisar', 'url' => '/equipo/#revisar', 'n' => $V === null ? null : pe_sin_revisar($V['respuesta'], $puede['contratos'])];
-    if ($puede['contratos']) $items[] = ['clave' => 'contratos', 'url' => '/procesos/#equipo', 'n' => $V === null ? null : pe_borradores($V['respuesta'])];
+    if ($puede['contratos']) $items[] = ['clave' => 'contratos', 'url' => '/equipo/organigrama/', 'n' => $V === null ? null : pe_borradores($V['respuesta'])];
 }
 
 echo json_encode(['ok' => true, 'resultado' => ['hoy' => $hoy, 'items' => $items]], JSON_UNESCAPED_UNICODE);

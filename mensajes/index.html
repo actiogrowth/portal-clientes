@@ -6,13 +6,13 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Mensajes a familias · Vida en Arte 360</title>
 <!-- Mensajes a familias (3-nov; 5-nov: envía el servidor). Abren Dirección,
-  Administrador y Comercial (área «mensajes»; el puente vuelve a exigirlo).
+  Soporte Actio, Comercial y (13-nov) Coordinación Operativa (área «mensajes»; el puente vuelve a exigirlo).
   Lee por la capa de datos: Datos.mensajes.leer() (solo niños inscritos y
   activos, ya filtrados y clasificados en el servidor). Quién recibe lo decide
   comun/mensajes.js (grupos, unión, un correo por familia, «Sin correo»,
   tandas). El envío pasa por UNA función, Mensajes.enviar: el servidor manda
-  un correo por familia desde el buzón del hosting. Envían solo Dirección y
-  Administrador (D.puedeEnviar, que decide el servidor); Comercial arma el
+  un correo por familia desde el buzón del hosting. Envían solo Dirección,
+  Soporte Actio y Coordinación Operativa (D.puedeEnviar, que decide el servidor); Comercial arma el
   grupo y ve las cifras y la vista previa, sin correos. Contrato en
   docs/ACCIONES_API.md › Mensajes a familias. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
@@ -115,7 +115,7 @@
 
 <script src="/comun/datos.js?v=62fa2e69ae"></script>
 <script src="/comun/mensajes.js?v=a799fd3811"></script>
-<script src="/comun/marca.js?v=a164bb9f9b"></script>
+<script src="/comun/marca.js?v=259c1d0267"></script>
 <script>
 'use strict';
 const esc = Marca.esc;
@@ -265,7 +265,7 @@ function pintarEnviar() {
   const n = E.tandas.length, env = ENV();
   if (!D.puedeEnviar) {
     $('#enviar').innerHTML = '<div class="tarjeta"><h2>Listo para enviar</h2><p class="ayuda">El mensaje está armado: ' + plural(E.lista.familias, 'familia', 'familias') +
-      (n > 1 ? ' en ' + n + ' tandas' : '') + '. Tu rol puede preparar y revisar el mensaje, pero el envío lo hacen Dirección o Administración. Pídeles que lo envíen desde Mensajes.</p></div>';
+      (n > 1 ? ' en ' + n + ' tandas' : '') + '. Tu rol puede preparar y revisar el mensaje, pero el envío lo hacen Dirección o Coordinación Operativa. Pídeles que lo envíen desde Mensajes.</p></div>';
     return;
   }
   const sinCompletar = Mensajes.corchetes(E.asunto, E.cuerpo);
@@ -440,7 +440,7 @@ function pintarEnviados() {
     (e.canal ? ' · tandas enviadas: ' + esc(e.tandas || '—') + ' · enviado por el servidor' : ' · tandas abiertas: ' + esc(e.tandas || '—') + ' · Registrado como abierto en Gmail (antes del 5-nov)') + '</span></li>').join('') + '</ul>';
 }
 
-/* ── Plantillas (Dirección y Administrador) ───────────────────────────── */
+/* ── Plantillas (Dirección, Soporte Actio y Coordinación Operativa) ───── */
 let editando = null;   // nombre de la plantilla en edición ('' = nueva)
 function pintarPlantillas() {
   if (!D) return;

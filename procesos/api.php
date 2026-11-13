@@ -9,7 +9,8 @@
  * (pa_recortar) que recibe Dirección.
  *
  * Cerrojos:
- *   1. requerir_sesion(): sesión y área «procesos» (todos los roles).
+ *   1. requerir_sesion(): sesión y área «procesos» (13-nov: solo Dirección y
+ *      Soporte Actio; los demás roles responden «sin_permiso»).
  *   2. Una sola acción, «leer».
  *   3. Solo lo visible para el cliente, para TODOS los roles (también
  *      Administrador): pa_recortar sin pa.internos.
@@ -64,16 +65,20 @@ function procesos_unidad_permitida(array $roles, string $unidad, array $segmento
 
 /**
  * 5-nov (ajuste 4): ¿puede este rol abrir el archivo <nombre>.html de /biblioteca/? Solo si lo
- * recibe en alguna de sus listas, con el MISMO recorte de los puentes: Procesos (todos los roles,
- * sin «General» para quien no la tiene) y, para quien abre Proyecto Actio, también lo de Proyecto
+ * recibe en alguna de sus listas, con el MISMO recorte de los puentes: Procesos (13-nov: solo para
+ * quien abre Procesos) y, para quien abre Proyecto Actio, también lo de Proyecto
  * Actio (Dirección sin lo interno). Un archivo que no está en ninguna lista suya no se entrega.
  * Si no se puede leer el catálogo, pa_leer_catalogo corta con su error (nunca se entrega a ciegas).
  */
 function procesos_biblioteca_permite(array $roles, string $nombre): bool {
     $c = pa_config(['procesos_segmentos', 'procesos_general']);
     $cat = pa_leer_catalogo($c);
-    $listas = [procesos_respuesta(pa_recortar($cat['cuerpo'], false, $c['pa_proyectos_cliente'], $cat['edad']),
-        $c['procesos_segmentos'], $c['procesos_general'], $roles)];
+    // 13-nov (roles-gerencia): la lista de Procesos cuenta solo para quien abre Procesos (area:procesos:
+    // Dirección y Soporte Actio). Los demás roles ya no reciben archivos de la biblioteca por Procesos.
+    $listas = [];
+    if (roles_permiten($roles, 'area:procesos'))
+        $listas[] = procesos_respuesta(pa_recortar($cat['cuerpo'], false, $c['pa_proyectos_cliente'], $cat['edad']),
+            $c['procesos_segmentos'], $c['procesos_general'], $roles);
     if (roles_permiten($roles, 'area:proyecto-actio'))
         $listas[] = pa_recortar($cat['cuerpo'], roles_permiten($roles, 'pa.internos'), $c['pa_proyectos_cliente'], $cat['edad']);
     foreach ($listas as $texto) {

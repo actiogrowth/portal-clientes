@@ -7,20 +7,17 @@
 <title>Procesos · Vida en Arte 360</title>
 <!-- Procesos (23-oct): la biblioteca permanente de Vida en Arte. Solo
   lectura. Lee SOLO a través de la capa de datos (/comun/datos.js →
-  procesos/api.php y equipo/api.php), que ya manda únicamente lo que esta
+  procesos/api.php), que ya manda únicamente lo que esta
   persona puede ver.
-    /procesos/               26-oct: dos tarjetas, «Documentos» y «Equipo»
+    /procesos/               13-nov: los Documentos (antes, dos tarjetas: Documentos y Equipo)
     /procesos/#documentos    las unidades (con su color e iniciales) y el buscador
     /procesos/#u=<unidad>    los procesos de una unidad y sus documentos
-    /procesos/#equipo        el organigrama y la ficha de cada puesto
-                             (comun/organigrama.js → /equipo/api.php)
-    /procesos/#reglas        29-oct: las Reglas del juego (todos)
-    /procesos/#horarios      29-oct: los Horarios del servicio (Dirección y Administrador)
-    /procesos/#puesto=<ID>   29-oct: Equipo con la ficha de ese puesto abierta (Mi lista enlaza aquí)
-                             2-nov: …&pestana=hojas (o lista) la abre en esa pestaña
-  Equipo, Reglas y Horarios van sobre la escena oscura (la pone organigrama.js).
-  Los documentos se leen solo al entrar a Documentos. El buscador busca en
-  todas las unidades. -->
+  13-nov (roles-gerencia): solo Dirección y Soporte Actio (área «procesos»; el
+  servidor corta a los demás antes de entregar la página). Equipo se fue a su
+  propia dirección, /equipo/organigrama/, que abren todos: las direcciones viejas
+  /procesos/#equipo, #reglas, #horarios y #puesto=<ID> llevan allí, con el mismo
+  # (para los enlaces guardados de Dirección y Soporte Actio).
+  El buscador busca en todas las unidades. -->
 <!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
 <link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
 <meta name="theme-color" content="#FFFFFF">
@@ -48,35 +45,18 @@
     </label>
   </section>
 
-  <!-- 26-oct: la entrada de Procesos. -->
-  <section id="entrada" class="pr-entradas oculto" aria-label="Procesos">
-    <a class="pr-entrada vidrio-tarjeta" href="#documentos">
-      <span class="pr-entrada-icono" style="background:var(--telas);color:var(--blanco)" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span>
-      <span class="titulo pr-entrada-nom">Documentos</span>
-      <span class="pr-entrada-desc">Manuales, presentaciones y guías de cada unidad, ordenados por Atracción, Adquisición y Entrega de servicio.</span>
-      <span class="pr-entrada-ir">Ver documentos <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
-    </a>
-    <a class="pr-entrada vidrio-tarjeta" href="#equipo">
-      <span class="pr-entrada-icono" style="background:var(--naranja);color:var(--negro)" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg></span>
-      <span class="titulo pr-entrada-nom">Equipo</span>
-      <span class="pr-entrada-desc">El organigrama por puestos, con el contrato y la lista de verificación de cada uno.</span>
-      <span class="pr-entrada-ir">Ver organigrama <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>
-    </a>
-  </section>
   <div id="pantalla" class="pantalla oculto"></div>
   <div id="contenido" class="pr-contenido" aria-live="polite"></div>
-  <div id="equipo" class="oculto"></div>
 </main>
 
 <script src="/comun/datos.js?v=62fa2e69ae"></script>
-<script src="/comun/marca.js?v=a164bb9f9b"></script>
+<script src="/comun/marca.js?v=259c1d0267"></script>
 <script src="/comun/visor.js?v=3de76954cc"></script>
 <script src="/comun/visor-pantalla.js?v=5a17db4017"></script>
-<script src="/comun/puestos.js?v=5a4377db79"></script>
-<script src="/comun/verificacion.js?v=afe956c5dd"></script>
-<script src="/comun/organigrama.js?v=c4d9062246"></script>
 <script>
 'use strict';
+/* 13-nov: las direcciones viejas de Equipo (#equipo, #reglas, #horarios, #puesto=…) llevan a su dirección propia. */
+if (/^#(equipo|reglas|horarios|puesto=)/.test(location.hash)) location.replace('/equipo/organigrama/' + location.hash);
 const $ = s => document.querySelector(s);
 const esc = Marca.esc, norm = Marca.normal, unidad = Marca.unidadDoc;
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -143,12 +123,6 @@ function cabecera(ruta) {
   $('#miga').innerHTML = sub.length > 1 ? sub.map((p, i) => i < sub.length - 1 ? '<a href="' + esc(p.url) + '">' + esc(p.texto) + '</a> / ' : '<b>' + esc(p.texto) + '</b>').join('') : '';
 }
 
-function pintarEntrada() {
-  cabecera([{ texto: 'Procesos' }]);
-  $('#titulo').textContent = 'Procesos';
-  $('#sub').textContent = 'Cómo se hacen las cosas en Vida en Arte.';
-}
-
 function pintarUnidades() {
   const us = unidades();
   cabecera([RUTA_PROCESOS, { texto: 'Documentos' }]);
@@ -190,33 +164,12 @@ function pintarBusqueda(q) {
   }).join('');
 }
 
-/* Qué vista pide la dirección: la entrada, Documentos (también #u=… y la búsqueda) o Equipo (también #reglas, #horarios y #puesto=<ID>). */
-const VISTAS_EQUIPO = { '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' };
-const RUTA_EQUIPO = { texto: 'Equipo', url: '/procesos/#equipo' };
-function vistaActual() {
-  const h = location.hash;
-  if (h in VISTAS_EQUIPO || /^#puesto=/.test(h)) return 'equipo';
-  if (h === '#documentos' || /^#u=/.test(h)) return 'documentos';
-  return 'entrada';
-}
+/* 13-nov: Procesos es solo Documentos (también #u=… y la búsqueda); Equipo tiene su propia dirección. */
+function vistaActual() { return 'documentos'; }
 
 let leyendo = false;
 function pintar() {
-  const v = vistaActual();
-  $('#entrada').classList.toggle('oculto', v !== 'entrada');
-  $('#equipo').classList.toggle('oculto', v !== 'equipo');
-  $('#contenido').classList.toggle('oculto', v !== 'documentos');
-  $('#buscarCaja').classList.toggle('oculto', v !== 'documentos');
-  if (v !== 'documentos') $('#pantalla').classList.add('oculto');
-  if (v !== 'equipo') Organigrama.salir();
-  if (v === 'entrada') { pintarEntrada(); return; }
-  if (v === 'equipo') {
-    // 2-nov: #puesto=<ID>&pestana=lista|hojas abre la ficha en esa pestaña.
-    const sub = VISTAS_EQUIPO[location.hash] || 'org', m = location.hash.match(/^#puesto=([^&]+)(?:&pestana=(lista|hojas))?$/) || [], abrir = m[1];
-    cabecera(sub === 'org' ? [RUTA_PROCESOS, { texto: 'Equipo' }] : [RUTA_PROCESOS, RUTA_EQUIPO, { texto: sub === 'reglas' ? 'Reglas del juego' : 'Horarios del servicio' }]);
-    Organigrama.mostrar($('#equipo'), { vista: sub, abrir: abrir ? decodeURIComponent(abrir) : '', pestana: m[2] || '', alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
-    return;
-  }
+  $('#buscarCaja').classList.remove('oculto');
   // Documentos: se leen la primera vez que se entra.
   if (!D) {
     cabecera([RUTA_PROCESOS, { texto: 'Documentos' }]);
@@ -239,7 +192,10 @@ document.addEventListener('click', ev => {
     [{ version: Visor.version(d.nombre, d.enlace), nombre: d.nombre, enlace: d.enlace }]);
 });
 $('#buscar').addEventListener('input', () => { busqueda = $('#buscar').value; pintar(); });
-window.addEventListener('hashchange', () => { busqueda = ''; $('#buscar').value = ''; pintar(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => {
+  if (/^#(equipo|reglas|horarios|puesto=)/.test(location.hash)) { location.replace('/equipo/organigrama/' + location.hash); return; }
+  busqueda = ''; $('#buscar').value = ''; pintar(); window.scrollTo(0, 0);
+});
 
 async function cargar() {
   leyendo = true;

@@ -1,20 +1,26 @@
 <?php
 /* Configuración › Usuarios: el puente de la página de usuarios del portal.
  *
- * Solo Administrador y Dirección (usuarios.gestionar). requerir_sesion() ya
- * corta a los demás porque la carpeta configuracion pide area:configuracion;
- * aquí se vuelve a exigir el permiso de gestión, y cada cambio pasa por
- * exigir_puede_tocar() (cuentas.php):
- *   · Dirección no toca cuentas con rol Administrador ni asigna ese rol.
+ * Soporte Actio (clave 'administrador'), Dirección y, desde el 13-nov,
+ * Coordinación Operativa (usuarios.gestionar). requerir_sesion() ya corta a
+ * los demás porque la carpeta configuracion pide area:configuracion o
+ * area:usuarios; aquí se vuelve a exigir el permiso de gestión, y cada cambio
+ * pasa por exigir_puede_tocar() (cuentas.php):
+ *   · 13-nov: Coordinación Operativa solo ve, toca y asigna los roles de su
+ *     lista 'gestiona' (permisos.php): las cuentas de Dirección, Soporte Actio
+ *     y Coordinación Operativa no le llegan en «listar» ni las puede tocar.
+ *   · Dirección no toca cuentas con rol Soporte Actio ni asigna ese rol.
  *   · Nadie se cambia sus roles ni se desactiva a sí mismo.
- *   · El último Administrador activo no se desactiva ni pierde el rol.
+ *   · La última cuenta de Soporte Actio activa no se desactiva ni pierde el rol.
  *
- *   GET  api.php?accion=listar      → cuentas, roles y el token CSRF
+ *   GET  api.php?accion=listar      → cuentas (las que están a su alcance), roles que puede asignar,
+ *                                     puedeAdmin, puedeNombres, recortado y el token CSRF
  *   POST api.php  (cabecera X-CSRF) → {accion: crear|roles|desactivar|reactivar|reiniciar|nombre, usuario, roles?, nombre?, apellido?}
  *
  * 26-oct: «nombre» guarda el nombre y el apellido de la persona que usa la
- * cuenta (vacíos = se borran). SOLO un Administrador (usuarios.admin), en
- * cualquier cuenta, también la suya. No cambia el usuario para entrar.
+ * cuenta (vacíos = se borran). No cambia el usuario para entrar. 13-nov: pide
+ * usuarios.nombres (Soporte Actio en cualquier cuenta, también la suya;
+ * Coordinación Operativa en las que gestiona; Dirección no, como hasta ahora).
  *
  * Contraseñas: al crear o reiniciar se genera una temporal que va SOLO en la
  * respuesta de esa petición (la página la muestra una vez). No se guarda en
@@ -39,9 +45,12 @@ if (!puede('usuarios.gestionar')) responder(403, ['ok' => false, 'error' => 'Tu 
 
 $yo = usuario_actual();
 
+/* 13-nov: solo las cuentas al alcance de quien pide (cuenta_al_alcance, permisos.php). */
 function vista_cuentas(array $d): array {
     $r = [];
+    $rolesYo = roles_actuales();
     foreach ($d['usuarios'] as $u => $c) {
+        if (!cuenta_al_alcance($rolesYo, $c['roles'] ?? [])) continue;
         $r[] = ['usuario' => $u, 'nombre' => (string) ($c['nombre'] ?? ''), 'apellido' => (string) ($c['apellido'] ?? ''),
                 'roles' => array_values($c['roles'] ?? []), 'activo' => !empty($c['activo']),
                 'cambiarClave' => !empty($c['cambiar_clave']), 'creado' => $c['creado'] ?? null,
@@ -57,9 +66,12 @@ if ($metodo === 'GET') {
     if (($_GET['accion'] ?? '') !== 'listar') responder(400, ['ok' => false, 'error' => 'Acción desconocida.']);
     $d = cuentas();
     $roles = [];
-    foreach (ROLES as $id => $def) $roles[] = ['id' => $id, 'nombre' => $def['nombre'], 'descripcion' => $def['descripcion']];
+    $g = roles_gestionables(roles_actuales());   // 13-nov: con recorte, solo los roles que puede asignar
+    foreach (ROLES as $id => $def) if ($g === null || in_array($id, $g, true))
+        $roles[] = ['id' => $id, 'nombre' => $def['nombre'], 'descripcion' => $def['descripcion']];
     responder(200, ['ok' => true, 'usuarios' => vista_cuentas($d), 'roles' => $roles, 'yo' => $yo,
-        'puedeAdmin' => puede('usuarios.admin'), 'claveMinima' => CLAVE_MINIMA, 'csrf' => csrf_token()]);
+        'puedeAdmin' => puede('usuarios.admin'), 'puedeNombres' => puede('usuarios.nombres'), 'recortado' => $g !== null,
+        'claveMinima' => CLAVE_MINIMA, 'csrf' => csrf_token()]);
 }
 
 if ($metodo !== 'POST') responder(405, ['ok' => false, 'error' => 'Método no permitido.']);
@@ -78,6 +90,9 @@ try {
             case 'crear':
                 if (!usuario_valido($usuario))
                     throw new ErrorCuentas('El usuario tiene que ser de 3 a 40 letras minúsculas, números y guiones (por ejemplo recepcion-afterschool).');
+                // 13-nov: a quien no ve esa cuenta (Coordinación Operativa ante Dirección o Soporte Actio) no se le dice de quién es.
+                if ($existe && !cuenta_al_alcance($d['usuarios'][$yo]['roles'] ?? [], $d['usuarios'][$usuario]['roles'] ?? []))
+                    throw new ErrorCuentas('Ese usuario ya está en uso: elige otro.');
                 if ($existe) throw new ErrorCuentas('Ya existe un usuario «' . $usuario . '». Si está desactivado, reactívalo.');
                 $roles = roles_limpios($e['roles'] ?? null);
                 exigir_puede_tocar($d, $yo, 'crear', $usuario, $roles);
@@ -103,8 +118,9 @@ try {
                 return [];
             case 'nombre':
                 if (!$existe) throw new ErrorCuentas('No existe el usuario «' . $usuario . '».', 404);
-                if (!roles_permiten($d['usuarios'][$yo]['roles'] ?? [], 'usuarios.admin'))
-                    throw new ErrorCuentas('Solo un Administrador edita el nombre y el apellido.', 403);
+                if (!roles_permiten($d['usuarios'][$yo]['roles'] ?? [], 'usuarios.nombres'))
+                    throw new ErrorCuentas('Tu rol no edita el nombre y el apellido: lo hacen Soporte Actio y Coordinación Operativa.', 403);
+                exigir_puede_tocar($d, $yo, 'nombre', $usuario);   // 13-nov: solo en las cuentas que gestiona
                 $nombre = nombre_limpio($e['nombre'] ?? '', 'nombre');
                 $apellido = nombre_limpio($e['apellido'] ?? '', 'apellido');
                 $d['usuarios'][$usuario]['nombre'] = $nombre;

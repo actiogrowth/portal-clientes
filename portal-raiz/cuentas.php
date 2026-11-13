@@ -200,24 +200,32 @@ function admins_activos(array $d): int {
  * Reglas de quién puede tocar qué cuenta. $actor = usuario que actúa (con sus
  * roles en $d). Lanza ErrorCuentas (403) con el motivo si no puede.
  *   · Sin usuarios.gestionar no se toca nada.
+ *   · 13-nov (roles-gerencia): con 'gestiona' en su rol (Coordinación Operativa),
+ *     una cuenta con algún rol fuera de esa lista no existe para él (404, el
+ *     mismo aviso que una cuenta que no existe: ni siquiera se entera de que
+ *     está), y no asigna ningún rol fuera de la lista.
  *   · Sin usuarios.admin (Dirección) no se toca una cuenta con rol
- *     Administrador ni se asigna ese rol.
+ *     Soporte Actio (clave 'administrador') ni se asigna ese rol.
  *   · Nadie se cambia sus propios roles ni se desactiva a sí mismo.
- *   · El último Administrador activo no se desactiva ni pierde el rol.
+ *   · El último Soporte Actio activo no se desactiva ni pierde el rol.
  */
 function exigir_puede_tocar(array $d, string $actor, string $accion, string $objetivo, ?array $rolesNuevos = null): void {
     $rolesActor = $d['usuarios'][$actor]['roles'] ?? [];
     if (!roles_permiten($rolesActor, 'usuarios.gestionar')) throw new ErrorCuentas('Tu rol no permite gestionar usuarios.', 403);
     $obj = $d['usuarios'][$objetivo] ?? null;
+    if ($obj && !cuenta_al_alcance($rolesActor, $obj['roles'] ?? []))
+        throw new ErrorCuentas('No existe el usuario «' . $objetivo . '».', 404);
+    if ($rolesNuevos !== null && ($g = roles_gestionables($rolesActor)) !== null && array_diff($rolesNuevos, $g))
+        throw new ErrorCuentas('Tu rol no puede asignar Dirección, Soporte Actio ni Coordinación Operativa.', 403);
     $adminActor = roles_permiten($rolesActor, 'usuarios.admin');
     if ($obj && es_admin($obj) && !$adminActor)
-        throw new ErrorCuentas('Solo un Administrador puede modificar una cuenta con rol Administrador.', 403);
+        throw new ErrorCuentas('Solo Soporte Actio puede modificar una cuenta con rol Soporte Actio.', 403);
     if ($rolesNuevos !== null && in_array('administrador', $rolesNuevos, true) && !$adminActor)
-        throw new ErrorCuentas('Solo un Administrador puede asignar el rol Administrador.', 403);
+        throw new ErrorCuentas('Solo Soporte Actio puede asignar el rol Soporte Actio.', 403);
     if ($objetivo === $actor && in_array($accion, ['roles', 'desactivar'], true))
         throw new ErrorCuentas('No puedes cambiar tus propios roles ni desactivar tu cuenta: pídeselo a otra persona con permiso.', 403);
     if ($obj && es_admin($obj) && !empty($obj['activo']) && admins_activos($d) <= 1) {
         if ($accion === 'desactivar' || ($accion === 'roles' && !in_array('administrador', $rolesNuevos ?? [], true)))
-            throw new ErrorCuentas('Es el último Administrador activo: no se puede desactivar ni quitarle el rol.', 403);
+            throw new ErrorCuentas('Es la última cuenta de Soporte Actio activa: no se puede desactivar ni quitarle el rol.', 403);
     }
 }

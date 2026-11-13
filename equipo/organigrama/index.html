@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Equipo · Vida en Arte 360</title>
+<!-- Equipo (13-nov, roles-gerencia): el organigrama, las fichas de los puestos,
+  las Reglas del juego y los Horarios del servicio, en su PROPIA dirección.
+  Antes vivían dentro de Procesos (/procesos/#equipo), que desde el 13-nov solo
+  abren Dirección y Soporte Actio; Equipo lo abren todos los roles (área
+  «equipo», la de la carpeta equipo/). Lee SOLO por la capa de datos
+  (comun/organigrama.js → Datos.equipo → /equipo/api.php), que ya manda
+  únicamente lo que esta persona puede ver.
+    /equipo/organigrama/                   el organigrama (también #equipo)
+    /equipo/organigrama/#reglas            las Reglas del juego (todos)
+    /equipo/organigrama/#horarios          los Horarios del servicio (quien tiene equipo.todo)
+    /equipo/organigrama/#puesto=<ID>       la ficha de ese puesto abierta (Mi lista enlaza aquí)
+                                           …&pestana=hojas (o lista) la abre en esa pestaña
+  Las direcciones viejas /procesos/#equipo, #reglas, #horarios y #puesto=… llevan
+  aquí (para quien todavía abre Procesos; a los demás el servidor les dice
+  «sin permiso» antes de llegar a la página). -->
+<!-- App instalable (23-oct): manifiesto e íconos en comun/, públicos. -->
+<link rel="manifest" href="/comun/app.webmanifest?v=e5f020c113">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" type="image/png" sizes="192x192" href="/comun/app-icono-192.png?v=ce63fbd4f4">
+<link rel="apple-touch-icon" href="/comun/app-icono-180.png?v=56fff6a358">
+<meta name="apple-mobile-web-app-title" content="VEA 360">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- 3-nov (ajuste 3): la apariencia (claro, oscuro o automático) antes de pintar: sin parpadeo. -->
+<script src="/comun/tema.js?v=1765abd1c2"></script>
+<link rel="stylesheet" href="/comun/vea.css?v=091edd1f0f">
+</head>
+<body>
+<header id="cab"></header>
+<main class="pagina pa">
+  <section class="encabezado encabezado-as">
+    <div>
+      <p class="pr-miga" id="miga"></p>
+      <h1 class="titulo" id="titulo">Equipo</h1>
+      <p class="ayuda" id="sub"></p>
+    </div>
+  </section>
+  <div id="equipo"></div>
+</main>
+
+<script src="/comun/datos.js?v=62fa2e69ae"></script>
+<script src="/comun/marca.js?v=259c1d0267"></script>
+<script src="/comun/visor.js?v=3de76954cc"></script>
+<script src="/comun/visor-pantalla.js?v=5a17db4017"></script>
+<script src="/comun/puestos.js?v=5a4377db79"></script>
+<script src="/comun/verificacion.js?v=afe956c5dd"></script>
+<script src="/comun/organigrama.js?v=d7a1c6101e"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = Marca.esc;
+let sesion = null;
+
+const RUTA_EQUIPO = { texto: 'Equipo', url: '/equipo/organigrama/' };
+const VISTAS = { '': 'org', '#equipo': 'org', '#reglas': 'reglas', '#horarios': 'horarios' };
+
+/* La ruta (Inicio / Equipo / …) va en la cabecera; en celular la cabecera no la muestra y se repite sobre el título. */
+function cabecera(ruta) {
+  const completa = [{ texto: 'Inicio', url: '/' }].concat(ruta);
+  Marca.cabecera($('#cab'), { sesion, ruta: completa });
+  const sub = completa.slice(1);
+  $('#miga').innerHTML = sub.length > 1 ? sub.map((p, i) => i < sub.length - 1 ? '<a href="' + esc(p.url) + '">' + esc(p.texto) + '</a> / ' : '<b>' + esc(p.texto) + '</b>').join('') : '';
+}
+
+function pintar() {
+  // 2-nov: #puesto=<ID>&pestana=lista|hojas abre la ficha en esa pestaña.
+  const h = location.hash, m = h.match(/^#puesto=([^&]+)(?:&pestana=(lista|hojas))?$/) || [], abrir = m[1];
+  const sub = VISTAS[h] || 'org';
+  cabecera(sub === 'org' ? [{ texto: 'Equipo' }] : [RUTA_EQUIPO, { texto: sub === 'reglas' ? 'Reglas del juego' : 'Horarios del servicio' }]);
+  Organigrama.mostrar($('#equipo'), { vista: sub, abrir: abrir ? decodeURIComponent(abrir) : '', pestana: m[2] || '',
+    alTitulo: (t, s) => { $('#titulo').textContent = t; $('#sub').textContent = s; } });
+}
+
+window.addEventListener('hashchange', () => { pintar(); window.scrollTo(0, 0); });
+
+(async function iniciar() {
+  try { sesion = await Datos.sesion(); } catch (e) { if (e.codigo === 'sesion') { Datos.aLogin(); return; } }
+  pintar();
+})();
+</script>
+</body>
+</html>

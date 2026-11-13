@@ -57,7 +57,8 @@ function servidor() {
     const json = o => { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(o)); };
     if (url === '/acceso.php') return json(SESION);
     if (url === '/equipo/api.php') return json({ ok: true, resultado: LEER });
-    const archivo = url === '/procesos/' ? path.join(RAIZ, 'procesos', 'index.html') : url.startsWith('/comun/') ? path.join(RAIZ, url) : null;
+    const archivo = url === '/equipo/organigrama/' ? path.join(RAIZ, 'equipo', 'organigrama', 'index.html') :   // 13-nov: Equipo en su propia dirección
+      url.startsWith('/comun/') ? path.join(RAIZ, url) : null;
     if (!archivo || !fs.existsSync(archivo)) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'Content-Type': tipos[archivo.split('.').pop()] || 'application/octet-stream' });
     fs.createReadStream(archivo).pipe(res);
@@ -86,7 +87,7 @@ async function preparar(navegador, opciones) {
   const page = await ctx.newPage();
   const errores = [];
   page.on('pageerror', e => errores.push(e.message));
-  await page.goto(base + '/procesos/#equipo');
+  await page.goto(base + '/equipo/organigrama/');
   await page.waitForSelector('[data-eq-puesto="DIR"]');
   await page.waitForTimeout(3200);   // termina la entrada en cascada (~2,5 s)
   return { ctx, page, errores };
@@ -195,7 +196,7 @@ let base = '';
       const ctx = await navegador.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
       const page = await ctx.newPage(), errores = [];
       page.on('pageerror', e => errores.push(e.message));
-      await page.goto(base + '/procesos/#puesto=O0');
+      await page.goto(base + '/equipo/organigrama/#puesto=O0');
       await page.waitForSelector('dialog.eq-dialogo[open]');
       ok(await page.evaluate(() => { const t = document.querySelector('.eq-pestanas'); return t.scrollWidth <= t.clientWidth && t.children.length === 3; }), 'las tres pestañas caben en el ancho del celular');
       await fichaV3(page, '375 × 812', true);
