@@ -125,16 +125,18 @@ estados[] (incluye 'Eventual'), motivoCambio, estadosPrueba[], pruebaOcupa[], di
 
 ## Acciones de Configuración (`configuracion/api.php`)
 
-Solo `usuarios.gestionar` (Administrador, Dirección). Escrituras con cabecera `X-CSRF`.
+Solo `usuarios.gestionar` (Soporte Actio, Dirección y, desde el 13-nov, Coordinación Operativa). Escrituras con cabecera `X-CSRF`.
+
+**13-nov (roles-gerencia, R197):** quien tiene un rol con lista `gestiona` (Coordinación Operativa) solo recibe en `listar` las cuentas cuyos roles están TODOS en esa lista, y solo los roles de esa lista; `recortado: true`. Cualquier acción sobre una cuenta fuera de su alcance (también la suya) → 404 «No existe el usuario»; asignar un rol fuera de la lista → 403; `crear` con un usuario que existe pero no ve → 400 «Ese usuario ya está en uso».
 
 | Acción | Método | Parámetros | Respuesta | Reglas |
 |---|---|---|---|---|
-| `listar` | GET `?accion=listar` | — | `{usuarios[{usuario, nombre, apellido, roles, activo, cambiarClave, creado, ultimoIngreso}], roles[], yo, puedeAdmin, claveMinima, csrf}` | Nunca devuelve huellas ni contraseñas. |
+| `listar` | GET `?accion=listar` | — | `{usuarios[{usuario, nombre, apellido, roles, activo, cambiarClave, creado, ultimoIngreso}], roles[], yo, puedeAdmin, puedeNombres, recortado, claveMinima, csrf}` (13-nov: `puedeNombres`, `recortado`; `usuarios` y `roles` recortados) | Nunca devuelve huellas ni contraseñas. |
 | `crear` | POST | `usuario`, `roles[]` | `{temporal, usuarios}` | Usuario 3–40 `[a-z0-9-]`; al menos un rol; Dirección no asigna Administrador. |
 | `roles` | POST | `usuario`, `roles[]` | `{usuarios}` | No a uno mismo; Dirección no toca cuentas Admin; el último Admin activo no pierde el rol. |
 | `desactivar` / `reactivar` | POST | `usuario` | `{usuarios}` | No desactivarse a uno mismo; Dirección no toca Admin; último Admin activo. |
 | `reiniciar` | POST | `usuario` | `{temporal, usuarios}` | Corta sus sesiones; cambio obligatorio al entrar. |
-| `nombre` (26-oct) | POST | `usuario`, `nombre`, `apellido` | `{usuarios}` | **Solo Administrador** (`usuarios.admin`), en cualquier cuenta. Hasta 40 letras con espacios, guion, apóstrofo o punto; vacío = se borra. El registro anota el cambio sin el nombre. No cambia el usuario para entrar (R131). |
+| `nombre` (26-oct) | POST | `usuario`, `nombre`, `apellido` | `{usuarios}` | 13-nov: con **`usuarios.nombres`** (Soporte Actio en cualquier cuenta; Coordinación Operativa en las que gestiona; Dirección no). Hasta 40 letras con espacios, guion, apóstrofo o punto; vacío = se borra. El registro anota el cambio sin el nombre. No cambia el usuario para entrar (R131). |
 
 
 ## Acciones de Pasar lista (`pasar-lista/api.php`)
@@ -283,7 +285,7 @@ UNIDAD → PROCESO → DOCUMENTOS para que el equipo aprenda cómo funciona cada
 unidad. Cuando termine el contrato, Proyecto Actio se apaga y Procesos queda.
 **Solo lectura.**
 
-Puente propio, área `procesos` (todos los roles). Reutiliza el Apps Script de
+Puente propio, área `procesos` (hasta el 13-nov todos los roles; **desde el 13-nov solo Dirección y Soporte Actio**: los demás reciben 403 «sin_permiso»). Reutiliza el Apps Script de
 Proyecto Actio (acción `leer`), su transporte y **su misma copia** en
 `portal_cache/proyecto-actio.json`: cargar Procesos no vuelve a llamar a
 Google si Proyecto Actio ya leyó hace menos de `pa_cache_seg`.
@@ -345,13 +347,16 @@ misma regla (403 si no están en la lista del rol).
 ## Biblioteca de presentaciones (`/biblioteca/`) — 23-oct
 
 Las presentaciones `.html` privadas pasan de `/proyecto-actio/archivos/` a
-`/biblioteca/`: las abre **cualquier usuario con sesión** (sin área), servidas
+`/biblioteca/`. (5-nov: solo quien recibe el archivo en su lista; 13-nov: la lista de Procesos cuenta solo
+para quien abre Procesos, Dirección y Soporte Actio.) Antes las abría **cualquier usuario con sesión** (sin área), servidas
 por `gate.php`; sin listado, sin ejecutar scripts (regla propia en el
 `.htaccess` de la raíz y `biblioteca/.htaccess`), nombre simple en minúsculas.
 `/proyecto-actio/archivos/<nombre>.html` responde **301 → `/biblioteca/<nombre>.html`**
 (lo hace `gate.php`), para no romper los enlaces del Sheet.
 
 ## Acciones de Equipo (`equipo/api.php`) — 26-oct
+
+(13-nov: la página de Equipo es `/equipo/organigrama/`, ya no `/procesos/#equipo`; el puente no cambia.)
 
 **Procesos › Equipo**: los puestos de Vida en Arte (organigrama), la ficha de
 cada puesto (contrato de posición, lista de verificación, procesos), la
@@ -799,6 +804,8 @@ pasar a Resend se cambia esa función (y se agrega su acción aquí); la pantall
 no cambia.
 
 ## Base de Datos VEA (`/basededatos/` y `basededatos/api.php`) — 4-nov (D-123)
+
+**13-nov (roles-gerencia, R195, D-140): CERRADA PARA TODOS.** La carpeta `basededatos/` está en `CARPETAS_CERRADAS`: la página y este puente responden 403 «sin_permiso» a cualquier rol, también a Soporte Actio y Dirección. Lo que sigue describe el puente tal como quedó, por si se vuelve a abrir. Mensajes no pasa por aquí.
 
 La página (`index.html`) vive en el repositorio `bdclientesvea`; el puente,
 aquí. La página no tiene ninguna clave.

@@ -317,7 +317,7 @@ lo tienen y llegan a él desde Inicio. Las páginas de unidad llevan la miga
 «Inicio / <Marca> / <Unidad>» (`Marca.rutaUnidad`): After School, Veranito y
 Preschool.
 
-**Procesos** (`/procesos/`, área `procesos`, todos los roles): la biblioteca
+**Procesos** (`/procesos/`, área `procesos`; todos los roles hasta el 13-nov, desde entonces solo Dirección y Soporte Actio, ver §2k): la biblioteca
 permanente de Vida en Arte. Cuando termine el contrato, Proyecto Actio se
 apaga y Procesos queda.
 
@@ -792,6 +792,34 @@ acción, no hay botón.
   cuerpo conservan corchetes de la plantilla. (El reintento del registro quedó
   resuelto el 5-nov: lo hace el servidor; la cuenta de Gmail ya no existe.)
 
+## 2k. Roles de gerencia (13-nov): Soporte Actio, Coordinación Operativa y sin Base de datos
+
+Encargo de Marco (rama `roles-gerencia`). Cambios mínimos de permisos y menús, sin funciones nuevas, mientras el portal se reemplaza por Vida en Arte 360 en Firebase (allí se aplicarán los mismos roles).
+
+**Quién ve qué** (✓ = abre; — = no lo ve y el servidor responde «sin permiso» por la dirección):
+
+| Sección | Soporte Actio | Dirección | Coord. Operativa | Coord. After School | Coord. Preschool | Recepción | Comercial | Contabilidad | Profesor |
+|---|---|---|---|---|---|---|---|---|---|
+| After School | ✓ | ✓ | ✓ completo + Pasar lista con correcciones | ✓ completo + Pasar lista | — | ✓ sin Pasar lista | ✓ Ocupación y Pruebas | ✓ Pagos | ✓ solo Pasar lista |
+| Preschool (tablero) | ✓ | ✓ | ✓ | — | ✓ | — | ✓ | — | — |
+| Veranito, Cumpleaños, Baby & Me | ✓ | ✓ | ✓ | — | — | — | — | — | — |
+| Mensajes | ✓ envía | ✓ envía | ✓ envía y plantillas | — | — | — | arma sin enviar | — | — |
+| Equipo (`/equipo/organigrama/`) y Mi lista | ✓ todo | ✓ todo | ✓ todo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Resumen del negocio | ✓ | ✓ | — | — | — | — | — | — | — |
+| Procesos (y sus archivos de `/biblioteca/`) | ✓ | ✓ | — | — | — | — | — | — | — |
+| Proyecto Actio | ✓ (con lo interno) | ✓ | — | — | — | — | — | — | — |
+| Configuración | ✓ | ✓ | solo «Usuarios» (sin Dirección, Soporte Actio ni Coord. Operativa) | — | — | — | — | — | — |
+| Base de datos | — | — | — | — | — | — | — | — | — |
+
+**Cómo está hecho:**
+- **Soporte Actio** es el rol de clave `administrador` con otro nombre visible (D-135, R193).
+- **Coordinación Operativa** (`coordinacion_operativa`): sus permisos en `ROLES`, y `gestiona` = la lista cerrada de roles cuyas cuentas ve, toca y asigna. `roles_gestionables()` y `cuenta_al_alcance()` (en `permisos.php`) los usan `configuracion/api.php` (`listar`, `crear`, `nombre`) y `cuentas.php` (`exigir_puede_tocar`) (D-136, D-137, R196, R197).
+- **Usuarios** con área propia (`area:usuarios`): `CARPETAS_AREA['configuracion'] = ['configuracion', 'usuarios']`; `roles_abren_ruta()` acepta una lista (basta una área). La barra muestra «Usuarios» a quien la tiene sin Configuración (`sinAreas`); la página se titula «Usuarios» y quita los botones con `data-area="configuracion"` (D-138).
+- **Gerencia**: ningún rol fuera de Dirección y Soporte Actio tiene `area:procesos`; `procesos_biblioteca_permite()` solo cuenta la lista de Procesos con `area:procesos` (D-139, R194).
+- **Base de datos**: `CARPETAS_CERRADAS = ['basededatos']`; `area_de_ruta()` devuelve `false` para esas carpetas y `roles_abren_ruta()` responde que no a cualquiera, incluso con `*` (D-140, R195).
+- **Equipo** en `equipo/organigrama/index.html` (misma pieza `comun/organigrama.js`); `procesos/index.html` queda con Documentos y lleva las direcciones viejas de Equipo a la nueva (R199).
+- **Efecto en Equipo** (no es un permiso nuevo): Equipo reconoce a una persona por su usuario o por el NOMBRE de su rol. El Sheet de Procesos tiene un puesto «Coordinación Operativa» y textos «Verifica: Coordinación Operativa, cada día»; quien tenga el rol nuevo cuenta como ese puesto en Revisar. No hay ningún «Administrador» escrito en el Sheet, así que el cambio de nombre no mueve nada.
+
 ## 3. Dónde vive cada cosa
 
 | Qué | Dónde | Cómo se cambia |
@@ -836,7 +864,7 @@ Todas corren en GitHub Actions (`.github/workflows/pruebas-after-school.yml`) en
 | `after-school-script/pruebas/prueba-api-transporte.php` (+ `correr-prueba-transporte.js`) | El transporte de `api.php`: redirecciones, reintentos, tiempos. |
 | `after-school-script/pruebas/roturas-api.js` | Roturas del transporte. |
 | `pruebas-portal/prueba-portal.js` | El portal de punta a punta con `php -S` y las reglas de `htaccess.txt`: roles, Procesos (recorte para todos los roles), Equipo (quién ve, acepta, marca y revisa qué puesto, por rol, buscando en el texto de la respuesta), Resumen del negocio solo para Dirección y Administrador (Preschool sin montos, metas, la nota «Datos en revisión» desde `portal_config.php`), Preschool operativo (`kinder/csv.php` sin pagos, plan, responsable, tarifas ni costos; solo filas de Kínder; «Pagó el mes»), Pendientes de hoy por rol, nombre y apellido (solo Administrador), estilo vidrio por página, biblioteca, portada por marca y entrada por rol, áreas, acciones por rol, recortes, usuarios, CSRF, bloqueo tras 5 fallos, contraseña temporal, logout, a dónde va cada rol tras entrar y en qué pestaña abre After School, `/comun/` público sin listado ni PHP, y el recorrido sin bucle con el `.htaccess` nuevo y el anterior. |
-| `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. |
+| `pruebas-portal/roturas-portal.js` | Roturas de roles y usuarios. (13-nov) Con las de §2k: Coordinación Operativa, Usuarios recortado, carpetas cerradas, Procesos y Equipo; sin las de los cerrojos internos de la Base de Datos (cerrada, D-140). |
 | `pruebas-portal/prueba-sin-claves.js` | (4-nov, D-123) Ninguna clave, dirección /exec, ID de implementación ni hoja publicada en las carpetas que se suben al cPanel (y en las carpetas o archivos que se le pasen, como una entrega o el `index.html` de la Base de Datos). Se prueba a sí misma con ejemplos plantados. |
 | `bdclientesvea/pruebas/prueba-clave.js` | (4-nov, otro repositorio) La clave del script de la Base de Datos: la vieja, ninguna u otra no sirven para ninguna acción; sin la propiedad `BD_CLAVE_API` (o corta) nadie pasa; con ella, sí. Con 6 roturas. |
 | `pruebas-portal/prueba-cifras.js` | Las cifras del Resumen del negocio (`comun/cifras.js`: ocupación de After School, metas tentativas, Preschool, niños sin contar dos veces, altas, bajas y pruebas que se inscriben de After School con su plazo y su período cubierto, altas y bajas del negocio con desglose, finanzas «Próximamente», alertas) con datos inventados, y sus roturas. |
